@@ -4,7 +4,7 @@
  *
  * Player model: mine sessions back-to-back at CLICKS_PER_SEC (+ assist drill strikes),
  * golden veins claimed when they spawn, region activities used when ready (then back home,
- * where the mine is), and a
+ * where the mine is), field challenges at 80% success, and a
  * payback-greedy shopper (producer level / upgrade / skill node with the best
  * cost ÷ income gain, cheap utility nodes bought outright). Potions and crisis are ignored,
  * so a real player lands a little faster than this.
@@ -41,6 +41,8 @@ import {
   homeRegionId,
   returnHomeRegion,
   activateRegion,
+  claimRegionChallenge,
+  regionChallengeError,
 } from "../src/domain/services/clicker-engine.ts"
 import { autoDrillRate, awardAchievements, claimGoldenVein, VEIN_SPAWN_CHANCE } from "../src/domain/services/clicker-bonus.ts"
 
@@ -176,6 +178,8 @@ const sources: Record<string, number> = {}
 const credit = (key: string, before: number) => {
   sources[key] = (sources[key] ?? 0) + (save.runState.lifetimeCoreEnergy - before)
 }
+/** Share of targets a decent player hits in a region field challenge. */
+const CHALLENGE_SCORE = 0.8
 let runStart = 0
 let mineCycles = 0
 
@@ -192,6 +196,22 @@ function bestRegion(): void {
     if (!used.error) sources[`act:${region.id}`] = (sources[`act:${region.id}`] ?? 0) + used.run.lifetimeCoreEnergy - before
     if (process.env.TRACE && !used.error) console.log(`  activity ${region.id} +${(used.run.lifetimeCoreEnergy - before).toExponential(2)}`)
     if (!used.error) save = { ...save, runState: used.run, metaState: used.meta }
+  }
+  // Field challenges: played at CHALLENGE_SCORE, costing the countdown plus play time.
+  for (const region of config.regions) {
+    if (!region.challenge || !isRegionUnlocked(save.runState, config, region.id)) continue
+    if (save.runState.currentRegionId !== region.id) {
+      const moved = travelToRegion(save.runState, config, region.id)
+      if (moved.error) continue
+      save = { ...save, runState: moved.run }
+    }
+    if (regionChallengeError(save.runState, config, region.id, now)) continue
+    for (let sec = 0; sec < region.challenge.durationSec + 3; sec++) step(1)
+    const before = save.runState.lifetimeCoreEnergy
+    const played = claimRegionChallenge(save.runState, save.metaState, config, region.id, CHALLENGE_SCORE, now)
+    if (played.error) continue
+    save = { ...save, runState: played.run, metaState: played.meta }
+    sources[`challenge:${region.id}`] = (sources[`challenge:${region.id}`] ?? 0) + save.runState.lifetimeCoreEnergy - before
   }
   // The mine only exists at home: walk back before the next session.
   if (save.runState.currentRegionId !== homeRegionId(config)) {

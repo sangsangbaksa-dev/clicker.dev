@@ -16,6 +16,7 @@ import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine } from "@/components/clicker/clicker-mine"
 import { ClickerCinematic } from "@/components/clicker/clicker-cinematic"
+import { ClickerRegionChallenge } from "@/components/clicker/clicker-region-challenge"
 import { MineArt } from "@/data/clicker/mine-assets"
 import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
 import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motion"
@@ -115,6 +116,8 @@ export function ClickerApp() {
   const game = useClicker()
   // Door-walk entry cinematic between Enter Mine and the timed session (carries its own SFX).
   const [enteringMine, setEnteringMine] = useState(false)
+  /** Region whose field challenge is open (mini-game overlay), or null. */
+  const [challengeRegionId, setChallengeRegionId] = useState<string | null>(null)
 
   // Prime Web Audio on first gesture so click/laser SFX are not stuck suspended.
   useEffect(() => {
@@ -956,32 +959,54 @@ export function ClickerApp() {
                 <span className="clicker-hub-enter-sub">입장료 {formatNumber(mineEntryCost)} CORE</span>
               ) : null}
             </button>
-          ) : game.currentRegion?.activity ? (() => {
-            // Away from home there is no mine: the region's own activity takes the stage.
+          ) : game.currentRegion?.activity || game.currentRegion?.challenge ? (() => {
+            // Away from home there is no mine: the region's own activity and challenge take the stage.
             const region = game.currentRegion
-            const act = region.activity!
-            const busy = act.activeMs > 0
-            const cooling = act.readyInMs > 0
+            const act = region.activity
+            const challenge = region.challenge
+            const busy = (act?.activeMs ?? 0) > 0
+            const cooling = (act?.readyInMs ?? 0) > 0
             return (
-              <div className="clicker-region-station" aria-label={`${region.name} · ${act.name}`}>
+              <div className="clicker-region-station" aria-label={`${region.name} · 지역 활동`}>
                 <p className="clicker-region-station-kicker">{region.name} · 지역 활동</p>
-                <button
-                  type="button"
-                  className={`clicker-region-activity${busy ? " is-active" : ""}`}
-                  disabled={cooling || regionIntroPlaying}
-                  title={act.description}
-                  aria-label={`${act.name} · ${act.description}`}
-                  onClick={() => game.regionActivity(region.id)}
-                >
-                  <strong>{act.name}</strong>
-                  <span>
-                    {busy
-                      ? `진행 중 ${Math.ceil(act.activeMs / 1000)}초${act.deposit > 0 ? ` · 예치 ${formatNumber(act.deposit)}` : ""}`
-                      : cooling
-                        ? `재사용 ${Math.ceil(act.readyInMs / 1000)}초`
-                        : act.description}
-                  </span>
-                </button>
+                {challenge ? (
+                  <button
+                    type="button"
+                    className="clicker-region-activity is-challenge"
+                    disabled={challenge.readyInMs > 0 || regionIntroPlaying}
+                    title={challenge.description}
+                    aria-label={`${challenge.name} · ${challenge.description}`}
+                    onClick={() => {
+                      if (game.canStartChallenge(region.id)) setChallengeRegionId(region.id)
+                    }}
+                  >
+                    <strong>▶ {challenge.name}</strong>
+                    <span>
+                      {challenge.readyInMs > 0
+                        ? `재도전 ${Math.ceil(challenge.readyInMs / 1000)}초`
+                        : challenge.description}
+                    </span>
+                  </button>
+                ) : null}
+                {act ? (
+                  <button
+                    type="button"
+                    className={`clicker-region-activity${busy ? " is-active" : ""}`}
+                    disabled={cooling || regionIntroPlaying}
+                    title={act.description}
+                    aria-label={`${act.name} · ${act.description}`}
+                    onClick={() => game.regionActivity(region.id)}
+                  >
+                    <strong>{act.name}</strong>
+                    <span>
+                      {busy
+                        ? `진행 중 ${Math.ceil(act.activeMs / 1000)}초${act.deposit > 0 ? ` · 예치 ${formatNumber(act.deposit)}` : ""}`
+                        : cooling
+                          ? `재사용 ${Math.ceil(act.readyInMs / 1000)}초`
+                          : act.description}
+                    </span>
+                  </button>
+                ) : null}
                 <p className="clicker-region-station-note">광산은 Core Mine에서만 열립니다.</p>
               </div>
             )
@@ -1295,6 +1320,26 @@ export function ClickerApp() {
           }}
         />
       ) : null}
+
+      {(() => {
+        const region = challengeRegionId ? game.regions.find((r) => r.id === challengeRegionId) : null
+        if (!region?.challenge) return null
+        return (
+          <ClickerRegionChallenge
+            key={region.id}
+            kind={region.challenge.kind}
+            name={region.challenge.name}
+            description={region.challenge.description}
+            durationSec={region.challenge.durationSec}
+            muted={game.save.settings.muted}
+            onFinish={(score) => {
+              setChallengeRegionId(null)
+              game.claimChallenge(region.id, score)
+            }}
+            onCancel={() => setChallengeRegionId(null)}
+          />
+        )
+      })()}
 
       {game.regionIntro ? (
         <ClickerCinematic

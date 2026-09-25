@@ -6,6 +6,7 @@ import type {
   RunState,
   SkillBranch,
   UpgradeCategory,
+  RegionChallengeKind,
 } from "../entities/clicker"
 import {
   canRebirth,
@@ -383,6 +384,16 @@ export type RegionView = {
   isHome: boolean
   isCurrent: boolean
   activity: RegionActivityView | null
+  challenge: RegionChallengeView | null
+}
+
+export type RegionChallengeView = {
+  kind: RegionChallengeKind
+  name: string
+  description: string
+  durationSec: number
+  /** ms until it can be played again (0 = ready). */
+  readyInMs: number
 }
 
 export type RegionActivityView = {
@@ -464,6 +475,15 @@ export function buildRegionViews(run: RunState, config: GameConfig, now = Date.n
             readyInMs: Math.max(0, (run.regionCooldowns[region.id] ?? 0) - now),
             activeMs: regionActivityActiveMs(run, region.activity.kind, now),
             deposit: region.activity.kind === "PHASE_DEPOSIT" ? run.vaultDeposit : 0,
+          }
+        : null,
+      challenge: region.challenge
+        ? {
+            kind: region.challenge.kind,
+            name: region.challenge.name,
+            description: region.challenge.description,
+            durationSec: region.challenge.durationSec,
+            readyInMs: Math.max(0, (run.challengeCooldowns[region.id] ?? 0) - now),
           }
         : null,
     }

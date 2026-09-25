@@ -34,6 +34,8 @@ import {
   syncClickerMineSession,
   activateSkill,
   markRegionVisited,
+  claimRegionChallenge,
+  regionChallengeError,
   MINE_HOME_ONLY_ERROR,
 } from "./clicker-engine.ts"
 import { MINE_SESSION_BASE_MS as MINE_SESSION_MS, mineSessionDurationMs } from "./clicker-engine.ts"
@@ -403,6 +405,27 @@ test("the mine opens only in the home region", () => {
   assert.equal(refused.save.settings.playSurface, "hub")
   const home = { ...traveled, runState: returnHomeRegion(traveled.runState, config).run }
   assert.equal(enterClickerMine(home, now, config).save.settings.playSurface, "mine")
+})
+
+test("field challenge pays production by score and then cools down", () => {
+  const now = 12_000_000
+  const meta = createInitialMeta()
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), 60_000_000)
+  run = buyProducer(run, meta, config, "solar_node", 5).run
+  const away = claimRegionChallenge(run, meta, config, "storm_spire", 1, now)
+  assert.ok(away.error, "must stand in the region")
+  run = travelToRegion(run, config, "storm_spire").run
+  const perSecond = productionSnapshot(run, meta, config, now).perSecond
+  const spire = config.regions.find((r) => r.id === "storm_spire")!.challenge!
+  const half = claimRegionChallenge(run, meta, config, "storm_spire", 0.5, now)
+  assert.equal(half.error, undefined)
+  assert.ok(Math.abs(half.reward - perSecond * spire.rewardSeconds * 0.5) < 1e-6)
+  assert.ok(Math.abs(half.run.coreEnergy - run.coreEnergy - half.reward) < 1e-6)
+  assert.ok(regionChallengeError(half.run, config, "storm_spire", now + 1000))
+  assert.equal(regionChallengeError(half.run, config, "storm_spire", now + spire.cooldownSec * 1000), undefined)
+  const cheat = claimRegionChallenge(run, meta, config, "storm_spire", 7, now)
+  assert.ok(Math.abs(cheat.reward - perSecond * spire.rewardSeconds) < 1e-6, "score is clamped to 1")
+  assert.ok(claimRegionChallenge(run, meta, config, "signal_relay", 1, now).error, "relay has no challenge")
 })
 
 test("region visits are recorded once so the intro plays only on the first entry", () => {

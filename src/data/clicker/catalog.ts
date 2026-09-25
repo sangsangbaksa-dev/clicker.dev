@@ -40,7 +40,8 @@ export const clickerConfig: GameConfig = {
   rebirthGrowth: 10,
   // Prices double per worldline while goals grow ×10, so each worldline climbs further.
   priceGrowth: 2,
-  worldlineBonus: 0.5,
+  // ×1.8 permanent click & production per rebirth: each worldline runs ~30% faster than the last.
+  worldlineBonus: 0.8,
   skillPointEveryLevels: 10,
   producers: [
     {

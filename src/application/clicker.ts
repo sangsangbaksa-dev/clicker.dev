@@ -29,6 +29,8 @@ import {
   syncClickerMineSession,
   returnHomeRegion,
   activateRegion,
+  claimRegionChallenge,
+  regionChallengeError,
   travelToRegion,
   markRegionVisited,
   activateSkill,
@@ -210,6 +212,21 @@ export function clickerRegionActivity(save: SaveData, regionId: string, now: num
   const next = activateRegion(save.runState, save.metaState, config, regionId, now)
   if (next.error) return { ok: false, status: 400, error: next.error }
   return ok({ ...save, runState: next.run, metaState: next.meta })
+}
+
+export function clickerRegionChallengeError(save: SaveData, regionId: string, now: number): string | undefined {
+  return regionChallengeError(save.runState, config, regionId, now)
+}
+
+export function clickerClaimChallenge(
+  save: SaveData,
+  regionId: string,
+  score: number,
+  now: number,
+): UseCaseResult<{ save: SaveData; reward: number }> {
+  const next = claimRegionChallenge(save.runState, save.metaState, config, regionId, score, now)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ save: withAchievements({ ...save, runState: next.run, metaState: next.meta }), reward: next.reward })
 }
 
 export function clickerReturnHome(save: SaveData): UseCaseResult<SaveData> {

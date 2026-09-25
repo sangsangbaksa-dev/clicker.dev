@@ -5,7 +5,8 @@ import type { RegionDef } from "../../domain/entities/clicker"
  * Bonuses apply only while the player is present in that region
  * (`run.currentRegionId`); rebirth returns home → Core Mine bias.
  * The timed mine exists only at home; every other region has one activity usable only
- * while standing there. `intro` plays once, on the first visit.
+ * while standing there, and the later regions add a hands-on `challenge` mini-game.
+ * `intro` plays once, on the first visit.
  */
 export const CLICKER_REGIONS: RegionDef[] = [
   {
@@ -57,10 +58,19 @@ export const CLICKER_REGIONS: RegionDef[] = [
     id: "storm_spire",
     name: "Storm Spire",
     description: "번개가 멎지 않는 첨탑. 채굴 레이저가 낙뢰를 끌어당깁니다.",
-    bgAssetId: "/clicker/mine/mine_interior_hitech_v1.png",
+    bgAssetId: "/clicker/bg/region_storm_spire.jpg",
+    intro: { video: "/clicker/region/storm_spire_intro.mp4", poster: "/clicker/bg/region_storm_spire.jpg" },
     unlockAtLifetimeEnergy: 30_000_000,
     clickMultiplier: 1.15,
     lightningChanceAdd: 0.08,
+    challenge: {
+      kind: "ROD_STRIKE",
+      name: "피뢰침 포획",
+      description: "빛나는 피뢰침을 번개가 치기 전에 눌러 전하를 포획 · 15초",
+      durationSec: 15,
+      rewardSeconds: 90,
+      cooldownSec: 180,
+    },
     activity: {
       kind: "LIGHTNING_STORM",
       name: "낙뢰 소환",
@@ -73,10 +83,19 @@ export const CLICKER_REGIONS: RegionDef[] = [
     id: "deep_fault",
     name: "Deep Fault",
     description: "행성 깊이 갈라진 단층. 한 번의 타격이 지각을 울립니다.",
-    bgAssetId: "/clicker/mine/mine_interior_mineral_ore_v2.png",
+    bgAssetId: "/clicker/bg/region_deep_fault.jpg",
+    intro: { video: "/clicker/region/deep_fault_intro.mp4", poster: "/clicker/bg/region_deep_fault.jpg" },
     unlockAtLifetimeEnergy: 400_000_000,
     productionMultiplier: 1.2,
     quakeIntervalReduce: 5,
+    challenge: {
+      kind: "FAULT_DRILL",
+      name: "단층 시추",
+      description: "압력 바늘이 녹색 구간에 올 때 시추 · 성공할수록 구간이 좁아짐 · 15초",
+      durationSec: 15,
+      rewardSeconds: 120,
+      cooldownSec: 180,
+    },
     activity: {
       kind: "PRODUCTION_BURST",
       name: "지각 붕괴",
@@ -89,10 +108,19 @@ export const CLICKER_REGIONS: RegionDef[] = [
     id: "drone_foundry",
     name: "Drone Foundry",
     description: "버려진 드론 공장. 격납고마다 채굴 드론이 잠들어 있습니다.",
-    bgAssetId: "/clicker/mine/mine_scene_core_chamber_v1.png",
+    bgAssetId: "/clicker/bg/region_drone_foundry.jpg",
+    intro: { video: "/clicker/region/drone_foundry_intro.mp4", poster: "/clicker/bg/region_drone_foundry.jpg" },
     unlockAtLifetimeEnergy: 5_000_000_000,
     productionMultiplier: 1.15,
     droneEfficiencyAdd: 1,
+    challenge: {
+      kind: "DRONE_RECALL",
+      name: "드론 회수",
+      description: "격납고를 가로지르는 드론을 눌러 회수 · 15초",
+      durationSec: 15,
+      rewardSeconds: 90,
+      cooldownSec: 180,
+    },
     activity: {
       kind: "DRONE_SWARM",
       name: "드론 사출",

@@ -86,6 +86,8 @@ export type RunState = {
   drillOverdriveReadyAt: number
   /** Region id → absolute ms when its activity can be used again. */
   regionCooldowns: Record<string, number>
+  /** Region id → absolute ms when its field challenge can be played again. */
+  challengeCooldowns: Record<string, number>
   /** Phase Vault deposit waiting to pay out (0 when empty). */
   vaultDeposit: number
   vaultReadyAt: number
@@ -331,8 +333,22 @@ export type RegionDef = {
   quakeIntervalReduce?: number
   droneEfficiencyAdd?: number
   activity?: RegionActivityDef
+  /** Hands-on mini-game played in the region; pays CORE by score. */
+  challenge?: RegionChallengeDef
   /** First-visit cinematic (video with its own soundtrack), played once per save. */
   intro?: RegionIntroDef
+}
+
+export type RegionChallengeKind = "ROD_STRIKE" | "FAULT_DRILL" | "DRONE_RECALL"
+
+/** Timed field mini-game: a perfect run pays `rewardSeconds` of current production. */
+export type RegionChallengeDef = {
+  kind: RegionChallengeKind
+  name: string
+  description: string
+  durationSec: number
+  rewardSeconds: number
+  cooldownSec: number
 }
 
 export type RegionIntroDef = {

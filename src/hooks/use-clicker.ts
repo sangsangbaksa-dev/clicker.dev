@@ -30,6 +30,8 @@ import {
   clickerStartGame,
   clickerTravelRegion,
   clickerRegionActivity,
+  clickerClaimChallenge,
+  clickerRegionChallengeError,
   clickerTick,
   clickerUseSkill,
   loadClickerGame,
@@ -318,6 +320,23 @@ export function useClicker() {
 
   const dismissRegionIntro = useCallback(() => setRegionIntro(null), [])
 
+  /** Checked before the mini-game opens so a refused start fails fast. Returns true when it may start. */
+  const canStartChallenge = useCallback((regionId: string) => {
+    if (!saveRef.current) return false
+    const error = clickerRegionChallengeError(saveRef.current, regionId, now())
+    if (error) flash(error)
+    return !error
+  }, [flash])
+
+  const claimChallenge = useCallback((regionId: string, score: number) => {
+    if (!saveRef.current) return
+    const result = clickerClaimChallenge(saveRef.current, regionId, score, now())
+    if (!result.ok) return flash(result.error)
+    commit(result.value.save)
+    persistNow(result.value.save)
+    flash(`도전 완료 · 성공률 ${Math.round(score * 100)}% · +${formatNumber(result.value.reward)} CORE`)
+  }, [commit, flash, persistNow])
+
   const regionActivity = useCallback((regionId: string) => {
     if (!saveRef.current) return
     const region = clickerGameConfig.regions.find((r) => r.id === regionId)
@@ -605,6 +624,8 @@ export function useClicker() {
     dismissMineSummary,
     regionIntro,
     dismissRegionIntro,
+    canStartChallenge,
+    claimChallenge,
     mineGate,
   }
 }

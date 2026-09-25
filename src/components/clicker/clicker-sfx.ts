@@ -103,3 +103,20 @@ export function playRebirthCue(name: string) {
     tone(c, "sine", 1318, 1318, 0.03, t + 0.08, 0.7)
   }
 }
+
+/** Region field challenge feedback: a clean hit, a miss, and the final whistle. */
+export function playChallengeCue(muted: boolean, cue: "hit" | "miss" | "done") {
+  if (muted) return
+  const c = audio()
+  if (!c) return
+  const t = c.currentTime
+  if (cue === "hit") {
+    tone(c, "triangle", 880, 1320, 0.05, t, 0.12)
+    noise(c, 3000, 1.5, 0.02, t, 0.08)
+  } else if (cue === "miss") {
+    tone(c, "sawtooth", 180, 90, 0.04, t, 0.2)
+  } else {
+    tone(c, "sine", 660, 660, 0.05, t, 0.25)
+    tone(c, "sine", 990, 990, 0.04, t + 0.12, 0.45)
+  }
+}

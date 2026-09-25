@@ -27,7 +27,7 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
             aria-keyshortcuts="Escape"
             onClick={() => onSelectTab("producers")}
           >
-            ← 광산으로 · Esc
+            ← 돌아가기 · Esc
           </button>
         </div>
         <h3>{transcendenceUnlocked ? "세계선을 접고 하나를 선택하세요" : "세계선 접기 · 접근 중"}</h3>
@@ -67,6 +67,16 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
             ? "임계 도달 · 선택 가능"
             : `임계까지 ${formatNumber(Math.max(0, (game.hud?.rebirthRequirement ?? game.config.rebirthEnergy) - run.lifetimeCoreEnergy))} CORE`}
         </p>
+        {(() => {
+          const now = game.hud?.worldlineMultiplier ?? 1
+          const next = now * (1 + game.config.worldlineBonus)
+          return (
+            <p className="clicker-transcendence-momentum">
+              세계선 가속 · 클릭·생산 <strong>×{formatMultiplier(now)}</strong> → 다음 세계선{" "}
+              <strong>×{formatMultiplier(next)}</strong> (영구 · 환생할수록 더 빨라집니다)
+            </p>
+          )
+        })()}
         <p className="clicker-transcendence-progress">
           거친 세계선 <strong>{transcendenceOwned}/{transcendenceTotal}</strong>
           {game.canCompleteEnding
@@ -125,4 +135,8 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
       )}
     </div>
   )
+}
+
+function formatMultiplier(n: number): string {
+  return n >= 100 ? formatNumber(n) : n.toFixed(n >= 10 ? 1 : 2).replace(/\.?0+$/, "")
 }

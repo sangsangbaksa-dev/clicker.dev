@@ -4980,3 +4980,23 @@ button.clicker-metric-action.is-fever-ready em {
   font-size: 15px;
   letter-spacing: 0.06em;
 }
+
+.clicker-region-station .clicker-region-activity.is-challenge {
+  border-color: color-mix(in srgb, #ffc266 60%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, #3a2a10 70%, transparent), color-mix(in srgb, var(--void) 85%, black));
+  color: #ffe3b0;
+}
+
+.clicker-region-station .clicker-region-activity.is-challenge span {
+  color: color-mix(in srgb, #ffe3b0 75%, transparent);
+}
+
+.clicker-transcendence-momentum {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.clicker-transcendence-momentum strong {
+  color: var(--core-bright);
+}

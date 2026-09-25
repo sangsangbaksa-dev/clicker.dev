@@ -86,6 +86,7 @@ export function createInitialRun(now: number, meta: MetaState, config: GameConfi
     drillOverdriveUntil: 0,
     drillOverdriveReadyAt: 0,
     regionCooldowns: {},
+    challengeCooldowns: {},
     vaultDeposit: 0,
     vaultReadyAt: 0,
     lightningStormUntil: 0,
@@ -1205,6 +1206,51 @@ export function activateRegion(
   return { run: next, meta: nextMeta }
 }
 
+/** Why the region's field challenge can't start right now, or undefined when it can. */
+export function regionChallengeError(run: RunState, config: GameConfig, regionId: string, now: number): string | undefined {
+  const region = config.regions.find((r) => r.id === regionId)
+  const challenge = region?.challenge
+  if (!region || !challenge) return "이 지역에는 도전 과제가 없습니다."
+  if (run.currentRegionId !== regionId) return `${region.name}에 있어야 합니다.`
+  if (run.crisisActive) return "위기 중에는 도전할 수 없습니다."
+  const readyAt = run.challengeCooldowns[regionId] ?? 0
+  if (readyAt > now) return `${challenge.name} 재도전 대기 ${Math.ceil((readyAt - now) / 1000)}초`
+  return undefined
+}
+
+/**
+ * Settle a finished field challenge. `score` is 0..1 (share of targets hit); a perfect run pays
+ * `rewardSeconds` of current production. Starts the cooldown whatever the score.
+ */
+export function claimRegionChallenge(
+  run: RunState,
+  meta: MetaState,
+  config: GameConfig,
+  regionId: string,
+  score: number,
+  now: number
+): { run: RunState; meta: MetaState; reward: number; error?: string } {
+  const error = regionChallengeError(run, config, regionId, now)
+  if (error) return { run, meta, reward: 0, error }
+  const challenge = config.regions.find((r) => r.id === regionId)!.challenge!
+  const ratio = Number.isFinite(score) ? clamp(score, 0, 1) : 0
+  const reward = productionSnapshot(run, meta, config, now).perSecond * challenge.rewardSeconds * ratio
+  return {
+    run: refreshObjective(
+      {
+        ...run,
+        coreEnergy: run.coreEnergy + reward,
+        lifetimeCoreEnergy: run.lifetimeCoreEnergy + reward,
+        challengeCooldowns: { ...run.challengeCooldowns, [regionId]: now + challenge.cooldownSec * 1000 },
+      },
+      meta,
+      config
+    ),
+    meta: { ...meta, totalCoreEnergy: meta.totalCoreEnergy + reward },
+    reward,
+  }
+}
+
 export function isRegionUnlocked(run: RunState, config: GameConfig, regionId: string): boolean {
   const region = config.regions.find((r) => r.id === regionId)
   if (!region) return false
@@ -1337,6 +1383,8 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         drillOverdriveReadyAt: typeof run.drillOverdriveReadyAt === "number" ? run.drillOverdriveReadyAt : 0,
         regionCooldowns:
           run.regionCooldowns && typeof run.regionCooldowns === "object" ? { ...run.regionCooldowns } : {},
+        challengeCooldowns:
+          run.challengeCooldowns && typeof run.challengeCooldowns === "object" ? { ...run.challengeCooldowns } : {},
         costScale:
           typeof run.costScale === "number" && run.costScale > 0
             ? run.costScale
