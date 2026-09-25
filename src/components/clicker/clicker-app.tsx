@@ -1278,10 +1278,11 @@ export function ClickerApp() {
       {game.floats.map((f) => (
         <div
           key={f.id}
-          className={`clicker-float ${f.critical ? "is-crit" : ""}`}
+          className={`clicker-float ${f.critical ? "is-crit" : ""}${f.strike ? ` is-${f.strike}` : ""}`}
           style={{ left: f.x || "50%", top: f.y || "45%" }}
           aria-hidden
         >
+          {f.strike === "quake" ? "지진파 " : f.strike === "lightning" ? "번개 " : f.strike === "echo" ? "잔향 " : ""}
           {f.critical ? "치명타 " : ""}
           {f.text}
         </div>

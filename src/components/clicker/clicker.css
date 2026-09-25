@@ -584,6 +584,25 @@ button.clicker-metric-action.is-active {
   font-size: 22px;
 }
 
+.clicker-float.is-lightning {
+  color: #fff6a8;
+  font-size: 22px;
+  text-shadow:
+    0 0 6px #fff,
+    0 0 16px color-mix(in srgb, #ffe45c 80%, transparent);
+}
+
+.clicker-float.is-quake {
+  color: #ffb36b;
+  font-size: 24px;
+  text-shadow: 0 0 14px color-mix(in srgb, #ff8a3d 70%, transparent);
+}
+
+.clicker-float.is-echo {
+  color: #c9b6ff;
+  text-shadow: 0 0 12px color-mix(in srgb, #a98cff 60%, transparent);
+}
+
 .clicker-combo {
   position: absolute;
   bottom: 18%;
@@ -1631,23 +1650,27 @@ button.clicker-metric-action.is-fever-ready em {
   filter: grayscale(0.35);
 }
 
+.clicker-skill-legend li.is-hidden::before {
+  opacity: 0.25;
+  border-style: dashed;
+}
+
 .clicker-skill-legend li.is-owned::before {
   background: color-mix(in srgb, var(--core) 30%, var(--panel));
   border-color: color-mix(in srgb, var(--core) 55%, var(--line));
 }
 
 .clicker-skill-tree-scroll {
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
+  --cell: 56px;
+  max-height: min(68vh, 640px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-card);
 }
 
 .clicker-skill-tree-board {
   position: relative;
-  min-width: 560px;
-  max-width: 760px;
   margin-inline: auto;
-  aspect-ratio: 1 / 1;
-  min-height: 300px;
   border-radius: var(--radius-card);
   border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
   background:
@@ -1673,8 +1696,8 @@ button.clicker-metric-action.is-fever-ready em {
 
 .clicker-skill-node {
   position: absolute;
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   padding: 0;
   border: 1px solid color-mix(in srgb, var(--branch-color, var(--line)) 55%, var(--line));
   background: color-mix(in srgb, var(--void) 70%, var(--panel));
@@ -1700,8 +1723,8 @@ button.clicker-metric-action.is-fever-ready em {
 }
 
 .clicker-skill-node.is-hub {
-  width: 48px;
-  height: 48px;
+  width: 38px;
+  height: 38px;
   pointer-events: none;
   border-color: color-mix(in srgb, var(--core) 55%, var(--line));
   box-shadow: 0 0 18px color-mix(in srgb, var(--core-glow) 35%, transparent);
@@ -1712,8 +1735,8 @@ button.clicker-metric-action.is-fever-ready em {
 }
 
 .clicker-skill-node.is-apex {
-  width: 50px;
-  height: 50px;
+  width: 38px;
+  height: 38px;
   border-width: 2px;
 }
 
@@ -4923,19 +4946,18 @@ button.clicker-metric-action.is-fever-ready em {
     font-size: 12px;
   }
 
-  .clicker-skill-tree-board {
-    min-width: 480px;
-    min-height: 220px;
+  .clicker-skill-tree-scroll {
+    --cell: 46px;
   }
 
   .clicker-skill-node {
-    width: 34px;
-    height: 34px;
+    width: 28px;
+    height: 28px;
   }
 
   .clicker-skill-node.is-hub {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
   }
 
   .clicker-skill-node-glyph {
@@ -4943,8 +4965,8 @@ button.clicker-metric-action.is-fever-ready em {
   }
 
   .clicker-skill-node.is-apex {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
   }
 
   .clicker-skill-detail .clicker-primary {

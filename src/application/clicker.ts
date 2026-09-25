@@ -143,9 +143,12 @@ export function clickerClick(save: SaveData, now: number): {
   save: SaveData
   energy: number
   critical: boolean
+  lightning: boolean
+  quake: boolean
+  echo: boolean
 } {
   if (isGameCompleted(save.metaState)) {
-    return { save, energy: 0, critical: false }
+    return { save, energy: 0, critical: false, lightning: false, quake: false, echo: false }
   }
   const next = processClick(save.runState, save.metaState, config, now, rng)
   const saveAfterClick = withAchievements(
@@ -159,6 +162,9 @@ export function clickerClick(save: SaveData, now: number): {
     save: saveAfterClick,
     energy: next.result.energyGained,
     critical: next.result.isCritical,
+    lightning: next.result.lightning,
+    quake: next.result.quake,
+    echo: next.result.echo,
   }
 }
 

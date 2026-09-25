@@ -267,6 +267,49 @@ function ownedSkills(run: RunState, config: GameConfig): SkillNodeDef[] {
   return config.skillNodes.filter((n) => set.has(n.id))
 }
 
+/** Lightning starts at ×3, shockwave every 30 clicks (floor 5), drones at 50% click power. */
+export const LIGHTNING_BASE_MULTIPLIER = 3
+export const LIGHTNING_CHANCE_CAP = 0.6
+export const QUAKE_BASE_INTERVAL = 30
+export const QUAKE_MIN_INTERVAL = 5
+export const ECHO_CHANCE_CAP = 0.5
+export const DRONE_BASE_EFFICIENCY = 0.5
+
+export type StrikeStats = {
+  lightningChance: number
+  lightningMultiplier: number
+  lightningChains: number
+  quakeMultiplier: number
+  quakeInterval: number
+  echoChance: number
+  droneStrikesPerSecond: number
+  droneEfficiency: number
+}
+
+export function strikeStats(run: RunState, config: GameConfig): StrikeStats {
+  const skills = ownedSkills(run, config)
+  const sum = (key: keyof SkillNodeDef) => skills.reduce((s, n) => s + ((n[key] as number | undefined) ?? 0), 0)
+  const lightningChance = Math.min(LIGHTNING_CHANCE_CAP, sum("lightningChanceAdd"))
+  const quakeMultiplier = sum("quakeMultiplierAdd")
+  return {
+    lightningChance,
+    lightningMultiplier: lightningChance > 0 ? LIGHTNING_BASE_MULTIPLIER + sum("lightningMultiplierAdd") : 0,
+    lightningChains: sum("lightningChainAdd"),
+    quakeMultiplier,
+    quakeInterval: Math.max(QUAKE_MIN_INTERVAL, QUAKE_BASE_INTERVAL - sum("quakeIntervalReduce")),
+    echoChance: Math.min(ECHO_CHANCE_CAP, sum("echoChanceAdd")),
+    droneStrikesPerSecond: sum("droneStrikesPerSecond"),
+    droneEfficiency: DRONE_BASE_EFFICIENCY + sum("droneEfficiencyAdd"),
+  }
+}
+
+/** CORE per second from mining drones (outside of producer production). */
+export function droneEnergyPerSecond(run: RunState, meta: MetaState, config: GameConfig): number {
+  const stats = strikeStats(run, config)
+  if (stats.droneStrikesPerSecond <= 0) return 0
+  return derivedClick(run, meta, config).click * stats.droneStrikesPerSecond * stats.droneEfficiency
+}
+
 function ownedTranscendence(meta: MetaState, config: GameConfig): TranscendenceDef[] {
   const set = new Set(meta.transcendenceIds)
   return config.transcendence.filter((t) => set.has(t.id))
@@ -550,6 +593,9 @@ export function processClick(
         feverBonus: 1,
         instabilityDelta: 0,
         fx: "CLICK",
+        lightning: false,
+        quake: false,
+        echo: false,
       },
     }
   }
@@ -566,8 +612,17 @@ export function processClick(
   const isCritical = rng() < derived.critChance
   if (isCritical) combo.expiresAt += 250
 
-  let energy = derived.click * combo.multiplier * fever.click * eventBoostMultiplier(run, "laser_rush", now)
-  if (isCritical) energy *= derived.critMult
+  let hit = derived.click * combo.multiplier * fever.click * eventBoostMultiplier(run, "laser_rush", now)
+  if (isCritical) hit *= derived.critMult
+
+  const strikes = strikeStats(run, config)
+  let energy = hit
+  const echo = strikes.echoChance > 0 && rng() < strikes.echoChance
+  if (echo) energy += hit
+  const lightning = strikes.lightningChance > 0 && rng() < strikes.lightningChance
+  if (lightning) energy += hit * strikes.lightningMultiplier * (1 + 0.5 * strikes.lightningChains)
+  const quake = strikes.quakeMultiplier > 0 && (run.clickCount + 1) % strikes.quakeInterval === 0
+  if (quake) energy += hit * strikes.quakeMultiplier
 
   let feverState = { ...run.fever }
   if (feverActive(feverState)) {
@@ -613,6 +668,9 @@ export function processClick(
       feverBonus: fever.click,
       instabilityDelta: 0,
       fx: isCritical ? "CRITICAL" : feverActive(feverState) ? "FEVER_CLICK" : "CLICK",
+      lightning,
+      quake,
+      echo,
     },
   }
 }
@@ -770,7 +828,8 @@ export function processTick(
   }
 
   const snapshot = productionSnapshot(next, meta, config, now)
-  const gained = snapshot.perSecond * dt
+  const drones = next.crisisActive ? 0 : droneEnergyPerSecond(next, meta, config)
+  const gained = (snapshot.perSecond + drones) * dt
   next = {
     ...next,
     coreEnergy: next.coreEnergy + gained,
@@ -873,6 +932,12 @@ export function buyUpgrade(
       ownedUpgradeIds: [...run.ownedUpgradeIds, upgradeId],
     },
   }
+}
+
+/** A circuit appears once all of its prerequisites are owned (roots are always shown). */
+export function isSkillNodeVisible(run: RunState, node: SkillNodeDef): boolean {
+  if (run.ownedSkillNodeIds.includes(node.id)) return true
+  return (node.requires ?? []).every((id) => run.ownedSkillNodeIds.includes(id))
 }
 
 export function buySkillNode(

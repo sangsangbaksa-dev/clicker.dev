@@ -58,6 +58,8 @@ export type FloatNumber = {
   id: number
   text: string
   critical: boolean
+  /** Extra strike label — lightning / shockwave / echo. */
+  strike?: "lightning" | "quake" | "echo"
   x: number
   y: number
 }
@@ -226,6 +228,7 @@ export function useClicker() {
         id,
         text: `+${result.energy.toFixed(result.energy >= 100 ? 0 : 1)}`,
         critical: result.critical,
+        strike: result.quake ? "quake" : result.lightning ? "lightning" : result.echo ? "echo" : undefined,
         x: clientX ?? 0,
         y: clientY ?? 0,
       },

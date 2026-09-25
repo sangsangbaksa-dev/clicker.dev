@@ -145,6 +145,9 @@ export type ClickResult = {
   feverBonus: number
   instabilityDelta: number
   fx: ClickFx
+  lightning: boolean
+  quake: boolean
+  echo: boolean
 }
 
 export type ProductionSnapshot = {
@@ -224,6 +227,19 @@ export type SkillNodeDef = {
   mineSessionSecondsAdd?: number
   /** Auto-drill strikes per second on the center ore while in the mine. */
   autoDrillPerSecond?: number
+  /** Lightning strike: chance per click to add click energy × lightning multiplier. */
+  lightningChanceAdd?: number
+  lightningMultiplierAdd?: number
+  /** Each chain adds another half-strength lightning hit. */
+  lightningChainAdd?: number
+  /** Shockwave: every Nth click adds click energy × quake multiplier. */
+  quakeMultiplierAdd?: number
+  quakeIntervalReduce?: number
+  /** Echo strike: chance per click to land the same hit twice. */
+  echoChanceAdd?: number
+  /** Mining drones: automatic strikes per second at a fraction of click power, everywhere. */
+  droneStrikesPerSecond?: number
+  droneEfficiencyAdd?: number
 }
 
 export type AchievementKind =

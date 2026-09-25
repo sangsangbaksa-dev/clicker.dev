@@ -1,61 +1,92 @@
-import type { SkillBranch } from "@/domain/entities/clicker"
+import type { SkillBranch, SkillNodeDef } from "@/domain/entities/clicker"
 
-/** Percent positions inside the skill tree canvas (0–100). */
-export const SKILL_TREE_HUB = { x: 50, y: 50 }
+export type SkillCell = { col: number; row: number }
+
+export type SkillTreeLayout = {
+  cells: Record<string, SkillCell>
+  hub: SkillCell
+  cols: number
+  rows: number
+}
+
+/** Right side grows FOCUS then RESONANCE; left side AUTOMATION then TRANSCENDENCE. */
+const SIDES: Array<{ dir: 1 | -1; branches: SkillBranch[] }> = [
+  { dir: 1, branches: ["FOCUS", "RESONANCE"] },
+  { dir: -1, branches: ["AUTOMATION", "TRANSCENDENCE"] },
+]
+
+type LayoutNode = Pick<SkillNodeDef, "id" | "branch" | "requires">
 
 /**
- * Quadrants around the hub: FOCUS top-left, RESONANCE top-right,
- * AUTOMATION bottom-left, TRANSCENDENCE bottom-right. Depth grows away from the hub.
+ * Grid layout: depth (longest prerequisite chain) sets the column, a node's first
+ * prerequisite is its layout parent, and the first child continues the parent's row so
+ * main lines stay straight. Positions never depend on what is owned.
  */
-export const SKILL_TREE_LAYOUT: Record<string, { x: number; y: number }> = {
-  focus_click: { x: 40, y: 43 },
-  focus_crit: { x: 32, y: 43 },
-  focus_combo: { x: 24, y: 43 },
-  focus_press: { x: 16, y: 43 },
-  focus_edge: { x: 8, y: 43 },
-  focus_amp: { x: 8, y: 33 },
-  focus_lethal: { x: 18, y: 33 },
-  focus_chain: { x: 8, y: 22 },
-  focus_pinpoint: { x: 28, y: 29 },
-  focus_rhythm: { x: 14, y: 13 },
-  focus_breaker: { x: 26, y: 18 },
-  focus_apex: { x: 26, y: 7 },
-  mine_dwell: { x: 44, y: 35 },
-  mine_extend: { x: 38, y: 27 },
-  mine_marathon: { x: 44, y: 19 },
-  mine_deepcut: { x: 38, y: 12 },
-  mine_endless: { x: 45, y: 6 },
-  reso_fever: { x: 60, y: 43 },
-  reso_intense: { x: 68, y: 43 },
-  reso_linger: { x: 76, y: 43 },
-  reso_spark: { x: 84, y: 43 },
-  reso_chorus: { x: 92, y: 33 },
-  reso_finale: { x: 78, y: 33 },
-  reso_amplify: { x: 90, y: 23 },
-  reso_brink: { x: 72, y: 24 },
-  reso_array: { x: 92, y: 13 },
-  reso_storm: { x: 82, y: 8 },
-  reso_apex: { x: 68, y: 10 },
-  auto_prod: { x: 40, y: 57 },
-  auto_more: { x: 32, y: 57 },
-  auto_loop: { x: 24, y: 57 },
-  auto_surge: { x: 16, y: 57 },
-  auto_drill: { x: 36, y: 66 },
-  auto_drill2: { x: 42, y: 75 },
-  auto_early: { x: 8, y: 66 },
-  auto_mesh: { x: 20, y: 67 },
-  auto_factory: { x: 14, y: 77 },
-  auto_drill3: { x: 30, y: 82 },
-  auto_mid: { x: 8, y: 87 },
-  auto_overflow: { x: 18, y: 93 },
-  auto_late: { x: 30, y: 94 },
-  auto_apex: { x: 42, y: 90 },
-  trans_start: { x: 60, y: 58 },
-  trans_seed2: { x: 74, y: 62 },
-  trans_echo: { x: 64, y: 72 },
-  trans_insight: { x: 58, y: 86 },
-  trans_vault: { x: 88, y: 72 },
-  trans_convergence: { x: 76, y: 88 },
+export function layoutSkillTree(nodes: LayoutNode[]): SkillTreeLayout {
+  const byId = new Map(nodes.map((n) => [n.id, n]))
+  const depth = new Map<string, number>()
+  const depthOf = (id: string): number => {
+    const known = depth.get(id)
+    if (known !== undefined) return known
+    const reqs = (byId.get(id)?.requires ?? []).filter((r) => byId.has(r))
+    const d = reqs.length ? Math.max(...reqs.map(depthOf)) + 1 : 0
+    depth.set(id, d)
+    return d
+  }
+  const children = new Map<string, string[]>()
+  for (const node of nodes) {
+    const parent = node.requires?.find((r) => byId.has(r))
+    if (parent) children.set(parent, [...(children.get(parent) ?? []), node.id])
+  }
+
+  const cells: Record<string, SkillCell> = {}
+  let maxDepth = 0
+  let rows = 0
+  for (const side of SIDES) {
+    let nextRow = 0
+    const place = (id: string): number => {
+      const kids = children.get(id) ?? []
+      let row = nextRow
+      if (kids.length) {
+        row = place(kids[0])
+        for (const kid of kids.slice(1)) place(kid)
+      } else {
+        nextRow += 1
+      }
+      const d = depthOf(id)
+      maxDepth = Math.max(maxDepth, d)
+      cells[id] = { col: side.dir * (d + 1), row }
+      return row
+    }
+    side.branches.forEach((branch, i) => {
+      if (i > 0 && nextRow > 0) nextRow += 1
+      const start = nextRow
+      const roots = nodes.filter((n) => n.branch === branch && !n.requires?.some((r) => byId.has(r)))
+      for (const root of roots) place(root.id)
+      // The upper branch is mirrored so its main line sits next to the hub, like the lower one.
+      if (i === 0) {
+        const end = nextRow - 1
+        for (const node of nodes) {
+          if (node.branch === branch && cells[node.id]) cells[node.id].row = start + end - cells[node.id].row
+        }
+      }
+    })
+    rows = Math.max(rows, nextRow)
+  }
+  const half = maxDepth + 1
+  for (const cell of Object.values(cells)) cell.col += half
+  return { cells, hub: { col: half, row: Math.floor((rows - 1) / 2) }, cols: half * 2 + 1, rows }
+}
+
+/**
+ * Orthogonal connector: run along the parent's row, turn at the half-column just before
+ * the child, then run along the child's row. Only horizontal and vertical segments.
+ */
+export function orthogonalPath(from: SkillCell, to: SkillCell): string {
+  const turn = to.col - 0.5 * Math.sign(to.col - from.col || 1)
+  const x = (c: number) => c + 0.5
+  const y = (r: number) => r + 0.5
+  return `M${x(from.col)} ${y(from.row)}H${x(turn)}V${y(to.row)}H${x(to.col)}`
 }
 
 export const SKILL_BRANCH_LABEL: Record<SkillBranch, string> = {

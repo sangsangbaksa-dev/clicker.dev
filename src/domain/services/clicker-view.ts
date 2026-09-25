@@ -15,6 +15,7 @@ import {
   producerBulkCost,
   producerCost,
   productionSnapshot,
+  isSkillNodeVisible,
 } from "./clicker-engine"
 import { formatNumber } from "./clicker-format"
 
@@ -266,6 +267,8 @@ export type SkillNodeView = {
   requires: string[]
   status: "OWNED" | "AVAILABLE" | "POOR" | "LOCKED"
   canBuy: boolean
+  /** Shown only once every prerequisite is owned. */
+  visible: boolean
 }
 
 export function buildSkillNodeViews(run: RunState, config: GameConfig): SkillNodeView[] {
@@ -288,6 +291,7 @@ export function buildSkillNodeViews(run: RunState, config: GameConfig): SkillNod
       requires,
       status,
       canBuy: status === "AVAILABLE",
+      visible: isSkillNodeVisible(run, node),
     }
   })
 }

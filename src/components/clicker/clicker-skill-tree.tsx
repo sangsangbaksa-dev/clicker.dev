@@ -1,17 +1,18 @@
 "use client"
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react"
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import {
   SKILL_BRANCH_COLOR,
   SKILL_BRANCH_GLYPH,
   SKILL_BRANCH_LABEL,
-  SKILL_TREE_HUB,
-  SKILL_TREE_LAYOUT,
+  layoutSkillTree,
+  orthogonalPath,
+  type SkillCell,
 } from "@/data/clicker/skill-tree-layout"
 import type { SkillNodeView } from "@/domain/services/clicker-view"
 import { formatNumber } from "@/domain/services/clicker-format"
 
-type TreeNode = SkillNodeView & { x: number; y: number }
+type TreeNode = SkillNodeView & SkillCell
 
 type Props = {
   nodes: SkillNodeView[]
@@ -32,16 +33,24 @@ function statusLabel(status: SkillNodeView["status"]): string {
   }
 }
 
+function cellStyle(cell: SkillCell): CSSProperties {
+  return {
+    left: `calc(var(--cell) * ${cell.col + 0.5})`,
+    top: `calc(var(--cell) * ${cell.row + 0.5})`,
+  }
+}
+
 export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
+  // Layout covers every node so positions stay put as new circuits appear.
+  const layout = useMemo(() => layoutSkillTree(nodes), [nodes])
   const treeNodes = useMemo<TreeNode[]>(
     () =>
-      nodes.map((node) => ({
-        ...node,
-        x: SKILL_TREE_LAYOUT[node.id]?.x ?? 50,
-        y: SKILL_TREE_LAYOUT[node.id]?.y ?? 50,
-      })),
-    [nodes],
+      nodes
+        .filter((node) => node.visible && layout.cells[node.id])
+        .map((node) => ({ ...node, ...layout.cells[node.id] })),
+    [layout, nodes],
   )
+  const hiddenCount = nodes.length - treeNodes.length
 
   const [selectedId, setSelectedId] = useState<string | null>(
     () => treeNodes.find((n) => n.status === "AVAILABLE")?.id ?? treeNodes[0]?.id ?? null,
@@ -62,44 +71,52 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
     )
   }, [selectedId, treeNodes])
 
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const hubCol = layout.hub.col
+  const hubRow = layout.hub.row
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const cell = el.scrollWidth / layout.cols
+    el.scrollLeft = (hubCol + 0.5) * cell - el.clientWidth / 2
+    el.scrollTop = (hubRow + 0.5) * cell - el.clientHeight / 2
+  }, [hubCol, hubRow, layout.cols])
+
   const selected = treeNodes.find((n) => n.id === selectedId) ?? null
   const byId = useMemo(() => new Map(treeNodes.map((n) => [n.id, n])), [treeNodes])
 
   const edges = useMemo(() => {
-    const lines: Array<{ x1: number; y1: number; x2: number; y2: number; branch: TreeNode["branch"]; lit: boolean }> = []
+    const lines: Array<{ d: string; branch: TreeNode["branch"]; lit: boolean }> = []
     for (const node of treeNodes) {
-      const parentPoints =
+      const parents: SkillCell[] =
         node.requires.length > 0
           ? node.requires.map((id) => byId.get(id)).filter((n): n is TreeNode => Boolean(n))
-          : [{ x: SKILL_TREE_HUB.x, y: SKILL_TREE_HUB.y, status: "OWNED" as TreeNode["status"] }]
-      for (const parent of parentPoints) {
-        const parentOwned = parent.status === "OWNED"
-        const lit = node.status === "OWNED" || (parentOwned && node.status !== "LOCKED")
-        lines.push({
-          x1: parent.x,
-          y1: parent.y,
-          x2: node.x,
-          y2: node.y,
-          branch: node.branch,
-          lit,
-        })
+          : [layout.hub]
+      for (const parent of parents) {
+        lines.push({ d: orthogonalPath(parent, node), branch: node.branch, lit: node.status === "OWNED" })
       }
     }
     return lines
-  }, [byId, treeNodes])
+  }, [byId, layout.hub, treeNodes])
+
+  const head = (
+    <div className="clicker-skill-tree-head">
+      <div>
+        <div className="clicker-skill-tree-title">CIRCUITS · 회로</div>
+        <div className="clicker-skill-tree-sub">
+          기억 회로 — 노드를 CORE로 해금하면 이어진 회로가 드러납니다
+        </div>
+      </div>
+      <div className="clicker-skill-tree-sp" aria-live="polite">
+        CORE <strong>{formatNumber(coreEnergy)}</strong>
+      </div>
+    </div>
+  )
 
   if (!treeNodes.length) {
     return (
       <div className="clicker-skill-tree">
-        <div className="clicker-skill-tree-head">
-          <div>
-            <div className="clicker-skill-tree-title">CIRCUITS · 회로</div>
-            <div className="clicker-skill-tree-sub">표시할 회로 노드가 없습니다.</div>
-          </div>
-          <div className="clicker-skill-tree-sp" aria-live="polite">
-            CORE <strong>{formatNumber(coreEnergy)}</strong>
-          </div>
-        </div>
+        {head}
         <p className="clicker-skill-tree-empty" role="status">
           회로가 아직 열리지 않았습니다. CORE를 모아 노드를 해금하세요.
         </p>
@@ -109,76 +126,67 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
 
   return (
     <div className="clicker-skill-tree">
-      <div className="clicker-skill-tree-head">
-        <div>
-          <div className="clicker-skill-tree-title">CIRCUITS · 회로</div>
-          <div className="clicker-skill-tree-sub">
-            기억 회로 — 노드를 CORE로 해금합니다
-          </div>
-        </div>
-        <div className="clicker-skill-tree-sp" aria-live="polite">
-          CORE <strong>{formatNumber(coreEnergy)}</strong>
-        </div>
-      </div>
+      {head}
 
       <ul className="clicker-skill-legend" aria-label="노드 상태">
         <li className="is-available">해금 가능</li>
         <li className="is-poor">CORE 부족</li>
-        <li className="is-locked">잠김</li>
         <li className="is-owned">활성</li>
+        {hiddenCount > 0 ? <li className="is-hidden">숨은 회로 {hiddenCount}</li> : null}
       </ul>
-      {treeNodes.length > 0 && treeNodes.every((n) => n.status === "OWNED") ? (
+      {hiddenCount === 0 && treeNodes.every((n) => n.status === "OWNED") ? (
         <p className="clicker-skill-tree-empty" role="status">
-          표시된 회로를 모두 활성화했습니다.
+          모든 회로를 활성화했습니다.
         </p>
       ) : null}
 
-      <div className="clicker-skill-tree-scroll">
-      <div className="clicker-skill-tree-board">
-        <svg className="clicker-skill-tree-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
-          {edges.map((edge, i) => (
-            <line
-              key={`edge-${i}`}
-              x1={edge.x1}
-              y1={edge.y1}
-              x2={edge.x2}
-              y2={edge.y2}
-              stroke={SKILL_BRANCH_COLOR[edge.branch]}
-              strokeWidth={edge.lit ? 0.55 : 0.35}
-              strokeOpacity={edge.lit ? 0.85 : 0.22}
-            />
-          ))}
-        </svg>
-
+      <div className="clicker-skill-tree-scroll" ref={scrollRef}>
         <div
-          className="clicker-skill-node is-hub"
-          style={{ left: `${SKILL_TREE_HUB.x}%`, top: `${SKILL_TREE_HUB.y}%` }}
-          aria-hidden
+          className="clicker-skill-tree-board"
+          style={{
+            width: `calc(var(--cell) * ${layout.cols})`,
+            height: `calc(var(--cell) * ${layout.rows})`,
+          }}
         >
-          <span className="clicker-skill-node-glyph">◆</span>
-        </div>
-
-        {treeNodes.map((node) => (
-          <button
-            key={node.id}
-            type="button"
-            className={`clicker-skill-node is-${node.status.toLowerCase()}${node.tier >= 5 ? " is-apex" : ""}${selectedId === node.id ? " is-selected" : ""}`}
-            style={
-              {
-                left: `${node.x}%`,
-                top: `${node.y}%`,
-                "--branch-color": SKILL_BRANCH_COLOR[node.branch],
-              } as CSSProperties
-            }
-            aria-pressed={selectedId === node.id}
-            aria-current={selectedId === node.id ? "true" : undefined}
-            aria-label={`${node.name} · ${statusLabel(node.status)} · ${formatNumber(node.cost)} CORE`}
-            onClick={() => setSelectedId(node.id)}
+          <svg
+            className="clicker-skill-tree-lines"
+            viewBox={`0 0 ${layout.cols} ${layout.rows}`}
+            preserveAspectRatio="none"
+            aria-hidden
           >
-            <span className="clicker-skill-node-glyph">{SKILL_BRANCH_GLYPH[node.branch]}</span>
-          </button>
-        ))}
-      </div>
+            {edges.map((edge, i) => (
+              <path
+                key={`edge-${i}`}
+                d={edge.d}
+                fill="none"
+                stroke={SKILL_BRANCH_COLOR[edge.branch]}
+                strokeWidth={edge.lit ? 2.5 : 1.5}
+                strokeOpacity={edge.lit ? 0.9 : 0.4}
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
+          </svg>
+
+          <div className="clicker-skill-node is-hub" style={cellStyle(layout.hub)} aria-hidden>
+            <span className="clicker-skill-node-glyph">◆</span>
+          </div>
+
+          {treeNodes.map((node) => (
+            <button
+              key={node.id}
+              type="button"
+              className={`clicker-skill-node is-${node.status.toLowerCase()}${node.tier >= 5 ? " is-apex" : ""}${selectedId === node.id ? " is-selected" : ""}`}
+              style={{ ...cellStyle(node), "--branch-color": SKILL_BRANCH_COLOR[node.branch] } as CSSProperties}
+              aria-pressed={selectedId === node.id}
+              aria-current={selectedId === node.id ? "true" : undefined}
+              aria-label={`${node.name} · ${statusLabel(node.status)} · ${formatNumber(node.cost)} CORE`}
+              onClick={() => setSelectedId(node.id)}
+            >
+              <span className="clicker-skill-node-glyph">{SKILL_BRANCH_GLYPH[node.branch]}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {selected ? (
@@ -207,32 +215,26 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
               </span>
             ) : null}
           </div>
-          {selected.status === "LOCKED" && selected.requires.length > 0 ? (
-            <p className="clicker-skill-detail-req">
-              선행:{" "}
-              {selected.requires
-                .map((id) => byId.get(id)?.name ?? id)
-                .filter(Boolean)
-                .join(" → ")}
-            </p>
-          ) : null}
           <button
             className="clicker-primary"
             type="button"
             disabled={!selected.canBuy}
             onClick={() => {
               onBuy(selected.id)
-              const child = treeNodes.find((n) => n.requires.includes(selected.id) && n.status !== "OWNED")
+              const child = nodes.find(
+                (n) =>
+                  n.requires.includes(selected.id) &&
+                  n.status !== "OWNED" &&
+                  n.requires.every((id) => id === selected.id || byId.get(id)?.status === "OWNED"),
+              )
               if (child) setSelectedId(child.id)
             }}
           >
             {selected.status === "OWNED"
               ? "활성화됨"
-              : selected.status === "LOCKED"
-                ? "선행 스킬 필요"
-                : selected.status === "POOR"
-                  ? `CORE 부족 · ${formatNumber(selected.cost)} 필요`
-                  : `${formatNumber(selected.cost)} CORE로 해금`}
+              : selected.status === "POOR"
+                ? `CORE 부족 · ${formatNumber(selected.cost)} 필요`
+                : `${formatNumber(selected.cost)} CORE로 해금`}
           </button>
         </aside>
       ) : (
