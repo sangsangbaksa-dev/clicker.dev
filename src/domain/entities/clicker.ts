@@ -37,7 +37,8 @@ export type TimedBuff = {
 }
 
 /** Golden-vein rewards: timed multipliers separate from skill buffs (which key into config). */
-export type EventBoostId = "surge" | "laser_rush"
+/** Golden-vein and region-activity rewards. */
+export type EventBoostId = "surge" | "laser_rush" | "relay"
 
 export type EventBoost = {
   id: EventBoostId
@@ -83,6 +84,16 @@ export type RunState = {
   drillOverdriveUntil: number
   /** Absolute ms: overdrive may be triggered again after this. */
   drillOverdriveReadyAt: number
+  /** Region id → absolute ms when its activity can be used again. */
+  regionCooldowns: Record<string, number>
+  /** Phase Vault deposit waiting to pay out (0 when empty). */
+  vaultDeposit: number
+  vaultReadyAt: number
+  /** Storm Spire: every click is a lightning strike until this. */
+  lightningStormUntil: number
+  /** Drone Foundry: drone strikes are multiplied until this. */
+  droneSwarmUntil: number  /** Worldline price level: every CORE cost and goal in this run is multiplied by it. */
+  costScale: number
 }
 
 export type ClickerStatistics = {
@@ -279,6 +290,28 @@ export type ActiveSkillDef = {
   assetId: string
 }
 
+export type RegionActivityKind =
+  | "PRODUCTION_BOOST"
+  | "PHASE_DEPOSIT"
+  | "LIGHTNING_STORM"
+  | "PRODUCTION_BURST"
+  | "DRONE_SWARM"
+
+/** One active ability per region, usable only while standing in that region. */
+export type RegionActivityDef = {
+  kind: RegionActivityKind
+  name: string
+  description: string
+  cooldownSec: number
+  /** Boost / payout / drone multiplier. */
+  multiplier?: number
+  durationSec?: number
+  /** PHASE_DEPOSIT: share of banked CORE locked away. */
+  depositShare?: number
+  /** PRODUCTION_BURST: seconds of production paid at once. */
+  productionSeconds?: number
+}
+
 export type RegionDef = {
   id: string
   name: string
@@ -290,6 +323,11 @@ export type RegionDef = {
   clickMultiplier?: number
   /** Applied only while `run.currentRegionId` matches this region. */
   productionMultiplier?: number
+  /** Presence bonuses for the strike mining methods. */
+  lightningChanceAdd?: number
+  quakeIntervalReduce?: number
+  droneEfficiencyAdd?: number
+  activity?: RegionActivityDef
 }
 
 export type ObjectiveDef = {
@@ -313,6 +351,11 @@ export type TranscendenceDef = {
   instabilityRewardBonus?: number
   startingEnergy?: number
   comboWindowAdd?: number
+  criticalMultiplier?: number
+  feverIntensity?: number
+  lightningChanceAdd?: number
+  echoChanceAdd?: number
+  droneStrikesPerSecond?: number
   assetId: string
 }
 
@@ -335,7 +378,14 @@ export type GameConfig = {
   offlineCapSeconds: number
   /** Offline auto production as a fraction of online per-second rate (e.g. 0.05 = 1/20). */
   offlineProductionRatio: number
+  /** Lifetime CORE needed for the first rebirth. */
   rebirthEnergy: number
+  /** Each rebirth multiplies the next requirement by this. */
+  rebirthGrowth: number
+  /** Each rebirth multiplies every CORE price (producers, upgrades, circuits, shop) by this. */
+  priceGrowth: number
+  /** Permanent click & production multiplier gained per rebirth (compounding). */
+  worldlineBonus: number
   skillPointEveryLevels: number
   producers: ProducerDef[]
   upgrades: UpgradeDef[]

@@ -30,6 +30,7 @@ import {
   clickerStartGaugeFever,
   clickerStartGame,
   clickerTravelRegion,
+  clickerRegionActivity,
   clickerTick,
   clickerResume,
   clickerUseSkill,
@@ -325,6 +326,15 @@ export function useClicker() {
     flash(`${label}(으)로 이동`)
   }, [commit, flash])
 
+  const regionActivity = useCallback((regionId: string) => {
+    if (!saveRef.current) return
+    const region = clickerGameConfig.regions.find((r) => r.id === regionId)
+    const result = clickerRegionActivity(saveRef.current, regionId, now())
+    if (!result.ok) return flash(result.error)
+    commit(result.value)
+    flash(`${region?.activity?.name ?? "지역 활동"} 발동`)
+  }, [commit, flash])
+
   const returnHome = useCallback(() => {
     if (!saveRef.current) return
     const result = clickerReturnHome(saveRef.current)
@@ -542,7 +552,7 @@ export function useClicker() {
   const upgrades = save ? buildUpgradeViews(save.runState, clickerGameConfig) : []
   const potionShop = save ? buildPotionShopViews(save.runState, clickerGameConfig) : []
   const activeSkillShop = save ? buildActiveSkillShopViews(save.runState, clickerGameConfig) : []
-  const regions = save ? buildRegionViews(save.runState, clickerGameConfig) : []
+  const regions = save ? buildRegionViews(save.runState, clickerGameConfig, t) : []
   const currentRegion =
     regions.find((r) => r.isCurrent) ?? regions.find((r) => r.isHome) ?? regions[0] ?? null
   const skillNodes = save ? buildSkillNodeViews(save.runState, clickerGameConfig) : []
@@ -588,6 +598,7 @@ export function useClicker() {
     useSkill,
     resolveCrisis,
     travelRegion,
+    regionActivity,
     returnHome,
     rebirth,
     completeEnding,

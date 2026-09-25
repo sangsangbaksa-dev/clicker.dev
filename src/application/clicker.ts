@@ -26,6 +26,7 @@ import {
   startFever,
   syncClickerMineSession,
   returnHomeRegion,
+  activateRegion,
   travelToRegion,
   useActiveSkill,
   type Rng,
@@ -209,6 +210,12 @@ export function clickerResolveCrisis(save: SaveData, choice: CrisisChoice, now: 
 
 export function clickerTravelRegion(save: SaveData, regionId: string): UseCaseResult<SaveData> {
   return withRun(save, travelToRegion(save.runState, config, regionId))
+}
+
+export function clickerRegionActivity(save: SaveData, regionId: string, now: number): UseCaseResult<SaveData> {
+  const next = activateRegion(save.runState, save.metaState, config, regionId, now)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ ...save, runState: next.run, metaState: next.meta })
 }
 
 export function clickerReturnHome(save: SaveData): UseCaseResult<SaveData> {

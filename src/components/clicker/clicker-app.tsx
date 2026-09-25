@@ -388,11 +388,11 @@ export function ClickerApp() {
     if (!game.hud?.canRebirth && tab === "transcendence") {
       // Keep locked approach panel open; only eject when tab is unavailable.
       const ratio = game.save
-        ? game.save.runState.lifetimeCoreEnergy / game.config.rebirthEnergy
+        ? game.save.runState.lifetimeCoreEnergy / (game.hud?.rebirthRequirement ?? game.config.rebirthEnergy)
         : 0
       if (ratio < 0.25) setTab("producers")
     }
-  }, [game.hud?.canRebirth, game.save, game.config.rebirthEnergy, tab])
+  }, [game.hud?.canRebirth, game.hud?.rebirthRequirement, game.save, game.config.rebirthEnergy, tab])
 
   const prevCanRebirth = useRef<boolean | null>(null)
   useEffect(() => {
@@ -529,7 +529,7 @@ export function ClickerApp() {
       ? CLICKER_ASSETS.bgMineEntrance
       : (game.currentRegion?.bgAssetId ?? CLICKER_ASSETS.bgChamber)
   const transcendenceUnlocked = hud.canRebirth
-  const rebirthRatio = Math.min(1, run.lifetimeCoreEnergy / game.config.rebirthEnergy)
+  const rebirthRatio = Math.min(1, run.lifetimeCoreEnergy / hud.rebirthRequirement)
   const showTranscendenceTab = transcendenceUnlocked || rebirthRatio >= 0.25
   const transcendenceOwned = new Set(game.save.metaState.transcendenceIds).size
   const transcendenceTotal = game.config.transcendence.length
@@ -955,6 +955,30 @@ export function ClickerApp() {
               ) : null}
             </button>
           )}
+          {!inMine && game.currentRegion?.activity ? (() => {
+            const act = game.currentRegion.activity
+            const busy = act.activeMs > 0
+            const cooling = act.readyInMs > 0
+            return (
+              <button
+                type="button"
+                className={`clicker-region-activity${busy ? " is-active" : ""}`}
+                disabled={cooling}
+                title={act.description}
+                aria-label={`${act.name} · ${act.description}`}
+                onClick={() => game.regionActivity(game.currentRegion!.id)}
+              >
+                <strong>{act.name}</strong>
+                <span>
+                  {busy
+                    ? `진행 중 ${Math.ceil(act.activeMs / 1000)}초${act.deposit > 0 ? ` · 예치 ${formatNumber(act.deposit)}` : ""}`
+                    : cooling
+                      ? `재사용 ${Math.ceil(act.readyInMs / 1000)}초`
+                      : act.description}
+                </span>
+              </button>
+            )
+          })() : null}
           {hud.comboText ? (
             <div
               className="clicker-combo"

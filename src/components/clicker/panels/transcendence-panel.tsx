@@ -13,7 +13,7 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
   onChoose: (buff: TranscendenceDef) => void
 }) {
   const transcendenceUnlocked = Boolean(game.hud?.canRebirth)
-  const rebirthRatio = Math.min(1, run.lifetimeCoreEnergy / game.config.rebirthEnergy)
+  const rebirthRatio = Math.min(1, run.lifetimeCoreEnergy / (game.hud?.rebirthRequirement ?? game.config.rebirthEnergy))
   const transcendenceOwned = new Set(meta.transcendenceIds).size
   const transcendenceTotal = game.config.transcendence.length
   return (
@@ -33,7 +33,7 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
         <h3>{transcendenceUnlocked ? "세계선을 접고 하나를 선택하세요" : "세계선 접기 · 접근 중"}</h3>
         {transcendenceUnlocked ? (
           <p className="clicker-transcendence-lead">
-            누적 CORE {formatNumber(game.config.rebirthEnergy)} 도달. 아래에서 선을 고르면 재탄생이 시작됩니다. 버프는
+            누적 CORE {formatNumber((game.hud?.rebirthRequirement ?? game.config.rebirthEnergy))} 도달. 아래에서 선을 고르면 재탄생이 시작됩니다. 버프는
             영구 · 이번 런의 생산·채굴은 초기화됩니다.
           </p>
         ) : (
@@ -42,9 +42,9 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
             <strong className="clicker-transcendence-lead-num">
               {formatNumber(run.lifetimeCoreEnergy)}
             </strong>{" "}
-            / {formatNumber(game.config.rebirthEnergy)}. 남은{" "}
+            / {formatNumber((game.hud?.rebirthRequirement ?? game.config.rebirthEnergy))}. 남은{" "}
             <strong className="clicker-transcendence-lead-num">
-              {formatNumber(Math.max(0, game.config.rebirthEnergy - run.lifetimeCoreEnergy))}
+              {formatNumber(Math.max(0, (game.hud?.rebirthRequirement ?? game.config.rebirthEnergy) - run.lifetimeCoreEnergy))}
             </strong>
             이면 임계에 닿습니다.
           </p>
@@ -65,7 +65,7 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
         <p className="clicker-transcendence-meter-caption">
           {transcendenceUnlocked
             ? "임계 도달 · 선택 가능"
-            : `임계까지 ${formatNumber(Math.max(0, game.config.rebirthEnergy - run.lifetimeCoreEnergy))} CORE`}
+            : `임계까지 ${formatNumber(Math.max(0, (game.hud?.rebirthRequirement ?? game.config.rebirthEnergy) - run.lifetimeCoreEnergy))} CORE`}
         </p>
         <p className="clicker-transcendence-progress">
           거친 세계선 <strong>{transcendenceOwned}/{transcendenceTotal}</strong>

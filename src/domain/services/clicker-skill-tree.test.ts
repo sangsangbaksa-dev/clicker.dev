@@ -79,7 +79,8 @@ test("startingEnergy nodes carry CORE into the next run", () => {
   run = buySkillNode(run, config, "trans_start").run
   const reborn = applyRebirth(run, meta, config, "focus_line", now + 1)
   assert.equal(reborn.error, undefined)
-  assert.equal(reborn.run.coreEnergy, 50)
+  // Carried CORE is paid at the new worldline's price level.
+  assert.equal(reborn.run.coreEnergy, 50 * config.priceGrowth)
   assert.deepEqual(reborn.run.ownedSkillNodeIds, [])
 })
 

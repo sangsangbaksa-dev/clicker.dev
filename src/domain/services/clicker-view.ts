@@ -16,6 +16,9 @@ import {
   producerCost,
   productionSnapshot,
   isSkillNodeVisible,
+  rebirthRequirement,
+  scaledCost,
+  worldlineMultiplier,
 } from "./clicker-engine"
 import { formatNumber } from "./clicker-format"
 
@@ -49,6 +52,10 @@ export type MainHudViewModel = {
   coreVisual: CoreVisual
   crisisActive: boolean
   canRebirth: boolean
+  /** Lifetime CORE this worldline must reach to rebirth. */
+  rebirthRequirement: number
+  /** Permanent click/production multiplier from past rebirths. */
+  worldlineMultiplier: number
 }
 
 export function buildHud(
@@ -125,7 +132,9 @@ export function buildHud(
     },
     coreVisual: run.crisisActive || run.instability >= 90 ? "crisis" : feverOn ? "fever" : "idle",
     crisisActive: run.crisisActive,
-    canRebirth: canRebirth(run, config),
+    canRebirth: canRebirth(run, meta, config),
+    rebirthRequirement: rebirthRequirement(meta, config),
+    worldlineMultiplier: worldlineMultiplier(meta, config),
   }
 }
 
@@ -157,7 +166,7 @@ export function buildProducerViews(
   return config.producers.map((p) => {
     const level = run.producerLevels[p.id] ?? 0
     const unlocked = isProducerUnlocked(run, config, p.id)
-    const cost = producerCost(config, p.id, level)
+    const cost = producerCost(config, p.id, level, run.costScale)
     const canBuy = unlocked && run.coreEnergy >= cost
     return {
       id: p.id,
@@ -169,15 +178,15 @@ export function buildProducerViews(
       nextCostText: formatNumber(cost),
       unlocked,
       canBuy,
-      lockReason: unlocked ? (canBuy ? "" : "CORE 부족") : `${formatNumber(p.unlockAt)} CORE 해금`,
+      lockReason: unlocked ? (canBuy ? "" : "CORE 부족") : `${formatNumber(scaledCost(run, p.unlockAt))} CORE 해금`,
     }
   })
 }
 
 export function bulkCostText(run: RunState, config: GameConfig, producerId: string, mode: 1 | 10 | "MAX"): string {
   const level = run.producerLevels[producerId] ?? 0
-  const n = mode === "MAX" ? maxAffordable(config, producerId, level, run.coreEnergy) : mode
-  return formatNumber(producerBulkCost(config, producerId, level, Math.max(1, n)))
+  const n = mode === "MAX" ? maxAffordable(config, producerId, level, run.coreEnergy, run.costScale) : mode
+  return formatNumber(producerBulkCost(config, producerId, level, Math.max(1, n), run.costScale))
 }
 
 /** Whether the bulk buy mode is affordable (unlocked + enough CORE). No balance change. */
@@ -189,8 +198,8 @@ export function bulkAffordable(
 ): boolean {
   if (!isProducerUnlocked(run, config, producerId)) return false
   const level = run.producerLevels[producerId] ?? 0
-  if (mode === "MAX") return maxAffordable(config, producerId, level, run.coreEnergy) >= 1
-  return run.coreEnergy >= producerBulkCost(config, producerId, level, mode)
+  if (mode === "MAX") return maxAffordable(config, producerId, level, run.coreEnergy, run.costScale) >= 1
+  return run.coreEnergy >= producerBulkCost(config, producerId, level, mode, run.costScale)
 }
 
 export type UpgradeView = {
@@ -217,7 +226,7 @@ export function buildUpgradeViews(run: RunState, config: GameConfig): UpgradeVie
     } else if (reqFail) {
       status = "LOCKED"
       reason = "조건 미달"
-    } else if (run.coreEnergy < u.cost) {
+    } else if (run.coreEnergy < scaledCost(run, u.cost)) {
       status = "POOR"
       reason = "CORE 부족"
     }
@@ -226,7 +235,7 @@ export function buildUpgradeViews(run: RunState, config: GameConfig): UpgradeVie
       name: u.name,
       description: u.description,
       category: u.category,
-      costText: formatNumber(u.cost),
+      costText: formatNumber(scaledCost(run, u.cost)),
       status,
       reason,
     }
@@ -279,7 +288,7 @@ export function buildSkillNodeViews(run: RunState, config: GameConfig): SkillNod
     let status: SkillNodeView["status"] = "LOCKED"
     if (owned) status = "OWNED"
     else if (!prereqsMet) status = "LOCKED"
-    else if (run.coreEnergy < node.cost) status = "POOR"
+    else if (run.coreEnergy < scaledCost(run, node.cost)) status = "POOR"
     else status = "AVAILABLE"
     return {
       id: node.id,
@@ -287,7 +296,7 @@ export function buildSkillNodeViews(run: RunState, config: GameConfig): SkillNod
       description: node.description,
       branch: node.branch,
       tier: node.tier,
-      cost: node.cost,
+      cost: scaledCost(run, node.cost),
       requires,
       status,
       canBuy: status === "AVAILABLE",
@@ -352,9 +361,9 @@ export function buildPotionShopViews(run: RunState, config: GameConfig): PotionS
       name: potion.name,
       description: potion.description,
       assetId: potion.assetId,
-      shopCostText: formatNumber(potion.shopCost),
+      shopCostText: formatNumber(scaledCost(run, potion.shopCost)),
       owned: run.potions[potion.id] ?? 0,
-      canBuy: run.coreEnergy >= potion.shopCost,
+      canBuy: run.coreEnergy >= scaledCost(run, potion.shopCost),
       durationSeconds: potion.duration,
       effectSummary: potionEffectSummary(potion),
     }))
@@ -373,11 +382,26 @@ export type RegionView = {
   unlocked: boolean
   isHome: boolean
   isCurrent: boolean
+  activity: RegionActivityView | null
+}
+
+export type RegionActivityView = {
+  name: string
+  description: string
+  /** ms until usable again (0 = ready). */
+  readyInMs: number
+  /** ms left on the running effect (boost, storm, swarm or vault). */
+  activeMs: number
+  /** Phase Vault: CORE currently locked in the vault. */
+  deposit: number
 }
 
 function regionBonusText(region: {
   clickMultiplier?: number
   productionMultiplier?: number
+  lightningChanceAdd?: number
+  quakeIntervalReduce?: number
+  droneEfficiencyAdd?: number
 }): string {
   const parts: string[] = []
   if (region.clickMultiplier && region.clickMultiplier !== 1) {
@@ -388,13 +412,31 @@ function regionBonusText(region: {
     const pct = Math.round((region.productionMultiplier - 1) * 100)
     parts.push(`생산 +${pct}%`)
   }
+  if (region.lightningChanceAdd) parts.push(`번개 확률 +${Math.round(region.lightningChanceAdd * 100)}%`)
+  if (region.quakeIntervalReduce) parts.push(`지진파 주기 -${region.quakeIntervalReduce}타`)
+  if (region.droneEfficiencyAdd) parts.push(`드론 효율 +${Math.round(region.droneEfficiencyAdd * 100)}%`)
   return parts.length > 0 ? parts.join(" · ") : "보너스 없음"
 }
 
-export function buildRegionViews(run: RunState, config: GameConfig): RegionView[] {
+function regionActivityActiveMs(run: RunState, kind: string, now: number): number {
+  switch (kind) {
+    case "PRODUCTION_BOOST":
+      return Math.max(0, (run.eventBoosts.find((b) => b.id === "relay")?.expiresAt ?? 0) - now)
+    case "PHASE_DEPOSIT":
+      return run.vaultDeposit > 0 ? Math.max(0, run.vaultReadyAt - now) : 0
+    case "LIGHTNING_STORM":
+      return Math.max(0, run.lightningStormUntil - now)
+    case "DRONE_SWARM":
+      return Math.max(0, run.droneSwarmUntil - now)
+    default:
+      return 0
+  }
+}
+
+export function buildRegionViews(run: RunState, config: GameConfig, now = Date.now()): RegionView[] {
   return config.regions.map((region) => {
-    const unlocked = run.lifetimeCoreEnergy >= region.unlockAtLifetimeEnergy
-    const threshold = region.unlockAtLifetimeEnergy
+    const threshold = scaledCost(run, region.unlockAtLifetimeEnergy)
+    const unlocked = run.lifetimeCoreEnergy >= threshold
     const remaining = Math.max(0, threshold - run.lifetimeCoreEnergy)
     const unlockRequirement =
       threshold <= 0 ? "시작 시 개방" : `${formatNumber(threshold)} 누적 CORE`
@@ -415,6 +457,15 @@ export function buildRegionViews(run: RunState, config: GameConfig): RegionView[
       unlocked,
       isHome: Boolean(region.isHome),
       isCurrent: run.currentRegionId === region.id,
+      activity: region.activity
+        ? {
+            name: region.activity.name,
+            description: region.activity.description,
+            readyInMs: Math.max(0, (run.regionCooldowns[region.id] ?? 0) - now),
+            activeMs: regionActivityActiveMs(run, region.activity.kind, now),
+            deposit: region.activity.kind === "PHASE_DEPOSIT" ? run.vaultDeposit : 0,
+          }
+        : null,
     }
   })
 }
@@ -427,9 +478,9 @@ export function buildActiveSkillShopViews(run: RunState, config: GameConfig): Ac
       name: skill.name,
       description: skill.description,
       assetId: skill.assetId,
-      shopCostText: formatNumber(skill.shopCost),
+      shopCostText: formatNumber(scaledCost(run, skill.shopCost)),
       owned: run.skillItems[skill.id] ?? 0,
-      canBuy: run.coreEnergy >= skill.shopCost,
+      canBuy: run.coreEnergy >= scaledCost(run, skill.shopCost),
       effectSummary: activeSkillEffectSummary(skill),
       cooldownSeconds: skill.cooldown,
     }))

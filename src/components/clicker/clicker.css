@@ -5037,3 +5037,32 @@ button.clicker-metric-action.is-fever-ready em {
   }
 }
 
+
+.clicker-region-activity {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  margin-top: 10px;
+  padding: 8px 14px;
+  max-width: 260px;
+  border-radius: var(--radius-card);
+  border: 1px solid color-mix(in srgb, var(--core) 45%, var(--line));
+  background: color-mix(in srgb, var(--void) 70%, var(--panel));
+  color: var(--core-bright);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.clicker-region-activity span {
+  color: color-mix(in srgb, var(--core-bright) 70%, transparent);
+  font-size: 11px;
+}
+
+.clicker-region-activity.is-active {
+  box-shadow: 0 0 14px color-mix(in srgb, var(--core) 40%, transparent);
+}
+
+.clicker-region-activity:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

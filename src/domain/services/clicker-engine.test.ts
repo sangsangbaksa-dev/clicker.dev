@@ -26,6 +26,7 @@ import {
   processTick,
   producerBulkCost,
   producerCost,
+  rebirthRequirement,
   productionSnapshot,
   resolveCrisis,
   regionPresenceMultipliers,
@@ -51,13 +52,15 @@ test("formatNumber uses a single suffix scale", () => {
 
 test("producer cost follows base × growth^level and bulk uses the same rule", () => {
   const one = producerCost(config, "solar_node", 0)
-  assert.equal(one, 20)
+  assert.equal(one, 600)
   const ten = producerBulkCost(config, "solar_node", 0, 10)
   let sum = 0
   for (let i = 0; i < 10; i++) sum += producerCost(config, "solar_node", i)
   assert.ok(Math.abs(ten - sum) < 1e-6)
-  assert.equal(maxAffordable(config, "solar_node", 0, 19), 0)
-  assert.equal(maxAffordable(config, "solar_node", 0, 20), 1)
+  assert.equal(maxAffordable(config, "solar_node", 0, 599), 0)
+  assert.equal(maxAffordable(config, "solar_node", 0, 600), 1)
+  // Later worldlines price everything up by priceGrowth^rebirths.
+  assert.equal(producerCost(config, "solar_node", 0, config.priceGrowth), 600 * config.priceGrowth)
 })
 
 test("click adds energy, combo expires by clock, critical uses rng", () => {
@@ -80,7 +83,7 @@ test("click adds energy, combo expires by clock, critical uses rng", () => {
 test("buying a producer spends CORE and tick adds production", () => {
   const now = 2_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 100)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), 1_000)
   const bought = buyProducer(run, meta, config, "solar_node", 1)
   assert.equal(bought.error, undefined)
   assert.equal(bought.run.producerLevels.solar_node, 1)
@@ -242,15 +245,18 @@ test("rebirth resets region to home chamber", () => {
   assert.equal(reborn.run.currentRegionId, "core_chamber")
 })
 
-test("transcendence gate stays at 10M lifetime CORE", () => {
+test("transcendence gate starts at 10M lifetime CORE and grows each worldline", () => {
   const now = 12_000_000
   const meta = createInitialMeta()
   let run = createInitialRun(now, meta, config)
-  assert.equal(canRebirth(run, config), false)
+  assert.equal(canRebirth(run, meta, config), false)
   run = grantAdminEnergy(run, 9_999_999)
-  assert.equal(canRebirth(run, config), false)
+  assert.equal(canRebirth(run, meta, config), false)
   run = grantAdminEnergy(run, 1)
-  assert.equal(canRebirth(run, config), true)
+  assert.equal(canRebirth(run, meta, config), true)
+  const later = { ...meta, rebirthCount: 1 }
+  assert.equal(canRebirth(run, later, config), false)
+  assert.equal(rebirthRequirement(later, config), 10_000_000 * config.rebirthGrowth)
 })
 
 test("45min-to-10M balance knobs remain on tuned values", () => {
@@ -278,7 +284,7 @@ test("active skill shop purchase adds charges and use consumes one", () => {
 test("clicks do not drop potions and shop purchase adds inventory", () => {
   const now = 6_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 60_000)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), 2_000_000)
   for (let i = 0; i < 200; i++) {
     const click = processClick(run, meta, config, now + i * 50, () => 0.99)
     run = click.run
@@ -318,7 +324,7 @@ test("rebirth resets run and keeps transcendence on meta", () => {
 test("offline uses 1/4 production rate and respects cap", () => {
   const now = 6_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 100)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), 1_000)
   run = buyProducer(run, meta, config, "solar_node", 1).run
   run = { ...run, lastTickAt: now - 10_000, fever: { ...run.fever, phase: "FEVER", remainingTime: 10 } }
   const expired = {
@@ -362,7 +368,7 @@ test("owned skills persist through sanitizeSave reload", () => {
 test("skill nodes cost CORE and focus_click boosts click gain", () => {
   const now = 9_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 10_000)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), 1_000_000)
   const cost = config.skillNodes.find((n) => n.id === "focus_click")!.cost
   const beforeEnergy = run.coreEnergy
   const beforeClick = processClick(run, meta, config, now, rng).result.energyGained
@@ -421,7 +427,7 @@ test("mine session length grows from skill-tree dwell nodes", () => {
   let save = startClickerGame(createInitialSave(now, config))
   save = {
     ...save,
-    runState: grantAdminEnergy(save.runState, 2_000),
+    runState: grantAdminEnergy(save.runState, 200_000),
   }
   let run = buySkillNode(save.runState, config, "focus_click").run
   run = buySkillNode(run, config, "mine_dwell").run
@@ -441,7 +447,7 @@ test("true ending unlocks when all transcendence buffs were chosen once", () => 
   for (const buff of config.transcendence) {
     save = {
       ...save,
-      runState: grantAdminEnergy(save.runState, config.rebirthEnergy),
+      runState: grantAdminEnergy(save.runState, rebirthRequirement(save.metaState, config)),
       metaState: save.metaState,
     }
     const result = applyRebirth(save.runState, save.metaState, config, buff.id, now + buff.id.length)
@@ -462,7 +468,7 @@ test("upgrade purchase is rejected when CORE is short or already owned", () => {
   const run = createInitialRun(now, meta, config)
   const poor = buyUpgrade(run, config, "reinforced_input")
   assert.equal(poor.error, "CORE가 부족합니다.")
-  const rich = buyUpgrade(grantAdminEnergy(run, 100), config, "reinforced_input")
+  const rich = buyUpgrade(grantAdminEnergy(run, 10_000), config, "reinforced_input")
   assert.equal(rich.error, undefined)
   const again = buyUpgrade(rich.run, config, "reinforced_input")
   assert.equal(again.error, "이미 보유함")
