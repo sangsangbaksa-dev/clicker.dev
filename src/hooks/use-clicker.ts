@@ -141,7 +141,10 @@ export function useClicker() {
     mineStartRef.current = null
   }, [])
 
+  // The save lives in localStorage, so it can only be read after hydration; claiming the
+  // tab lease here is the external sync this effect exists for.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAsOwner()
   }, [loadAsOwner])
 
@@ -548,7 +551,7 @@ export function useClicker() {
     commit(next)
     persistNow(next)
     if (result.error) refuse(result.error)
-  }, [commit, persistNow, flash, refuse])
+  }, [commit, persistNow, refuse])
 
   /** Golden vein hit in the mine; returns a short label for the in-scene burst. */
   const claimVein = useCallback(

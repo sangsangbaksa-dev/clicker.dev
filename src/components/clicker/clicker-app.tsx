@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
@@ -113,6 +114,9 @@ function readDrawerHeight() {
   return drawerSnapPoints().peek
 }
 
+/** The admin gate reads the URL once; nothing in-page changes it. */
+const subscribeNever = () => () => {}
+
 export function ClickerApp() {
   const game = useClicker()
   // Door-walk entry cinematic between Enter Mine and the timed session (carries its own SFX).
@@ -135,7 +139,13 @@ export function ClickerApp() {
   // Hub splits into the mine entrance scene and a full-screen management screen.
   const [hubView, setHubView] = useState<"entrance" | "manage">("entrance")
   const [adminOpen, setAdminOpen] = useState(false)
-  const [adminAllowed, setAdminAllowed] = useState(false)
+  // Defense in depth: build strip + host/?admin gate (never production). Read after
+  // hydration; the panel never auto-opens, so the launch button keeps the mine playable.
+  const adminAllowed = useSyncExternalStore(
+    subscribeNever,
+    () => CLICKER_ADMIN_UI && isClickerAdminAllowed(),
+    () => false,
+  )
   const [pop, setPop] = useState(false)
   const [shake, setShake] = useState(false)
   const [stageEvent, setStageEvent] = useState(false)
@@ -146,9 +156,7 @@ export function ClickerApp() {
   const [storyBeat, setStoryBeat] = useState<string | null>(null)
   const [adminResetArmed, setAdminResetArmed] = useState(false)
   const prevVisual = useRef<string | null>(null)
-  const prevObjectiveId = useRef<string | null>(null)
   const prevRegionId = useRef<string | null>(null)
-  const prevUnlockedRegionIds = useRef<Set<string> | null>(null)
   const [regionTransition, setRegionTransition] = useState(false)
   const drawerSnaps = useMemo(() => drawerSnapPoints(), [])
   const [drawerHeight, setDrawerHeight] = useState(readDrawerHeight)
@@ -206,13 +214,14 @@ export function ClickerApp() {
     }
   }, [])
 
+  // The settled height is remembered for the session; mid-drag heights are not.
+  useEffect(() => {
+    if (!drawerDragging) persistDrawerHeight(drawerHeight)
+  }, [drawerDragging, drawerHeight, persistDrawerHeight])
+
   const setDrawerSnap = useCallback(
-    (snap: "peek" | "half" | "full") => {
-      const height = drawerSnaps[snap]
-      setDrawerHeight(height)
-      persistDrawerHeight(height)
-    },
-    [drawerSnaps, persistDrawerHeight],
+    (snap: "peek" | "half" | "full") => setDrawerHeight(drawerSnaps[snap]),
+    [drawerSnaps],
   )
 
   const drawerMode =
@@ -225,10 +234,8 @@ export function ClickerApp() {
       setHubView("manage")
       if (drawerHeight <= drawerSnaps.peek + 16) {
         setDrawerHeight(drawerSnaps.half)
-        persistDrawerHeight(drawerSnaps.half)
       } else if (id === "skills" && drawerHeight < drawerSnaps.half + 40) {
         setDrawerHeight(drawerSnaps.half)
-        persistDrawerHeight(drawerSnaps.half)
       }
       window.requestAnimationFrame(() => {
         document
@@ -236,22 +243,21 @@ export function ClickerApp() {
           ?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" })
       })
     },
-    [drawerHeight, drawerSnaps, persistDrawerHeight],
+    [drawerHeight, drawerSnaps],
   )
 
   const playSurface = game.save?.settings.playSurface ?? "hub"
-  const prevSurface = useRef(playSurface)
-  useEffect(() => {
-    if (!game.save?.settings.gameStarted) return
-    if (prevSurface.current === playSurface) return
-    prevSurface.current = playSurface
+  // Entering the mine tucks the drawer away; leaving it returns to the hub entrance.
+  const [prevSurface, setPrevSurface] = useState(playSurface)
+  if (game.save?.settings.gameStarted && prevSurface !== playSurface) {
+    setPrevSurface(playSurface)
     if (playSurface === "mine") {
       setDrawerSnap("peek")
     } else {
       setHubView("entrance")
       setDrawerSnap("half")
     }
-  }, [playSurface, game.save?.settings.gameStarted, setDrawerSnap])
+  }
 
   const onDrawerHandlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     drawerDrag.current = { startY: e.clientY, startH: drawerHeight, moved: false }
@@ -273,9 +279,7 @@ export function ClickerApp() {
     drawerDraggingRef.current = false
     setDrawerDragging(false)
     e.currentTarget.releasePointerCapture(e.pointerId)
-    const snapped = nearestDrawerSnap(drawerHeight)
-    setDrawerHeight(snapped)
-    persistDrawerHeight(snapped)
+    setDrawerHeight(nearestDrawerSnap(drawerHeight))
   }
 
   const onDrawerHandleClick = () => {
@@ -294,18 +298,9 @@ export function ClickerApp() {
     return () => window.removeEventListener("resize", onResize)
   }, [])
 
-  useEffect(() => {
-    // Defense in depth: build strip + host/?admin gate (never production).
-    // Do not auto-open the panel — launch button keeps the mine playable.
-    if (!CLICKER_ADMIN_UI) {
-      setAdminAllowed(false)
-      setAdminOpen(false)
-      return
-    }
-    setAdminAllowed(isClickerAdminAllowed())
-  }, [])
 
   // Esc / back: layered dismiss for overlays + drawer/tab chrome (no focus trap).
+  const { toast: gameToast, dismissToast } = game
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented) return
@@ -332,12 +327,12 @@ export function ClickerApp() {
         setStoryBeat(null)
         return
       }
-      if (game.toast) {
+      if (gameToast) {
         e.preventDefault()
-        game.dismissToast()
+        dismissToast()
         return
       }
-      if (hubView === "manage" && game.save?.settings.playSurface !== "mine") {
+      if (hubView === "manage" && playSurface !== "mine") {
         e.preventDefault()
         setHubView("entrance")
         return
@@ -359,8 +354,8 @@ export function ClickerApp() {
     settingsOpen,
     endingOpen,
     adminOpen,
-    game.toast,
-    game.dismissToast,
+    gameToast,
+    dismissToast,
     confirmPotion,
     storyBeat,
     drawerMode,
@@ -368,7 +363,7 @@ export function ClickerApp() {
     tab,
     selectTab,
     hubView,
-    game.save?.settings.playSurface,
+    playSurface,
   ])
 
   const flashStage = () => {
@@ -409,18 +404,17 @@ export function ClickerApp() {
     }
   }, [game.hud?.canRebirth, game.hud?.rebirthRequirement, game.save, game.config.rebirthEnergy, tab])
 
-  const prevCanRebirth = useRef<boolean | null>(null)
-  useEffect(() => {
-    const unlocked = Boolean(game.hud?.canRebirth)
-    if (prevCanRebirth.current === null) {
-      prevCanRebirth.current = unlocked
-      return
-    }
-    if (unlocked && !prevCanRebirth.current) {
+  // LUMA beats for progress moments, checked during render in this order so a later beat
+  // wins when several land together. Tracking starts once the save has loaded, so a
+  // returning player isn't re-told about progress they already had.
+  const canRebirthNow = game.hud ? Boolean(game.hud.canRebirth) : null
+  const [seenCanRebirth, setSeenCanRebirth] = useState<boolean | null>(null)
+  if (canRebirthNow !== null && seenCanRebirth !== canRebirthNow) {
+    setSeenCanRebirth(canRebirthNow)
+    if (seenCanRebirth === false && canRebirthNow) {
       setStoryBeat("누적 CORE가 임계에 닿았습니다. TRANSCENDENCE에서 세계선을 접을 수 있습니다.")
     }
-    prevCanRebirth.current = unlocked
-  }, [game.hud?.canRebirth])
+  }
 
   useEffect(() => {
     if (game.hud?.coreVisual !== "crisis") return
@@ -440,31 +434,30 @@ export function ClickerApp() {
     prevRegionId.current = regionId
   }, [game.currentRegion?.id])
 
-  useEffect(() => {
-    const unlockedIds = new Set(game.regions.filter((r) => r.unlocked).map((r) => r.id))
-    if (prevUnlockedRegionIds.current === null) {
-      prevUnlockedRegionIds.current = unlockedIds
-      return
+  // A region unlocked since the last render.
+  const unlockedRegionKey = game.regions
+    .filter((r) => r.unlocked)
+    .map((r) => r.id)
+    .join("|")
+  const [seenUnlockedRegionKey, setSeenUnlockedRegionKey] = useState<string | null>(null)
+  if (game.regions.length > 0 && seenUnlockedRegionKey !== unlockedRegionKey) {
+    setSeenUnlockedRegionKey(unlockedRegionKey)
+    if (seenUnlockedRegionKey !== null) {
+      const seen = new Set(seenUnlockedRegionKey.split("|"))
+      const fresh = game.regions.find((r) => r.unlocked && !r.isHome && !seen.has(r.id))
+      if (fresh) setStoryBeat(`새 지역 해금 · ${fresh.name}. WORLD에서 이동할 수 있습니다.`)
     }
-    const fresh = game.regions.find(
-      (r) => r.unlocked && !r.isHome && !prevUnlockedRegionIds.current!.has(r.id),
-    )
-    prevUnlockedRegionIds.current = unlockedIds
-    if (!fresh) return
-    setStoryBeat(`새 지역 해금 · ${fresh.name}. WORLD에서 이동할 수 있습니다.`)
-  }, [game.regions])
+  }
 
   // Keyed on the objective id only: depending on the whole save re-fired the beat every tick,
   // so a dismissed line popped straight back up.
   const objectiveId = game.save?.runState.currentObjectiveId
-  useEffect(() => {
-    if (!objectiveId) return
-    const prev = prevObjectiveId.current
-    prevObjectiveId.current = objectiveId
-    if (!prev || prev === objectiveId) return
-    const obj = game.config.objectives.find((o) => o.id === objectiveId)
-    if (obj?.lumaLine) setStoryBeat(obj.lumaLine)
-  }, [objectiveId, game.config.objectives])
+  const [seenObjectiveId, setSeenObjectiveId] = useState<string | null>(null)
+  if (objectiveId && seenObjectiveId !== objectiveId) {
+    setSeenObjectiveId(objectiveId)
+    const line = seenObjectiveId ? game.config.objectives.find((o) => o.id === objectiveId)?.lumaLine : null
+    if (line) setStoryBeat(line)
+  }
 
   // Event cues that can start without a click (gauge auto-FEVER, crisis roll).
   const feverActive = Boolean(game.hud?.fever.active)

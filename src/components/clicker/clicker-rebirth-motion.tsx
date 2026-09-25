@@ -344,17 +344,21 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
   useClickerEscape(true, finishEarly)
   useClickerDialogFocus(rootRef)
 
-  const [frame, setFrame] = useState({
-    phase: "select_confirm" as RebirthPhaseId,
-    phaseT: 0,
-    totalT: 0,
-    shake: 0,
-    uiFade: 0,
-    uiScale: 1,
-    voidAlpha: 0,
-    stampScale: 0,
-    chromatic: 0,
-    rebuild: 0,
+  // Start on select_confirm so data-phase is visible before the first RAF under load.
+  const [frame, setFrame] = useState(() => {
+    const confirm = RebirthMwParams.selectConfirm(0)
+    return {
+      phase: "select_confirm" as RebirthPhaseId,
+      phaseT: 0,
+      totalT: 0,
+      shake: 0,
+      uiFade: confirm.uiFade,
+      uiScale: confirm.uiScale,
+      voidAlpha: confirm.voidAlpha,
+      stampScale: confirm.stampScale,
+      chromatic: 0,
+      rebuild: 0,
+    }
   })
 
   useEffect(() => {
@@ -366,21 +370,6 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
       window.clearTimeout(completeTimerRef.current)
       completeTimerRef.current = 0
     }
-
-    // Paint select_confirm immediately so data-phase is visible before first RAF under load.
-    const confirm = RebirthMwParams.selectConfirm(0)
-    setFrame({
-      phase: "select_confirm",
-      phaseT: 0,
-      totalT: 0,
-      shake: 0,
-      uiFade: confirm.uiFade,
-      uiScale: confirm.uiScale,
-      voidAlpha: confirm.voidAlpha,
-      stampScale: confirm.stampScale,
-      chromatic: 0,
-      rebuild: 0,
-    })
 
     const softMax =
       typeof window !== "undefined" && window.innerWidth < 720
