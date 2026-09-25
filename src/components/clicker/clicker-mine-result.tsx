@@ -12,7 +12,7 @@ type Props = {
   onClose: () => void
 }
 
-/** Timed mine session result card: haul, strikes, ores, veins and the best-haul record. */
+/** Timed mine session result card: haul, strikes, ores and the best-haul record. */
 export function ClickerMineResult({ summary, cooldownSec, onClose }: Props) {
   const ref = useRef<HTMLDivElement | null>(null)
   useClickerDialogFocus(ref, true)
@@ -38,7 +38,7 @@ export function ClickerMineResult({ summary, cooldownSec, onClose }: Props) {
         ) : !summary.best && summary.previousBest > 0 ? (
           <p className="clicker-welcome-note">최고 기록 {formatNumber(summary.previousBest)}</p>
         ) : null}
-        {summary.strikes > 0 || summary.oresBroken > 0 || summary.veins > 0 ? (
+        {summary.strikes > 0 || summary.oresBroken > 0 ? (
           <dl className="clicker-mine-result-stats">
             <div>
               <dt>타격</dt>
@@ -51,10 +51,6 @@ export function ClickerMineResult({ summary, cooldownSec, onClose }: Props) {
             <div>
               <dt>광석 파괴</dt>
               <dd>{summary.oresBroken}</dd>
-            </div>
-            <div>
-              <dt>황금 광맥</dt>
-              <dd>{summary.veins}</dd>
             </div>
           </dl>
         ) : null}
