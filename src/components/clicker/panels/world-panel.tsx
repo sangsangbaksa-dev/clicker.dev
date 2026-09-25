@@ -81,6 +81,11 @@ export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; ru
                       필요 {region.unlockRequirement}
                     </span>
                   </p>
+                  {!region.unlocked ? (
+                    <div className="clicker-bar clicker-world-unlock-bar" aria-hidden>
+                      <i style={{ width: `${Math.round(region.unlockProgress * 100)}%` }} />
+                    </div>
+                  ) : null}
                 </div>
                 {region.isCurrent ? (
                   <span className="clicker-world-here" aria-label="현재 위치">

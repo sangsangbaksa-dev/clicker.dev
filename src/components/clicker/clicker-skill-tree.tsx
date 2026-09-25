@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import {
@@ -252,6 +253,40 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
     if (focus && node) centerOn(node)
   }
 
+  /** Arrow keys walk to the nearest circuit in that direction (keyboard play). */
+  const onBoardKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    const dirs: Record<string, [number, number]> = {
+      ArrowRight: [1, 0],
+      ArrowLeft: [-1, 0],
+      ArrowDown: [0, 1],
+      ArrowUp: [0, -1],
+    }
+    const dir = dirs[e.key]
+    if (!dir) return
+    e.preventDefault()
+    const from: SkillCell = selected ?? layout.hub
+    let best: TreeNode | null = null
+    let bestScore = Infinity
+    for (const node of treeNodes) {
+      const dx = node.col - from.col
+      const dy = node.row - from.row
+      const along = dx * dir[0] + dy * dir[1]
+      if (along <= 0) continue
+      const score = along + (Math.abs(dx * dir[1]) + Math.abs(dy * dir[0])) * 2.5
+      if (score < bestScore) {
+        bestScore = score
+        best = node
+      }
+    }
+    if (!best) return
+    const id = best.id
+    setSelectedId(id)
+    centerOn(best)
+    window.requestAnimationFrame(() =>
+      scrollRef.current?.querySelector<HTMLButtonElement>(`[data-node-id="${id}"]`)?.focus({ preventScroll: true }),
+    )
+  }
+
   const nextBuyable = () => {
     if (!buyable.length) return
     const i = buyable.findIndex((n) => n.id === selectedId)
@@ -397,6 +432,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
             onPointerMove={onPointerMove}
             onPointerUp={endPan}
             onPointerCancel={endPan}
+            onKeyDown={onBoardKeyDown}
           >
             <div
               className="clicker-skill-tree-board"
@@ -441,6 +477,8 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
                   <button
                     key={node.id}
                     type="button"
+                    data-node-id={node.id}
+                    tabIndex={selectedId === node.id ? 0 : -1}
                     className={`clicker-skill-node is-${status}${node.tier >= 5 ? " is-apex" : ""}${selectedId === node.id ? " is-selected" : ""}${pathIds.has(node.id) && selectedId !== node.id ? " is-path" : ""}${dimmed ? " is-dimmed" : ""}`}
                     style={{ ...cellStyle(node), "--branch-color": SKILL_BRANCH_COLOR[node.branch] } as CSSProperties}
                     aria-pressed={selectedId === node.id}
@@ -639,7 +677,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
       </div>
 
       <p className="clicker-skill-tree-hint" aria-hidden>
-        노드를 눌러 상세 보기 · 드래그로 이동 · Ctrl+휠로 확대
+        노드를 눌러 상세 보기 · 드래그로 이동 · Ctrl+휠로 확대 · 방향키로 노드 이동
       </p>
     </div>
   )

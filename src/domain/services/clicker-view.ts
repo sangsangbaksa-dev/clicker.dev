@@ -381,6 +381,8 @@ export type RegionView = {
   unlockRequirement: string
   bonusText: string
   unlocked: boolean
+  /** 0–1 lifetime-CORE progress toward the unlock threshold (1 once unlocked). */
+  unlockProgress: number
   isHome: boolean
   isCurrent: boolean
   activity: RegionActivityView | null
@@ -466,6 +468,7 @@ export function buildRegionViews(run: RunState, config: GameConfig, now = Date.n
       unlockRequirement,
       bonusText: regionBonusText(region),
       unlocked,
+      unlockProgress: threshold <= 0 ? 1 : Math.min(1, run.lifetimeCoreEnergy / threshold),
       isHome: Boolean(region.isHome),
       isCurrent: run.currentRegionId === region.id,
       activity: region.activity

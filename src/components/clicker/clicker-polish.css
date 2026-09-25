@@ -1164,3 +1164,10 @@
     min-height: 40px;
   }
 }
+
+/* Progress toward a locked region's lifetime-CORE threshold. */
+[data-clicker] .clicker-world-unlock-bar {
+  max-width: 320px;
+  height: 5px;
+  margin-top: 6px;
+}
