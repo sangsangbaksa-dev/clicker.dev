@@ -26,7 +26,7 @@ function cacheControlFor(pathname: string): string {
 
 type WaitUntil = { waitUntil(promise: Promise<unknown>): void }
 
-export default {
+const worker = {
   async fetch(request: Request, env: Env, ctx: WaitUntil): Promise<Response> {
     const originHost = env.ORIGIN_HOST || DEFAULT_ORIGIN_HOST
     const incoming = new URL(request.url)
@@ -96,3 +96,5 @@ export default {
     return response
   },
 }
+
+export default worker
