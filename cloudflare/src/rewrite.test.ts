@@ -8,6 +8,7 @@ import {
   rewriteLocation,
   rewriteSetCookie,
   shouldCacheAtEdge,
+  shouldStoreAtEdge,
 } from "./rewrite.ts"
 
 test("caches hashed Next static assets", () => {
@@ -76,4 +77,16 @@ test("rewrites Set-Cookie Domain on proxied responses", () => {
   )
   assert.equal(headers.get("Set-Cookie")?.includes("Domain="), false)
   assert.equal(headers.get("Set-Cookie")?.includes("hsms_session=abc"), true)
+})
+
+test("only stores successful GET responses in the edge cache", () => {
+  assert.equal(shouldStoreAtEdge("GET", true), true)
+  assert.equal(shouldStoreAtEdge("HEAD", true), false)
+  assert.equal(shouldStoreAtEdge("GET", false), false)
+})
+
+test("never caches API or auth responses at the edge", () => {
+  for (const path of ["/api/auth/me", "/api/rooms/abc.json", "/api/classes"]) {
+    assert.equal(shouldCacheAtEdge("GET", path), false, path)
+  }
 })

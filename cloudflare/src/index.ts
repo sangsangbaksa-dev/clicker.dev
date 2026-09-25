@@ -5,6 +5,7 @@ import {
   forwardHeaders,
   originUrlFor,
   shouldCacheAtEdge,
+  shouldStoreAtEdge,
 } from "./rewrite"
 
 export interface Env {
@@ -88,7 +89,7 @@ export default {
       headers,
     })
 
-    if (originResponse.ok) {
+    if (shouldStoreAtEdge(request.method, originResponse.ok)) {
       ctx.waitUntil(cache.put(cacheKey, response.clone()))
     }
 

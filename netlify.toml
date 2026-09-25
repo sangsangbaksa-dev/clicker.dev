@@ -9,3 +9,4 @@
 # Set in Netlify → Site configuration → Environment variables:
 #   SUPABASE_URL
 #   SUPABASE_SERVICE_ROLE_KEY
+#   AUTH_SECRET

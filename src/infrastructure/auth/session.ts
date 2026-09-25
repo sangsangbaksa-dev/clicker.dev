@@ -1,18 +1,13 @@
 import { resolveAccessLevel } from "@/domain/services/access-level"
 import type { AccessLevel, SessionUser } from "@/domain/entities/user"
+import { resolveAuthSecret } from "@/infrastructure/auth/auth-secret"
 import { SignJWT, jwtVerify } from "jose"
 
 export const SESSION_COOKIE = "sohaengbang-session"
 const SESSION_DAYS = 30
 
 function secretKey(): Uint8Array {
-  const secret =
-    process.env.AUTH_SECRET ??
-    process.env.NETLIFY_SITE_ID ??
-    (process.env.NODE_ENV === "production"
-      ? "sohaengbang-netlify-default-secret-set-auth-secret"
-      : "sohaengbang-local-dev-secret-change-me")
-  return new TextEncoder().encode(secret)
+  return new TextEncoder().encode(resolveAuthSecret(process.env))
 }
 
 export async function signSession(user: SessionUser): Promise<string> {

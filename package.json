@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start --hostname :: --port 8080",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test src/domain/services/*.test.ts src/infrastructure/persistence/*.test.ts",
+    "test": "node --experimental-strip-types --test src/domain/services/*.test.ts src/infrastructure/persistence/*.test.ts src/infrastructure/auth/*.test.ts",
     "cf:test": "npm --prefix cloudflare test",
     "cf:dev": "npm --prefix cloudflare run dev",
     "cf:deploy": "npm --prefix cloudflare run deploy"
