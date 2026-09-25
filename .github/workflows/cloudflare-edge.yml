@@ -29,16 +29,19 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    # `secrets` is not allowed in step-level `if`, so expose it through env.
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - name: Deploy hsms-md-edge
-        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+        if: env.CLOUDFLARE_API_TOKEN != ''
         uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
           accountId: e8fbc690d9c26810ae8cc1ee9f83c814
           workingDirectory: cloudflare
           command: deploy
       - name: Skip deploy without API token
-        if: ${{ secrets.CLOUDFLARE_API_TOKEN == '' }}
+        if: env.CLOUDFLARE_API_TOKEN == ''
         run: echo "Set CLOUDFLARE_API_TOKEN on the GitHub repo to deploy to Cloudflare account e8fbc690d9c26810ae8cc1ee9f83c814."

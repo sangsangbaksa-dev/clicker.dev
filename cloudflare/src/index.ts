@@ -88,7 +88,8 @@ export default {
       headers,
     })
 
-    if (originResponse.ok) {
+    // HEAD responses have no body; storing one would serve empty files to later GETs.
+    if (originResponse.ok && request.method === "GET") {
       ctx.waitUntil(cache.put(cacheKey, response.clone()))
     }
 

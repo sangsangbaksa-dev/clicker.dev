@@ -54,6 +54,7 @@ Vercel에 Next.js를 올리고, **Vercel Blob 대신 Supabase Storage**에 회�
 4. [Vercel](https://vercel.com/waldo5/hsms-md/settings/environment-variables) → Environment Variables:
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY` (Sensitive)
+   - `AUTH_SECRET` (Sensitive, `openssl rand -base64 32`)
 5. 재배포 후 `node scripts/supabase-setup.mjs`로 Storage 연결 확인
 
 `BLOB_READ_WRITE_TOKEN`은 더 이상 필요하지 않습니다(설정돼 있어도 코드가 사용하지 않음).
@@ -70,6 +71,7 @@ Supabase는 **데이터 저장소**(Storage)이고, Next.js 앱은 **Netlify**�
 6. Environment variables:
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
+   - `AUTH_SECRET`
 7. Deploy 후 `node scripts/supabase-setup.mjs`로 Storage 연결을 확인합니다.
 
 검증:
@@ -124,6 +126,7 @@ npm run cf:dev
 
 | 이름 | 언제 | 설명 |
 |------|------|------|
+| `AUTH_SECRET` | 운영 필수 | 로그인 세션 서명 키. 32자 이상 임의 문자열(`openssl rand -base64 32`). 없으면 운영에서 로그인·API가 오류를 냅니다. |
 | `SUPABASE_URL` | Supabase 배포 | 프로젝트 URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase 배포 | 서버 전용 키 (Netlify env에만, 클라이언트 노출 금지) |
 | `BLOB_READ_WRITE_TOKEN` | Vercel 레거시 | Vercel Blob 토큰 |

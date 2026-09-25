@@ -5,14 +5,19 @@ import { SignJWT, jwtVerify } from "jose"
 export const SESSION_COOKIE = "sohaengbang-session"
 const SESSION_DAYS = 30
 
+const DEV_SECRET = "sohaengbang-local-dev-secret-change-me"
+
+/**
+ * 운영에서는 AUTH_SECRET이 반드시 있어야 한다. 예전의 공개 기본값·NETLIFY_SITE_ID
+ * 대체값은 공개 저장소에서 누구나 알 수 있어 세션 JWT를 위조할 수 있었다.
+ */
 function secretKey(): Uint8Array {
-  const secret =
-    process.env.AUTH_SECRET ??
-    process.env.NETLIFY_SITE_ID ??
-    (process.env.NODE_ENV === "production"
-      ? "sohaengbang-netlify-default-secret-set-auth-secret"
-      : "sohaengbang-local-dev-secret-change-me")
-  return new TextEncoder().encode(secret)
+  const secret = process.env.AUTH_SECRET?.trim()
+  if (secret) return new TextEncoder().encode(secret)
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("AUTH_SECRET 환경 변수가 설정되지 않았습니다.")
+  }
+  return new TextEncoder().encode(DEV_SECRET)
 }
 
 export async function signSession(user: SessionUser): Promise<string> {

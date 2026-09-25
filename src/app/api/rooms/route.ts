@@ -1,3 +1,4 @@
+import { requireEditorUser } from "@/infrastructure/auth/guard"
 import { createRoom } from "@/infrastructure/persistence/room-repository"
 import { NextResponse } from "next/server"
 
@@ -5,14 +6,15 @@ export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 export async function POST(request: Request) {
+  const auth = await requireEditorUser(request)
+  if (auth instanceof Response) return auth
+
   try {
     const body = (await request.json()) as {
       title?: string
       subject?: string
       description?: string
       deadline?: string
-      creatorName?: string
-      creatorId?: string
     }
 
     const room = await createRoom({
@@ -20,8 +22,8 @@ export async function POST(request: Request) {
       subject: body.subject ?? "",
       description: body.description ?? "",
       deadline: body.deadline ?? "",
-      creatorName: body.creatorName ?? "",
-      creatorId: body.creatorId,
+      creatorName: auth.user.name,
+      creatorId: auth.user.id,
     })
 
     return NextResponse.json({ room }, { headers: { "Cache-Control": "no-store" } })
