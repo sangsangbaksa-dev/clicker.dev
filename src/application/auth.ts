@@ -2,6 +2,17 @@ import { fail, ok, type UseCaseResult } from "@/application/result"
 import { CONTENT_REJECT_MESSAGE, findDisallowedSnippet } from "@/domain/services/content-moderation"
 import { validateSchoolLevel } from "@/domain/services/school-note-kinds"
 import type { PublicUser, SchoolLevel } from "@/domain/entities/user"
+import {
+  loginLockedMessage,
+  loginRetryAfterMs,
+  loginThrottleKey,
+  recordLoginFailure,
+} from "@/domain/services/login-throttle"
+import {
+  clearLoginThrottle,
+  readLoginThrottle,
+  writeLoginThrottle,
+} from "@/infrastructure/auth/login-throttle-store"
 import { verifyPassword } from "@/infrastructure/auth/password"
 import {
   findRemovedAccount,
@@ -17,10 +28,27 @@ import {
 export async function loginUser(input: {
   loginId: string
   password: string
+  clientIp?: string
+  now?: number
 }): Promise<UseCaseResult<{ user: PublicUser }>> {
   const loginId = input.loginId.trim()
   if (!loginId || !input.password) {
     return fail(400, "아이디와 비밀번호를 입력해 주세요.")
+  }
+
+  const now = input.now ?? Date.now()
+  const throttleKey = loginThrottleKey(loginId, input.clientIp ?? "")
+  const throttle = await readLoginThrottle(throttleKey)
+  const retryAfterMs = loginRetryAfterMs(throttle, now)
+  if (retryAfterMs > 0) {
+    return fail(429, loginLockedMessage(retryAfterMs), {
+      payload: { retryAfterSeconds: Math.ceil(retryAfterMs / 1000) },
+    })
+  }
+
+  const failed = async (status: number, error: string) => {
+    await writeLoginThrottle(throttleKey, recordLoginFailure(throttle, now))
+    return fail<{ user: PublicUser }>(status, error)
   }
 
   const stored = await findUserByLoginId(loginId)
@@ -29,12 +57,13 @@ export async function loginUser(input: {
     if (removed && (await verifyPassword(input.password, removed.passwordHash))) {
       return fail(403, removedAccountLoginMessage(removed.reason))
     }
-    return fail(401, "아이디 또는 비밀번호가 맞지 않습니다.")
+    return failed(401, "아이디 또는 비밀번호가 맞지 않습니다.")
   }
 
   if (!(await verifyPassword(input.password, stored.passwordHash))) {
-    return fail(401, "아이디 또는 비밀번호가 맞지 않습니다.")
+    return failed(401, "아이디 또는 비밀번호가 맞지 않습니다.")
   }
+  if (throttle) await clearLoginThrottle(throttleKey)
   return ok({ user: toPublicUser(stored) })
 }
 
