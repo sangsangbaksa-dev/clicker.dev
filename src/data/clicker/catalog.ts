@@ -61,7 +61,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 3,
       costGrowth: 1.165,
       tags: ["EARLY", "LINK"],
-      assetId: "/clicker/producer/producer_core_extractor.png",
+      assetId: "/clicker/producer/producer_pulse_relay.png",
     },
     {
       id: "core_extractor",
@@ -83,7 +83,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 27,
       costGrowth: 1.175,
       tags: ["AUTOMATION", "STABLE"],
-      assetId: "/clicker/producer/producer_flux_generator.png",
+      assetId: "/clicker/producer/producer_coil_harvester.png",
     },
     {
       id: "flux_generator",
@@ -105,7 +105,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 193,
       costGrowth: 1.2,
       tags: ["CONTROL", "MID"],
-      assetId: "/clicker/producer/producer_quantum_foundry.png",
+      assetId: "/clicker/producer/producer_phase_regulator.png",
     },
     {
       id: "quantum_foundry",
@@ -127,7 +127,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 2140,
       costGrowth: 1.21,
       tags: ["RESONANCE", "MID"],
-      assetId: "/clicker/producer/producer_resonance_array.png",
+      assetId: "/clicker/producer/producer_echo_lattice.png",
     },
     {
       id: "resonance_array",
@@ -149,7 +149,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 12400,
       costGrowth: 1.223,
       tags: ["RISK", "LATE"],
-      assetId: "/clicker/producer/producer_singularity_plant.png",
+      assetId: "/clicker/producer/producer_void_condenser.png",
     },
     {
       id: "singularity_plant",
@@ -171,7 +171,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 89000,
       costGrowth: 1.235,
       tags: ["END", "RISK"],
-      assetId: "/clicker/producer/producer_singularity_plant.png",
+      assetId: "/clicker/producer/producer_horizon_engine.png",
     },
   ],
   upgrades: [
