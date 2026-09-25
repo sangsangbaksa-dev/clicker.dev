@@ -83,7 +83,7 @@ export function ClickerUpgradesPanel({ game, run }: { game: ClickerGame; run: Ru
               : u.status === "LOCKED"
                 ? "잠김"
                 : u.status === "POOR"
-                  ? "CORE 부족"
+                  ? `${u.costText} 필요`
                   : `구매 · ${u.costText}`
           return (
             <article
@@ -100,7 +100,10 @@ export function ClickerUpgradesPanel({ game, run }: { game: ClickerGame; run: Ru
                   <span className="clicker-upgrade-price">
                     <strong>{u.costText}</strong> CORE
                   </span>
-                  {u.reason ? <span className="clicker-upgrade-reason">{u.reason}</span> : null}
+                  {/* The status badge already says "CORE 부족"; only show other reasons. */}
+                  {u.reason && u.reason !== statusText ? (
+                    <span className="clicker-upgrade-reason">{u.reason}</span>
+                  ) : null}
                 </p>
               </div>
               <button

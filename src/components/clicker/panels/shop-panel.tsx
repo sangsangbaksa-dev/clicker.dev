@@ -41,7 +41,10 @@ export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) 
               <p className="clicker-shop-effect">
                 {item.durationSeconds}초 · {item.effectSummary}
               </p>
-              <p className="clicker-shop-desc">{item.description}</p>
+              {/* Potion copy often restates the effect line; skip it when it does. */}
+              {item.description.startsWith(`${item.durationSeconds}초 ·`) ? null : (
+                <p className="clicker-shop-desc">{item.description}</p>
+              )}
               <div className="clicker-shop-meta-row">
                 <span className="clicker-shop-owned">
                   보유 <strong>{item.owned}</strong>

@@ -5000,3 +5000,13 @@ button.clicker-metric-action.is-fever-ready em {
 .clicker-transcendence-momentum strong {
   color: var(--core-bright);
 }
+
+.clicker-skill-node.is-locked {
+  opacity: 0.5;
+}
+
+.clicker-skill-detail-requires {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}

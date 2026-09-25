@@ -1,10 +1,21 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
   title: "PROJECT CLICKER",
   description: "AURELIA CORE 광산에서 코어를 채굴하는 프로토콜",
-  icons: { icon: "/clicker/icon/icon_core.png" },
+  icons: { icon: "/clicker/icon/icon_core.png", apple: "/clicker/icon/icon_core.png" },
+  appleWebApp: { capable: true, title: "Aurelia Core", statusBarStyle: "black-translucent" },
+}
+
+/** Phone play: edge-to-edge under the notch, no pinch-zoom fighting rapid taps. */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#070B12",
 }
 
 export default function RootLayout({

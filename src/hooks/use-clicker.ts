@@ -276,6 +276,9 @@ export function useClicker() {
     if (!current || current.metaState.gameCompleted) return { critical: false }
     const result = clickerClick(current, now())
     commit(result.save)
+    if (result.quake) playSfx("quake")
+    else if (result.lightning) playSfx("lightning")
+    else if (result.echo) playSfx("echoStrike")
     const id = ++floatId.current
     setFloats((prev) => [
       ...prev.slice(-12),

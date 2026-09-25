@@ -20,6 +20,9 @@ const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   tick: 90,
   achievement: 400,
   save: 400,
+  lightning: 220,
+  quake: 380,
+  echoStrike: 120,
 }
 const lastPlayed = new Map<string, number>()
 
@@ -157,8 +160,10 @@ const semis = (base: number, n: number) => base * 2 ** (n / 12)
 const CUES = {
   /** Generic UI press — tabs, dock, drawer. */
   tap(c: AudioContext, t: number) {
-    tone(c, "triangle", 1850, 1500, 0.035, t, 0.045, { attack: 0.002 })
-    noise(c, "highpass", 5200, 0.7, 0.012, t, 0.025)
+    // Crisp mechanical click with a short pitched body.
+    tone(c, "square", 1400, 900, 0.035, t, 0.04, { attack: 0.001 })
+    tone(c, "triangle", 880, 700, 0.06, t, 0.08, { attack: 0.002 })
+    noise(c, "highpass", 4500, 0.7, 0.03, t, 0.03)
   },
   /** Soft tick — tab / panel switch. */
   tick(c: AudioContext, t: number) {
@@ -209,9 +214,46 @@ const CUES = {
   },
   /** Active skill fired. */
   skillUse(c: AudioContext, t: number) {
-    tone(c, "sawtooth", 300, 1200, 0.035, t, 0.18)
-    noise(c, "bandpass", 1500, 1.5, 0.04, t, 0.22, { sweepTo: 6000 })
-    tone(c, "triangle", 1200, 1200, 0.04, t + 0.16, 0.25)
+    // Charge-up riser into a wide power chord and a sub hit.
+    const e = echo(c, 0.14, 0.35, 0.4)
+    noise(c, "bandpass", 500, 1.2, 0.07, t, 0.3, { sweepTo: 7000, attack: 0.18 })
+    tone(c, "sawtooth", 200, 900, 0.05, t, 0.3, { attack: 0.2 })
+    const hit = t + 0.28
+    ;[293.7, 440, 587.3, 880].forEach((f, i) =>
+      tone(c, "sawtooth", f, f, 0.045, hit, 0.9, { detune: i % 2 ? 8 : -8, dest: e }),
+    )
+    tone(c, "sine", 90, 38, 0.2, hit, 0.6)
+    noise(c, "lowpass", 300, 1, 0.1, hit, 0.35)
+  },
+  /** Chain lightning strike: crackling arcs, a bright snap and rolling thunder. */
+  lightning(c: AudioContext, t: number) {
+    const e = echo(c, 0.09, 0.3, 0.35)
+    for (let i = 0; i < 6; i++) {
+      const at = t + i * 0.028 + Math.random() * 0.015
+      noise(c, "highpass", 3500 + Math.random() * 3000, 0.7, 0.16, at, 0.05)
+    }
+    tone(c, "sawtooth", 2400, 90, 0.08, t, 0.22, { attack: 0.001, dest: e })
+    tone(c, "square", 1600, 70, 0.04, t + 0.01, 0.25, { attack: 0.001 })
+    // Thunder: long lowpassed rumble with a sub thump.
+    noise(c, "lowpass", 900, 0.8, 0.22, t + 0.08, 1.4, { sweepTo: 120, attack: 0.03 })
+    tone(c, "sine", 70, 32, 0.22, t + 0.06, 0.9)
+  },
+  /** Shockwave (quake): ground boom, cracking rock and a slow rumble. */
+  quake(c: AudioContext, t: number) {
+    tone(c, "sine", 62, 22, 0.34, t, 1.3, { attack: 0.004 })
+    tone(c, "triangle", 110, 40, 0.14, t, 0.7)
+    noise(c, "lowpass", 260, 1.4, 0.3, t, 1.6, { sweepTo: 60, attack: 0.01 })
+    noise(c, "bandpass", 1200, 1, 0.12, t, 0.18)
+    for (let i = 0; i < 8; i++) {
+      const at = t + 0.1 + Math.random() * 0.6
+      noise(c, "bandpass", 1800 + Math.random() * 2500, 3, 0.05, at, 0.05)
+    }
+  },
+  /** Resonance echo: the strike rings back a beat later. */
+  echoStrike(c: AudioContext, t: number) {
+    const e = echo(c, 0.11, 0.45, 0.5)
+    tone(c, "triangle", 1318, 1318, 0.06, t, 0.25, { dest: e })
+    tone(c, "sine", 659, 659, 0.05, t, 0.4, { dest: e })
   },
   /** CORE CRISIS: two-tone siren. */
   crisis(c: AudioContext, t: number) {
@@ -329,22 +371,31 @@ export function playSfx(name: SfxName) {
   }
 }
 
-/** Sci-fi laser drill zap for mine strikes. Pitch wobbles a little so rapid taps don't phase. */
+/**
+ * Mining laser: a heavy charged beam — detuned saw stack sweeping down, a sub-bass
+ * impact and a rock crunch. Crits add a bright crystal ring with an echo tail.
+ * Pitch wobbles a little so rapid taps don't phase into one tone.
+ */
 export function playLaser(mutedArg: boolean, critical: boolean) {
   if (mutedArg || muted) return
   const c = audio()
   if (!c) return
   const t0 = c.currentTime
-  const jitter = 1 + (Math.random() - 0.5) * 0.08
-  const dur = critical ? 0.14 : 0.08
-  tone(c, "sawtooth", (critical ? 1480 : 980) * jitter, critical ? 220 : 170, critical ? 0.05 : 0.03, t0, dur, { attack: 0.002 })
-  tone(c, "square", (critical ? 740 : 490) * jitter, 120, critical ? 0.018 : 0.01, t0, dur, { attack: 0.002 })
-  noise(c, "bandpass", critical ? 2400 : 1800, 0.8, critical ? 0.04 : 0.024, t0, dur)
-  // Rock thud under the zap so hits feel like they land on something.
-  tone(c, "sine", 140 * jitter, 60, critical ? 0.06 : 0.035, t0 + 0.01, 0.09)
+  const j = 1 + (Math.random() - 0.5) * 0.08
+  const dur = critical ? 0.22 : 0.14
+  const top = (critical ? 1700 : 1150) * j
+  for (const det of [-12, 0, 12]) {
+    tone(c, "sawtooth", top, critical ? 110 : 140, critical ? 0.07 : 0.05, t0, dur, { attack: 0.002, detune: det })
+  }
+  tone(c, "square", top / 2, 60, critical ? 0.035 : 0.022, t0, dur, { attack: 0.002 })
+  noise(c, "bandpass", critical ? 2600 : 2000, 0.7, critical ? 0.09 : 0.06, t0, dur, { sweepTo: 500 })
+  // Impact: sub boom + rock crunch so every hit lands on something solid.
+  tone(c, "sine", 120 * j, 38, critical ? 0.24 : 0.16, t0 + 0.01, critical ? 0.32 : 0.2)
+  noise(c, "lowpass", 700, 1, critical ? 0.12 : 0.07, t0 + 0.01, 0.14)
   if (critical) {
-    const e = echo(c, 0.07, 0.2, 0.25)
-    tone(c, "triangle", 2093, 2093, 0.03, t0 + 0.03, 0.18, { dest: e })
+    const e = echo(c, 0.08, 0.3, 0.35)
+    tone(c, "triangle", 2093, 2093, 0.06, t0 + 0.03, 0.35, { dest: e })
+    tone(c, "triangle", 3136, 3136, 0.03, t0 + 0.05, 0.3, { dest: e })
   }
 }
 

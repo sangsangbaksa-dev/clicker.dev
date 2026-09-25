@@ -5,9 +5,9 @@ import type { CoreVisual } from "@/domain/services/clicker-view"
 
 /** Hub / mine loops plus the chamber cue for rebirth and ending. */
 const BGM_SRC = {
-  hub: "/clicker/audio/bgm_hub_loop.wav",
-  mine: "/clicker/audio/bgm_mine_loop.wav",
-  chamber: "/clicker/audio/bgm_chamber.ogg",
+  hub: "/clicker/audio/bgm_hub_v2.mp3",
+  mine: "/clicker/audio/bgm_mine_v2.mp3",
+  chamber: "/clicker/audio/bgm_chamber_v2.mp3",
 } as const
 
 type Track = keyof typeof BGM_SRC
