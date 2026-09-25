@@ -1,7 +1,11 @@
 "use client"
 
-import { formatNumber } from "@/domain/services/clicker-format"
+import { formatNumber, uniqueDescriptionParts } from "@/domain/services/clicker-format"
 import type { PanelProps } from "./types"
+
+function ShopDesc({ text }: { text: string }) {
+  return text ? <p className="clicker-shop-desc">{text}</p> : null
+}
 
 export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) {
   return (
@@ -41,7 +45,7 @@ export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) 
               <p className="clicker-shop-effect">
                 {item.durationSeconds}초 · {item.effectSummary}
               </p>
-              <p className="clicker-shop-desc">{item.description}</p>
+              <ShopDesc text={uniqueDescriptionParts(item.description, `${item.durationSeconds}초 · ${item.effectSummary}`)} />
               <div className="clicker-shop-meta-row">
                 <span className="clicker-shop-owned">
                   보유 <strong>{item.owned}</strong>
@@ -82,7 +86,7 @@ export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) 
                 <span className={`clicker-shop-status ${statusClass}`}>{statusLabel}</span>
               </div>
               <p className="clicker-shop-effect">{item.effectSummary}</p>
-              <p className="clicker-shop-desc">{item.description}</p>
+              <ShopDesc text={uniqueDescriptionParts(item.description, item.effectSummary)} />
               <div className="clicker-shop-meta-row">
                 <span className="clicker-shop-owned">
                   보유 <strong>{item.owned}</strong>

@@ -23,3 +23,16 @@ export function formatNumber(value: number): string {
 function trimZeros(text: string): string {
   return text.replace(/\.?0+$/, "")
 }
+
+/**
+ * Catalog descriptions often restate the effect line ("5초 · 채굴 ×1.3 · 입문용").
+ * Returns only the " · " parts the effect line doesn't already show, so cards don't print it twice.
+ */
+export function uniqueDescriptionParts(description: string, effectLine: string): string {
+  const shown = new Set(effectLine.split("·").map((part) => part.trim()).filter(Boolean))
+  return description
+    .split("·")
+    .map((part) => part.trim())
+    .filter((part) => part && !shown.has(part))
+    .join(" · ")
+}
