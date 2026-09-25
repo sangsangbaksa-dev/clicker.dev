@@ -1026,3 +1026,76 @@
     0 0 16px rgb(255 196 64 / 0.6),
     0 2px 2px rgb(0 0 0 / 0.6);
 }
+
+/* ── Phone (≤480px): compact HUD, full menu grid, touch-friendly play ── */
+[data-clicker] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Rapid taps on the ore must never zoom, select text or open the long-press menu. */
+[data-clicker] :is(button, .clicker-mine, .clicker-mine-crystal) {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+@media (max-width: 480px) {
+  /* Two rows instead of three: CORE + save + settings, then the gauges side by side. */
+  [data-clicker] .clicker-top {
+    gap: 6px;
+    padding: calc(6px + env(safe-area-inset-top, 0px)) 10px 6px;
+  }
+
+  [data-clicker] .clicker-top > .clicker-metric {
+    order: 3;
+    flex: 1 1 40%;
+    min-height: 0;
+    padding: 5px 10px;
+  }
+
+  [data-clicker] .clicker-top > .clicker-metric:first-child {
+    order: 0;
+    flex: 1 1 50%;
+  }
+
+  [data-clicker] .clicker-top > :is(.clicker-save-pulse, .clicker-settings-launch) {
+    order: 1;
+    flex: none;
+    align-self: center;
+    margin: 0;
+    min-height: 32px;
+  }
+
+  /* All hub destinations visible at once: 3-column grid instead of a clipped scroller. */
+  [data-clicker] .clicker-hub-dock {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: visible;
+    left: 10px;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+
+  [data-clicker] .clicker-hub-dock-btn {
+    min-width: 0;
+    padding: 9px 4px;
+  }
+
+  [data-clicker] .clicker-hub-dock-btn strong {
+    font-size: 13px;
+  }
+
+  /* The manage header already has the back button. */
+  [data-clicker] .clicker-world-back {
+    display: none;
+  }
+
+  [data-clicker] .clicker-manage-head {
+    padding-block: 8px;
+  }
+
+  [data-clicker] .clicker-tabs button {
+    min-height: 40px;
+  }
+}
