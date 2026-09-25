@@ -43,13 +43,15 @@ export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automatio
                 Lv. {p.level} · <em>{p.productionText}</em>
               </p>
               <p className="clicker-producer-cost">
+                {/* The status badge already says "CORE 부족" / "잠김" — don't repeat it here. */}
                 {p.unlocked ? (
                   <>
                     다음 <strong>{p.nextCostText}</strong> CORE
-                    {p.lockReason ? ` · ${p.lockReason}` : ""}
                   </>
                 ) : (
-                  <>해금 <strong>{p.lockReason}</strong></>
+                  <>
+                    누적 <strong>{p.lockReason}</strong>
+                  </>
                 )}
               </p>
             </div>

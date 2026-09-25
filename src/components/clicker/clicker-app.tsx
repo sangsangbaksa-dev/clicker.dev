@@ -24,7 +24,7 @@ import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
 import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
-import { playLaser, unlockSfx } from "@/components/clicker/clicker-sfx"
+import { playLaser, playSfx, unlockSfx } from "@/components/clicker/clicker-sfx"
 import { ClickerAchievementsPanel } from "@/components/clicker/panels/achievements-panel"
 import { ClickerProducersPanel } from "@/components/clicker/panels/producers-panel"
 import { ClickerUpgradesPanel } from "@/components/clicker/panels/upgrades-panel"
@@ -172,6 +172,15 @@ export function ClickerApp() {
   useClickerDialogFocus(storyBeatRef, Boolean(storyBeat))
   useClickerDialogFocus(adminRef, CLICKER_ADMIN_UI && adminAllowed && adminOpen)
 
+  // One auto-dismiss for every LUMA beat. The triggers below used to own their timers,
+  // but their effects re-run on every tick and the cleanup kept cancelling them.
+  useEffect(() => {
+    if (!storyBeat) return
+    playSfx("notify")
+    const timer = window.setTimeout(() => setStoryBeat(null), 5200)
+    return () => window.clearTimeout(timer)
+  }, [storyBeat])
+
   useEffect(() => {
     if (!confirmPotion) return
     const timer = window.setTimeout(() => setConfirmPotion(null), 4000)
@@ -206,6 +215,7 @@ export function ClickerApp() {
 
   const selectTab = useCallback(
     (id: TabId) => {
+      playSfx(id === "transcendence" ? "transcend" : "tick")
       setTab(id)
       setHubView("manage")
       if (drawerHeight <= drawerSnaps.peek + 16) {
@@ -403,9 +413,6 @@ export function ClickerApp() {
     }
     if (unlocked && !prevCanRebirth.current) {
       setStoryBeat("누적 CORE가 임계에 닿았습니다. TRANSCENDENCE에서 세계선을 접을 수 있습니다.")
-      const timer = window.setTimeout(() => setStoryBeat(null), 5200)
-      prevCanRebirth.current = true
-      return () => window.clearTimeout(timer)
     }
     prevCanRebirth.current = unlocked
   }, [game.hud?.canRebirth])
@@ -440,21 +447,52 @@ export function ClickerApp() {
     prevUnlockedRegionIds.current = unlockedIds
     if (!fresh) return
     setStoryBeat(`새 지역 해금 · ${fresh.name}. WORLD에서 이동할 수 있습니다.`)
-    const timer = window.setTimeout(() => setStoryBeat(null), 5200)
-    return () => window.clearTimeout(timer)
   }, [game.regions])
 
+  // Keyed on the objective id only: depending on the whole save re-fired the beat every tick,
+  // so a dismissed line popped straight back up.
+  const objectiveId = game.save?.runState.currentObjectiveId
   useEffect(() => {
-    const id = game.save?.runState.currentObjectiveId
-    if (!id || !game.save) return
-    const obj = game.config.objectives.find((o) => o.id === id)
-    if (prevObjectiveId.current && prevObjectiveId.current !== id && obj?.lumaLine) {
-      setStoryBeat(obj.lumaLine)
-      const timer = window.setTimeout(() => setStoryBeat(null), 5200)
-      return () => window.clearTimeout(timer)
-    }
-    prevObjectiveId.current = id
-  }, [game.save?.runState.currentObjectiveId, game.config.objectives, game.save])
+    if (!objectiveId) return
+    const prev = prevObjectiveId.current
+    prevObjectiveId.current = objectiveId
+    if (!prev || prev === objectiveId) return
+    const obj = game.config.objectives.find((o) => o.id === objectiveId)
+    if (obj?.lumaLine) setStoryBeat(obj.lumaLine)
+  }, [objectiveId, game.config.objectives])
+
+  // Event cues that can start without a click (gauge auto-FEVER, crisis roll).
+  const feverActive = Boolean(game.hud?.fever.active)
+  const prevFeverActive = useRef(feverActive)
+  useEffect(() => {
+    if (feverActive && !prevFeverActive.current) playSfx("fever")
+    prevFeverActive.current = feverActive
+  }, [feverActive])
+
+  const crisisActive = Boolean(game.hud?.crisisActive)
+  const prevCrisisActive = useRef(crisisActive)
+  useEffect(() => {
+    if (crisisActive && !prevCrisisActive.current) playSfx("crisis")
+    prevCrisisActive.current = crisisActive
+  }, [crisisActive])
+
+  // Mine session: countdown ticks for the last 3 seconds, then the end cue.
+  const inMineSurface = game.save?.settings.playSurface === "mine"
+  const mineEndsAt = game.save?.runState.mineSessionEndsAt ?? 0
+  useEffect(() => {
+    if (!inMineSurface || !mineEndsAt) return
+    const timers = [3, 2, 1]
+      .map((sec) => mineEndsAt - sec * 1000 - Date.now())
+      .filter((ms) => ms > 0)
+      .map((ms) => window.setTimeout(() => playSfx("timerWarn"), ms))
+    return () => timers.forEach((t) => window.clearTimeout(t))
+  }, [inMineSurface, mineEndsAt])
+
+  const prevInMine = useRef(inMineSurface)
+  useEffect(() => {
+    if (prevInMine.current && !inMineSurface) playSfx("sessionEnd")
+    prevInMine.current = inMineSurface
+  }, [inMineSurface])
 
   if (!game.save || !game.hud) {
     return (

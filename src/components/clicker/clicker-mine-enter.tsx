@@ -15,6 +15,7 @@ type Props = {
 export function ClickerMineEnter({ muted, onDone }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const doneRef = useRef(false)
+  const mutedAtStart = useRef(muted)
   const onDoneRef = useRef(onDone)
 
   useEffect(() => {
@@ -28,11 +29,16 @@ export function ClickerMineEnter({ muted, onDone }: Props) {
     onDoneRef.current()
   })
 
+  // Mute follows the setting live; it must not restart playback or the safety timer.
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.muted = muted
+  }, [muted])
+
   useEffect(() => {
     const finish = finishRef.current
     const video = videoRef.current
     if (video) {
-      video.muted = muted
+      video.muted = mutedAtStart.current
       void video.play().catch(() => {
         // Autoplay with sound refused — retry silently, else skip the cinematic.
         video.muted = true
@@ -51,7 +57,7 @@ export function ClickerMineEnter({ muted, onDone }: Props) {
       window.removeEventListener("keydown", onKey)
       window.clearTimeout(timer)
     }
-  }, [muted])
+  }, [])
 
   const finish = () => finishRef.current()
 

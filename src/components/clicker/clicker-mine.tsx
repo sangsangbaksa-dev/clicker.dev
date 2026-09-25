@@ -10,6 +10,7 @@ import {
 } from "react"
 import { MineArt, MINE_ORE_PLATE } from "@/data/clicker/mine-assets"
 import { VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/domain/services/clicker-bonus"
+import { playSfx } from "@/components/clicker/clicker-sfx"
 import "./clicker-mine.css"
 
 export type MineStrikeResult = { critical: boolean }
@@ -237,6 +238,7 @@ export function ClickerMine({
     if (!onVein || Math.random() >= VEIN_SPAWN_CHANCE) return
     const spawn = window.setTimeout(() => {
       setVein({ x: 0.2 + Math.random() * 0.6, y: 0.2 + Math.random() * 0.5, expiresAt: Date.now() + VEIN_LIFETIME_MS })
+      playSfx("veinSpawn")
     }, 1500 + Math.random() * 3500)
     return () => window.clearTimeout(spawn)
     // One roll per mount (= per mine session).

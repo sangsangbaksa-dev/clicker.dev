@@ -396,9 +396,19 @@
   filter: saturate(0.6);
 }
 
+/* Icons are feathered cut-outs (scripts/clicker-icons.py): no tile frame, just a soft glow well. */
 [data-clicker] .clicker-card img {
-  border-radius: 10px;
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 4px 12px rgb(0 0 0 / 0.5);
+  width: 64px;
+  height: 64px;
+  margin: -4px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: radial-gradient(circle at 50% 55%, color-mix(in srgb, var(--core) 14%, transparent) 0%, transparent 68%);
+  filter: drop-shadow(0 4px 8px rgb(0 0 0 / 0.55));
+}
+
+[data-clicker] .clicker-card.is-locked img {
+  filter: grayscale(0.6) brightness(0.85) drop-shadow(0 4px 8px rgb(0 0 0 / 0.55));
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -989,4 +999,30 @@
 [data-clicker] .clicker-achievement-body .clicker-bar {
   height: 5px;
   margin-top: 3px;
+}
+
+/* ── Mine surface: keep toasts clear of the top HUD (timer / haul). ── */
+[data-clicker].is-mine-surface .clicker-toast {
+  top: auto;
+  bottom: calc(var(--drawer-peek, 96px) + 24px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Floating yield numbers sit on a cyan crystal — give them a dark rim so they read. */
+[data-clicker] .clicker-float {
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #eafcff;
+  -webkit-text-stroke: 3px rgb(4 10 20 / 0.85);
+  paint-order: stroke fill;
+  text-shadow:
+    0 0 12px color-mix(in srgb, var(--core) 55%, transparent),
+    0 2px 2px rgb(0 0 0 / 0.6);
+}
+
+[data-clicker] .clicker-float.is-crit {
+  color: #ffe38a;
+  font-size: 24px;
+  text-shadow:
+    0 0 16px rgb(255 196 64 / 0.6),
+    0 2px 2px rgb(0 0 0 / 0.6);
 }

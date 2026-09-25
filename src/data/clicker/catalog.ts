@@ -50,7 +50,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 1.5,
       costGrowth: 1.16,
       tags: ["EARLY", "STABLE"],
-      assetId: "/clicker/producer/producer_solar_node.png",
+      assetId: "/clicker/producer/producer_solar_node.webp",
     },
     {
       id: "pulse_relay",
@@ -61,7 +61,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 3,
       costGrowth: 1.165,
       tags: ["EARLY", "LINK"],
-      assetId: "/clicker/producer/producer_core_extractor.png",
+      assetId: "/clicker/producer/producer_pulse_relay.webp",
     },
     {
       id: "core_extractor",
@@ -72,7 +72,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 9,
       costGrowth: 1.17,
       tags: ["CLICK", "CORE"],
-      assetId: "/clicker/producer/producer_core_extractor.png",
+      assetId: "/clicker/producer/producer_core_extractor.webp",
     },
     {
       id: "coil_harvester",
@@ -83,7 +83,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 27,
       costGrowth: 1.175,
       tags: ["AUTOMATION", "STABLE"],
-      assetId: "/clicker/producer/producer_flux_generator.png",
+      assetId: "/clicker/producer/producer_coil_harvester.webp",
     },
     {
       id: "flux_generator",
@@ -94,7 +94,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 62,
       costGrowth: 1.195,
       tags: ["AUTOMATION"],
-      assetId: "/clicker/producer/producer_flux_generator.png",
+      assetId: "/clicker/producer/producer_flux_generator.webp",
     },
     {
       id: "phase_regulator",
@@ -105,7 +105,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 193,
       costGrowth: 1.2,
       tags: ["CONTROL", "MID"],
-      assetId: "/clicker/producer/producer_quantum_foundry.png",
+      assetId: "/clicker/producer/producer_phase_regulator.webp",
     },
     {
       id: "quantum_foundry",
@@ -116,7 +116,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 696,
       costGrowth: 1.205,
       tags: ["BURST", "FEVER"],
-      assetId: "/clicker/producer/producer_quantum_foundry.png",
+      assetId: "/clicker/producer/producer_quantum_foundry.webp",
     },
     {
       id: "echo_lattice",
@@ -127,7 +127,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 2140,
       costGrowth: 1.21,
       tags: ["RESONANCE", "MID"],
-      assetId: "/clicker/producer/producer_resonance_array.png",
+      assetId: "/clicker/producer/producer_echo_lattice.webp",
     },
     {
       id: "resonance_array",
@@ -138,7 +138,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 4440,
       costGrowth: 1.218,
       tags: ["RESONANCE", "EVENT"],
-      assetId: "/clicker/producer/producer_resonance_array.png",
+      assetId: "/clicker/producer/producer_resonance_array.webp",
     },
     {
       id: "void_condenser",
@@ -149,7 +149,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 12400,
       costGrowth: 1.223,
       tags: ["RISK", "LATE"],
-      assetId: "/clicker/producer/producer_singularity_plant.png",
+      assetId: "/clicker/producer/producer_void_condenser.webp",
     },
     {
       id: "singularity_plant",
@@ -160,7 +160,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 33200,
       costGrowth: 1.23,
       tags: ["RISK", "LATE"],
-      assetId: "/clicker/producer/producer_singularity_plant.png",
+      assetId: "/clicker/producer/producer_singularity_plant.webp",
     },
     {
       id: "horizon_engine",
@@ -171,7 +171,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 89000,
       costGrowth: 1.235,
       tags: ["END", "RISK"],
-      assetId: "/clicker/producer/producer_singularity_plant.png",
+      assetId: "/clicker/producer/producer_horizon_engine.webp",
     },
   ],
   upgrades: [
@@ -322,7 +322,7 @@ export const clickerConfig: GameConfig = {
       criticalChanceAdd: 0.03,
       instabilityPerSecond: 0,
       shopCost: 10_000,
-      assetId: "/clicker/potion/potion_timebreak.png",
+      assetId: "/clicker/potion/potion_timebreak.webp",
     },
     {
       id: "blue",
@@ -334,7 +334,7 @@ export const clickerConfig: GameConfig = {
       criticalChanceAdd: 0.05,
       instabilityPerSecond: 0,
       shopCost: 50_000,
-      assetId: "/clicker/potion/potion_blue.png",
+      assetId: "/clicker/potion/potion_blue.webp",
     },
     {
       id: "resonance",
@@ -346,7 +346,7 @@ export const clickerConfig: GameConfig = {
       criticalChanceAdd: 0.08,
       instabilityPerSecond: 0,
       shopCost: 250_000,
-      assetId: "/clicker/potion/potion_resonance.png",
+      assetId: "/clicker/potion/potion_resonance.webp",
     },
     {
       id: "industrial",
@@ -358,7 +358,7 @@ export const clickerConfig: GameConfig = {
       criticalChanceAdd: 0.04,
       instabilityPerSecond: 0,
       shopCost: 1_250_000,
-      assetId: "/clicker/potion/potion_industrial.png",
+      assetId: "/clicker/potion/potion_industrial.webp",
     },
     {
       id: "overdrive",
@@ -370,7 +370,7 @@ export const clickerConfig: GameConfig = {
       criticalChanceAdd: 0.2,
       instabilityPerSecond: 1.5,
       shopCost: 10_000_000,
-      assetId: "/clicker/potion/potion_overdrive.png",
+      assetId: "/clicker/potion/potion_overdrive.webp",
     },
   ],
   skillNodes: [
@@ -543,7 +543,7 @@ export const clickerConfig: GameConfig = {
       shopCost: 3_500,
       productionMultiplier: 3,
       instabilityPerSecond: 0.8,
-      assetId: "/clicker/skill/skill_overclock.png",
+      assetId: "/clicker/skill/skill_overclock.webp",
     },
     {
       id: "core_pulse",
@@ -553,7 +553,7 @@ export const clickerConfig: GameConfig = {
       duration: 0,
       shopCost: 1_800,
       energyBurstSeconds: 5,
-      assetId: "/clicker/skill/skill_core_pulse.png",
+      assetId: "/clicker/skill/skill_core_pulse.webp",
     },
     {
       id: "stabilizer",
@@ -564,7 +564,7 @@ export const clickerConfig: GameConfig = {
       shopCost: 2_400,
       productionMultiplier: 0.7,
       instabilityDelta: -18,
-      assetId: "/clicker/skill/skill_stabilizer.png",
+      assetId: "/clicker/skill/skill_stabilizer.webp",
     },
   ],
   objectives: [
@@ -650,7 +650,7 @@ export const clickerConfig: GameConfig = {
       identity: "직접 개입 세계선",
       clickMultiplier: 1.4,
       comboWindowAdd: 0.4,
-      assetId: "/clicker/buff/buff_focus.png",
+      assetId: "/clicker/buff/buff_focus.webp",
     },
     {
       id: "auto_line",
@@ -659,7 +659,7 @@ export const clickerConfig: GameConfig = {
       identity: "자동화 세계선",
       productionMultiplier: 1.35,
       startingEnergy: 200,
-      assetId: "/clicker/buff/buff_automation.png",
+      assetId: "/clicker/buff/buff_automation.webp",
     },
     {
       id: "reso_line",
@@ -668,7 +668,7 @@ export const clickerConfig: GameConfig = {
       identity: "공명 세계선",
       feverDurationAdd: 6,
       clickMultiplier: 1.15,
-      assetId: "/clicker/buff/buff_resonance.png",
+      assetId: "/clicker/buff/buff_resonance.webp",
     },
     {
       id: "risk_line",
@@ -677,7 +677,7 @@ export const clickerConfig: GameConfig = {
       identity: "위험 세계선",
       instabilityRewardBonus: 0.25,
       productionMultiplier: 1.1,
-      assetId: "/clicker/buff/buff_risk.png",
+      assetId: "/clicker/buff/buff_risk.webp",
     },
     {
       id: "hybrid_line",
@@ -687,7 +687,7 @@ export const clickerConfig: GameConfig = {
       clickMultiplier: 1.15,
       productionMultiplier: 1.15,
       startingEnergy: 80,
-      assetId: "/clicker/buff/buff_utility.png",
+      assetId: "/clicker/buff/buff_utility.webp",
     },
   ],
   regions: CLICKER_REGIONS,
