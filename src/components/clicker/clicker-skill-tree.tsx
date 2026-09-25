@@ -41,16 +41,14 @@ function cellStyle(cell: SkillCell): CSSProperties {
 }
 
 export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
-  // Layout covers every node so positions stay put as new circuits appear.
+  // The whole tree is always on the board; locked circuits show dimmed with their prerequisites.
   const layout = useMemo(() => layoutSkillTree(nodes), [nodes])
   const treeNodes = useMemo<TreeNode[]>(
-    () =>
-      nodes
-        .filter((node) => node.visible && layout.cells[node.id])
-        .map((node) => ({ ...node, ...layout.cells[node.id] })),
+    () => nodes.filter((node) => layout.cells[node.id]).map((node) => ({ ...node, ...layout.cells[node.id] })),
     [layout, nodes],
   )
-  const hiddenCount = nodes.length - treeNodes.length
+  const ownedCount = treeNodes.filter((n) => n.status === "OWNED").length
+  const lockedCount = treeNodes.filter((n) => n.status === "LOCKED").length
 
   const [selectedId, setSelectedId] = useState<string | null>(
     () => treeNodes.find((n) => n.status === "AVAILABLE")?.id ?? treeNodes[0]?.id ?? null,
@@ -104,7 +102,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
       <div>
         <div className="clicker-skill-tree-title">CIRCUITS · 회로</div>
         <div className="clicker-skill-tree-sub">
-          기억 회로 — 노드를 CORE로 해금하면 이어진 회로가 드러납니다
+          회로 {treeNodes.length}개 · 활성 {ownedCount} — 선행 회로를 해금하면 다음 노드가 열립니다
         </div>
       </div>
       <div className="clicker-skill-tree-sp" aria-live="polite">
@@ -132,9 +130,9 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
         <li className="is-available">해금 가능</li>
         <li className="is-poor">CORE 부족</li>
         <li className="is-owned">활성</li>
-        {hiddenCount > 0 ? <li className="is-hidden">숨은 회로 {hiddenCount}</li> : null}
+        <li className="is-locked">잠김 {lockedCount}</li>
       </ul>
-      {hiddenCount === 0 && treeNodes.every((n) => n.status === "OWNED") ? (
+      {ownedCount === treeNodes.length ? (
         <p className="clicker-skill-tree-empty" role="status">
           모든 회로를 활성화했습니다.
         </p>
@@ -202,6 +200,15 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
           </div>
           <strong>{selected.name}</strong>
           <p className="clicker-skill-detail-effect">{selected.description}</p>
+          {selected.status === "LOCKED" ? (
+            <p className="clicker-skill-detail-requires">
+              선행 회로 ·{" "}
+              {selected.requires
+                .filter((id) => byId.get(id)?.status !== "OWNED")
+                .map((id) => byId.get(id)?.name ?? id)
+                .join(", ")}
+            </p>
+          ) : null}
           <div className="clicker-skill-detail-stats">
             <span>
               비용 <strong>{formatNumber(selected.cost)} CORE</strong>
@@ -232,7 +239,9 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
           >
             {selected.status === "OWNED"
               ? "활성화됨"
-              : selected.status === "POOR"
+              : selected.status === "LOCKED"
+                ? "선행 회로 필요"
+                : selected.status === "POOR"
                 ? `CORE 부족 · ${formatNumber(selected.cost)} 필요`
                 : `${formatNumber(selected.cost)} CORE로 해금`}
           </button>

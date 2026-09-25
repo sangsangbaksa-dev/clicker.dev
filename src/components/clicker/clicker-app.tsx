@@ -589,9 +589,8 @@ export function ClickerApp() {
   const showTranscendenceTab = transcendenceUnlocked || rebirthRatio >= 0.25
   const transcendenceOwned = new Set(game.save.metaState.transcendenceIds).size
   const transcendenceTotal = game.config.transcendence.length
-  const visibleSkillNodes = game.skillNodes.filter(
-    (node) => transcendenceUnlocked || node.branch !== "TRANSCENDENCE",
-  )
+  // Every circuit (all 100, transcendence branch included) stays on the board.
+  const visibleSkillNodes = game.skillNodes
   const drawerTabs = (
     [
       ["producers", "PRODUCERS", "생산자"],
