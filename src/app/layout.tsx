@@ -29,6 +29,8 @@ export default function RootLayout({
         {/* CDN fallback: next/font/google is currently broken under this Turbopack build. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* This is the root layout, so the font reaches every page (the rule targets pages/). */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600&display=swap"
           rel="stylesheet"
