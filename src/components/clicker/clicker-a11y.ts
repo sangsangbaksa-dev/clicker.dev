@@ -1,11 +1,13 @@
 "use client"
 
-import { useEffect, useRef, type RefObject } from "react"
+import { useEffect, useLayoutEffect, useRef, type RefObject } from "react"
 
 /** Soft Esc dismiss — no focus trap, respects prior preventDefault. */
 export function useClickerEscape(enabled: boolean, onEscape: () => void) {
   const onEscapeRef = useRef(onEscape)
-  onEscapeRef.current = onEscape
+  useLayoutEffect(() => {
+    onEscapeRef.current = onEscape
+  })
 
   useEffect(() => {
     if (!enabled) return

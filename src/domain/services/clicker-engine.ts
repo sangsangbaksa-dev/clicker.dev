@@ -361,7 +361,7 @@ function derivedClick(run: RunState, meta: MetaState, config: GameConfig) {
     critChance = config.critChanceSoftCap + (critChance - config.critChanceSoftCap) * 0.3
   }
   critChance = clamp(critChance, 0, 0.85)
-  let critMult = config.baseCritMultiplier * product(upgrades.map((u) => u.criticalMultiplier ?? 1))
+  const critMult = config.baseCritMultiplier * product(upgrades.map((u) => u.criticalMultiplier ?? 1))
   const comboMax = 25 + upgrades.reduce((s, u) => s + (u.comboMaxAdd ?? 0), 0)
   const comboWindow =
     config.comboWindow +
@@ -377,7 +377,7 @@ function feverMultipliers(run: RunState, meta: MetaState, config: GameConfig) {
   const upgrades = ownedUpgrades(run, config)
   const skills = ownedSkills(run, config)
   const trans = ownedTranscendence(meta, config)
-  let intensity =
+  const intensity =
     product(upgrades.map((u) => u.feverIntensity ?? 1)) *
     product(skills.map((s) => s.feverIntensity ?? 1))
   let click = config.feverClickMultiplier
@@ -557,7 +557,7 @@ export function processClick(
   let energy = derived.click * combo.multiplier * fever.click * eventBoostMultiplier(run, "laser_rush", now)
   if (isCritical) energy *= derived.critMult
 
-  let feverState = { ...run.fever }
+  const feverState = { ...run.fever }
   if (feverActive(feverState)) {
     feverState.combo = Math.min(feverState.combo + 1, config.feverComboCap)
     if (isCritical) feverState.critsThisFever += 1

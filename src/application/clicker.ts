@@ -27,7 +27,7 @@ import {
   syncClickerMineSession,
   returnHomeRegion,
   travelToRegion,
-  useActiveSkill,
+  useActiveSkill as activateSkill,
   type Rng,
 } from "@/domain/services/clicker-engine"
 import {
@@ -193,7 +193,7 @@ export function clickerStartGaugeFever(save: SaveData): UseCaseResult<SaveData> 
 }
 
 export function clickerUseSkill(save: SaveData, id: string, now: number): UseCaseResult<SaveData> {
-  return withRun(save, useActiveSkill(save.runState, save.metaState, config, id, now))
+  return withRun(save, activateSkill(save.runState, save.metaState, config, id, now))
 }
 
 export function clickerResolveCrisis(save: SaveData, choice: CrisisChoice, now: number): SaveData {

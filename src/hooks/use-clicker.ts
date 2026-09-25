@@ -81,6 +81,14 @@ export function useClicker() {
   const [offlineSummary, setOfflineSummary] = useState<OfflineSummary | null>(null)
   const [savePulse, setSavePulse] = useState<"idle" | "saving" | "saved">("idle")
   const savePulseTimer = useRef<number | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+  const toastTimer = useRef<number | null>(null)
+  const saveRef = useRef<SaveData | null>(null)
+  const floatId = useRef(0)
+  const knownAchievements = useRef<Set<string> | null>(null)
+  const offlineBonus = useRef<{ amount: number; expiresAt: number } | null>(null)
+  const mineStartRef = useRef<MineSessionStart | null>(null)
+  const [mineSummary, setMineSummary] = useState<MineSessionSummary | null>(null)
 
   const persistNow = useCallback((next?: SaveData) => {
     const target = next ?? saveRef.current
@@ -99,14 +107,6 @@ export function useClicker() {
       if (toastTimer.current != null) window.clearTimeout(toastTimer.current)
     }
   }, [])
-  const [toast, setToast] = useState<string | null>(null)
-  const toastTimer = useRef<number | null>(null)
-  const saveRef = useRef<SaveData | null>(null)
-  const floatId = useRef(0)
-  const knownAchievements = useRef<Set<string> | null>(null)
-  const offlineBonus = useRef<{ amount: number; expiresAt: number } | null>(null)
-  const mineStartRef = useRef<MineSessionStart | null>(null)
-  const [mineSummary, setMineSummary] = useState<MineSessionSummary | null>(null)
 
   useEffect(() => {
     const t = now()
@@ -513,7 +513,8 @@ export function useClicker() {
     flash("진행 상황 저장됨")
   }, [persistNow, flash])
 
-  const t = Date.now()
+  // Render from the last tick's clock (updated every ~100ms) so render stays pure.
+  const t = save?.runState.lastTickAt ?? 0
   const drill = save
     ? {
         rate: autoDrillRate(save.runState, clickerGameConfig, t),

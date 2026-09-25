@@ -62,7 +62,7 @@ test("producer cost follows base × growth^level and bulk uses the same rule", (
 
 test("click adds energy, combo expires by clock, critical uses rng", () => {
   const now = 1_000_000
-  let run = createInitialRun(now, createInitialMeta(), config)
+  const run = createInitialRun(now, createInitialMeta(), config)
   const meta = createInitialMeta()
   const first = processClick(run, meta, config, now, rng)
   assert.ok(first.result.energyGained >= 1)
@@ -80,7 +80,7 @@ test("click adds energy, combo expires by clock, critical uses rng", () => {
 test("buying a producer spends CORE and tick adds production", () => {
   const now = 2_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 100)
+  const run = grantAdminEnergy(createInitialRun(now, meta, config), 100)
   const bought = buyProducer(run, meta, config, "solar_node", 1)
   assert.equal(bought.error, undefined)
   assert.equal(bought.run.producerLevels.solar_node, 1)
@@ -265,7 +265,7 @@ test("active skill shop purchase adds charges and use consumes one", () => {
   const now = 6_500_000
   const meta = createInitialMeta()
   const skill = config.activeSkills[0]
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), skill.shopCost + 100)
+  const run = grantAdminEnergy(createInitialRun(now, meta, config), skill.shopCost + 100)
   const bought = buyActiveSkillItem(run, config, skill.id)
   assert.equal(bought.error, undefined)
   assert.equal(bought.run.skillItems[skill.id], 1)
@@ -306,7 +306,7 @@ test("instability clamps and crisis choices leave a finite value", () => {
 test("rebirth resets run and keeps transcendence on meta", () => {
   const now = 5_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), config.rebirthEnergy)
+  const run = grantAdminEnergy(createInitialRun(now, meta, config), config.rebirthEnergy)
   const result = applyRebirth(run, meta, config, "focus_line", now + 10)
   assert.equal(result.error, undefined)
   assert.equal(result.meta.rebirthCount, 1)
