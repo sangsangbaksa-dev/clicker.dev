@@ -1056,7 +1056,9 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
   try {
     const run = data.runState
     const meta = data.metaState
-    if (!run || !meta || typeof run.coreEnergy !== "number") return fallback
+    // Missing or non-finite numbers fall back to the initial run's defaults below; only a
+    // save without run/meta objects is unrecoverable.
+    if (!run || !meta || typeof run !== "object" || typeof meta !== "object") return fallback
     return {
       schemaVersion: config.schemaVersion,
       savedAt: typeof data.savedAt === "number" ? data.savedAt : now,

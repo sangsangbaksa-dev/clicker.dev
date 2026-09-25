@@ -21,7 +21,6 @@ import {
   processTick,
   productionSnapshot,
   resolveCrisis,
-  sanitizeSave,
   startClickerGame,
   startFever,
   syncClickerMineSession,
@@ -45,7 +44,8 @@ import {
   type MineSessionStart,
   type MineSessionSummary,
 } from "@/domain/services/clicker-mine-session"
-import { readClickerRaw, writeClickerRaw } from "@/infrastructure/persistence/clicker-save"
+import { decodeClickerSave, encodeClickerSave } from "@/domain/services/clicker-save-codec"
+import { backupClickerRaw, readClickerRaw, writeClickerRaw } from "@/infrastructure/persistence/clicker-save"
 
 const config = clickerConfig
 const rng: Rng = () => Math.random()
@@ -72,18 +72,32 @@ function withAchievements(save: SaveData): SaveData {
   return { ...save, metaState: awarded.meta }
 }
 
+/** Set when a corrupt save could not be backed up: autosave must not overwrite it. */
+let persistBlocked = false
+
 export function loadClickerGame(now: number): SaveData {
   const raw = readClickerRaw()
-  if (!raw) return createInitialSave(now, config)
+  const decoded = decodeClickerSave(raw, config, now)
+  if (raw && decoded.backup) {
+    const kept = backupClickerRaw(raw, `${decoded.status}${decoded.reason ? `: ${decoded.reason}` : ""}`, now)
+    persistBlocked = !kept && decoded.status === "corrupt"
+  }
   try {
-    return syncClickerMineSession(sanitizeSave(JSON.parse(raw) as unknown, config, now), now)
+    return syncClickerMineSession(decoded.save, now)
   } catch {
+    if (raw) persistBlocked = !backupClickerRaw(raw, "corrupt: 광산 세션을 복원하지 못했습니다.", now)
     return createInitialSave(now, config)
   }
 }
 
 export function persistClickerGame(save: SaveData): void {
-  writeClickerRaw(JSON.stringify({ ...save, savedAt: Date.now() }))
+  if (persistBlocked) return
+  writeClickerRaw(encodeClickerSave({ ...save, savedAt: Date.now() }).json)
+}
+
+/** Admin reset: the player chose to start over, so autosave may write again. */
+export function resetClickerPersistence(): void {
+  persistBlocked = false
 }
 
 export function clickerTick(save: SaveData, now: number): SaveData {
