@@ -4943,6 +4943,14 @@ button.clicker-metric-action.is-fever-ready em {
   pointer-events: auto;
 }
 
+/* The hub core wrap ignores taps; the crisis card inside it must not, and sits above
+   Enter Mine / the region station so its choices get the tap. */
+.clicker-shell.is-entrance-hub .clicker-crisis,
+.clicker-shell.is-region-hub .clicker-crisis {
+  pointer-events: auto;
+  z-index: 9;
+}
+
 .clicker-region-station {
   position: absolute;
   left: 50%;

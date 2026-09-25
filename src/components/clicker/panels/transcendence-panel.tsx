@@ -86,27 +86,28 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
               : " · 선택 UI는 임계 이후 공개"}
         </p>
       </header>
+      {/* All five worldlines walked: the Protocol opens without waiting for the next fold. */}
+      {game.canCompleteEnding ? (
+        <article className="clicker-card clicker-protocol-card">
+          <img src={CLICKER_ASSETS.icon} alt="" />
+          <div>
+            <strong>AURELIA Protocol</strong>
+            <p className="clicker-protocol-copy">
+              다섯 세계선의 기억이 하나로 수렴했습니다. 실행하면 이 기록은 닫힙니다.
+            </p>
+          </div>
+          <button
+            className="clicker-danger"
+            type="button"
+            aria-label="AURELIA Protocol 열기 — 기록 종료 확인"
+            onClick={onOpenEnding}
+          >
+            Protocol 열기
+          </button>
+        </article>
+      ) : null}
       {transcendenceUnlocked ? (
         <>
-          {game.canCompleteEnding ? (
-            <article className="clicker-card clicker-protocol-card">
-              <img src={CLICKER_ASSETS.icon} alt="" />
-              <div>
-                <strong>AURELIA Protocol</strong>
-                <p className="clicker-protocol-copy">
-                  다섯 세계선의 기억이 하나로 수렴했습니다. 실행하면 이 기록은 닫힙니다.
-                </p>
-              </div>
-              <button
-                className="clicker-danger"
-                type="button"
-                aria-label="AURELIA Protocol 열기 — 기록 종료 확인"
-                onClick={onOpenEnding}
-              >
-                Protocol 열기
-              </button>
-            </article>
-          ) : null}
           <ClickerRebirthWorldlineSelect
             buffs={game.config.transcendence}
             ownedIds={meta.transcendenceIds}
@@ -117,7 +118,7 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
             }}
           />
         </>
-      ) : (
+      ) : game.canCompleteEnding ? null : (
         <div className="clicker-transcendence-locked" role="status">
           <p>
             임계 전에는 초월의 방을 열지 않습니다. 광산에서 CORE를 더 채굴한 뒤, 상단 TRANSCENDENCE 또는 이
