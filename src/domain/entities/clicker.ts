@@ -92,7 +92,8 @@ export type RunState = {
   /** Storm Spire: every click is a lightning strike until this. */
   lightningStormUntil: number
   /** Drone Foundry: drone strikes are multiplied until this. */
-  droneSwarmUntil: number  /** Worldline price level: every CORE cost and goal in this run is multiplied by it. */
+  droneSwarmUntil: number
+  /** Worldline price level: every CORE cost and goal in this run is multiplied by it. */
   costScale: number
 }
 
@@ -118,6 +119,8 @@ export type MetaState = {
   statistics: ClickerStatistics
   /** Unlocked achievement ids — permanent across rebirths; each adds production. */
   achievementIds: string[]
+  /** Regions entered at least once — their intro cinematic plays only on the first visit. */
+  visitedRegionIds: string[]
   /** True when the player finished the true ending; run is frozen. */
   gameCompleted: boolean
   completedAt: number | null
@@ -328,6 +331,14 @@ export type RegionDef = {
   quakeIntervalReduce?: number
   droneEfficiencyAdd?: number
   activity?: RegionActivityDef
+  /** First-visit cinematic (video with its own soundtrack), played once per save. */
+  intro?: RegionIntroDef
+}
+
+export type RegionIntroDef = {
+  video: string
+  /** Still shown before the first frame and on load failure. */
+  poster: string
 }
 
 export type ObjectiveDef = {
@@ -375,9 +386,6 @@ export type GameConfig = {
   feverCritChanceAdd: number
   feverComboCap: number
   feverCoolDown: number
-  offlineCapSeconds: number
-  /** Offline auto production as a fraction of online per-second rate (e.g. 0.05 = 1/20). */
-  offlineProductionRatio: number
   /** Lifetime CORE needed for the first rebirth. */
   rebirthEnergy: number
   /** Each rebirth multiplies the next requirement by this. */

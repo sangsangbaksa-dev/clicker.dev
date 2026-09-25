@@ -180,7 +180,7 @@ export function startDrillOverdrive(
 
 /* ---------- Grants ---------- */
 
-/** Adds CORE that counts as earned (lifetime + meta totals), e.g. jackpots and offline doubling. */
+/** Adds CORE that counts as earned (lifetime + meta totals), e.g. golden-vein jackpots. */
 export function grantBonusEnergy(
   run: RunState,
   meta: MetaState,

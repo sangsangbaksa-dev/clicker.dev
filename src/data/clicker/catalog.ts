@@ -35,9 +35,6 @@ export const clickerConfig: GameConfig = {
   feverCritChanceAdd: 0.1,
   feverComboCap: 10,
   feverCoolDown: 2,
-  offlineCapSeconds: 8 * 60 * 60,
-  // Idle-genre norm is ~50%; 25% keeps active play ahead while making time away worthwhile.
-  offlineProductionRatio: 1 / 4,
   rebirthEnergy: 10_000_000,
   // Worldline goals: 10M → 100M → 1B → 10B → 100B, so later producers and apex circuits matter.
   rebirthGrowth: 10,

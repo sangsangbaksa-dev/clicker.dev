@@ -17,7 +17,7 @@ export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; ru
             aria-keyshortcuts="Escape"
             onClick={onBack}
           >
-            ← 광산으로 · Esc
+            ← 돌아가기 · Esc
           </button>
         </div>
         <h3 className="clicker-world-title">지역 이동</h3>

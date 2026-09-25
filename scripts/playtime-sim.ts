@@ -3,7 +3,8 @@
  * save to the true ending (all transcendence buffs walked once).
  *
  * Player model: mine sessions back-to-back at CLICKS_PER_SEC (+ assist drill strikes),
- * golden veins claimed when they spawn, region activities used when ready, and a
+ * golden veins claimed when they spawn, region activities used when ready (then back home,
+ * where the mine is), and a
  * payback-greedy shopper (producer level / upgrade / skill node with the best
  * cost ÷ income gain, cheap utility nodes bought outright). Potions and crisis are ignored,
  * so a real player lands a little faster than this.
@@ -37,6 +38,8 @@ import {
   strikeStats,
   syncClickerMineSession,
   travelToRegion,
+  homeRegionId,
+  returnHomeRegion,
   activateRegion,
 } from "../src/domain/services/clicker-engine.ts"
 import { autoDrillRate, awardAchievements, claimGoldenVein, VEIN_SPAWN_CHANCE } from "../src/domain/services/clicker-bonus.ts"
@@ -190,12 +193,9 @@ function bestRegion(): void {
     if (process.env.TRACE && !used.error) console.log(`  activity ${region.id} +${(used.run.lifetimeCoreEnergy - before).toExponential(2)}`)
     if (!used.error) save = { ...save, runState: used.run, metaState: used.meta }
   }
-  // Park in the region with the best presence bonus for the next mine session.
-  const unlocked = config.regions.filter((r) => isRegionUnlocked(save.runState, config, r.id))
-  const best = unlocked.reduce((a, r) => ((r.clickMultiplier ?? 1) * (r.productionMultiplier ?? 1) > (a.clickMultiplier ?? 1) * (a.productionMultiplier ?? 1) ? r : a), unlocked[0])
-  if (best && save.runState.currentRegionId !== best.id) {
-    const moved = travelToRegion(save.runState, config, best.id)
-    if (!moved.error) save = { ...save, runState: moved.run }
+  // The mine only exists at home: walk back before the next session.
+  if (save.runState.currentRegionId !== homeRegionId(config)) {
+    save = { ...save, runState: returnHomeRegion(save.runState, config).run }
   }
 }
 

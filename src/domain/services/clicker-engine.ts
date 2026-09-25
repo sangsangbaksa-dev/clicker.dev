@@ -110,6 +110,7 @@ export function createInitialMeta(): MetaState {
       bestMineHaul: 0,
     },
     achievementIds: [],
+    visitedRegionIds: [],
     gameCompleted: false,
     completedAt: null,
   }
@@ -212,6 +213,7 @@ export function enterClickerMine(
   if (save.settings.playSurface === "mine" && save.runState.mineSessionEndsAt > now) {
     return { save }
   }
+  if (!regionHasMine(save.runState, config)) return { save, error: MINE_HOME_ONLY_ERROR }
   const { cost, error } = mineEntryCheck(save, now)
   if (error) return { save, error }
   const coreAfterCost = save.runState.coreEnergy - cost
@@ -453,7 +455,7 @@ export function derivedClick(run: RunState, meta: MetaState, config: GameConfig)
     critChance = config.critChanceSoftCap + (critChance - config.critChanceSoftCap) * 0.3
   }
   critChance = clamp(critChance, 0, 0.85)
-  let critMult =
+  const critMult =
     config.baseCritMultiplier *
     product(upgrades.map((u) => u.criticalMultiplier ?? 1)) *
     product(skills.map((s) => s.criticalMultiplier ?? 1)) *
@@ -689,7 +691,7 @@ export function processClick(
   const quake = strikes.quakeMultiplier > 0 && (run.clickCount + 1) % strikes.quakeInterval === 0
   if (quake) energy += hit * strikes.quakeMultiplier
 
-  let feverState = { ...run.fever }
+  const feverState = { ...run.fever }
   if (feverActive(feverState)) {
     feverState.combo = Math.min(feverState.combo + 1, config.feverComboCap)
     if (isCritical) feverState.critsThisFever += 1
@@ -1036,7 +1038,7 @@ export function buySkillNode(
   }
 }
 
-export function useActiveSkill(
+export function activateSkill(
   run: RunState,
   meta: MetaState,
   config: GameConfig,
@@ -1213,6 +1215,13 @@ export function homeRegionId(config: GameConfig): string {
   return config.regions.find((r) => r.isHome)?.id ?? config.regions[0]?.id ?? "core_chamber"
 }
 
+export const MINE_HOME_ONLY_ERROR = "광산은 Core Mine에서만 입장할 수 있습니다."
+
+/** The timed mine exists only in the home region; other regions run their own activity. */
+export function regionHasMine(run: RunState, config: GameConfig): boolean {
+  return run.currentRegionId === homeRegionId(config)
+}
+
 export function travelToRegion(
   run: RunState,
   config: GameConfig,
@@ -1225,45 +1234,29 @@ export function travelToRegion(
   return { run: { ...run, currentRegionId: regionId } }
 }
 
+/** Records a region visit; `firstVisit` is true only the first time the region is entered. */
+export function markRegionVisited(meta: MetaState, regionId: string): { meta: MetaState; firstVisit: boolean } {
+  if (meta.visitedRegionIds.includes(regionId)) return { meta, firstVisit: false }
+  return { meta: { ...meta, visitedRegionIds: [...meta.visitedRegionIds, regionId] }, firstVisit: true }
+}
+
 export function returnHomeRegion(run: RunState, config: GameConfig): { run: RunState; error?: string } {
   const homeId = homeRegionId(config)
   if (run.currentRegionId === homeId) return { run, error: "이미 Core Mine에 있습니다." }
   return { run: { ...run, currentRegionId: homeId } }
 }
 
-export function applyOffline(
-  run: RunState,
-  meta: MetaState,
-  config: GameConfig,
-  now: number
-): { run: RunState; meta: MetaState; seconds: number; gained: number } {
-  const raw = Math.max(0, (now - run.lastTickAt) / 1000)
-  const seconds = Math.min(raw, config.offlineCapSeconds)
-  if (seconds < 2) return { run: { ...run, lastTickAt: now }, meta, seconds: 0, gained: 0 }
-  const expired: RunState = {
+/**
+ * Resume after a gap (reload, hidden tab): nothing is earned while away.
+ * Timed state (fever, combo, buffs, boosts) lapses and the tick clock restarts at `now`.
+ */
+export function resumeAfterGap(run: RunState): RunState {
+  return {
     ...run,
     fever: run.fever.phase === "IDLE" ? run.fever : { ...createInitialFever(), gauge: run.fever.gauge },
     combo: createInitialCombo(),
     activeBuffs: [],
     eventBoosts: [],
-  }
-  const snapshot = productionSnapshot(expired, meta, config, now)
-  const gained = snapshot.perSecond * seconds * config.offlineProductionRatio
-  const nextRun = refreshObjective(
-    {
-      ...expired,
-      coreEnergy: expired.coreEnergy + gained,
-      lifetimeCoreEnergy: expired.lifetimeCoreEnergy + gained,
-      lastTickAt: now,
-    },
-    meta,
-    config
-  )
-  return {
-    run: nextRun,
-    meta: { ...meta, totalCoreEnergy: meta.totalCoreEnergy + gained },
-    seconds,
-    gained,
   }
 }
 
@@ -1314,6 +1307,9 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         statistics: { ...createInitialMeta().statistics, ...meta.statistics },
         achievementIds: Array.isArray(meta.achievementIds)
           ? meta.achievementIds.filter((id) => typeof id === "string")
+          : [],
+        visitedRegionIds: Array.isArray(meta.visitedRegionIds)
+          ? meta.visitedRegionIds.filter((id) => typeof id === "string")
           : [],
         gameCompleted: Boolean(meta.gameCompleted),
         completedAt: typeof meta.completedAt === "number" ? meta.completedAt : null,

@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import test from "node:test"
 import { clickerConfig } from "../../data/clicker/catalog.ts"
 import {
-  applyOffline,
+  resumeAfterGap,
   applyRebirth,
   applyTrueEnding,
   buyActiveSkillItem,
@@ -15,8 +15,6 @@ import {
   buySkillNode,
   buyUpgrade,
   canRebirth,
-  createInitialCombo,
-  createInitialFever,
   createInitialMeta,
   createInitialRun,
   enterClickerMine,
@@ -34,7 +32,9 @@ import {
   startClickerGame,
   startFever,
   syncClickerMineSession,
-  useActiveSkill,
+  activateSkill,
+  markRegionVisited,
+  MINE_HOME_ONLY_ERROR,
 } from "./clicker-engine.ts"
 import { MINE_SESSION_BASE_MS as MINE_SESSION_MS, mineSessionDurationMs } from "./clicker-engine.ts"
 import { formatNumber } from "./clicker-format.ts"
@@ -65,7 +65,7 @@ test("producer cost follows base × growth^level and bulk uses the same rule", (
 
 test("click adds energy, combo expires by clock, critical uses rng", () => {
   const now = 1_000_000
-  let run = createInitialRun(now, createInitialMeta(), config)
+  const run = createInitialRun(now, createInitialMeta(), config)
   const meta = createInitialMeta()
   const first = processClick(run, meta, config, now, rng)
   assert.ok(first.result.energyGained >= 1)
@@ -83,7 +83,7 @@ test("click adds energy, combo expires by clock, critical uses rng", () => {
 test("buying a producer spends CORE and tick adds production", () => {
   const now = 2_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 1_000)
+  const run = grantAdminEnergy(createInitialRun(now, meta, config), 1_000)
   const bought = buyProducer(run, meta, config, "solar_node", 1)
   assert.equal(bought.error, undefined)
   assert.equal(bought.run.producerLevels.solar_node, 1)
@@ -262,7 +262,6 @@ test("transcendence gate starts at 10M lifetime CORE and grows each worldline", 
 test("45min-to-10M balance knobs remain on tuned values", () => {
   assert.equal(config.baseClick, 6.5)
   assert.equal(config.rebirthEnergy, 10_000_000)
-  assert.equal(config.offlineProductionRatio, 0.25)
   assert.equal(config.producers[0]?.productionPerSecond, 1.5)
   assert.equal(config.producers.find((p) => p.id === "resonance_array")?.unlockAt, 10_000_000)
 })
@@ -271,12 +270,12 @@ test("active skill shop purchase adds charges and use consumes one", () => {
   const now = 6_500_000
   const meta = createInitialMeta()
   const skill = config.activeSkills[0]
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), skill.shopCost + 100)
+  const run = grantAdminEnergy(createInitialRun(now, meta, config), skill.shopCost + 100)
   const bought = buyActiveSkillItem(run, config, skill.id)
   assert.equal(bought.error, undefined)
   assert.equal(bought.run.skillItems[skill.id], 1)
   assert.ok(bought.run.coreEnergy < run.coreEnergy)
-  const used = useActiveSkill(bought.run, meta, config, skill.id, now + 100)
+  const used = activateSkill(bought.run, meta, config, skill.id, now + 100)
   assert.equal(used.error, undefined)
   assert.equal(used.run.skillItems[skill.id], 0)
 })
@@ -312,7 +311,7 @@ test("instability clamps and crisis choices leave a finite value", () => {
 test("rebirth resets run and keeps transcendence on meta", () => {
   const now = 5_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), config.rebirthEnergy)
+  const run = grantAdminEnergy(createInitialRun(now, meta, config), config.rebirthEnergy)
   const result = applyRebirth(run, meta, config, "focus_line", now + 10)
   assert.equal(result.error, undefined)
   assert.equal(result.meta.rebirthCount, 1)
@@ -321,25 +320,17 @@ test("rebirth resets run and keeps transcendence on meta", () => {
   assert.ok(result.run.coreEnergy < config.rebirthEnergy)
 })
 
-test("offline uses 1/4 production rate and respects cap", () => {
+test("time away earns nothing and lapses timed state", () => {
   const now = 6_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 1_000)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), 100)
   run = buyProducer(run, meta, config, "solar_node", 1).run
-  run = { ...run, lastTickAt: now - 10_000, fever: { ...run.fever, phase: "FEVER", remainingTime: 10 } }
-  const expired = {
-    ...run,
-    fever: { ...createInitialFever(), gauge: run.fever.gauge },
-    combo: createInitialCombo(),
-    activeBuffs: [],
-  }
-  const snap = productionSnapshot(expired, meta, config, now)
-  const off = applyOffline(run, meta, config, now)
-  assert.ok(off.seconds >= 9)
-  assert.ok(off.gained > 0)
-  assert.ok(Math.abs(off.gained - snap.perSecond * off.seconds * config.offlineProductionRatio) < 1e-6)
-  assert.equal(config.offlineProductionRatio, 0.25)
-  assert.equal(off.run.fever.phase, "IDLE")
+  run = { ...run, lastTickAt: now - 3_600_000, fever: { ...run.fever, phase: "FEVER", remainingTime: 10 } }
+  const resumed = resumeAfterGap(run)
+  assert.equal(resumed.coreEnergy, run.coreEnergy)
+  assert.equal(resumed.lifetimeCoreEnergy, run.lifetimeCoreEnergy)
+  assert.equal(resumed.fever.phase, "IDLE")
+  assert.deepEqual(resumed.activeBuffs, [])
 })
 
 test("corrupted save falls back without throwing", () => {
@@ -400,6 +391,29 @@ test("Enter Mine starts a timed session from any UI locale", () => {
   assert.ok(expired.runState.mineCooldownUntil > now)
   const cooling = enterClickerMine(expired, now + MINE_SESSION_MS + 1, config)
   assert.ok(cooling.error)
+})
+
+test("the mine opens only in the home region", () => {
+  const now = 11_200_000
+  const save = startClickerGame(createInitialSave(now, config))
+  const away = grantAdminEnergy(save.runState, 300_000)
+  const traveled = { ...save, runState: travelToRegion(away, config, "signal_relay").run }
+  const refused = enterClickerMine(traveled, now, config)
+  assert.equal(refused.error, MINE_HOME_ONLY_ERROR)
+  assert.equal(refused.save.settings.playSurface, "hub")
+  const home = { ...traveled, runState: returnHomeRegion(traveled.runState, config).run }
+  assert.equal(enterClickerMine(home, now, config).save.settings.playSurface, "mine")
+})
+
+test("region visits are recorded once so the intro plays only on the first entry", () => {
+  const meta = createInitialMeta()
+  const first = markRegionVisited(meta, "signal_relay")
+  assert.equal(first.firstVisit, true)
+  const again = markRegionVisited(first.meta, "signal_relay")
+  assert.equal(again.firstVisit, false)
+  assert.deepEqual(again.meta.visitedRegionIds, ["signal_relay"])
+  const legacy = sanitizeSave({ ...createInitialSave(1, config), metaState: { ...meta, visitedRegionIds: undefined } }, config, 1)
+  assert.deepEqual(legacy.metaState.visitedRegionIds, [])
 })
 
 test("broke re-entry is free without producers, charged once producers exist", () => {

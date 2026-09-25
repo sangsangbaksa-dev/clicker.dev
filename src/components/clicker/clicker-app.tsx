@@ -15,9 +15,9 @@ import { useClickerBgm } from "@/hooks/use-clicker-bgm"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine } from "@/components/clicker/clicker-mine"
-import { ClickerMineEnter } from "@/components/clicker/clicker-mine-enter"
+import { ClickerCinematic } from "@/components/clicker/clicker-cinematic"
+import { MineArt } from "@/data/clicker/mine-assets"
 import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
-import { ClickerWelcomeBack } from "@/components/clicker/clicker-welcome-back"
 import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motion"
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
@@ -157,7 +157,8 @@ export function ClickerApp() {
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   useClickerBgm(game.hud?.coreVisual, {
-    scene: enteringMine
+    // Cinematics carry their own soundtrack.
+    scene: enteringMine || game.regionIntro
       ? "silent"
       : pendingRebirth || endingOpen
         ? "chamber"
@@ -563,6 +564,7 @@ export function ClickerApp() {
   const panelProps = { game, run, popIcons, bumpIcon }
 
   const atHomeHub = !inMine && Boolean(game.currentRegion?.isHome)
+  const regionIntroPlaying = Boolean(game.regionIntro)
   const managing = !inMine && hubView === "manage"
 
   const beginEnterMine = () => {
@@ -582,7 +584,7 @@ export function ClickerApp() {
     <div
       data-clicker
       data-visual={hud.coreVisual}
-      className={`clicker-shell${pendingRebirth ? " is-rebirth-active" : ""}${inMine ? " is-mine-surface" : ""}${atHomeHub ? " is-entrance-hub" : ""}${inMine ? "" : ` is-view-${hubView}`}`}
+      className={`clicker-shell${pendingRebirth ? " is-rebirth-active" : ""}${inMine ? " is-mine-surface" : ""}${atHomeHub ? " is-entrance-hub" : ""}${!inMine && !atHomeHub ? " is-region-hub" : ""}${inMine ? "" : ` is-view-${hubView}`}`}
     >
       <header className="clicker-top">
         {!inMine ? (
@@ -933,7 +935,7 @@ export function ClickerApp() {
                 onOreBroken={game.oreBroken}
               />
             </div>
-          ) : (
+          ) : atHomeHub ? (
             <button
               type="button"
               className={`clicker-hub-enter-only${mineCooldownSec > 0 ? " is-cooling" : ""}`}
@@ -954,29 +956,34 @@ export function ClickerApp() {
                 <span className="clicker-hub-enter-sub">입장료 {formatNumber(mineEntryCost)} CORE</span>
               ) : null}
             </button>
-          )}
-          {!inMine && game.currentRegion?.activity ? (() => {
-            const act = game.currentRegion.activity
+          ) : game.currentRegion?.activity ? (() => {
+            // Away from home there is no mine: the region's own activity takes the stage.
+            const region = game.currentRegion
+            const act = region.activity!
             const busy = act.activeMs > 0
             const cooling = act.readyInMs > 0
             return (
-              <button
-                type="button"
-                className={`clicker-region-activity${busy ? " is-active" : ""}`}
-                disabled={cooling}
-                title={act.description}
-                aria-label={`${act.name} · ${act.description}`}
-                onClick={() => game.regionActivity(game.currentRegion!.id)}
-              >
-                <strong>{act.name}</strong>
-                <span>
-                  {busy
-                    ? `진행 중 ${Math.ceil(act.activeMs / 1000)}초${act.deposit > 0 ? ` · 예치 ${formatNumber(act.deposit)}` : ""}`
-                    : cooling
-                      ? `재사용 ${Math.ceil(act.readyInMs / 1000)}초`
-                      : act.description}
-                </span>
-              </button>
+              <div className="clicker-region-station" aria-label={`${region.name} · ${act.name}`}>
+                <p className="clicker-region-station-kicker">{region.name} · 지역 활동</p>
+                <button
+                  type="button"
+                  className={`clicker-region-activity${busy ? " is-active" : ""}`}
+                  disabled={cooling || regionIntroPlaying}
+                  title={act.description}
+                  aria-label={`${act.name} · ${act.description}`}
+                  onClick={() => game.regionActivity(region.id)}
+                >
+                  <strong>{act.name}</strong>
+                  <span>
+                    {busy
+                      ? `진행 중 ${Math.ceil(act.activeMs / 1000)}초${act.deposit > 0 ? ` · 예치 ${formatNumber(act.deposit)}` : ""}`
+                      : cooling
+                        ? `재사용 ${Math.ceil(act.readyInMs / 1000)}초`
+                        : act.description}
+                  </span>
+                </button>
+                <p className="clicker-region-station-note">광산은 Core Mine에서만 열립니다.</p>
+              </div>
             )
           })() : null}
           {hud.comboText ? (
@@ -1141,10 +1148,10 @@ export function ClickerApp() {
             <button
               type="button"
               className="clicker-manage-back"
-              aria-label="광산 입구로 돌아가기 · Esc"
+              aria-label={`${atHomeHub ? "광산 입구" : (game.currentRegion?.name ?? "지역")}(으)로 돌아가기 · Esc`}
               onClick={() => setHubView("entrance")}
             >
-              ◀ 광산 입구
+              ◀ {atHomeHub ? "광산 입구" : (game.currentRegion?.name ?? "지역")}
             </button>
             <span className="clicker-manage-title">
               {drawerTabs.find(([id]) => id === tab)?.[2] ?? ""}
@@ -1255,19 +1262,6 @@ export function ClickerApp() {
         </footer>
       </aside>
 
-      {game.offlineSummary && !inMine && !enteringMine ? (
-        <ClickerWelcomeBack
-          summary={game.offlineSummary}
-          doubleWindowSec={Math.round(game.offlineDoubleWindowMs / 1000)}
-          onClaim={game.dismissOffline}
-          onEnterMine={() => {
-            game.dismissOffline()
-            setHubView("entrance")
-            beginEnterMine()
-          }}
-        />
-      ) : null}
-
       {settingsOpen ? (
         <ClickerSettings
           muted={game.save.settings.muted}
@@ -1280,7 +1274,7 @@ export function ClickerApp() {
         />
       ) : null}
 
-      {game.mineSummary && !inMine && !enteringMine && !game.offlineSummary ? (
+      {game.mineSummary && !inMine && !enteringMine ? (
         <ClickerMineResult
           summary={game.mineSummary}
           cooldownSec={mineCooldownSec}
@@ -1289,13 +1283,32 @@ export function ClickerApp() {
       ) : null}
 
       {enteringMine ? (
-        <ClickerMineEnter
+        <ClickerCinematic
+          src={MineArt.enterCinematic}
+          poster={MineArt.entranceGate}
+          label="광산 입장 중"
           muted={game.save.settings.muted}
           onDone={() => {
             setEnteringMine(false)
             setDrawerSnap("peek")
             game.enterMine()
           }}
+        />
+      ) : null}
+
+      {game.regionIntro ? (
+        <ClickerCinematic
+          key={game.regionIntro.regionId}
+          src={game.regionIntro.video}
+          poster={game.regionIntro.poster}
+          label={`${game.regionIntro.name} 첫 진입`}
+          caption={{
+            kicker: "NEW REGION · 첫 진입",
+            title: game.regionIntro.name,
+            body: game.regionIntro.description,
+          }}
+          muted={game.save.settings.musicMuted}
+          onDone={game.dismissRegionIntro}
         />
       ) : null}
 

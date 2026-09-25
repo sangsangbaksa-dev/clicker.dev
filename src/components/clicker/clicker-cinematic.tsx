@@ -1,18 +1,27 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { MineArt } from "@/data/clicker/mine-assets"
+import "./clicker-cinematic.css"
 
 type Props = {
+  src: string
+  poster: string
+  /** Accessible name of the dialog, e.g. "광산 입장 중". */
+  label: string
+  /** Optional title card over the video (region intros). */
+  caption?: { kicker: string; title: string; body: string }
   muted: boolean
   onDone: () => void
 }
 
+/** Hard cap so a stalled video can never strand the player. */
+const SAFETY_TIMEOUT_MS = 15_000
+
 /**
- * Door-walk v11 entry cinematic (closed door → split-open → walk-in).
- * Always completes the transition: ended, skip, Esc, load error, or a hard timeout.
+ * Full-screen video with its own soundtrack (mine entry, first-visit region intros).
+ * Always completes: ended, skip, Esc/Enter/Space, load error, or the safety timeout.
  */
-export function ClickerMineEnter({ muted, onDone }: Props) {
+export function ClickerCinematic({ src, poster, label, caption, muted, onDone }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const doneRef = useRef(false)
   const onDoneRef = useRef(onDone)
@@ -21,7 +30,7 @@ export function ClickerMineEnter({ muted, onDone }: Props) {
     onDoneRef.current = onDone
   }, [onDone])
 
-  // Idempotent: ended, skip, Esc, error and the timeout may all race.
+  // Idempotent: ended, skip, keys, error and the timeout may all race.
   const finishRef = useRef(() => {
     if (doneRef.current) return
     doneRef.current = true
@@ -45,8 +54,7 @@ export function ClickerMineEnter({ muted, onDone }: Props) {
       finish()
     }
     window.addEventListener("keydown", onKey)
-    // Safety net: never strand the player behind a stalled video.
-    const timer = window.setTimeout(finish, 15_000)
+    const timer = window.setTimeout(finish, SAFETY_TIMEOUT_MS)
     return () => {
       window.removeEventListener("keydown", onKey)
       window.clearTimeout(timer)
@@ -56,18 +64,25 @@ export function ClickerMineEnter({ muted, onDone }: Props) {
   const finish = () => finishRef.current()
 
   return (
-    <div className="clicker-mine-enter" role="dialog" aria-label="광산 입장 중">
+    <div className="clicker-cinematic" role="dialog" aria-label={label}>
       <video
         ref={videoRef}
-        className="clicker-mine-enter-video"
-        src={MineArt.enterCinematic}
-        poster={MineArt.entranceGate}
+        className="clicker-cinematic-video"
+        src={src}
+        poster={poster}
         playsInline
         preload="auto"
         onEnded={finish}
         onError={finish}
       />
-      <button type="button" className="clicker-mine-enter-skip" onClick={finish}>
+      {caption ? (
+        <div className="clicker-cinematic-caption" aria-live="polite">
+          <p>{caption.kicker}</p>
+          <h2>{caption.title}</h2>
+          <span>{caption.body}</span>
+        </div>
+      ) : null}
+      <button type="button" className="clicker-cinematic-skip" onClick={finish}>
         건너뛰기 ▶▶
       </button>
     </div>

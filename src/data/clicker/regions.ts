@@ -4,7 +4,8 @@ import type { RegionDef } from "../../domain/entities/clicker"
  * Playable stage regions — unlock via lifetime CORE.
  * Bonuses apply only while the player is present in that region
  * (`run.currentRegionId`); rebirth returns home → Core Mine bias.
- * Each non-home region also has one activity usable only while standing there.
+ * The timed mine exists only at home; every other region has one activity usable only
+ * while standing there. `intro` plays once, on the first visit.
  */
 export const CLICKER_REGIONS: RegionDef[] = [
   {
@@ -21,6 +22,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     name: "Signal Relay",
     description: "코어에서 뻗어 나간 중계 복도. 잔향이 벽면을 타고 흐릅니다.",
     bgAssetId: "/clicker/bg/region_signal_relay.png",
+    intro: { video: "/clicker/region/signal_relay_intro.mp4", poster: "/clicker/bg/region_signal_relay.png" },
     unlockAtLifetimeEnergy: 250_000,
     productionMultiplier: 1.12,
     activity: {
@@ -37,6 +39,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     name: "Phase Vault",
     description: "깊은 공명이 먼지처럼 쌓인 보관소. CORE 맥동의 잔향이 오래 남습니다.",
     bgAssetId: "/clicker/bg/region_phase_vault.png",
+    intro: { video: "/clicker/region/phase_vault_intro.mp4", poster: "/clicker/bg/region_phase_vault.png" },
     unlockAtLifetimeEnergy: 2_000_000,
     clickMultiplier: 1.08,
     productionMultiplier: 1.1,

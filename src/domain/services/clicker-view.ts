@@ -70,7 +70,7 @@ export function buildHud(
   const feverCooling = run.fever.phase === "COOL_DOWN"
   const obj = config.objectives.find((o) => o.id === run.currentObjectiveId) ?? config.objectives[0]
   let current = 0
-  let target = obj?.target ?? 1
+  const target = obj?.target ?? 1
   if (obj?.kind === "PRODUCER") current = run.producerLevels[obj.producerId ?? ""] ?? 0
   else if (obj?.kind === "ENERGY") current = run.lifetimeCoreEnergy
   else if (obj?.kind === "FEVER") current = run.feverStarts
