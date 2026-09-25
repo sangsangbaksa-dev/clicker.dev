@@ -4,6 +4,7 @@ import { requireApprovedUser, requireEditorUser } from "@/infrastructure/auth/gu
 import { toPublicUser } from "@/infrastructure/persistence/user-repository"
 import { normalizeRoomCode } from "@/shared/ids"
 import { NextResponse } from "next/server"
+import { readJsonBody } from "@/infrastructure/http/read-json-body"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -22,7 +23,7 @@ async function readPostBody(request: Request): Promise<{
     }
     return { body: String(form.get("body") ?? ""), imageBytes }
   }
-  const payload = (await request.json()) as { body?: string }
+  const payload = (await readJsonBody(request)) as { body?: string }
   return { body: String(payload.body ?? ""), imageBytes: null }
 }
 

@@ -1,6 +1,7 @@
 import { requireEditorUser } from "@/infrastructure/auth/guard"
 import { createRoom } from "@/infrastructure/persistence/room-repository"
 import { NextResponse } from "next/server"
+import { readJsonBody } from "@/infrastructure/http/read-json-body"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -10,7 +11,7 @@ export async function POST(request: Request) {
   if (auth instanceof Response) return auth
 
   try {
-    const body = (await request.json()) as {
+    const body = (await readJsonBody(request)) as {
       title?: string
       subject?: string
       description?: string

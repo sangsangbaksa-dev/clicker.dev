@@ -11,6 +11,7 @@ import {
 import { sessionCookieOptions, signSession } from "@/infrastructure/auth/session"
 import { applyProfileChanges, toPublicUser } from "@/infrastructure/persistence/user-repository"
 import { NextResponse } from "next/server"
+import { readJsonBody } from "@/infrastructure/http/read-json-body"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -31,7 +32,7 @@ export async function PATCH(request: Request) {
   if (auth instanceof Response) return auth
 
   try {
-    const body = (await request.json()) as ProfileChanges
+    const body = (await readJsonBody(request)) as ProfileChanges
     const changes: ProfileChanges = {}
     if (body.loginId !== undefined) changes.loginId = body.loginId
     if (body.classN !== undefined) changes.classN = body.classN
