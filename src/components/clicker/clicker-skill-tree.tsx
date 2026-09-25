@@ -133,6 +133,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
         </p>
       ) : null}
 
+      <div className="clicker-skill-tree-scroll">
       <div className="clicker-skill-tree-board">
         <svg className="clicker-skill-tree-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
           {edges.map((edge, i) => (
@@ -161,7 +162,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
           <button
             key={node.id}
             type="button"
-            className={`clicker-skill-node is-${node.status.toLowerCase()}${selectedId === node.id ? " is-selected" : ""}`}
+            className={`clicker-skill-node is-${node.status.toLowerCase()}${node.tier >= 5 ? " is-apex" : ""}${selectedId === node.id ? " is-selected" : ""}`}
             style={
               {
                 left: `${node.x}%`,
@@ -178,12 +179,14 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
           </button>
         ))}
       </div>
+      </div>
 
       {selected ? (
         <aside className={`clicker-skill-detail is-${selected.status.toLowerCase()}`} aria-live="polite">
           <div className="clicker-skill-detail-top">
             <div className="clicker-skill-detail-meta">
-              {SKILL_BRANCH_LABEL[selected.branch]}
+              {SKILL_BRANCH_LABEL[selected.branch]} · T{selected.tier}
+              {selected.tier >= 5 ? " · 정점" : ""}
             </div>
             <span className={`clicker-skill-detail-status is-${selected.status.toLowerCase()}`}>
               {statusLabel(selected.status)}

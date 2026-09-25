@@ -261,6 +261,7 @@ export type SkillNodeView = {
   name: string
   description: string
   branch: SkillBranch
+  tier: number
   cost: number
   requires: string[]
   status: "OWNED" | "AVAILABLE" | "POOR" | "LOCKED"
@@ -282,6 +283,7 @@ export function buildSkillNodeViews(run: RunState, config: GameConfig): SkillNod
       name: node.name,
       description: node.description,
       branch: node.branch,
+      tier: node.tier,
       cost: node.cost,
       requires,
       status,

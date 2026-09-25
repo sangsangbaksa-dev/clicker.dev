@@ -361,8 +361,14 @@ function derivedClick(run: RunState, meta: MetaState, config: GameConfig) {
     critChance = config.critChanceSoftCap + (critChance - config.critChanceSoftCap) * 0.3
   }
   critChance = clamp(critChance, 0, 0.85)
-  let critMult = config.baseCritMultiplier * product(upgrades.map((u) => u.criticalMultiplier ?? 1))
-  const comboMax = 25 + upgrades.reduce((s, u) => s + (u.comboMaxAdd ?? 0), 0)
+  let critMult =
+    config.baseCritMultiplier *
+    product(upgrades.map((u) => u.criticalMultiplier ?? 1)) *
+    product(skills.map((s) => s.criticalMultiplier ?? 1))
+  const comboMax =
+    25 +
+    upgrades.reduce((s, u) => s + (u.comboMaxAdd ?? 0), 0) +
+    skills.reduce((s, n) => s + (n.comboMaxAdd ?? 0), 0)
   const comboWindow =
     config.comboWindow +
     skills.reduce((s, n) => s + (n.comboWindowAdd ?? 0), 0) +
@@ -472,13 +478,14 @@ export function productionSnapshot(
     }
   }
   instabBonus += trans.reduce((s, t) => s + (t.instabilityRewardBonus ?? 0), 0)
+  instabBonus += skills.reduce((s, n) => s + (n.instabilityRewardBonus ?? 0), 0)
   const instab = instabilityReward(run.instability, instabBonus)
   const overclock = buffMultiplier(run, now, "overclock", "productionMultiplier", config)
   const stabilizer = buffMultiplier(run, now, "stabilizer", "productionMultiplier", config)
   const region = regionPresenceMultipliers(run, config)
   const globalProd =
     product(upgrades.filter((u) => !u.producerId && !u.producerTag).map((u) => u.productionMultiplier ?? 1)) *
-    product(skills.map((s) => s.productionMultiplier ?? 1)) *
+    product(skills.filter((s) => !s.producerTag).map((s) => s.productionMultiplier ?? 1)) *
     product(trans.map((t) => t.productionMultiplier ?? 1)) *
     fever.production *
     instab *
@@ -501,6 +508,11 @@ export function productionSnapshot(
       if (u.productionMultiplier && u.producerId === producer.id) rate *= u.productionMultiplier
       if (u.productionMultiplier && u.producerTag && producer.tags.includes(u.producerTag)) {
         rate *= u.productionMultiplier
+      }
+    }
+    for (const s of skills) {
+      if (s.productionMultiplier && s.producerTag && producer.tags.includes(s.producerTag)) {
+        rate *= s.productionMultiplier
       }
     }
     for (const syn of config.synergies) {
@@ -687,7 +699,9 @@ export function startFever(
 function tryFinisher(run: RunState, meta: MetaState, config: GameConfig, now: number): RunState {
   if (!run.fever.finisherReady || run.fever.finisherUsed) return run
   const snapshot = productionSnapshot(run, meta, config, now)
-  const rewardMult = ownedUpgrades(run, config).reduce((s, u) => s * (u.finisherReward ?? 1), 1)
+  const rewardMult =
+    ownedUpgrades(run, config).reduce((s, u) => s * (u.finisherReward ?? 1), 1) *
+    ownedSkills(run, config).reduce((s, n) => s * (n.finisherReward ?? 1), 1)
   const burst = snapshot.perSecond * 3 * rewardMult + run.coreEnergy * 0.02
   return {
     ...run,
@@ -970,7 +984,16 @@ export function applyRebirth(
     transcendenceIds: [...meta.transcendenceIds, buffId],
     statistics: { ...meta.statistics, feverStarts: meta.statistics.feverStarts + run.feverStarts },
   }
-  return { run: createInitialRun(now, nextMeta, config), meta: nextMeta }
+  const carried = ownedSkills(run, config).reduce((sum, n) => sum + (n.startingEnergy ?? 0), 0)
+  const fresh = createInitialRun(now, nextMeta, config)
+  return {
+    run: {
+      ...fresh,
+      coreEnergy: fresh.coreEnergy + carried,
+      lifetimeCoreEnergy: fresh.lifetimeCoreEnergy + carried,
+    },
+    meta: nextMeta,
+  }
 }
 
 export function canRebirth(run: RunState, config: GameConfig): boolean {

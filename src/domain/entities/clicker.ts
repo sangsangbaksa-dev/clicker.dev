@@ -200,16 +200,25 @@ export type PotionDef = {
 export type SkillNodeDef = {
   id: string
   branch: SkillBranch
+  /** Depth band 1–5; 5 is the branch capstone. */
+  tier: number
   name: string
   description: string
   cost: number
   requires?: string[]
   clickMultiplier?: number
+  /** Global production, or only producers carrying `producerTag` when set. */
   productionMultiplier?: number
+  producerTag?: string
   criticalChanceAdd?: number
+  criticalMultiplier?: number
+  comboMaxAdd?: number
+  finisherReward?: number
+  instabilityRewardBonus?: number
   comboWindowAdd?: number
   feverDurationAdd?: number
   feverIntensity?: number
+  /** CORE carried into the next run when rebirthing with this node owned. */
   startingEnergy?: number
   /** Extra seconds added to the timed mine session (base is 10s). */
   mineSessionSecondsAdd?: number
