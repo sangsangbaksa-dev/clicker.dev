@@ -19,15 +19,23 @@ import { Spinner } from "@/components/ui/spinner"
 import { Check, UserMinus } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
+import { errorMessage, getJson } from "@/shared/get-json"
+
+type PendingPayload = {
+  pending?: AuthUser[]
+  activity?: Record<string, UserActivityItem[]>
+}
+
+function requestPending() {
+  return getJson<PendingPayload>("/api/auth/pending", "대기 목록을 불러오지 못했습니다.")
+}
 
 export function ApprovePanel({
-  actor,
   initialPending,
   initialActivity,
   initialRequests,
   initialRequestActivity,
 }: {
-  actor: AuthUser
   initialPending?: AuthUser[]
   initialActivity?: Record<string, UserActivityItem[]>
   initialRequests?: import("@/domain/entities/user").ProfileChangeRequest[]
@@ -40,39 +48,44 @@ export function ApprovePanel({
   const [loading, setLoading] = useState(initialPending === undefined)
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  const load = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true)
-    try {
-      const response = await fetch("/api/auth/pending", {
-        cache: "no-store",
-        credentials: "same-origin",
-      })
-      const payload = (await response.json()) as {
-        pending?: AuthUser[]
-        activity?: Record<string, UserActivityItem[]>
-        error?: string
-      }
-      if (!response.ok) {
-        throw new Error(payload.error ?? "대기 목록을 불러오지 못했습니다.")
-      }
-      setPending(payload.pending ?? [])
-      setActivity(payload.activity ?? {})
-    } catch (error) {
-      if (!silent) {
-        toast.error(error instanceof Error ? error.message : "목록을 불러오지 못했습니다.")
-      }
-    } finally {
-      setLoading(false)
-    }
+  const applyPending = useCallback((payload: PendingPayload) => {
+    setPending(payload.pending ?? [])
+    setActivity(payload.activity ?? {})
   }, [])
 
+  /** Quiet refetch after an action; failures are left to the next poll. */
+  const load = useCallback(async () => {
+    try {
+      applyPending(await requestPending())
+    } catch {
+      // The 4s poll retries.
+    }
+  }, [applyPending])
+
+  // Poll the queue; only the first load (without server data) shows the spinner and errors.
+  const hasInitialPending = initialPending !== undefined
   useEffect(() => {
-    void load(initialPending !== undefined)
+    let active = true
+    const poll = (silent: boolean) =>
+      requestPending()
+        .then((payload) => {
+          if (active) applyPending(payload)
+        })
+        .catch((error) => {
+          if (active && !silent) toast.error(errorMessage(error, "목록을 불러오지 못했습니다."))
+        })
+        .finally(() => {
+          if (active) setLoading(false)
+        })
+    void poll(hasInitialPending)
     const timer = window.setInterval(() => {
-      void load(true)
+      void poll(true)
     }, 4000)
-    return () => window.clearInterval(timer)
-  }, [load, actor.id])
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
+  }, [applyPending, hasInitialPending])
 
   async function removeMember(userId: string, name: string) {
     if (!window.confirm(`${name} 가입 신청을 거절하고 계정을 삭제할까요?`)) {
@@ -91,7 +104,7 @@ export function ApprovePanel({
         throw new Error(payload.error ?? "거절에 실패했습니다.")
       }
       toast.success(`${name} 가입 신청을 거절했습니다.`)
-      await load(true)
+      await load()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "거절에 실패했습니다.")
     } finally {
@@ -113,7 +126,7 @@ export function ApprovePanel({
         throw new Error(payload.error ?? "승인에 실패했습니다.")
       }
       toast.success("승인했습니다.")
-      await load(true)
+      await load()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "승인에 실패했습니다.")
     } finally {

@@ -20,6 +20,18 @@ import { Spinner } from "@/components/ui/spinner"
 import { Check, UserMinus } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
+import { errorMessage, getJson } from "@/shared/get-json"
+
+type RequestsPayload = {
+  requests?: ProfileChangeRequest[]
+  activity?: Record<string, UserActivityItem[]>
+}
+
+const LOAD_ERROR = "목록을 불러오지 못했습니다."
+
+function requestProfileRequests() {
+  return getJson<RequestsPayload>("/api/auth/profile-requests", "요청 목록을 불러오지 못했습니다.")
+}
 
 export function ProfileRequestsPanel({
   initialRequests,
@@ -35,33 +47,39 @@ export function ProfileRequestsPanel({
   const [loading, setLoading] = useState(initialRequests === undefined)
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  const load = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true)
+  const applyRequests = useCallback((payload: RequestsPayload) => {
+    setRequests(payload.requests ?? [])
+    setActivity(payload.activity ?? {})
+  }, [])
+
+  /** Refetch after an action; the first load's spinner comes from the initial state. */
+  const load = useCallback(async () => {
+    setLoading(true)
     try {
-      const response = await fetch("/api/auth/profile-requests", {
-        cache: "no-store",
-        credentials: "same-origin",
-      })
-      const payload = (await response.json()) as {
-        requests?: ProfileChangeRequest[]
-        activity?: Record<string, UserActivityItem[]>
-        error?: string
-      }
-      if (!response.ok) {
-        throw new Error(payload.error ?? "요청 목록을 불러오지 못했습니다.")
-      }
-      setRequests(payload.requests ?? [])
-      setActivity(payload.activity ?? {})
+      applyRequests(await requestProfileRequests())
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "목록을 불러오지 못했습니다.")
+      toast.error(errorMessage(error, LOAD_ERROR))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [applyRequests])
 
   useEffect(() => {
-    void load(initialRequests !== undefined)
-  }, [load])
+    let active = true
+    requestProfileRequests()
+      .then((payload) => {
+        if (active) applyRequests(payload)
+      })
+      .catch((error) => {
+        if (active) toast.error(errorMessage(error, LOAD_ERROR))
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [applyRequests])
 
   async function handleAction(requestId: string, action: "approve" | "reject") {
     setBusyId(requestId)

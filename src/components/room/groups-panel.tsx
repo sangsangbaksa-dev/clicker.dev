@@ -68,13 +68,14 @@ export function GroupsPanel({
   onChange: (groups: ClassGroup[]) => void
 }) {
   const [roster, setRoster] = useState(initialRoster)
+  const [rosterProp, setRosterProp] = useState(initialRoster)
+  if (rosterProp !== initialRoster) {
+    setRosterProp(initialRoster)
+    setRoster(initialRoster)
+  }
   const [editor, setEditor] = useState<EditorState | null>(null)
   const [openDocsId, setOpenDocsId] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<ClassGroup | null>(null)
-
-  useEffect(() => {
-    setRoster(initialRoster)
-  }, [initialRoster])
 
   useEffect(() => {
     if (initialRoster.length > 0) return

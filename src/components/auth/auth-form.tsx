@@ -13,7 +13,7 @@ import {
 } from "@/domain/services/school-note-kinds"
 import type { AuthUser } from "@/domain/entities/board"
 import { Spinner } from "@/components/ui/spinner"
-import { type FormEvent, useEffect, useState } from "react"
+import { type FormEvent, useState } from "react"
 import { toast } from "sonner"
 
 export type AuthMode = "login" | "signup"
@@ -41,10 +41,13 @@ export function AuthForm({
   const [formError, setFormError] = useState<string | null>(null)
   const needsFirstMember = false
 
-  useEffect(() => {
+  // Switching login/signup clears the confirm field and any stale error.
+  const [formMode, setFormMode] = useState(mode)
+  if (formMode !== mode) {
+    setFormMode(mode)
     setPasswordConfirm("")
     setFormError(null)
-  }, [mode])
+  }
 
   const confirmMismatch =
     mode === "signup" && passwordConfirm.length > 0 && password !== passwordConfirm

@@ -124,13 +124,19 @@ export function useRoom(
     roomRef.current = room
   }, [room])
 
+  // Losing edit rights drops any pending save, so the badge goes back to "saved".
+  const [prevCanEdit, setPrevCanEdit] = useState(canEdit)
+  if (prevCanEdit !== canEdit) {
+    setPrevCanEdit(canEdit)
+    if (!canEdit) setSaveState("saved")
+  }
+
   useEffect(() => {
     canEditRef.current = canEdit
     if (canEdit) return
     dirtyRef.current = false
     permissionToastShown.current = false
     if (saveTimer.current) window.clearTimeout(saveTimer.current)
-    setSaveState("saved")
   }, [canEdit])
 
   const setRoomSafe = useCallback((next: Room | null) => {

@@ -195,11 +195,7 @@ function ensureLoaded() {
 export function useAuth() {
   const initialUser = useAuthInitialUser()
   ensureLoaded()
-  const initialUserKey = authUserSnapshotKey(initialUser)
-  const serverSnapshot = useMemo(
-    () => buildServerSnapshot(initialUser),
-    [initialUser, initialUserKey]
-  )
+  const serverSnapshot = useMemo(() => buildServerSnapshot(initialUser), [initialUser])
   const state = useSyncExternalStore(
     subscribe,
     getSnapshot,
