@@ -7,6 +7,8 @@ export type MineSessionStart = {
   crits: number
   oresBroken: number
   veins: number
+  monstersSlain: number
+  vaultLocks: number
   startedAt: number
 }
 
@@ -17,6 +19,8 @@ export type MineSessionSummary = {
   crits: number
   oresBroken: number
   veins: number
+  monstersSlain: number
+  vaultLocks: number
   seconds: number
   /** This haul beat the previous best. */
   best: boolean
@@ -31,6 +35,8 @@ export function mineSessionStart(save: SaveData, now: number): MineSessionStart 
     crits: stats.crits,
     oresBroken: stats.oresBroken,
     veins: stats.veins,
+    monstersSlain: stats.monstersSlain,
+    vaultLocks: stats.vaultLocks,
     startedAt: now,
   }
 }
@@ -54,6 +60,8 @@ export function summarizeMineSession(
       crits: 0,
       oresBroken: 0,
       veins: 0,
+      monstersSlain: 0,
+      vaultLocks: 0,
       seconds: Math.round((run.mineSessionDurationMs || 0) / 1000),
     }
   }
@@ -63,6 +71,8 @@ export function summarizeMineSession(
     crits: Math.max(0, stats.crits - start.crits),
     oresBroken: Math.max(0, stats.oresBroken - start.oresBroken),
     veins: Math.max(0, stats.veins - start.veins),
+    monstersSlain: Math.max(0, stats.monstersSlain - start.monstersSlain),
+    vaultLocks: Math.max(0, stats.vaultLocks - start.vaultLocks),
     seconds: Math.max(0, Math.round((now - start.startedAt) / 1000)),
   }
 }

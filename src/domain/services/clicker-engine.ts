@@ -99,6 +99,8 @@ export function createInitialMeta(): MetaState {
       feverStarts: 0,
       veins: 0,
       oresBroken: 0,
+      monstersSlain: 0,
+      vaultLocks: 0,
       mineSessions: 0,
       bestMineHaul: 0,
     },
@@ -519,12 +521,14 @@ export function productionSnapshot(
   return { perSecond, byProducer }
 }
 
+/** `payout` scales the strike's CORE (region activities pay by the strike unit; mine = 1). */
 export function processClick(
   run: RunState,
   meta: MetaState,
   config: GameConfig,
   now: number,
-  rng: Rng
+  rng: Rng,
+  payout = 1,
 ): { run: RunState; meta: MetaState; result: ClickResult } {
   if (run.crisisActive) {
     return {
@@ -556,6 +560,7 @@ export function processClick(
 
   let energy = derived.click * combo.multiplier * fever.click * eventBoostMultiplier(run, "laser_rush", now)
   if (isCritical) energy *= derived.critMult
+  energy *= payout
 
   let feverState = { ...run.fever }
   if (feverActive(feverState)) {
@@ -603,6 +608,26 @@ export function processClick(
       fx: isCritical ? "CRITICAL" : feverActive(feverState) ? "FEVER_CLICK" : "CLICK",
     },
   }
+}
+
+/**
+ * Lump-sum CORE worth `units` plain strikes (click power × fever × event boosts; no combo
+ * or crit roll) — hunt bounties. Blocked during a crisis like any strike.
+ */
+export function grantStrikeUnits(
+  run: RunState,
+  meta: MetaState,
+  config: GameConfig,
+  now: number,
+  units: number,
+): { run: RunState; meta: MetaState; energy: number } {
+  if (run.crisisActive || units <= 0) return { run, meta, energy: 0 }
+  const derived = derivedClick(run, meta, config)
+  const fever = feverMultipliers(run, meta, config)
+  const energy = derived.click * fever.click * eventBoostMultiplier(run, "laser_rush", now) * units
+  const nextRun = { ...run, coreEnergy: run.coreEnergy + energy, lifetimeCoreEnergy: run.lifetimeCoreEnergy + energy }
+  const nextMeta = { ...meta, totalCoreEnergy: meta.totalCoreEnergy + energy }
+  return { run: refreshObjective(nextRun, nextMeta, config), meta: nextMeta, energy }
 }
 
 export function buyPotion(run: RunState, config: GameConfig, potionId: string): { run: RunState; error?: string } {

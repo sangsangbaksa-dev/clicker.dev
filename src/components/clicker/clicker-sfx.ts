@@ -80,6 +80,8 @@ const EVENT_SFX = [
   "sfx_crisis_alert",
   "sfx_crisis_resolve",
   "sfx_region_travel",
+  "sfx_monster_kill",
+  "sfx_vault_lock",
 ] as const
 export type SfxName = (typeof EVENT_SFX)[number]
 

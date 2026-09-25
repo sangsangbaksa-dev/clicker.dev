@@ -16,6 +16,7 @@ import {
   mineEntryCheck,
   exitClickerMine,
   grantAdminEnergy,
+  grantStrikeUnits,
   isGameCompleted,
   processClick,
   processTick,
@@ -45,6 +46,12 @@ import {
   type MineSessionStart,
   type MineSessionSummary,
 } from "@/domain/services/clicker-mine-session"
+import {
+  huntKillBounty,
+  vaultLock,
+  type MonsterKind,
+  type VaultGrade,
+} from "@/domain/services/clicker-region-activity"
 import { readClickerRaw, writeClickerRaw } from "@/infrastructure/persistence/clicker-save"
 
 const config = clickerConfig
@@ -139,7 +146,8 @@ export function clickerExitMine(save: SaveData, now: number): SaveData {
   return exitClickerMine(save, now)
 }
 
-export function clickerClick(save: SaveData, now: number): {
+/** One strike. `payout` scales it for region activities (hunt hit, vault lock); mine = 1. */
+export function clickerClick(save: SaveData, now: number, payout = 1): {
   save: SaveData
   energy: number
   critical: boolean
@@ -147,7 +155,7 @@ export function clickerClick(save: SaveData, now: number): {
   if (isGameCompleted(save.metaState)) {
     return { save, energy: 0, critical: false }
   }
-  const next = processClick(save.runState, save.metaState, config, now, rng)
+  const next = processClick(save.runState, save.metaState, config, now, rng, payout)
   const saveAfterClick = withAchievements(
     maybeAutoStartGaugeFever({
       ...save,
@@ -247,6 +255,35 @@ export function clickerClaimVein(save: SaveData, now: number): { save: SaveData;
 
 export function clickerOreBroken(save: SaveData): SaveData {
   return withAchievements({ ...save, metaState: recordOreBroken(save.metaState) })
+}
+
+/** Hunt kill: pays the monster's bounty and counts it. */
+export function clickerMonsterSlain(save: SaveData, now: number, kind: MonsterKind): { save: SaveData; energy: number } {
+  if (isGameCompleted(save.metaState)) return { save, energy: 0 }
+  const paid = grantStrikeUnits(save.runState, save.metaState, config, now, huntKillBounty(kind))
+  if (paid.energy <= 0) return { save, energy: 0 }
+  const meta = { ...paid.meta, statistics: { ...paid.meta.statistics, monstersSlain: paid.meta.statistics.monstersSlain + 1 } }
+  return { save: withAchievements({ ...save, runState: paid.run, metaState: meta }), energy: paid.energy }
+}
+
+/** Vault lock attempt: a strike scaled by the graded payout; non-miss locks are counted. */
+export function clickerVaultLock(
+  save: SaveData,
+  now: number,
+  grade: VaultGrade,
+  chain: number,
+): { save: SaveData; energy: number; critical: boolean; chain: number } {
+  const lock = vaultLock(grade, chain)
+  const hit = clickerClick(save, now, lock.payout)
+  // Blocked strike (crisis): nothing happened, so the chain stands.
+  if (hit.energy <= 0) return { ...hit, chain }
+  if (grade === "miss") return { ...hit, chain: lock.chain }
+  const meta = hit.save.metaState
+  return {
+    ...hit,
+    save: { ...hit.save, metaState: { ...meta, statistics: { ...meta.statistics, vaultLocks: meta.statistics.vaultLocks + 1 } } },
+    chain: lock.chain,
+  }
 }
 
 export function clickerDrillOverdrive(save: SaveData, now: number): UseCaseResult<SaveData> {

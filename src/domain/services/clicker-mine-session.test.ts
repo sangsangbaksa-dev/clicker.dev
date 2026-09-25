@@ -14,11 +14,28 @@ test("session summary diffs lifetime CORE and counters", () => {
     runState: { ...save.runState, lifetimeCoreEnergy: 500, coreEnergy: 120 },
     metaState: {
       ...save.metaState,
-      statistics: { ...save.metaState.statistics, clicks: 40, crits: 6, oresBroken: 1, veins: 1 },
+      statistics: {
+        ...save.metaState.statistics,
+        clicks: 40,
+        crits: 6,
+        oresBroken: 1,
+        veins: 1,
+        monstersSlain: 3,
+        vaultLocks: 2,
+      },
     },
   }
   const summary = summarizeMineSession(start, after, NOW + 12_400)
-  assert.deepEqual(summary, { haul: 500, strikes: 40, crits: 6, oresBroken: 1, veins: 1, seconds: 12 })
+  assert.deepEqual(summary, {
+    haul: 500,
+    strikes: 40,
+    crits: 6,
+    oresBroken: 1,
+    veins: 1,
+    monstersSlain: 3,
+    vaultLocks: 2,
+    seconds: 12,
+  })
 })
 
 test("session summary without a start falls back to the CORE-at-enter mark", () => {

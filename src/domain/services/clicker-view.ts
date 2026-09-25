@@ -3,6 +3,7 @@ import type {
   InstabilityLevel,
   MetaState,
   ProductionSnapshot,
+  RegionActivity,
   RunState,
   SkillBranch,
   UpgradeCategory,
@@ -17,6 +18,7 @@ import {
   productionSnapshot,
 } from "./clicker-engine"
 import { formatNumber } from "./clicker-format"
+import { ACTIVITY_INFO, regionActivity } from "./clicker-region-activity"
 
 export type CoreVisual = "idle" | "fever" | "crisis"
 
@@ -364,16 +366,20 @@ export type RegionView = {
   /** Threshold requirement shown even when unlocked (e.g. "250K 누적 CORE") */
   unlockRequirement: string
   bonusText: string
+  activity: RegionActivity
+  /** Hub button that starts this region's session. */
+  enterLabel: string
   unlocked: boolean
   isHome: boolean
   isCurrent: boolean
 }
 
 function regionBonusText(region: {
+  activity?: RegionActivity
   clickMultiplier?: number
   productionMultiplier?: number
 }): string {
-  const parts: string[] = []
+  const parts: string[] = [`세션 ${ACTIVITY_INFO[regionActivity(region)].label}`]
   if (region.clickMultiplier && region.clickMultiplier !== 1) {
     const pct = Math.round((region.clickMultiplier - 1) * 100)
     parts.push(`채굴 +${pct}%`)
@@ -382,7 +388,7 @@ function regionBonusText(region: {
     const pct = Math.round((region.productionMultiplier - 1) * 100)
     parts.push(`생산 +${pct}%`)
   }
-  return parts.length > 0 ? parts.join(" · ") : "보너스 없음"
+  return parts.join(" · ")
 }
 
 export function buildRegionViews(run: RunState, config: GameConfig): RegionView[] {
@@ -406,6 +412,8 @@ export function buildRegionViews(run: RunState, config: GameConfig): RegionView[
       unlockText,
       unlockRequirement,
       bonusText: regionBonusText(region),
+      activity: regionActivity(region),
+      enterLabel: ACTIVITY_INFO[regionActivity(region)].enter,
       unlocked,
       isHome: Boolean(region.isHome),
       isCurrent: run.currentRegionId === region.id,

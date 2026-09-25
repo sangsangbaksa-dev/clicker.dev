@@ -76,3 +76,5 @@ Game uses MP3 copies under `public/clicker/audio/` (`python3 generate_audio_v3.p
 | `sfx_crisis_resolve.wav` | Crisis choice resolved | Hiss release into stable fifth, ~0.8s |
 | `sfx_region_travel.wav` | Region travel / return home | Doppler whoosh + arrival thump, ~0.75s |
 | `sfx_rebirth_stamp_adaptive_architect.wav` | Worldline stamp — Adaptive Architect | Emerald chord, root A#4 |
+| `sfx_monster_kill.wav` | Signal Relay hunt — monster slain | Crushed crackle + zap + ping, ~0.55s |
+| `sfx_vault_lock.wav` | Phase Vault — successful lock | Tumbler click + chime, ~0.4s (miss uses `sfx_ui_deny`) |

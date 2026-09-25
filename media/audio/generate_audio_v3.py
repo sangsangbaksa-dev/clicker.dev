@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """SFX pack v3 — events the v2 pack does not cover (skill cast, achievement,
-crisis alert/resolve, region travel, Adaptive Architect stamp).
+crisis alert/resolve, region travel, Adaptive Architect stamp, hunt kill, vault lock).
 
 Same conventions as generate_audio.py: mono 44.1 kHz 16-bit, peak -3 dBFS,
 dark sci-fi timbre. Writes WAVs next to this script; `--publish` also encodes
@@ -148,6 +148,29 @@ def stamp_adaptive_architect() -> np.ndarray:
     return out
 
 
+def monster_kill() -> np.ndarray:
+    """Digital burst: bit-crushed crackle, falling zap, coin-like ping (~0.55s)."""
+    out = np.zeros(int(0.55 * SR))
+    crackle = bandnoise(0.18, 1500, 8000)
+    crackle = np.round(crackle * 6) / 6  # crushed
+    place(out, crackle * env(0.18, 0.001, 0.16) * 0.45, 0)
+    place(out, sweep(1600, 120, 0.22, "saw") * env(0.22, 0.002, 0.2) * 0.3, 0)
+    ping = (tone(1760, 0.3) + 0.4 * tone(2637, 0.3)) * env(0.3, 0.002, 0.28)
+    place(out, ping * 0.4, 0.12)
+    return out
+
+
+def vault_lock() -> np.ndarray:
+    """Mechanical tumbler click + short resonant chime (~0.4s)."""
+    out = np.zeros(int(0.4 * SR))
+    click = bandnoise(0.03, 2000, 9000) * env(0.03, 0.0005, 0.03)
+    place(out, click * 0.8, 0)
+    place(out, sweep(300, 90, 0.08) * env(0.08, 0.001, 0.07) * 0.6, 0.004)
+    chime = (tone(988, 0.35) + 0.5 * tone(1482, 0.35)) * env(0.35, 0.003, 0.33)
+    place(out, chime * 0.35, 0.02)
+    return out
+
+
 NEW = {
     "sfx_skill_activate": skill_activate,
     "sfx_achievement": achievement,
@@ -155,6 +178,8 @@ NEW = {
     "sfx_crisis_resolve": crisis_resolve,
     "sfx_region_travel": region_travel,
     "sfx_rebirth_stamp_adaptive_architect": stamp_adaptive_architect,
+    "sfx_monster_kill": monster_kill,
+    "sfx_vault_lock": vault_lock,
 }
 
 # Pack SFX wired into the game (src/components/clicker/clicker-sfx.ts `SFX_FILES`).

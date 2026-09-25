@@ -17,6 +17,8 @@ import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine } from "@/components/clicker/clicker-mine"
 import { ClickerMineEnter } from "@/components/clicker/clicker-mine-enter"
 import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
+import { ClickerHunt } from "@/components/clicker/clicker-hunt"
+import { ClickerVault } from "@/components/clicker/clicker-vault"
 import { ClickerWelcomeBack } from "@/components/clicker/clicker-welcome-back"
 import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motion"
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
@@ -531,8 +533,13 @@ export function ClickerApp() {
   const mineHaul = Math.max(0, run.coreEnergy - (run.mineSessionCoreAtEnter || 0))
   const mineCooldownSec = Math.ceil((game.mineGate?.cooldownLeftMs ?? 0) / 1000)
   const mineEntryCost = game.mineGate?.cost ?? 0
+  const activity = game.currentRegion?.activity ?? "mine"
+  const enterLabel = game.currentRegion?.enterLabel ?? "Enter Mine"
+  const regionBg = game.currentRegion?.bgAssetId ?? CLICKER_ASSETS.bgChamber
   const stageBg = inMine
-    ? CLICKER_ASSETS.bgMine
+    ? activity === "mine"
+      ? CLICKER_ASSETS.bgMine
+      : regionBg
     : game.currentRegion?.isHome
       ? CLICKER_ASSETS.bgMineEntrance
       : (game.currentRegion?.bgAssetId ?? CLICKER_ASSETS.bgChamber)
@@ -576,7 +583,8 @@ export function ClickerApp() {
   const beginEnterMine = () => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     // Refused entries (cooldown / cost) skip the cinematic; enterMine shows the reason.
-    if (reduced || game.mineEntryError()) {
+    // The door-walk cinematic belongs to Core Mine; other regions start straight away.
+    if (reduced || activity !== "mine" || game.mineEntryError()) {
       setDrawerSnap("peek")
       game.enterMine()
       return
@@ -830,8 +838,11 @@ export function ClickerApp() {
           {inMine ? (
             <div className="clicker-mine-dig">
               <div className="clicker-mine-hud" role="status" aria-live="polite">
-                <div className="clicker-mine-hud-stat" aria-label={`채굴량 ${formatNumber(mineHaul)}`}>
-                  <span>채굴량</span>
+                <div
+                  className="clicker-mine-hud-stat"
+                  aria-label={`${activity === "mine" ? "채굴량" : "획득량"} ${formatNumber(mineHaul)}`}
+                >
+                  <span>{activity === "mine" ? "채굴량" : "획득량"}</span>
                   <strong>{formatNumber(mineHaul)}</strong>
                 </div>
                 <div
@@ -925,21 +936,42 @@ export function ClickerApp() {
                     })}
                 </div>
               ) : null}
-              <ClickerMine
-                visual={mineVisual}
-                muted={game.save.settings.muted}
-                pop={pop}
-                shake={shake}
-                onMine={(clientX, clientY) => game.clickCore(clientX, clientY)}
-                onPop={() => {
-                  setPop(true)
-                  window.setTimeout(() => setPop(false), 100)
-                }}
-                playLaser={playLaser}
-                autoRate={game.drill?.rate ?? 0}
-                onVein={game.claimVein}
-                onOreBroken={game.oreBroken}
-              />
+              {activity === "hunt" ? (
+                <ClickerHunt
+                  bg={regionBg}
+                  visual={mineVisual}
+                  muted={game.save.settings.muted}
+                  onHit={(clientX, clientY, payout) => game.clickCore(clientX, clientY, payout)}
+                  onSlain={game.slayMonster}
+                  playLaser={playLaser}
+                  autoRate={game.drill?.rate ?? 0}
+                  onDrill={game.clickCore}
+                />
+              ) : activity === "vault" ? (
+                <ClickerVault
+                  bg={regionBg}
+                  visual={mineVisual}
+                  onLock={game.lockVault}
+                  autoRate={game.drill?.rate ?? 0}
+                  onDrill={game.clickCore}
+                />
+              ) : (
+                <ClickerMine
+                  visual={mineVisual}
+                  muted={game.save.settings.muted}
+                  pop={pop}
+                  shake={shake}
+                  onMine={(clientX, clientY) => game.clickCore(clientX, clientY)}
+                  onPop={() => {
+                    setPop(true)
+                    window.setTimeout(() => setPop(false), 100)
+                  }}
+                  playLaser={playLaser}
+                  autoRate={game.drill?.rate ?? 0}
+                  onVein={game.claimVein}
+                  onOreBroken={game.oreBroken}
+                />
+              )}
             </div>
           ) : (
             <button
@@ -947,15 +979,15 @@ export function ClickerApp() {
               className={`clicker-hub-enter-only${mineCooldownSec > 0 ? " is-cooling" : ""}`}
               aria-label={
                 mineCooldownSec > 0
-                  ? `Enter Mine · 재입장 대기 ${mineCooldownSec}초`
+                  ? `${enterLabel} · 재입장 대기 ${mineCooldownSec}초`
                   : mineEntryCost > 0
-                    ? `Enter Mine · 입장료 CORE ${mineEntryCost}`
-                    : "Enter Mine"
+                    ? `${enterLabel} · 입장료 CORE ${mineEntryCost}`
+                    : enterLabel
               }
               disabled={enteringMine}
               onClick={beginEnterMine}
             >
-              Enter Mine
+              {enterLabel}
               {mineCooldownSec > 0 ? (
                 <span className="clicker-hub-enter-sub">재입장 {mineCooldownSec}초</span>
               ) : mineEntryCost > 0 ? (
@@ -1266,6 +1298,7 @@ export function ClickerApp() {
 
       {game.mineSummary && !inMine && !enteringMine && !game.offlineSummary ? (
         <ClickerMineResult
+          activity={activity}
           summary={game.mineSummary}
           cooldownSec={mineCooldownSec}
           onClose={game.dismissMineSummary}
@@ -1290,7 +1323,7 @@ export function ClickerApp() {
           style={{ left: f.x || "50%", top: f.y || "45%" }}
           aria-hidden
         >
-          {f.critical ? "치명타 " : ""}
+          {f.prefix ?? (f.critical ? "치명타 " : "")}
           {f.text}
         </div>
       ))}

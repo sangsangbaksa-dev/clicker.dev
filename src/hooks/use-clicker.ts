@@ -13,6 +13,8 @@ import {
   clickerCanCompleteEnding,
   clickerClaimVein,
   clickerClick,
+  clickerMonsterSlain,
+  clickerVaultLock,
   clickerCompleteEnding,
   clickerDrillOverdrive,
   clickerDrinkPotion,
@@ -45,6 +47,7 @@ import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { achievementProgress, autoDrillRate, baseDrillRate } from "@/domain/services/clicker-bonus"
 import { formatNumber } from "@/domain/services/clicker-format"
 import type { MineSessionStart, MineSessionSummary } from "@/domain/services/clicker-mine-session"
+import type { MonsterKind, VaultGrade } from "@/domain/services/clicker-region-activity"
 import {
   buildActiveSkillShopViews,
   buildHud,
@@ -59,6 +62,8 @@ export type FloatNumber = {
   id: number
   text: string
   critical: boolean
+  /** Replaces the default "치명타 " lead-in on emphasized floats. */
+  prefix?: string
   x: number
   y: number
 }
@@ -242,27 +247,48 @@ export function useClicker() {
     setToast(null)
   }, [])
 
-  const clickCore = useCallback((clientX?: number, clientY?: number) => {
-    const current = saveRef.current
-    if (!current || current.metaState.gameCompleted) return { critical: false }
-    const result = clickerClick(current, now())
-    commit(result.save)
+  /** Floating "+N" at a screen point. */
+  const floatAt = useCallback((text: string, critical: boolean, x: number, y: number, ms = 700, prefix?: string) => {
     const id = ++floatId.current
-    setFloats((prev) => [
-      ...prev.slice(-12),
-      {
-        id,
-        text: `+${result.energy.toFixed(result.energy >= 100 ? 0 : 1)}`,
-        critical: result.critical,
-        x: clientX ?? 0,
-        y: clientY ?? 0,
-      },
-    ])
+    setFloats((prev) => [...prev.slice(-12), { id, text, critical, prefix, x, y }])
     window.setTimeout(() => {
       setFloats((prev) => prev.filter((f) => f.id !== id))
-    }, 700)
+    }, ms)
+  }, [])
+
+  /** One strike; `payout` scales it for hunt hits (mine and drill = 1). */
+  const clickCore = useCallback((clientX?: number, clientY?: number, payout = 1) => {
+    const current = saveRef.current
+    if (!current || current.metaState.gameCompleted) return { critical: false }
+    const result = clickerClick(current, now(), payout)
+    commit(result.save)
+    floatAt(`+${result.energy.toFixed(result.energy >= 100 ? 0 : 1)}`, result.critical, clientX ?? 0, clientY ?? 0)
     return { critical: result.critical }
-  }, [commit])
+  }, [commit, floatAt])
+
+  /** Hunt kill: bounty float + cue. */
+  const slayMonster = useCallback((kind: MonsterKind, clientX: number, clientY: number) => {
+    const current = saveRef.current
+    if (!current) return
+    const result = clickerMonsterSlain(current, now(), kind)
+    if (result.energy <= 0) return
+    commit(result.save)
+    sfx("sfx_monster_kill")
+    floatAt(`처치 +${formatNumber(result.energy)}`, true, clientX, clientY, 1100, "")
+  }, [commit, floatAt, sfx])
+
+  /** Vault lock attempt; returns the chain to carry into the next lock. */
+  const lockVault = useCallback((grade: VaultGrade, chain: number, clientX: number, clientY: number) => {
+    const current = saveRef.current
+    if (!current || current.metaState.gameCompleted) return { chain, critical: false }
+    const result = clickerVaultLock(current, now(), grade, chain)
+    if (result.energy <= 0) return { chain: result.chain, critical: false }
+    commit(result.save)
+    sfx(grade === "miss" ? "sfx_ui_deny" : "sfx_vault_lock")
+    const lead = result.critical ? "치명타 " : grade === "perfect" ? "PERFECT " : ""
+    floatAt(`+${formatNumber(result.energy)}`, grade !== "miss", clientX, clientY, grade === "miss" ? 700 : 1000, lead)
+    return { chain: result.chain, critical: result.critical }
+  }, [commit, floatAt, sfx])
 
   const buyPotion = useCallback((id: string) => {
     if (!saveRef.current) return
@@ -616,6 +642,8 @@ export function useClicker() {
     dismissOffline: () => setOfflineSummary(null),
     dismissToast,
     clickCore,
+    slayMonster,
+    lockVault,
     buyPotion,
     buyActiveSkill,
     buyProducer,

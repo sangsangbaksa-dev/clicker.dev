@@ -13,7 +13,10 @@ export const MineArt = {
   /** Hub pre-enter closed door; identical to door-walk v11 f000 so the entry video starts seamlessly. */
   entranceGate: "/clicker/mine/mine_entrance_hub_closed_door_v1.png",
   /** Title-screen ambient loop over the closed door: glow pulse, floor fog, dust (8s, silent). */
-  titleAmbientLoop: "/clicker/mine/mine_title_ambient_loop_v1.mp4",
+  titleAmbientLoop: {
+    webm: "/clicker/mine/mine_title_ambient_loop_v1.webm",
+    mp4: "/clicker/mine/mine_title_ambient_loop_v1.mp4",
+  },
   /** Door-walk v11 entry cinematic (1280×720, with SFX); ends on the ore plate. */
   enterCinematic: "/clicker/mine/mine_enter_door_walk_v11.mp4",
   /** Timed-session hi-tech interior — full-bleed chamber. */

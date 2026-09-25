@@ -1,0 +1,396 @@
+/* Signal Relay hunt + Phase Vault: full-bleed arenas sharing the mine's laser styles. */
+
+[data-clicker] .clicker-hunt,
+[data-clicker] .clicker-vault {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #05070d;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.clicker-activity-plate {
+  position: absolute;
+  inset: 0;
+  background: center / cover no-repeat;
+  filter: brightness(0.7) saturate(0.95);
+  pointer-events: none;
+}
+
+.clicker-hunt[data-visual="fever"] .clicker-activity-plate,
+.clicker-vault[data-visual="fever"] .clicker-activity-plate {
+  animation: clicker-mine-fever-pulse 1.2s ease-in-out infinite;
+}
+
+.clicker-hunt[data-visual="crisis"] .clicker-activity-plate,
+.clicker-vault[data-visual="crisis"] .clicker-activity-plate {
+  filter: brightness(0.6) saturate(0.8) sepia(0.25) hue-rotate(-30deg);
+}
+
+.clicker-hunt .clicker-mine-lasers {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 6;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.clicker-hunt-hint,
+.clicker-vault-hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(18% + env(safe-area-inset-bottom, 0px));
+  translate: -50% 0;
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.45);
+  color: rgb(200 240 255 / 0.8);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 7;
+}
+
+/* ---------- Monsters ---------- */
+
+.clicker-hunt-monster {
+  --size: 104px;
+  position: absolute;
+  width: var(--size);
+  height: calc(var(--size) + 14px);
+  margin: calc(var(--size) / -2) 0 0 calc(var(--size) / -2);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: crosshair;
+  z-index: 5;
+  animation: clicker-hunt-spawn 260ms ease-out;
+  touch-action: manipulation;
+}
+
+.clicker-hunt-monster.is-wraith {
+  --size: 124px;
+}
+
+.clicker-hunt-monster.is-brute {
+  --size: 168px;
+}
+
+.clicker-hunt-body {
+  position: absolute;
+  inset: 0 0 14px;
+  display: grid;
+  place-items: center;
+  scale: var(--flip, 1) 1;
+  animation: clicker-hunt-hover 2.4s ease-in-out infinite;
+}
+
+.clicker-hunt-body img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.clicker-hunt-body.is-hit {
+  animation:
+    clicker-hunt-hit 140ms ease-out,
+    clicker-hunt-hover 2.4s ease-in-out infinite;
+}
+
+/* CSS silhouettes until sprite art lands in hunt-assets.ts. */
+.clicker-hunt-fallback {
+  display: block;
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 46%, #eaffff 0 7%, #33e6ff 9% 15%, transparent 17%),
+    radial-gradient(circle at 50% 50%, #26303c 0 55%, #0b1017 70%, transparent 72%);
+  box-shadow:
+    0 0 18px rgb(0 220 255 / 0.45),
+    inset 0 -6px 14px rgb(0 0 0 / 0.6);
+}
+
+.is-wraith .clicker-hunt-fallback {
+  border-radius: 50% 50% 38% 38% / 60% 60% 40% 40%;
+  background:
+    radial-gradient(ellipse at 50% 34%, #fff 0 5%, #ff4fd8 7% 13%, transparent 15%),
+    linear-gradient(180deg, #1d1030 0 55%, transparent);
+  box-shadow: 0 0 22px rgb(255 80 220 / 0.45);
+}
+
+.is-brute .clicker-hunt-fallback {
+  border-radius: 28% 28% 18% 18%;
+  background:
+    radial-gradient(circle at 50% 50%, #fff3d6 0 6%, #ff5a2a 8% 16%, transparent 18%),
+    linear-gradient(180deg, #2b3138, #11151b);
+  box-shadow:
+    0 0 24px rgb(255 100 40 / 0.4),
+    inset 0 0 0 3px rgb(0 220 255 / 0.25);
+}
+
+.clicker-hunt-hp {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 0;
+  height: 5px;
+  border-radius: 3px;
+  background: rgb(0 0 0 / 0.6);
+  box-shadow: 0 0 0 1px rgb(120 240 255 / 0.3);
+  overflow: hidden;
+}
+
+.clicker-hunt-hp i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ff5a6e, #ffd166);
+  transition: width 120ms ease;
+}
+
+.clicker-hunt-monster.is-fleeing .clicker-hunt-body {
+  animation:
+    clicker-hunt-flee 0.3s steps(2) infinite,
+    clicker-hunt-hover 2.4s ease-in-out infinite;
+}
+
+.clicker-hunt-monster.is-slain {
+  animation: clicker-hunt-slain 360ms ease-out forwards;
+  pointer-events: none;
+}
+
+.clicker-hunt-monster.is-fled {
+  animation: clicker-hunt-fled 360ms ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes clicker-hunt-spawn {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+
+@keyframes clicker-hunt-hover {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -6px;
+  }
+}
+
+@keyframes clicker-hunt-hit {
+  0% {
+    filter: brightness(2.2) saturate(0.4);
+    scale: calc(var(--flip, 1) * 0.92) 0.92;
+  }
+}
+
+@keyframes clicker-hunt-flee {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes clicker-hunt-slain {
+  30% {
+    filter: brightness(3);
+    scale: 1.15;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.4;
+    filter: brightness(3) blur(6px);
+  }
+}
+
+@keyframes clicker-hunt-fled {
+  to {
+    opacity: 0;
+    translate: 0 -40px;
+    scale: 0.7;
+  }
+}
+
+@media (max-width: 640px) {
+  .clicker-hunt-monster {
+    --size: 84px;
+  }
+  .clicker-hunt-monster.is-wraith {
+    --size: 100px;
+  }
+  .clicker-hunt-monster.is-brute {
+    --size: 132px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-hunt-body,
+  .clicker-hunt-monster,
+  .clicker-hunt-monster.is-fleeing .clicker-hunt-body {
+    animation: none !important;
+  }
+  .clicker-hunt-monster.is-slain,
+  .clicker-hunt-monster.is-fled {
+    opacity: 0;
+  }
+}
+
+/* ---------- Vault dial ---------- */
+
+.clicker-vault-dial {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: min(72vw, 52vh, 420px);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(4 10 18 / 0.72) 0 58%, rgb(4 10 18 / 0.35) 70%, transparent 72%);
+  cursor: pointer;
+  z-index: 5;
+  touch-action: manipulation;
+}
+
+.clicker-vault-dial svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.clicker-vault-ring {
+  fill: none;
+  stroke: rgb(120 200 255 / 0.28);
+  stroke-width: 10;
+}
+
+.clicker-vault-ring-inner {
+  fill: none;
+  stroke: rgb(120 200 255 / 0.14);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 5;
+}
+
+.clicker-vault-tick {
+  stroke: rgb(160 220 255 / 0.4);
+  stroke-width: 1.5;
+}
+
+.clicker-vault-zone-good {
+  fill: none;
+  stroke: rgb(255 214 110 / 0.45);
+  stroke-width: 12;
+}
+
+.clicker-vault-zone-perfect {
+  fill: none;
+  stroke: #fff1b8;
+  stroke-width: 14;
+  filter: drop-shadow(0 0 6px rgb(255 214 110 / 0.9));
+}
+
+.clicker-vault-needle {
+  stroke: #eaffff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px rgb(0 229 255 / 0.9));
+}
+
+.clicker-vault-needle-tip {
+  fill: #7ff3ff;
+}
+
+.clicker-vault-hub {
+  fill: #0c1520;
+  stroke: rgb(0 229 255 / 0.6);
+  stroke-width: 2;
+}
+
+.clicker-vault.is-jammed .clicker-vault-ring {
+  stroke: rgb(255 90 110 / 0.55);
+}
+
+.clicker-vault.is-jammed .clicker-vault-needle {
+  stroke: #ff9aa8;
+}
+
+.clicker-vault-chain {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 10px);
+  translate: -50% 0;
+  display: flex;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.clicker-vault-chain i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgb(255 214 110 / 0.5);
+  transition: background 120ms ease;
+}
+
+.clicker-vault-chain i.is-on {
+  background: #ffd66e;
+  box-shadow: 0 0 8px rgb(255 214 110 / 0.8);
+}
+
+.clicker-vault-grade {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  font-size: clamp(16px, 4.2vmin, 28px);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  animation: clicker-vault-grade 650ms ease-out forwards;
+}
+
+.clicker-vault-grade.is-perfect {
+  color: #fff1b8;
+  text-shadow: 0 0 12px rgb(255 214 110 / 0.9);
+}
+
+.clicker-vault-grade.is-good {
+  color: #bff4ff;
+}
+
+.clicker-vault-grade.is-miss {
+  color: #ff9aa8;
+}
+
+@keyframes clicker-vault-grade {
+  0% {
+    opacity: 0;
+    scale: 0.7;
+  }
+  20% {
+    opacity: 1;
+    scale: 1.1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-vault-grade {
+    animation: none;
+  }
+}

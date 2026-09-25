@@ -94,6 +94,10 @@ export type ClickerStatistics = {
   veins: number
   /** Center ores shattered in the mine. */
   oresBroken: number
+  /** Monsters killed in hunt sessions. */
+  monstersSlain: number
+  /** Successful (non-miss) vault locks. */
+  vaultLocks: number
   /** Timed mine sessions finished. */
   mineSessions: number
   /** Largest CORE gained in a single mine session. */
@@ -254,6 +258,9 @@ export type ActiveSkillDef = {
   assetId: string
 }
 
+/** How a region's timed session earns CORE: ore mining, monster hunting, or vault cracking. */
+export type RegionActivity = "mine" | "hunt" | "vault"
+
 export type RegionDef = {
   id: string
   name: string
@@ -261,6 +268,8 @@ export type RegionDef = {
   bgAssetId: string
   unlockAtLifetimeEnergy: number
   isHome?: boolean
+  /** Session activity; defaults to "mine". */
+  activity?: RegionActivity
   /** Applied only while `run.currentRegionId` matches this region. */
   clickMultiplier?: number
   /** Applied only while `run.currentRegionId` matches this region. */

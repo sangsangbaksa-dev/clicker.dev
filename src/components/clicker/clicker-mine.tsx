@@ -10,6 +10,7 @@ import {
 } from "react"
 import { MineArt, MINE_ORE_PLATE } from "@/data/clicker/mine-assets"
 import { VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/domain/services/clicker-bonus"
+import { MINE_BREAK_BONUS, MINE_ORE_HP } from "@/domain/services/clicker-region-activity"
 import "./clicker-mine.css"
 
 export type MineStrikeResult = { critical: boolean }
@@ -52,9 +53,9 @@ type Props = {
 
 type Vein = { x: number; y: number; expiresAt: number }
 
-/** Hits to shatter the center ore; each shatter pays BREAK_BONUS extra strikes. */
-const ORE_HP = 24
-const BREAK_BONUS = 3
+/** Shared with the region balance model (clicker-region-activity). */
+const ORE_HP = MINE_ORE_HP
+const BREAK_BONUS = MINE_BREAK_BONUS
 const REGROW_MS = 650
 
 type Box = { left: number; top: number; width: number; height: number }

@@ -8,7 +8,8 @@ number of cycles per loop, so the last frame flows back into the first.
     pip install numpy pillow imageio-ffmpeg
     python3 media/video/make_title_ambient_loop.py
 
-Writes public/clicker/mine/mine_title_ambient_loop_v1.mp4 (1280x720, 24 fps, 8 s, silent).
+Writes public/clicker/mine/mine_title_ambient_loop_v1.{webm,mp4} (1280x720, 24 fps, 8 s,
+silent) — VP9 first for browsers without H.264, H.264 for Safari.
 """
 from __future__ import annotations
 
@@ -21,7 +22,7 @@ from PIL import Image, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "public/clicker/mine/mine_entrance_hub_closed_door_v1.png"
-OUT = ROOT / "public/clicker/mine/mine_title_ambient_loop_v1.mp4"
+OUT = ROOT / "public/clicker/mine/mine_title_ambient_loop_v1"
 W, H = 1280, 720
 FPS = 24
 SECONDS = 8
@@ -73,13 +74,16 @@ def main() -> None:
     p_dx = np.where(far, 0, p_dx)
 
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
-    proc = subprocess.Popen(
-        [ffmpeg, "-y", "-loglevel", "error",
-         "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-         "-an", "-c:v", "libx264", "-preset", "slow", "-crf", "24", "-pix_fmt", "yuv420p",
-         "-movflags", "+faststart", str(OUT)],
-        stdin=subprocess.PIPE,
-    )
+    raw_in = ["-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-", "-an"]
+    encoders = [
+        ["-c:v", "libx264", "-preset", "slow", "-crf", "24", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+         f"{OUT}.mp4"],
+        ["-c:v", "libvpx-vp9", "-crf", "36", "-b:v", "0", "-row-mt", "1", "-pix_fmt", "yuv420p", f"{OUT}.webm"],
+    ]
+    procs = [
+        subprocess.Popen([ffmpeg, "-y", "-loglevel", "error", *raw_in, *enc], stdin=subprocess.PIPE)
+        for enc in encoders
+    ]
 
     for i in range(FRAMES):
         t = i / FRAMES
@@ -105,10 +109,13 @@ def main() -> None:
             dust[y0:y1, x0:x1] += b * np.exp(-(gx**2 + gy**2) / (2 * s * s))
         frame = frame + dust[..., None] * np.array([0.7, 0.95, 1.0])
 
-        proc.stdin.write((np.clip(frame, 0, 1) * 255).astype(np.uint8).tobytes())
+        data = (np.clip(frame, 0, 1) * 255).astype(np.uint8).tobytes()
+        for proc in procs:
+            proc.stdin.write(data)
 
-    proc.stdin.close()
-    proc.wait()
+    for proc in procs:
+        proc.stdin.close()
+        proc.wait()
 
 
 if __name__ == "__main__":

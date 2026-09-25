@@ -25,14 +25,16 @@ export function ClickerTitle({ muted, onToggleMute, onStart }: Props) {
         {/* Starts on the same still as the background, so a slow or failed load shows no seam. */}
         <video
           className="clicker-title-bg-video"
-          src={CLICKER_ASSETS.titleLoop}
           poster={CLICKER_ASSETS.bgMineEntrance}
           autoPlay
           muted
           loop
           playsInline
           preload="auto"
-        />
+        >
+          <source src={CLICKER_ASSETS.titleLoop.webm} type="video/webm" />
+          <source src={CLICKER_ASSETS.titleLoop.mp4} type="video/mp4" />
+        </video>
       </div>
       <div className="clicker-title-veil" aria-hidden />
       <div className="clicker-title-grain" aria-hidden />
