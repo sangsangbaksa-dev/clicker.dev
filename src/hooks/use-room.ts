@@ -16,7 +16,7 @@ import {
   TEXT_SAVE_DEBOUNCE_MS,
 } from "@/shared/sync"
 import type { AuthUser, Member, Room } from "@/domain/entities/board"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
 type RoomStatus = "loading" | "ready" | "missing" | "error"
@@ -267,7 +267,10 @@ export function useRoom(
   )
 
   const initialRoomRef = useRef(initialRoom)
-  initialRoomRef.current = initialRoom
+  // Layout effects run before the passive load effect below, so it reads the latest seed.
+  useLayoutEffect(() => {
+    initialRoomRef.current = initialRoom
+  })
   const initialRoomKey =
     initialRoom && normalizeRoomCode(initialRoom.code) === normalizeRoomCode(code)
       ? `${initialRoom.code}:${initialRoom.revision}`

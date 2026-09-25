@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { REBIRTH_CHAMBER_REMINDER } from "@/data/clicker/onboarding"
 import { RebirthPhaseArt } from "@/data/clicker/rebirth-assets"
 import { RebirthMwParams, type MwEaseSample } from "@/data/clicker/rebirth-mw-params"
@@ -320,10 +320,14 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
   const completedRef = useRef(false)
   const completeTimerRef = useRef(0)
   const onCompleteRef = useRef(onComplete)
-  onCompleteRef.current = onComplete
+  useLayoutEffect(() => {
+    onCompleteRef.current = onComplete
+  })
   // Read live so toggling mute mid-sequence doesn't restart the timeline.
   const mutedRef = useRef(muted)
-  mutedRef.current = muted
+  useLayoutEffect(() => {
+    mutedRef.current = muted
+  })
 
   const finishEarly = () => {
     if (completedRef.current) return

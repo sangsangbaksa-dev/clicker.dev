@@ -571,7 +571,9 @@ export function ClickerApp() {
   const hud = game.hud
   const run = game.save.runState
   const inMine = game.save.settings.playSurface === "mine"
-  const mineRemainMs = Math.max(0, run.mineSessionEndsAt - Date.now())
+  // Last tick time (~100ms fresh) keeps render pure instead of reading Date.now().
+  const tickNow = run.lastTickAt
+  const mineRemainMs = Math.max(0, run.mineSessionEndsAt - tickNow)
   const mineRemainSec = mineRemainMs / 1000
   const mineDurationMs = Math.max(1, run.mineSessionDurationMs || 10_000)
   const mineHaul = Math.max(0, run.coreEnergy - (run.mineSessionCoreAtEnter || 0))
@@ -612,7 +614,7 @@ export function ClickerApp() {
   const automationBuff =
     run.ownedSkillNodeIds.some((id) => id.startsWith("auto_")) ||
     game.save.metaState.transcendenceIds.includes("auto_line") ||
-    run.activeBuffs.some((buff) => buff.id === "overclock" && buff.expiresAt > Date.now())
+    run.activeBuffs.some((buff) => buff.id === "overclock" && buff.expiresAt > tickNow)
 
   const panelProps = { game, run, popIcons, bumpIcon }
 

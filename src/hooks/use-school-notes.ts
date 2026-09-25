@@ -8,7 +8,7 @@ import { mergeSchoolNotesOnConflict } from "@/domain/services/conflict-merge"
 import { refreshAuthSession } from "@/hooks/use-auth"
 import { SYNC_VISIBLE_MS, TEXT_SAVE_DEBOUNCE_MS } from "@/shared/sync"
 import type { AuthUser, SchoolNotesDocument, SchoolNoteKind } from "@/domain/entities/board"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
 type SaveState = "saved" | "saving" | "offline"
@@ -102,6 +102,8 @@ export function useSchoolNotes(
     }
   }, [enabled, load])
 
+  // Retries re-enter through the ref so they always run the latest flushSave.
+  const flushSaveRef = useRef<() => Promise<void>>(async () => {})
   const flushSave = useCallback(async () => {
     const current = docRef.current
     if (!current || !canEditRef.current || !dirtyRef.current || inFlight.current) return
@@ -137,7 +139,7 @@ export function useSchoolNotes(
         inFlight.current = false
         setSaveState("saving")
         window.setTimeout(() => {
-          void flushSave()
+          void flushSaveRef.current()
         }, 700)
         return
       }
@@ -165,11 +167,14 @@ export function useSchoolNotes(
       inFlight.current = false
       if (dirtyRef.current && canEditRef.current) {
         window.setTimeout(() => {
-          void flushSave()
+          void flushSaveRef.current()
         }, 700)
       }
     }
   }, [load])
+  useLayoutEffect(() => {
+    flushSaveRef.current = flushSave
+  })
 
   const scheduleSave = useCallback(() => {
     if (!canEditRef.current) return

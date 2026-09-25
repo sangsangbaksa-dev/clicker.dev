@@ -7,7 +7,7 @@ import type { GroupDocument, GroupTyping } from "@/domain/entities/board"
 import { mergeDocumentsOnConflict } from "@/domain/services/group-docs"
 import { refreshAuthSession } from "@/hooks/use-auth"
 import { SYNC_HIDDEN_MS, SYNC_VISIBLE_MS, TEXT_SAVE_DEBOUNCE_MS } from "@/shared/sync"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 type SaveState = "saved" | "saving" | "offline"
@@ -158,6 +158,8 @@ export function useGroupLive(roomCode: string, groupId: string | null) {
     if (groupId) void load()
   }, [groupId, load])
 
+  // Retries re-enter through the ref so they always run the latest flushSave.
+  const flushSaveRef = useRef<() => Promise<void>>(async () => {})
   const flushSave = useCallback(async () => {
     const current = docsRef.current
     const documentId = activeIdRef.current
@@ -194,7 +196,7 @@ export function useGroupLive(roomCode: string, groupId: string | null) {
         inFlight.current = false
         setSaveState("saving")
         window.setTimeout(() => {
-          void flushSave()
+          void flushSaveRef.current()
         }, 400)
         return
       }
@@ -222,11 +224,14 @@ export function useGroupLive(roomCode: string, groupId: string | null) {
       inFlight.current = false
       if (dirtyRef.current && docsRef.current?.canEdit) {
         window.setTimeout(() => {
-          void flushSave()
+          void flushSaveRef.current()
         }, 400)
       }
     }
   }, [groupId, load, roomCode])
+  useLayoutEffect(() => {
+    flushSaveRef.current = flushSave
+  })
 
   const scheduleSave = useCallback(() => {
     if (!docsRef.current?.canEdit) return
