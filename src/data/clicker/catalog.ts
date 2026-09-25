@@ -127,7 +127,7 @@ export const clickerConfig: GameConfig = {
       productionPerSecond: 2140,
       costGrowth: 1.21,
       tags: ["RESONANCE", "MID"],
-      assetId: "/clicker/producer/producer_resonance_array.png",
+      assetId: "/clicker/producer/producer_echo_lattice.png",
     },
     {
       id: "resonance_array",
