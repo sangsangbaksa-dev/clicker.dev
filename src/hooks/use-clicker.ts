@@ -36,6 +36,7 @@ import {
   clickerUseSkill,
   loadClickerGame,
   persistClickerGame,
+  resetClickerPersistence,
 } from "@/application/clicker"
 import { createInitialSave } from "@/domain/services/clicker-engine"
 import { playSfx, setSfxMuted } from "@/components/clicker/clicker-sfx"
@@ -445,6 +446,7 @@ export function useClicker() {
 
   const adminReset = useCallback(() => {
     clearClickerRaw()
+    resetClickerPersistence()
     const fresh = createInitialSave(now(), clickerGameConfig)
     commit(fresh)
     persistNow(fresh)
