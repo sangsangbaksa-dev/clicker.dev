@@ -9,7 +9,6 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { MineArt, MINE_ORE_PLATE } from "@/data/clicker/mine-assets"
-import { VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/domain/services/clicker-bonus"
 import { playSfx } from "@/components/clicker/clicker-sfx"
 import "./clicker-mine.css"
 
@@ -47,11 +46,8 @@ type Props = {
   onOreBroken?: () => void
   /** Auto-drill strikes per second (0 = none). */
   autoRate?: number
-  /** Golden vein hit — returns the reward label to flash in the scene. */
-  onVein?: (clientX: number, clientY: number) => string | null
 }
 
-type Vein = { x: number; y: number; expiresAt: number }
 
 /** Hits to shatter the center ore; each shatter pays BREAK_BONUS extra strikes. */
 const ORE_HP = 24
@@ -88,7 +84,6 @@ export function ClickerMine({
   playLaser,
   onOreBroken,
   autoRate = 0,
-  onVein,
 }: Props) {
   const [box, setBox] = useState<Box | null>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
@@ -98,8 +93,6 @@ export function ClickerMine({
   const [sparks, setSparks] = useState<Spark[]>([])
   const [lasers, setLasers] = useState<Laser[]>([])
   const [impacts, setImpacts] = useState<Impact[]>([])
-  const [vein, setVein] = useState<Vein | null>(null)
-  const [veinLabel, setVeinLabel] = useState<string | null>(null)
   const seq = useRef(0)
   const mineRef = useRef<HTMLDivElement>(null)
   const reduceMotion = useRef(false)
@@ -233,41 +226,6 @@ export function ClickerMine({
     return () => window.clearInterval(id)
   }, [autoRate, hitAt])
 
-  // Golden vein: maybe one per session, a few seconds in, briefly clickable.
-  useEffect(() => {
-    if (!onVein || Math.random() >= VEIN_SPAWN_CHANCE) return
-    const spawn = window.setTimeout(() => {
-      setVein({ x: 0.2 + Math.random() * 0.6, y: 0.2 + Math.random() * 0.5, expiresAt: Date.now() + VEIN_LIFETIME_MS })
-      playSfx("veinSpawn")
-    }, 1500 + Math.random() * 3500)
-    return () => window.clearTimeout(spawn)
-    // One roll per mount (= per mine session).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
-    if (!vein) return
-    const t = window.setTimeout(() => setVein(null), Math.max(0, vein.expiresAt - Date.now()))
-    return () => window.clearTimeout(t)
-  }, [vein])
-
-  const claimVein = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    if (e.button !== 0 || !vein) return
-    e.preventDefault()
-    e.stopPropagation()
-    const el = mineRef.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    playLaser(muted, true)
-    fireLaser(e.clientX - rect.left, e.clientY - rect.top, true)
-    setVein(null)
-    const label = onVein?.(e.clientX, e.clientY) ?? null
-    if (label) {
-      setVeinLabel(label)
-      later(() => setVeinLabel(null), 1800)
-    }
-  }
-
   const plate = MineArt.orePlate
   const { width: iw, height: ih, ore } = MINE_ORE_PLATE
   const scale = size.width ? Math.max(size.width / iw, size.height / ih) : 0
@@ -320,20 +278,6 @@ export function ClickerMine({
         </div>
       ) : null}
 
-      {vein && box ? (
-        <button
-          type="button"
-          className="clicker-mine-vein-gold"
-          aria-label="황금 광맥 — 탭하여 보상"
-          style={{ left: box.left + box.width * vein.x, top: box.top + box.height * vein.y }}
-          onPointerDown={claimVein}
-        />
-      ) : null}
-      {veinLabel ? (
-        <p className="clicker-mine-vein-label" role="status">
-          {veinLabel}
-        </p>
-      ) : null}
       {autoRate > 0 ? <span className="clicker-mine-drill-tag">보조 드릴 · {autoRate}/s</span> : null}
 
       <svg className="clicker-mine-lasers" aria-hidden>

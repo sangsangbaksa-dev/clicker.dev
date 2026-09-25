@@ -3,7 +3,7 @@
  * save to the true ending (all transcendence buffs walked once).
  *
  * Player model: mine sessions back-to-back at CLICKS_PER_SEC (+ assist drill strikes),
- * golden veins claimed when they spawn, region activities used when ready (then back home,
+ * region activities used when ready (then back home,
  * where the mine is), field challenges at 80% success, and a
  * payback-greedy shopper (producer level / upgrade / skill node with the best
  * cost ÷ income gain, cheap utility nodes bought outright). Potions and crisis are ignored,
@@ -44,7 +44,7 @@ import {
   claimRegionChallenge,
   regionChallengeError,
 } from "../src/domain/services/clicker-engine.ts"
-import { autoDrillRate, awardAchievements, claimGoldenVein, VEIN_SPAWN_CHANCE } from "../src/domain/services/clicker-bonus.ts"
+import { autoDrillRate, awardAchievements } from "../src/domain/services/clicker-bonus.ts"
 
 const CLICKS_PER_SEC = Number(process.argv[2] ?? 6)
 // Tuning knobs (env): scale skill costs / producer costs, override rebirth growth or worldline bonus.
@@ -225,8 +225,6 @@ while (elapsed() < MAX_HOURS * 3600) {
   if (!entered.error) {
     save = entered.save
     mineCycles++
-    const vein = rng() < VEIN_SPAWN_CHANCE ? 2 + Math.floor(rng() * 6) : -1
-    let sec = 0
     while (save.runState.mineSessionEndsAt > now) {
       const strikes = CLICKS_PER_SEC + autoDrillRate(save.runState, config, now)
       for (let i = 0; i < strikes; i++) {
@@ -235,16 +233,7 @@ while (elapsed() < MAX_HOURS * 3600) {
         save = { ...save, runState: c.run, metaState: c.meta }
         credit("click", before)
       }
-      if (sec === vein) {
-        const per = productionSnapshot(save.runState, save.metaState, config, now).perSecond
-        const beforeVein = save.runState.lifetimeCoreEnergy
-        const v = claimGoldenVein(save.runState, save.metaState, per, now, rng)
-        if (process.env.TRACE) console.log(`  vein ${v.outcome.kind} +${(v.run.lifetimeCoreEnergy - save.runState.lifetimeCoreEnergy).toExponential(2)}`)
-        save = { ...save, runState: v.run, metaState: v.meta }
-        credit("vein", beforeVein)
-      }
       step(1)
-      sec++
       save = syncClickerMineSession(save, now)
     }
     save = syncClickerMineSession(save, now)

@@ -136,7 +136,7 @@ export function ClickerApp() {
     const onClick = (e: MouseEvent) => {
       const el = e.target instanceof Element ? e.target.closest("button") : null
       if (!el || el.disabled || !el.closest("[data-clicker]")) return
-      if (el.closest(".clicker-mine-crystal, .clicker-mine-vein-gold, [data-sfx='off']")) return
+      if (el.closest(".clicker-mine-crystal, [data-sfx='off']")) return
       playSfx("tap")
     }
     window.addEventListener("click", onClick, true)
@@ -997,7 +997,6 @@ export function ClickerApp() {
                 }}
                 playLaser={playLaser}
                 autoRate={game.drill?.rate ?? 0}
-                onVein={game.claimVein}
                 onOreBroken={game.oreBroken}
               />
             </div>

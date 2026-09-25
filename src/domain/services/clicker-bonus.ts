@@ -18,11 +18,6 @@ export type Rng = () => number
 
 /* ---------- Golden vein ---------- */
 
-/** Chance a golden vein appears during one mine session. */
-export const VEIN_SPAWN_CHANCE = 0.45
-/** How long a vein stays clickable (ms). */
-export const VEIN_LIFETIME_MS = 3_500
-
 export const VEIN_SURGE = { multiplier: 5, seconds: 60 } as const
 export const VEIN_LASER_RUSH = { multiplier: 50, seconds: 8 } as const
 /** Jackpot pays min(bank share, minutes of production) + a floor. */
