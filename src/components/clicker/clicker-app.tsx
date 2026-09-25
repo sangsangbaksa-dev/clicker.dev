@@ -18,6 +18,7 @@ import { ClickerMine } from "@/components/clicker/clicker-mine"
 import { ClickerMineEnter } from "@/components/clicker/clicker-mine-enter"
 import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
 import { ClickerWelcomeBack } from "@/components/clicker/clicker-welcome-back"
+import { ClickerOtherTab } from "@/components/clicker/clicker-other-tab"
 import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motion"
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
@@ -164,7 +165,7 @@ export function ClickerApp() {
         : game.save?.settings.playSurface === "mine"
           ? "mine"
           : "hub",
-    muted: game.save?.settings.musicMuted ?? false,
+    muted: game.otherTabActive || (game.save?.settings.musicMuted ?? false),
     volume: game.save?.settings.musicVolume ?? 0,
   })
 
@@ -455,6 +456,17 @@ export function ClickerApp() {
     }
     prevObjectiveId.current = id
   }, [game.save?.runState.currentObjectiveId, game.config.objectives, game.save])
+
+  if (game.otherTabActive) {
+    return (
+      <ClickerOtherTab
+        onResume={() => {
+          setEnteringMine(false)
+          game.resumeHere()
+        }}
+      />
+    )
+  }
 
   if (!game.save || !game.hud) {
     return (
