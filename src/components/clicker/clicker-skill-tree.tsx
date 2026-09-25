@@ -17,6 +17,7 @@ import {
   SKILL_BRANCH_LABEL,
   layoutSkillTree,
   orthogonalPath,
+  unlockPath,
   type SkillCell,
 } from "@/data/clicker/skill-tree-layout"
 import type { SkillBranch } from "@/domain/entities/clicker"
@@ -114,27 +115,17 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
     return map
   }, [treeNodes])
 
-  /** Unowned prerequisites of `id` (and `id` itself), parents first — the path to unlock it. */
-  const pathTo = useCallback(
-    (id: string): TreeNode[] => {
-      const out: TreeNode[] = []
-      const seen = new Set<string>()
-      const visit = (nid: string) => {
-        if (seen.has(nid)) return
-        seen.add(nid)
-        const node = byId.get(nid)
-        if (!node || node.status === "OWNED") return
-        for (const req of node.requires) visit(req)
-        out.push(node)
-      }
-      visit(id)
-      return out
-    },
-    [byId],
-  )
-
   const selected = selectedId ? (byId.get(selectedId) ?? null) : null
-  const path = useMemo(() => (selected ? pathTo(selected.id) : []), [pathTo, selected])
+  const path = useMemo(
+    () =>
+      selected
+        ? unlockPath(
+            treeNodes.map((n) => ({ ...n, owned: n.status === "OWNED" })),
+            selected.id,
+          )
+        : [],
+    [selected, treeNodes],
+  )
   const pathIds = useMemo(() => new Set(path.map((n) => n.id)), [path])
   const pathCost = path.reduce((sum, n) => sum + n.cost, 0)
 

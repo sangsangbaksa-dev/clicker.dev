@@ -79,6 +79,30 @@ export function layoutSkillTree(nodes: LayoutNode[]): SkillTreeLayout {
 }
 
 /**
+ * Circuits still to buy to reach `targetId`: its unowned prerequisites (recursively) and the
+ * target itself, prerequisites first, so buying them in order never hits a locked node.
+ * Empty when the target is owned or unknown.
+ */
+export function unlockPath<T extends Pick<SkillNodeDef, "id"> & { requires: string[]; owned: boolean }>(
+  nodes: T[],
+  targetId: string,
+): T[] {
+  const byId = new Map(nodes.map((n) => [n.id, n]))
+  const out: T[] = []
+  const seen = new Set<string>()
+  const visit = (id: string) => {
+    if (seen.has(id)) return
+    seen.add(id)
+    const node = byId.get(id)
+    if (!node || node.owned) return
+    for (const req of node.requires) visit(req)
+    out.push(node)
+  }
+  visit(targetId)
+  return out
+}
+
+/**
  * Orthogonal connector: run along the parent's row, turn at the half-column just before
  * the child, then run along the child's row. Only horizontal and vertical segments.
  */

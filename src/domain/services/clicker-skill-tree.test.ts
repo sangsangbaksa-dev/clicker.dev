@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { clickerConfig as config } from "../../data/clicker/catalog.ts"
-import { layoutSkillTree, orthogonalPath } from "../../data/clicker/skill-tree-layout.ts"
+import { layoutSkillTree, orthogonalPath, unlockPath } from "../../data/clicker/skill-tree-layout.ts"
 import {
   applyRebirth,
   buySkillNode,
@@ -129,4 +129,34 @@ test("mining drones add CORE every tick", () => {
   assert.ok(rate > 0)
   const ticked = processTick({ ...run, lastTickAt: now }, meta, config, now + 1000).run
   assert.ok(Math.abs(ticked.coreEnergy - run.coreEnergy - rate) < 1e-6)
+})
+
+test("unlock path: unowned prerequisites first, owned ones skipped, shared parents once", () => {
+  const nodes = [
+    { id: "a", requires: [], owned: true },
+    { id: "b", requires: ["a"], owned: false },
+    { id: "c", requires: ["b"], owned: false },
+    { id: "d", requires: ["b", "c"], owned: false },
+  ]
+  assert.deepEqual(
+    unlockPath(nodes, "d").map((n) => n.id),
+    ["b", "c", "d"],
+  )
+  assert.deepEqual(unlockPath(nodes, "a"), [])
+  assert.deepEqual(unlockPath(nodes, "missing"), [])
+})
+
+test("unlock path: buying it in order works on the real catalog", () => {
+  const deepest = [...config.skillNodes].sort((x, y) => y.tier - x.tier)[0]
+  const { run } = ownAll([])
+  const views = config.skillNodes.map((n) => ({ ...n, requires: n.requires ?? [], owned: false }))
+  const path = unlockPath(views, deepest.id)
+  assert.equal(path.at(-1)?.id, deepest.id)
+  let state = grantAdminEnergy(run, 1e30)
+  for (const node of path) {
+    const bought = buySkillNode(state, config, node.id)
+    assert.equal(bought.error, undefined, `could not buy ${node.id}`)
+    state = bought.run
+  }
+  assert.ok(state.ownedSkillNodeIds.includes(deepest.id))
 })
