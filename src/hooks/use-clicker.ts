@@ -41,6 +41,13 @@ import {
 import { createInitialSave } from "@/domain/services/clicker-engine"
 import { playSfx, setSfxMuted } from "@/components/clicker/clicker-sfx"
 import { clearClickerRaw } from "@/infrastructure/persistence/clicker-save"
+import {
+  browserLeaseStorage,
+  canWriteClickerSave,
+  claimClickerLease,
+  createClickerTabId,
+  isLeaseTakenByOther,
+} from "@/infrastructure/persistence/clicker-tab-lock"
 import type { ClickerSettings, CrisisChoice, RegionIntroDef, SaveData } from "@/domain/entities/clicker"
 import { productionSnapshot } from "@/domain/services/clicker-engine"
 import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
@@ -78,17 +85,30 @@ export function useClicker() {
   const [floats, setFloats] = useState<FloatNumber[]>([])
   const [savePulse, setSavePulse] = useState<"idle" | "saving" | "saved">("idle")
   const savePulseTimer = useRef<number | null>(null)
+  // Only one tab may write the shared save; the others freeze until the player resumes there.
+  const tabIdRef = useRef("")
+  const blockedRef = useRef(false)
+  const [otherTabActive, setOtherTabActive] = useState(false)
+
+  const markBlocked = useCallback(() => {
+    blockedRef.current = true
+    setOtherTabActive(true)
+  }, [])
 
   const persistNow = useCallback((next?: SaveData) => {
     const target = next ?? saveRef.current
-    if (!target) return
+    if (!target || blockedRef.current) return
+    if (!canWriteClickerSave(browserLeaseStorage(), tabIdRef.current, now())) {
+      markBlocked()
+      return
+    }
     setSavePulse("saving")
     persistClickerGame(target)
     if (savePulseTimer.current != null) window.clearTimeout(savePulseTimer.current)
     // Defer "saved" so the saving state can paint once.
     window.setTimeout(() => setSavePulse("saved"), 40)
     savePulseTimer.current = window.setTimeout(() => setSavePulse("idle"), 2200)
-  }, [])
+  }, [markBlocked])
 
   useEffect(() => {
     return () => {
@@ -106,14 +126,38 @@ export function useClicker() {
   /** First-visit cinematic for the region just entered; null when none is playing. */
   const [regionIntro, setRegionIntro] = useState<RegionIntro | null>(null)
 
-  useEffect(() => {
+  /** Claim the save for this tab, then load whatever the last writer stored. */
+  const loadAsOwner = useCallback(() => {
     const t = now()
+    if (!tabIdRef.current) tabIdRef.current = createClickerTabId()
+    claimClickerLease(browserLeaseStorage(), tabIdRef.current, t)
+    blockedRef.current = false
+    setOtherTabActive(false)
     const loaded = loadClickerGame(t)
     const resumed = clickerTick(loaded, t)
     setSave(resumed)
     saveRef.current = resumed
     knownAchievements.current = new Set(resumed.metaState.achievementIds)
+    mineStartRef.current = null
   }, [])
+
+  useEffect(() => {
+    loadAsOwner()
+  }, [loadAsOwner])
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (isLeaseTakenByOther(event.key, event.newValue, tabIdRef.current)) markBlocked()
+    }
+    window.addEventListener("storage", onStorage)
+    return () => window.removeEventListener("storage", onStorage)
+  }, [markBlocked])
+
+  /** Continue in this tab: take the save back and reload the other tab's progress. */
+  const resumeHere = useCallback(() => {
+    loadAsOwner()
+    setMineSummary(null)
+  }, [loadAsOwner])
 
   useEffect(() => {
     saveRef.current = save
@@ -140,7 +184,7 @@ export function useClicker() {
       if (ts - last > 100) {
         last = ts
         const current = saveRef.current
-        if (current && !current.metaState.gameCompleted) {
+        if (current && !current.metaState.gameCompleted && !blockedRef.current) {
           const next = clickerTick(current, now())
           // Skip stale ticks if a commit landed while processTick ran.
           if (saveRef.current !== current) {
@@ -179,6 +223,7 @@ export function useClicker() {
   }, [persistNow])
 
   const commit = useCallback((next: SaveData) => {
+    if (blockedRef.current) return
     saveRef.current = next
     setSave(next)
   }, [])
@@ -445,6 +490,7 @@ export function useClicker() {
   }, [commit])
 
   const adminReset = useCallback(() => {
+    if (blockedRef.current) return
     clearClickerRaw()
     resetClickerPersistence()
     const fresh = createInitialSave(now(), clickerGameConfig)
@@ -622,6 +668,8 @@ export function useClicker() {
     floats,
     toast,
     savePulse,
+    otherTabActive,
+    resumeHere,
     forceSave,
     dismissToast,
     clickCore,

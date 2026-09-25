@@ -19,6 +19,7 @@ import { ClickerCinematic } from "@/components/clicker/clicker-cinematic"
 import { ClickerRegionChallenge } from "@/components/clicker/clicker-region-challenge"
 import { MineArt } from "@/data/clicker/mine-assets"
 import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
+import { ClickerOtherTab } from "@/components/clicker/clicker-other-tab"
 import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motion"
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
@@ -168,7 +169,7 @@ export function ClickerApp() {
         : game.save?.settings.playSurface === "mine"
           ? "mine"
           : "hub",
-    muted: game.save?.settings.musicMuted ?? false,
+    muted: game.otherTabActive || (game.save?.settings.musicMuted ?? false),
     volume: game.save?.settings.musicVolume ?? 0,
   })
 
@@ -497,6 +498,17 @@ export function ClickerApp() {
     if (prevInMine.current && !inMineSurface) playSfx("sessionEnd")
     prevInMine.current = inMineSurface
   }, [inMineSurface])
+
+  if (game.otherTabActive) {
+    return (
+      <ClickerOtherTab
+        onResume={() => {
+          setEnteringMine(false)
+          game.resumeHere()
+        }}
+      />
+    )
+  }
 
   if (!game.save || !game.hud) {
     return (
