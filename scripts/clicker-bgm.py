@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Procedural orchestral BGM — one loop per region plus the timed mine.
+"""Procedural BGM — one quiet, melancholy loop per region plus the timed mine.
 
-Warm and wide rather than bright: saw ensembles filtered hard below ~2 kHz, formant
-choir, low brass, timpani/taiko, a long synthetic hall, and a master rolloff so
-nothing on top reads as piercing.
+Everything is kept soft-edged and hazy: felt piano, strings and an "oo" choir are
+filtered low (nothing sings above ~1.7 kHz), note onsets are smeared through a short
+diffuse early-reflection stage, then sent into a long dark hall. The master rolls off
+from ~3 kHz and loudness sits around -24 dBFS RMS so music stays under the SFX.
 
 Each loop is rendered circularly (note tails and reverb wrap onto the start), then
 written as `loop + LOOP_PREROLL` seconds so the player can loop [PREROLL_START,
 PREROLL_START + loop) without depending on the MP3 decoder's encoder-delay handling.
-Keep LOOP_PREROLL / the per-track loop lengths in sync with `use-clicker-bgm.ts`.
+Loop lengths are written to src/data/clicker/bgm-loops.ts for use-clicker-bgm.ts;
+LOOP_PREROLL must stay in sync with its LOOP_START window.
 
     pip install numpy scipy soundfile
     python3 scripts/clicker-bgm.py            # all tracks
@@ -16,8 +18,8 @@ Keep LOOP_PREROLL / the per-track loop lengths in sync with `use-clicker-bgm.ts`
 """
 from __future__ import annotations
 
-import json
 import sys
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -26,14 +28,17 @@ import soundfile as sf
 from scipy.signal import fftconvolve
 
 SR = 44100
-OUT = Path(__file__).resolve().parent.parent / "public" / "clicker" / "audio"
+ROOT = Path(__file__).resolve().parent.parent
+OUT = ROOT / "public" / "clicker" / "audio"
+LOOPS_TS = ROOT / "src" / "data" / "clicker" / "bgm-loops.ts"
 LOOP_PREROLL = 1.0
 TAIL = 8.0
 RNG = np.random.default_rng(7)
 
 NOTE = {"C": 0, "C#": 1, "Db": 1, "D": 2, "D#": 3, "Eb": 3, "E": 4, "F": 5, "F#": 6, "Gb": 6,
         "G": 7, "G#": 8, "Ab": 8, "A": 9, "A#": 10, "Bb": 10, "B": 11}
-QUALITY = {"": (0, 4, 7), "m": (0, 3, 7), "maj7": (0, 4, 7, 11), "m7": (0, 3, 7, 10), "sus4": (0, 5, 7)}
+QUALITY = {"": (0, 4, 7), "m": (0, 3, 7), "maj7": (0, 4, 7, 11), "m7": (0, 3, 7, 10), "sus4": (0, 5, 7),
+           "sus2": (0, 2, 7), "madd9": (0, 3, 7, 14), "add9": (0, 4, 7, 14)}
 
 
 def midi(name: str) -> int:
@@ -210,29 +215,6 @@ def brass(tr: Track, bus: str, m: int, beat: float, dur: float, amp: float, brig
     tr.add(bus, tr.beat(beat), sig * amp, pan)
 
 
-def pluck(tr: Track, bus: str, m: int, beat: float, amp: float, pan: float = 0.0, decay: float = 1.6):
-    """Warm harp: few harmonics, upper ones die fast."""
-    n = int((decay * 2.5) * SR)
-    t = np.arange(n) / SR
-    f = hz(m)
-    sig = np.zeros(n)
-    for k in range(1, 7):
-        if k * f > 3000:
-            break
-        sig += np.sin(2 * np.pi * k * f * t) / k ** 1.6 * np.exp(-t * k / decay)
-    sig *= np.clip(t / 0.006, 0, 1)
-    tr.add(bus, tr.beat(beat), sig * amp, pan)
-
-
-def spiccato(tr: Track, bus: str, m: int, beat: float, amp: float, length: float = 0.22, pan: float = 0.0):
-    """Short low-string stroke for ostinatos."""
-    n = int((length + 0.5) * SR)
-    f = hz(m)
-    raw = (saw_osc(f, n, -6) + saw_osc(f, n, 6)) / 2
-    raw = lowpass(raw, min(6 * f, 1400), 3)
-    t = np.arange(n) / SR
-    env = np.clip(t / 0.012, 0, 1) * np.where(t < length, 1.0, np.exp(-(t - length) / 0.09)) * np.exp(-t / 0.5)
-    tr.add(bus, tr.beat(beat), raw * env * amp, pan)
 
 
 def timpani(tr: Track, bus: str, m: int, beat: float, amp: float, decay: float = 1.4):
@@ -247,16 +229,6 @@ def timpani(tr: Track, bus: str, m: int, beat: float, amp: float, decay: float =
     sig = (body + thud) * np.clip(t / 0.003, 0, 1)
     tr.add(bus, tr.beat(beat), sig * amp, RNG.uniform(-0.2, 0.2))
 
-
-def taiko(tr: Track, bus: str, beat: float, amp: float, pitch: float = 58.0, pan: float = 0.0):
-    n = int(1.4 * SR)
-    t = np.arange(n) / SR
-    f = pitch * (1 + 0.6 * np.exp(-t / 0.04))
-    ph = 2 * np.pi * np.cumsum(f) / SR
-    body = np.sin(ph) * np.exp(-t / 0.35)
-    skin = lowpass(highpass(RNG.standard_normal(n), 120, 2), 700, 2) * np.exp(-t / 0.05) * 0.5
-    sig = (body + skin) * np.clip(t / 0.002, 0, 1)
-    tr.add(bus, tr.beat(beat), sig * amp, pan)
 
 
 def roll(tr: Track, bus: str, m: int, beat: float, beats: float, amp: float):
@@ -281,27 +253,74 @@ def drone(tr: Track, bus: str, m: int, amp: float):
     tr.add(bus, 0, sig * amp)
 
 
+def felt(tr: Track, bus: str, m: int, beat: float, amp: float, pan: float = 0.0, dur: float | None = None):
+    """Felt piano: soft hammer, few harmonics, upper partials die fast. `dur` (beats) damps it."""
+    f = hz(m)
+    decay = float(np.clip(3.2 * (262 / f) ** 0.35, 1.6, 5.5))
+    n = int(decay * 2.4 * SR)
+    t = np.arange(n) / SR
+    out = np.zeros((n, 2))
+    for ch, cents in ((0, -1.6), (1, 1.6)):
+        fc = f * 2 ** (cents / 1200)
+        sig = np.zeros(n)
+        for k in range(1, 9):
+            fk = k * fc * np.sqrt(1 + 0.0003 * k * k)
+            if fk > 2400:
+                break
+            sig += np.sin(2 * np.pi * fk * t + RNG.uniform(0, 6.28)) / k ** 2.3 * np.exp(-t * k ** 0.8 / decay)
+        out[:, ch] = sig
+    thump = lowpass(RNG.standard_normal(n) * np.exp(-t / 0.03), 200, 2) * 0.05
+    out += thump[:, None]
+    # Slow, rounded onset: the hammer is felt through a blanket.
+    out *= (np.sin(np.clip(t / 0.07, 0, 1) * np.pi / 2) ** 2)[:, None]
+    if dur is not None:
+        hold = tr.beat(dur)
+        if hold < n:
+            out[hold:] *= np.exp(-np.arange(n - hold) / (0.35 * SR))[:, None]
+    left, right = np.cos((pan + 1) * np.pi / 4), np.sin((pan + 1) * np.pi / 4)
+    out[:, 0] *= left * np.sqrt(2)
+    out[:, 1] *= right * np.sqrt(2)
+    tr.add(bus, tr.beat(beat), out * amp)
+
+
 # ---------------------------------------------------------------------------
 # Mixdown
 # ---------------------------------------------------------------------------
 
+def _smear_ir() -> np.ndarray:
+    n = int(0.3 * SR)
+    t = np.arange(n) / SR
+    # Swells in over ~25 ms then fades, so the smear rounds attacks instead of echoing them.
+    ir = RNG.standard_normal((n, 2)) * ((1 - np.exp(-t / 0.025)) * np.exp(-t / 0.075))[:, None]
+    ir = lowpass(ir, 1800, 2)
+    ir[0] += 0.6  # a little direct sound, mostly haze
+    return ir / np.sqrt(np.sum(ir ** 2) / 2)
+
+
+SMEAR_IR = _smear_ir()
+
+
+def smear(x: np.ndarray) -> np.ndarray:
+    """Diffuse the first ~200 ms of every note so attacks read as blurred, not struck."""
+    return np.column_stack([fftconvolve(x[:, ch], SMEAR_IR[:, ch])[: len(x)] for ch in range(2)])
+
+
 BUS_FX = {
     # name: (post-filter, dry, wet) — dry/wet also set each section's level in the mix
-    "strings": (lambda x: lowpass(highpass(x, 70), 2000, 3), 0.55, 0.75),
-    "hi_strings": (lambda x: lowpass(highpass(x, 180), 2600, 3), 0.8, 1.5),
-    "low_strings": (lambda x: lowpass(highpass(x, 35), 1100, 3), 0.7, 0.45),
-    "choir": (lambda x: lowpass(formant(highpass(x, 120), [(650, 180, 1.0), (1100, 220, 0.55), (2500, 300, 0.12)]), 3000, 3), 0.9, 2.0),
-    "choir_oo": (lambda x: lowpass(formant(highpass(x, 90), [(380, 120, 1.0), (800, 180, 0.35)]), 2200, 3), 0.6, 1.3),
-    "brass": (lambda x: highpass(x, 60), 0.6, 0.6),
-    "harp": (lambda x: lowpass(x, 3000, 2), 0.18, 0.28),
-    "perc": (lambda x: lowpass(highpass(x, 28), 2500, 2), 0.3, 0.12),
-    "sub": (lambda x: lowpass(x, 160, 2), 0.6, 0.0),
+    "strings": (lambda x: smear(lowpass(highpass(x, 70), 1300, 3)), 0.5, 0.9),
+    "hi_strings": (lambda x: smear(lowpass(highpass(x, 200), 1700, 3)), 0.45, 1.2),
+    "low_strings": (lambda x: lowpass(highpass(x, 35), 800, 3), 0.7, 0.5),
+    "choir_oo": (lambda x: smear(lowpass(formant(highpass(x, 90), [(380, 120, 1.0), (760, 170, 0.3)]), 1500, 3)), 0.45, 1.3),
+    "horn": (lambda x: smear(lowpass(highpass(x, 60), 900, 2)), 0.5, 0.8),
+    "piano": (lambda x: smear(lowpass(x, 1250, 2)), 0.5, 1.1),
+    "lead": (lambda x: smear(lowpass(highpass(x, 150), 1500, 3)), 0.5, 1.1),
+    "perc": (lambda x: lowpass(highpass(x, 28), 700, 2), 0.6, 0.45),
+    "sub": (lambda x: lowpass(x, 120, 2), 0.5, 0.0),
 }
 
 
-def mixdown(tr: Track) -> np.ndarray:
-    ir = hall_ir()
-    total = np.zeros((tr.n_loop, 2))
+def mixdown(tr: Track, target_rms_db: float = -24.0) -> np.ndarray:
+    ir = hall_ir(seconds=6.0, decay=4.2, damp=2400.0)
 
     def fold(x: np.ndarray) -> np.ndarray:
         out = np.zeros((tr.n_loop, 2))
@@ -310,6 +329,7 @@ def mixdown(tr: Track) -> np.ndarray:
             out[: len(chunk)] += chunk
         return out
 
+    total = np.zeros((tr.n_loop, 2))
     wet_send = np.zeros((tr.n_loop, 2))
     for name, buf in tr.buses.items():
         fx, dry, wet = BUS_FX[name]
@@ -317,215 +337,196 @@ def mixdown(tr: Track) -> np.ndarray:
         total += x * dry
         wet_send += x * wet
     # Circular reverb: wrap the tail back onto the start.
-    rev = np.zeros((tr.n_loop + len(ir), 2))
     for ch in range(2):
         padded = np.concatenate([wet_send[:, ch], wet_send[:, ch]])
         full = fftconvolve(padded, ir[:, ch])[: tr.n_loop * 2]
-        rev[: tr.n_loop, ch] = full[tr.n_loop: tr.n_loop * 2]
-    total += rev[: tr.n_loop] * 0.32
+        total[:, ch] += full[tr.n_loop: tr.n_loop * 2] * 0.42
 
-    # Master: tame the top, clean the bottom, gentle glue.
-    total = highpass(total, 30, 2)
-    total = spectral(total, lambda f: 1 / np.sqrt(1 + (f / 5500) ** 4))
-    rms = np.sqrt(np.mean(total ** 2))
-    total *= 10 ** (-19 / 20) / rms
-    total = np.tanh(total * 1.3) / 1.3
+    # Master: dark top, clean bottom, quiet overall.
+    total = highpass(total, 32, 2)
+    total = lowpass(total, 3200, 2)
+    total *= 10 ** (target_rms_db / 20) / np.sqrt(np.mean(total ** 2))
+    total = np.tanh(total * 1.1) / 1.1
     peak = np.max(np.abs(total))
-    if peak > 10 ** (-2 / 20):
-        total *= 10 ** (-2 / 20) / peak
+    if peak > 10 ** (-6 / 20):
+        total *= 10 ** (-6 / 20) / peak
     return total
 
 
 # ---------------------------------------------------------------------------
-# Arrangement helpers + per-region scores
+# Arrangement helpers
 # ---------------------------------------------------------------------------
 
+def total_beats(tr: Track) -> float:
+    return round(tr.loop_s * tr.bpm / 60, 6)
+
+
 def pad_chords(tr: Track, chords: list[str], beats_per: float, *, strings_amp=0.0, hi_amp=0.0,
-               choir_amp=0.0, choir_bus="choir", low_amp=0.0, brass_amp=0.0, bass_oct=2,
-               str_range=(52, 69), hi_range=(67, 81), choir_range=(57, 72), brass_range=(48, 62)):
-    """Sustained harmony; each chord overlaps the next by its release."""
+               choir_amp=0.0, low_amp=0.0, horn_amp=0.0, bass_oct=2,
+               str_range=(50, 67), hi_range=(64, 79), choir_range=(55, 70), horn_range=(46, 60)):
+    """Sustained harmony with slow swells; each chord overlaps the next by its release."""
     for i, sym in enumerate(chords):
         root, q = parse_chord(sym)
         pcs = [(root + iv) % 12 for iv in q]
         b = i * beats_per
         if strings_amp:
             for m in voice(pcs, *str_range):
-                strings(tr, "strings", m, b, beats_per, strings_amp)
+                strings(tr, "strings", m, b, beats_per, strings_amp, attack=1.6, release=2.4)
         if hi_amp:
             for m in voice(pcs, *hi_range):
-                strings(tr, "hi_strings", m, b, beats_per, hi_amp, attack=1.4)
+                strings(tr, "hi_strings", m, b, beats_per, hi_amp, attack=2.2, release=2.8)
         if choir_amp:
             for m in voice(pcs, *choir_range):
-                choir(tr, choir_bus, m, b, beats_per, choir_amp)
+                choir(tr, "choir_oo", m, b, beats_per, choir_amp, attack=2.0, release=3.0)
         if low_amp:
             bass = root + 12 * (bass_oct + 1)
-            strings(tr, "low_strings", bass, b, beats_per, low_amp, attack=0.6)
-            strings(tr, "low_strings", bass + 12, b, beats_per, low_amp * 0.5, attack=0.6)
-        if brass_amp:
-            for m in voice(pcs, *brass_range):
-                brass(tr, "brass", m, b, beats_per, brass_amp, bright=0.8, attack=0.5, release=1.4)
+            strings(tr, "low_strings", bass, b, beats_per, low_amp, attack=1.0, release=2.2)
+            strings(tr, "low_strings", bass + 12, b, beats_per, low_amp * 0.4, attack=1.2, release=2.2)
+        if horn_amp:
+            for m in voice(pcs, *horn_range):
+                brass(tr, "horn", m, b, beats_per, horn_amp, bright=0.4, attack=1.2, release=2.4)
 
 
-def lead(tr: Track, line: str, amp: float, kind: str = "brass", bright: float = 1.0, octave: int = 0):
-    for b, d, m in parse_line(line):
+def lead(tr: Track, line: str, amp: float, kind: str = "piano", octave: int = 0):
+    notes = parse_line(line)
+    beats = sum(d for _, d, _ in notes)
+    assert abs(beats - total_beats(tr)) < 1e-6, f"melody is {beats} beats, loop is {total_beats(tr)}"
+    for b, d, m in notes:
         if m is None:
             continue
         m += 12 * octave
-        if kind == "brass":
-            brass(tr, "brass", m, b, d * 0.95, amp, bright=bright, pan=-0.15)
-        elif kind == "hi_strings":
-            strings(tr, "hi_strings", m, b, d, amp, attack=0.35, release=1.2)
-        elif kind == "strings":
-            strings(tr, "strings", m, b, d, amp, attack=0.3, release=1.0)
+        if kind == "piano":
+            felt(tr, "piano", m, b, amp, pan=0.1, dur=d + 0.5)
+        elif kind == "lead":
+            strings(tr, "lead", m, b, d, amp, attack=0.8, release=2.2)
+        elif kind == "horn":
+            brass(tr, "horn", m, b, d * 0.95, amp, bright=0.45, attack=0.7, release=2.0, pan=-0.15)
 
 
-def ostinato(tr: Track, chords: list[str], beats_per: float, pattern: list[int], step: float, amp: float, octave=2):
-    """Low spiccato 8ths/16ths on chord tones; pattern indexes (root, third, fifth, octave)."""
+def broken(tr: Track, chords: list[str], beats_per: float, step: float, amp: float, lo: int,
+           order: tuple[int, ...] = (0, 1, 2, 3, 2, 1)):
+    """Slow broken chords on felt piano, voiced from `lo` upward."""
     for i, sym in enumerate(chords):
         root, q = parse_chord(sym)
-        tones = [root + 12 * (octave + 1) + iv for iv in q[:3]] + [root + 12 * (octave + 2)]
-        steps = int(beats_per / step)
-        for s in range(steps):
-            m = tones[pattern[s % len(pattern)]]
-            accent = 1.0 if s % 4 == 0 else 0.7
-            spiccato(tr, "low_strings", m, i * beats_per + s * step, amp * accent, length=step * 60 / tr.bpm * 0.6)
-
-
-def arp(tr: Track, chords: list[str], beats_per: float, step: float, amp: float, lo=62, hi=81):
-    for i, sym in enumerate(chords):
-        root, q = parse_chord(sym)
-        tones = voice([(root + iv) % 12 for iv in q], lo, lo + 11)
-        tones = tones + [t + 12 for t in tones if t + 12 <= hi]
-        seq = tones + tones[-2:0:-1]
+        tones = voice([(root + iv) % 12 for iv in q[:3]], lo, lo + 11)
+        tones = tones + [tones[0] + 12]
         for s in range(int(beats_per / step)):
-            pluck(tr, "harp", seq[s % len(seq)], i * beats_per + s * step, amp, pan=0.35 * np.sin(s * 0.9))
+            m = tones[order[s % len(order)] % len(tones)]
+            accent = 1.0 if s == 0 else 0.75
+            felt(tr, "piano", m, i * beats_per + s * step, amp * accent, pan=-0.25 + 0.5 * (s % 2))
 
 
-def score_core_chamber() -> Track:
-    """Home: heroic but patient D minor — strings, horns, soft timpani."""
-    bpm, per = 72, 8
-    chords = ["Dm", "Bb", "F", "C", "Dm", "Gm", "Bb", "A"]
-    tr = Track(len(chords) * per * 60 / bpm, bpm)
-    pad_chords(tr, chords, per, strings_amp=0.12, low_amp=0.16, choir_amp=0.05, hi_amp=0.035)
-    lead(tr, "D4:3 E4:1 F4:2 A4:2  D4:4 C4:2 Bb3:2  A3:4 C4:4  G3:2 C4:2 E4:4 "
-             "F4:3 E4:1 D4:2 A3:2  Bb3:4 D4:4  F4:3 D4:1 Bb3:4  C#4:4 E4:2 A3:2", 0.11, bright=0.9)
+def low_pulse(tr: Track, chords: list[str], beats_per: float, step: float, amp: float, octave: int = 2):
+    """Quiet felt-piano root/fifth heartbeat in the bass."""
+    for i, sym in enumerate(chords):
+        root, q = parse_chord(sym)
+        base = root + 12 * (octave + 1)
+        for s in range(int(beats_per / step)):
+            m = base if s % 2 == 0 else base + q[2]
+            felt(tr, "piano", m, i * beats_per + s * step, amp * (1.0 if s % 4 == 0 else 0.7), dur=step * 1.5)
+
+
+def bass_notes(tr: Track, chords: list[str], beats_per: float, amp: float, octave: int = 2):
     for i, sym in enumerate(chords):
         root, _ = parse_chord(sym)
-        m = 36 + root if root <= 9 else 24 + root  # timpani range Bb1–A2
-        timpani(tr, "perc", m, i * per, 0.35)
-        timpani(tr, "perc", m, i * per + 4, 0.18)
-    roll(tr, "perc", 45, 60, 4, 0.5)
-    drone(tr, "sub", midi("D2"), 0.05)
+        felt(tr, "piano", root + 12 * (octave + 1), i * beats_per, amp)
+
+
+def new_track(chords: list[str], per: float, bpm: float) -> Track:
+    return Track(len(chords) * per * 60 / bpm, bpm)
+
+
+# ---------------------------------------------------------------------------
+# Scores — slow, minor, sparse. "per" = beats per chord.
+# ---------------------------------------------------------------------------
+
+def score_core_chamber() -> Track:
+    """Home: a lonely D minor piano over a hush of strings."""
+    chords = ["Dm", "Bbmaj7", "Gm7", "A", "Dm", "F", "Gm", "A"]
+    tr = new_track(chords, 8, 60)
+    pad_chords(tr, chords, 8, strings_amp=0.09, low_amp=0.12, choir_amp=0.04)
+    broken(tr, chords, 8, 2, 0.05, lo=50)
+    lead(tr, "A4:3 F4:1 E4:2 D4:2  F4:3 D4:1 C4:2 D4:2  Bb4:4 A4:2 G4:2  E4:4 C#4:2 A3:2 "
+             "A4:3 F4:1 E4:2 D4:2  C5:4 A4:2 F4:2  G4:3 Bb4:1 A4:2 G4:2  E4:4 C#4:4", 0.13)
+    drone(tr, "sub", midi("D2"), 0.035)
     return tr
 
 
 def score_signal_relay() -> Track:
-    """Echoing corridor: E minor choir and harp, weightless strings."""
-    bpm, per = 66, 8
-    chords = ["Em", "Cmaj7", "G", "D", "Em", "Am", "C", "B"]
-    tr = Track(len(chords) * per * 60 / bpm, bpm)
-    pad_chords(tr, chords, per, choir_amp=0.10, choir_bus="choir_oo", strings_amp=0.07, low_amp=0.1, hi_amp=0.03)
-    arp(tr, chords, per, 0.5, 0.07)
-    lead(tr, "E4:4 G4:2 F#4:2  E4:4 B3:4  D4:4 G4:4  F#4:6 A4:2  G4:4 F#4:2 E4:2  C4:4 E4:4  E4:4 G4:4  F#4:4 D#4:4",
-         0.06, kind="hi_strings", octave=1)
-    for i in range(0, len(chords), 2):
-        timpani(tr, "perc", midi("E2"), i * per, 0.18, decay=2.0)
-    drone(tr, "sub", midi("E2"), 0.045)
+    """Echoing corridor: distant choir, a slow music-box memory on felt piano."""
+    chords = ["Em", "Cmaj7", "Am7", "Bsus4", "Em", "G", "Am", "B"]
+    tr = new_track(chords, 8, 56)
+    pad_chords(tr, chords, 8, choir_amp=0.08, hi_amp=0.022, low_amp=0.08)
+    broken(tr, chords, 8, 1, 0.04, lo=62, order=(0, 1, 2, 3, 2, 1, 0, 2))
+    lead(tr, "B4:6 G4:2  E4:8  C5:4 B4:2 A4:2  E4:4 F#4:4  G4:6 B4:2  D5:4 B4:4  C5:4 A4:4  F#4:4 D#4:4",
+         0.05, kind="lead")
+    drone(tr, "sub", midi("E2"), 0.03)
     return tr
 
 
 def score_phase_vault() -> Track:
-    """Deep vault: slow F# minor, low choir and cellos, horns from far away."""
-    bpm, per = 64, 8
-    chords = ["F#m", "D", "Bm", "C#", "F#m", "E", "D", "C#sus4"]
-    tr = Track(len(chords) * per * 60 / bpm, bpm)
-    pad_chords(tr, chords, per, choir_amp=0.11, choir_bus="choir_oo", low_amp=0.17, strings_amp=0.06,
-               choir_range=(50, 66), str_range=(45, 62))
-    lead(tr, "F#3:6 A3:2  F#3:4 D3:4  B3:4 D4:2 C#4:2  C#4:8  A3:4 C#4:4  B3:4 G#3:4  A3:3 F#3:1 D3:4  C#3:4 F#3:4",
-         0.1, bright=0.6)
-    for i in range(len(chords)):
-        timpani(tr, "perc", midi("F#2") if i % 2 == 0 else midi("C#2"), i * per, 0.22, decay=2.2)
-    drone(tr, "sub", midi("F#1"), 0.06)
+    """Deep vault: low choir, cellos, a far-off horn remembering something."""
+    chords = ["F#m", "D", "Bm", "C#sus4", "F#m", "Bm", "D", "C#"]
+    tr = new_track(chords, 8, 52)
+    pad_chords(tr, chords, 8, choir_amp=0.09, low_amp=0.13, strings_amp=0.05,
+               choir_range=(50, 65), str_range=(45, 62))
+    lead(tr, "C#4:6 A3:2  F#3:8  D4:4 C#4:2 B3:2  F#3:8  A3:4 C#4:4  B3:6 D4:2  A3:4 F#3:4  G#3:4 F3:4",
+         0.08, kind="horn")
+    bass_notes(tr, chords, 8, 0.05, octave=1)
+    drone(tr, "sub", midi("F#1"), 0.045)
     return tr
 
 
 def score_storm_spire() -> Track:
-    """Storm: driving C minor, taiko, low-string ostinato, brass and full choir."""
-    bpm, per = 92, 4
-    chords = ["Cm", "Cm", "Ab", "Ab", "Eb", "Eb", "Bb", "Bb", "Cm", "Cm", "Ab", "Ab", "Fm", "Fm", "G", "G"]
-    tr = Track(len(chords) * per * 60 / bpm, bpm)
-    pad_chords(tr, chords, per, choir_amp=0.07, strings_amp=0.07, brass_amp=0.035)
-    ostinato(tr, chords, per, [0, 0, 3, 0, 2, 0, 3, 2], 0.5, 0.14)
-    lead(tr, "G3:3 C4:1 Eb4:4  C4:4 Ab3:4  Bb3:3 Eb4:1 G4:4  F4:4 D4:4  G4:3 F4:1 Eb4:4  Eb4:3 D4:1 C4:4  Ab3:4 C4:4  B3:4 D4:4",
-         0.12, bright=1.1)
-    for bar in range(len(chords)):
-        b = bar * per
-        taiko(tr, "perc", b, 0.55, 55, -0.2)
-        taiko(tr, "perc", b + 1.5, 0.28, 72, 0.3)
-        taiko(tr, "perc", b + 2, 0.4, 58, 0.1)
-        taiko(tr, "perc", b + 3, 0.25, 72, -0.3)
-        if bar % 4 == 3:
-            taiko(tr, "perc", b + 3.5, 0.3, 64, 0.2)
-    roll(tr, "perc", midi("G2"), 60, 4, 0.55)
-    drone(tr, "sub", midi("C2"), 0.05)
+    """After the storm: C minor, a restless low heartbeat under grieving strings."""
+    chords = ["Cm", "Ab", "Fm", "G", "Cm", "Eb", "Ab", "G"]
+    tr = new_track(chords, 8, 60)
+    pad_chords(tr, chords, 8, strings_amp=0.08, choir_amp=0.05, low_amp=0.1)
+    low_pulse(tr, chords, 8, 0.5, 0.035)
+    lead(tr, "G4:4 Eb4:2 D4:2  C4:6 Eb4:2  F4:4 Ab4:2 G4:2  D4:4 B3:4  Eb4:3 D4:1 C4:4  G4:4 Bb4:4  Ab4:3 G4:1 Eb4:4  D4:4 B3:4",
+         0.06, kind="lead")
+    for b in (0, 32):
+        roll(tr, "perc", midi("C2"), b + 26, 6, 0.18)
+    drone(tr, "sub", midi("C2"), 0.035)
     return tr
 
 
 def score_deep_fault() -> Track:
-    """The fault: heavy A minor, trombones, timpani rolls, a dark choir."""
-    bpm, per = 62, 8
-    chords = ["Am", "F", "Dm", "E", "Am", "C", "Dm", "E"]
-    tr = Track(len(chords) * per * 60 / bpm, bpm)
-    pad_chords(tr, chords, per, brass_amp=0.06, low_amp=0.2, choir_amp=0.08, bass_oct=1,
-               brass_range=(43, 57), choir_range=(52, 67))
-    lead(tr, "A3:4 C4:2 B3:2  A3:4 F3:4  D3:4 F3:2 A3:2  E3:4 G#3:4  A3:4 E4:4  G3:4 C4:4  F3:2 A3:2 D4:4  B3:4 G#3:4",
-         0.13, bright=0.7, octave=-1)
-    for i, sym in enumerate(chords):
-        root, _ = parse_chord(sym)
-        m = 36 + root if root <= 7 else 24 + root
-        timpani(tr, "perc", m + 12, i * per, 0.5, decay=2.0)
-        taiko(tr, "perc", i * per + 6, 0.25, 48)
-        if i % 4 == 3:
-            roll(tr, "perc", midi("E2"), i * per + 5, 3, 0.5)
-    drone(tr, "sub", midi("A1"), 0.07)
+    """The fault: very slow A minor, cellos and low voices, single piano notes falling."""
+    chords = ["Am", "F", "Dm", "E", "Am", "Dm", "F", "E"]
+    tr = new_track(chords, 8, 50)
+    pad_chords(tr, chords, 8, low_amp=0.14, choir_amp=0.07, horn_amp=0.025, bass_oct=1,
+               choir_range=(50, 65))
+    lead(tr, "E4:4 C4:4  A3:6 C4:2  D4:4 F4:2 E4:2  B3:4 G#3:4  A3:4 E4:4  F4:4 D4:4  C4:4 A3:4  G#3:6 B3:2", 0.12)
+    for i in range(0, len(chords), 2):
+        timpani(tr, "perc", midi("A1"), i * 8, 0.16, decay=2.4)
+    drone(tr, "sub", midi("A1"), 0.05)
     return tr
 
 
 def score_drone_foundry() -> Track:
-    """Foundry: mechanical G minor ostinato, horns, measured taiko."""
-    bpm, per = 84, 4
-    chords = ["Gm", "Gm", "Eb", "Eb", "Cm", "Cm", "D", "D", "Gm", "Gm", "Bb", "Bb", "Eb", "Eb", "D", "D"]
-    tr = Track(len(chords) * per * 60 / bpm, bpm)
-    pad_chords(tr, chords, per, strings_amp=0.08, choir_amp=0.05, brass_amp=0.03)
-    ostinato(tr, chords, per, [0, 3, 0, 2, 0, 3, 1, 2], 0.5, 0.13)
-    lead(tr, "D4:3 G4:1 Bb4:4  G4:2 F4:2 Eb4:4  Eb4:3 D4:1 C4:4  A3:4 F#3:4  D4:3 G4:1 Bb4:4  A4:2 Bb4:2 F4:4  G4:3 F4:1 Eb4:4  D4:4 F#4:4",
-         0.1, bright=0.85, octave=-1)
-    for bar in range(len(chords)):
-        b = bar * per
-        taiko(tr, "perc", b, 0.5, 52)
-        taiko(tr, "perc", b + 2, 0.32, 60, 0.25)
-        taiko(tr, "perc", b + 2.5, 0.18, 66, -0.25)
-    drone(tr, "sub", midi("G1"), 0.05)
+    """Abandoned foundry: a small repeating piano figure, like a machine left running."""
+    chords = ["Gm", "Eb", "Cm", "D", "Gm", "Bb", "Eb", "D"]
+    tr = new_track(chords, 8, 58)
+    pad_chords(tr, chords, 8, strings_amp=0.07, low_amp=0.11, choir_amp=0.03)
+    broken(tr, chords, 8, 0.5, 0.03, lo=55, order=(0, 2, 1, 2))
+    lead(tr, "Bb4:6 A4:2  G4:8  Eb4:4 G4:2 F4:2  F#4:4 A4:4  Bb4:4 D5:4  F4:4 D4:4  Eb4:6 G4:2  F#4:4 D4:4",
+         0.05, kind="lead")
+    drone(tr, "sub", midi("G1"), 0.035)
     return tr
 
 
 def score_mine() -> Track:
-    """Timed mine run: urgent E minor, taiko drive, strings and horn calls."""
-    bpm, per = 100, 4
-    chords = ["Em", "Em", "C", "C", "D", "D", "B", "B", "Em", "Em", "C", "C", "Am", "Am", "B", "B"]
-    tr = Track(len(chords) * per * 60 / bpm, bpm)
-    pad_chords(tr, chords, per, strings_amp=0.07, choir_amp=0.05, brass_amp=0.03)
-    ostinato(tr, chords, per, [0, 0, 2, 0, 3, 0, 2, 1], 0.5, 0.14)
-    lead(tr, "B3:3 E4:1 G4:4  E4:4 C4:4  F#4:3 A4:1 D4:4  D#4:4 F#4:4  G4:3 F#4:1 E4:4  E4:2 D4:2 C4:4  C4:3 E4:1 A3:4  B3:4 D#4:4",
-         0.1, bright=1.0)
-    for bar in range(len(chords)):
-        b = bar * per
-        taiko(tr, "perc", b, 0.5, 56)
-        taiko(tr, "perc", b + 1, 0.22, 70, 0.3)
-        taiko(tr, "perc", b + 2, 0.38, 58)
-        taiko(tr, "perc", b + 2.5, 0.2, 70, -0.3)
-        taiko(tr, "perc", b + 3, 0.26, 64, 0.2)
-    drone(tr, "sub", midi("E2"), 0.045)
+    """Timed mine run: still E minor and hushed, but with a steady low pulse to work to."""
+    chords = ["Em", "Em", "C", "C", "Am", "Am", "B", "B", "Em", "Em", "G", "G", "C", "C", "B", "B"]
+    tr = new_track(chords, 4, 76)
+    pad_chords(tr, chords, 4, strings_amp=0.07, choir_amp=0.04, low_amp=0.09)
+    low_pulse(tr, chords, 4, 0.5, 0.045)
+    lead(tr, "B4:3 G4:1 E4:4  G4:4 E4:4  C5:3 B4:1 A4:4  F#4:4 D#4:4  E4:3 F#4:1 G4:4  B4:4 D5:4  C5:4 G4:4  F#4:6 r:2",
+         0.05, kind="lead")
+    for bar in range(0, len(chords), 2):
+        timpani(tr, "perc", midi("E2"), bar * 4, 0.12, decay=1.6)
+    drone(tr, "sub", midi("E2"), 0.03)
     return tr
 
 
@@ -541,16 +542,37 @@ SCORES = {
 
 
 def render(key: str) -> float:
+    global RNG
+    RNG = np.random.default_rng(sum(map(ord, key)))  # same key → same file, whatever the order
     tr = SCORES[key]()
     loop = mixdown(tr)
     out = np.concatenate([loop, loop[: int(LOOP_PREROLL * SR)]])
     path = OUT / f"bgm_{key}.mp3"
     sf.write(path, out.astype(np.float32), SR, format="MP3", subtype="MPEG_LAYER_III")
     print(f"  {path.name}: loop {tr.loop_s:.4f}s  {path.stat().st_size / 1e6:.2f} MB")
-    return tr.loop_s
+    # Exact sample count, not the nominal length: a loop point even 2 samples off is audible as a tick.
+    return tr.n_loop / SR
+
+
+def write_loops(lengths: dict[str, float]) -> None:
+    """Merge into the generated TS table so partial renders keep the other tracks."""
+    known: dict[str, float] = {}
+    if LOOPS_TS.exists():
+        for line in LOOPS_TS.read_text().splitlines():
+            parts = line.strip().rstrip(",").split(":")
+            if len(parts) == 2 and parts[0].strip() in SCORES:
+                known[parts[0].strip()] = float(parts[1])
+    known.update(lengths)
+    body = "".join(f"  {k}: {known[k]!r},\n" for k in SCORES if k in known)
+    LOOPS_TS.write_text(
+        "// Generated by scripts/clicker-bgm.py — re-run it instead of editing by hand.\n"
+        "/** Seconds of seamless loop in each bgm_<key>.mp3 (the file carries 1s of pre-roll on top). */\n"
+        f"export const BGM_LOOP_SECONDS = {{\n{body}}} as const\n"
+    )
 
 
 if __name__ == "__main__":
     keys = sys.argv[1:] or list(SCORES)
-    lengths = {k: round(render(k), 4) for k in keys}
-    print(json.dumps(lengths, indent=2))
+    with ProcessPoolExecutor() as pool:
+        lengths = dict(zip(keys, pool.map(render, keys)))
+    write_loops(lengths)

@@ -1,26 +1,30 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import { BGM_LOOP_SECONDS } from "@/data/clicker/bgm-loops"
 import type { CoreVisual } from "@/domain/services/clicker-view"
 
 /**
  * Region loops come from scripts/clicker-bgm.py: each file is `loop + 1s` where the last
  * second repeats the first, so looping [LOOP_START, LOOP_START + loop) is seamless no
  * matter how much encoder delay the browser's MP3 decoder leaves at the front.
- * `loop` lengths must match what the script prints.
  */
 const LOOP_START = 0.5
+const regionLoop = (key: keyof typeof BGM_LOOP_SECONDS) => ({
+  src: `/clicker/audio/bgm_${key}.mp3`,
+  loop: BGM_LOOP_SECONDS[key] as number,
+})
 const BGM_TRACKS = {
-  core_chamber: { src: "/clicker/audio/bgm_core_chamber.mp3", loop: 53.3333 },
-  signal_relay: { src: "/clicker/audio/bgm_signal_relay.mp3", loop: 58.1818 },
-  phase_vault: { src: "/clicker/audio/bgm_phase_vault.mp3", loop: 60 },
-  storm_spire: { src: "/clicker/audio/bgm_storm_spire.mp3", loop: 41.7391 },
-  deep_fault: { src: "/clicker/audio/bgm_deep_fault.mp3", loop: 61.9355 },
-  drone_foundry: { src: "/clicker/audio/bgm_drone_foundry.mp3", loop: 45.7143 },
-  mine: { src: "/clicker/audio/bgm_mine.mp3", loop: 38.4 },
+  core_chamber: regionLoop("core_chamber"),
+  signal_relay: regionLoop("signal_relay"),
+  phase_vault: regionLoop("phase_vault"),
+  storm_spire: regionLoop("storm_spire"),
+  deep_fault: regionLoop("deep_fault"),
+  drone_foundry: regionLoop("drone_foundry"),
+  mine: regionLoop("mine"),
   /** Rebirth / ending cue — loops whole. */
   chamber: { src: "/clicker/audio/bgm_chamber.ogg", loop: 0 },
-} as const
+}
 
 export type BgmTrack = keyof typeof BGM_TRACKS
 export type BgmScene = BgmTrack | "silent"
@@ -33,7 +37,7 @@ export function regionBgm(regionId: string | undefined): BgmTrack {
 }
 
 /** Scene changes crossfade over roughly this long instead of cutting. */
-const FADE_S = 1.8
+const FADE_S = 3
 /** Fever lifts the mix, crisis sits it back; neither changes pitch. */
 const VISUAL_GAIN: Partial<Record<CoreVisual, number>> = { fever: 1.2, crisis: 0.75 }
 
