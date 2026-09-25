@@ -3,6 +3,15 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react"
 import type { RegionChallengeKind } from "@/domain/entities/clicker"
 import { playChallengeCue } from "@/components/clicker/clicker-sfx"
+import {
+  challengeScore,
+  DRILL_TARGET,
+  DRONE_EVERY_MS,
+  DRONE_FIRST_MS,
+  ROD_EVERY_MS,
+  ROD_FIRST_MS,
+  settledChallengeScore,
+} from "@/domain/services/clicker-challenge-score"
 import "./clicker-region-challenge.css"
 
 type Props = {
@@ -30,16 +39,9 @@ type GameProps = {
   onMiss: () => void
 }
 
-/** Targets presented so far for each game; misses (wrong taps / cracks) cost half an attempt. */
-function attempts(kind: RegionChallengeKind, elapsed: number, hits: number, misses: number): number {
-  if (kind === "ROD_STRIKE") return Math.max(0, Math.floor((elapsed - ROD_FIRST_MS) / ROD_EVERY_MS) + 1) + misses * 0.5
-  if (kind === "FAULT_DRILL") return Math.max(DRILL_TARGET, hits) + misses * 0.5
-  return Math.max(0, Math.floor((elapsed - DRONE_FIRST_MS) / DRONE_EVERY_MS) + 1)
-}
-
 /**
  * Full-screen timed mini-game for a region's field challenge: 3 s countdown, play, result.
- * Leaving mid-play settles with the score so far, so a bad run can't be dodged for free.
+ * Leaving mid-play settles against the whole run: targets not yet shown count as missed.
  */
 export function ClickerRegionChallenge({ kind, name, description, durationSec, muted, onFinish, onCancel }: Props) {
   const [clock, setClock] = useState(0)
@@ -66,13 +68,13 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
 
   const elapsed = Math.min(durationMs, Math.max(0, clock - COUNTDOWN_MS))
   const left = durationMs - elapsed
-  const tries = attempts(kind, elapsed, hits, misses)
-  const score = tries > 0 ? Math.min(1, Math.min(hits, kind === "FAULT_DRILL" ? DRILL_TARGET : hits) / tries) : 0
+  const score = challengeScore(kind, elapsed, hits, misses)
   const pct = Math.round(score * 100)
+  const settled = settledChallengeScore(kind, durationMs, hits, misses)
 
   const close = () => {
     if (phase === "countdown") onCancel()
-    else onFinish(score)
+    else onFinish(settled)
   }
   const closeRef = useRef(close)
   useEffect(() => {
@@ -139,7 +141,7 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
             <span>
               성공 {hits} · 실수 {misses}
             </span>
-            <button type="button" className="clicker-primary" autoFocus onClick={() => onFinish(score)}>
+            <button type="button" className="clicker-primary" autoFocus onClick={() => onFinish(settled)}>
               보상 받기
             </button>
           </div>
@@ -168,8 +170,6 @@ const FLASH_MS = 260
 /* ---------- Storm Spire: catch the charged rod before lightning lands ---------- */
 
 const ROD_COUNT = 5
-const ROD_FIRST_MS = 300
-const ROD_EVERY_MS = 850
 const ROD_WINDOW_MS = 800
 
 function RodStrike({ elapsed, playing, onHit, onMiss }: GameProps) {
@@ -232,7 +232,6 @@ function RodStrike({ elapsed, playing, onHit, onMiss }: GameProps) {
 
 /* ---------- Deep Fault: drill while the pressure needle is in the green band ---------- */
 
-const DRILL_TARGET = 10
 
 function FaultDrill({ elapsed, playing, hits, misses, onHit, onMiss }: GameProps & { misses: number }) {
   const [band, setBand] = useState(0.5)
@@ -299,8 +298,6 @@ function FaultDrill({ elapsed, playing, hits, misses, onHit, onMiss }: GameProps
 
 /* ---------- Drone Foundry: tap drones as they cross the hangar ---------- */
 
-const DRONE_FIRST_MS = 200
-const DRONE_EVERY_MS = 650
 const DRONE_FLIGHT_MS = 2400
 
 type Drone = { lane: number; ltr: boolean }

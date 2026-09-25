@@ -400,14 +400,14 @@ export function ClickerApp() {
   }, [game.hud?.coreVisual])
 
   useEffect(() => {
-    if (!game.hud?.canRebirth && tab === "transcendence") {
+    if (!game.hud?.canRebirth && !game.canCompleteEnding && tab === "transcendence") {
       // Keep locked approach panel open; only eject when tab is unavailable.
       const ratio = game.save
         ? game.save.runState.lifetimeCoreEnergy / (game.hud?.rebirthRequirement ?? game.config.rebirthEnergy)
         : 0
       if (ratio < 0.25) setTab("producers")
     }
-  }, [game.hud?.canRebirth, game.hud?.rebirthRequirement, game.save, game.config.rebirthEnergy, tab])
+  }, [game.hud?.canRebirth, game.canCompleteEnding, game.hud?.rebirthRequirement, game.save, game.config.rebirthEnergy, tab])
 
   const prevCanRebirth = useRef<boolean | null>(null)
   useEffect(() => {
@@ -586,7 +586,8 @@ export function ClickerApp() {
       : (game.currentRegion?.bgAssetId ?? CLICKER_ASSETS.bgChamber)
   const transcendenceUnlocked = hud.canRebirth
   const rebirthRatio = Math.min(1, run.lifetimeCoreEnergy / hud.rebirthRequirement)
-  const showTranscendenceTab = transcendenceUnlocked || rebirthRatio >= 0.25
+  // Once every worldline is walked the tab stays open: it holds the AURELIA Protocol.
+  const showTranscendenceTab = transcendenceUnlocked || rebirthRatio >= 0.25 || game.canCompleteEnding
   const transcendenceOwned = new Set(game.save.metaState.transcendenceIds).size
   const transcendenceTotal = game.config.transcendence.length
   const visibleSkillNodes = game.skillNodes.filter(
