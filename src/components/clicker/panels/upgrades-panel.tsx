@@ -6,7 +6,12 @@ import type { RunState, UpgradeCategory } from "@/domain/entities/clicker"
 import type { ClickerGame } from "./types"
 
 export function ClickerUpgradesPanel({ game, run }: { game: ClickerGame; run: RunState }) {
-  const [upgradeCat, setUpgradeCat] = useState<UpgradeCategory>("CLICK")
+  // Open on the first category with something to buy, not always on 채굴.
+  const [upgradeCat, setUpgradeCat] = useState<UpgradeCategory>(
+    () => game.upgrades.find((u) => u.status === "AVAILABLE")?.category ?? "CLICK",
+  )
+  const readyIn = (cat: UpgradeCategory) =>
+    game.upgrades.filter((u) => u.category === cat && u.status === "AVAILABLE").length
   return (
     <div className="clicker-upgrades">
       <header className="clicker-upgrades-head">
@@ -30,19 +35,27 @@ export function ClickerUpgradesPanel({ game, run }: { game: ClickerGame; run: Ru
             ["FEVER", "FEVER"],
             ["UTILITY", "유틸"],
           ] as const
-        ).map(([cat, label]) => (
-          <button
-            key={cat}
-            type="button"
-            role="tab"
-            aria-selected={upgradeCat === cat}
-            aria-label={`${label} 업그레이드`}
-            className={upgradeCat === cat ? "clicker-primary" : "clicker-ghost"}
-            onClick={() => setUpgradeCat(cat)}
-          >
-            {label}
-          </button>
-        ))}
+        ).map(([cat, label]) => {
+          const ready = readyIn(cat)
+          return (
+            <button
+              key={cat}
+              type="button"
+              role="tab"
+              aria-selected={upgradeCat === cat}
+              aria-label={`${label} 업그레이드${ready ? ` · 구매 가능 ${ready}` : ""}`}
+              className={upgradeCat === cat ? "clicker-primary" : "clicker-ghost"}
+              onClick={() => setUpgradeCat(cat)}
+            >
+              {label}
+              {ready ? (
+                <b className="clicker-tab-badge" aria-hidden>
+                  {ready}
+                </b>
+              ) : null}
+            </button>
+          )
+        })}
       </div>
       {(() => {
         const list = game.upgrades.filter((u) => u.category === upgradeCat)

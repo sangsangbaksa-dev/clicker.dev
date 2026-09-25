@@ -584,10 +584,10 @@
 
 /* Affordable-count badge (dock + tabs), like the "you can buy this" cue in idle games. */
 [data-clicker] .clicker-tab-badge {
-  /* Inside the button: the dock scrolls sideways and would clip anything outside. */
+  /* Rides the button's corner, inside the dock's padding (the dock scrolls sideways and clips). */
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: -6px;
+  right: -6px;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
@@ -603,7 +603,7 @@
   pointer-events: none;
 }
 
-[data-clicker] .clicker-tabs .clicker-tab-badge {
+[data-clicker] :is(.clicker-tabs, .clicker-upgrades-cats) .clicker-tab-badge {
   position: static;
   display: inline-block;
   margin-left: 6px;
@@ -1036,7 +1036,37 @@
   margin-top: 3px;
 }
 
-/* ── Mine surface: keep toasts clear of the top HUD (timer / haul). ── */
+/* ── Toasts sit low, clear of the HUD cards: above the dock (entrance / region hubs),
+   above the footer (manage), above the drawer peek (mine). ── */
+[data-clicker] .clicker-toast {
+  top: auto;
+  bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+  /* left: 50% would otherwise cap the shrink-to-fit width at half the screen. */
+  width: max-content;
+  border-radius: 14px;
+  border-color: var(--edge-hi);
+  background: rgb(10 20 34 / 0.94);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.55);
+  text-align: left;
+}
+
+[data-clicker].is-view-manage .clicker-toast {
+  bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (hover: none) {
+  [data-clicker] .clicker-toast-dismiss {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Two-row dock on phones is taller. */
+  [data-clicker]:not(.is-view-manage):not(.is-mine-surface) .clicker-toast {
+    bottom: calc(150px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 [data-clicker].is-mine-surface .clicker-toast {
   top: auto;
   bottom: calc(var(--drawer-peek, 96px) + 24px + env(safe-area-inset-bottom, 0px));

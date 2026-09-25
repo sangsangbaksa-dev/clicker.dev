@@ -383,6 +383,24 @@ export function ClickerApp() {
     game.save?.settings.playSurface,
   ])
 
+  // Number keys 1–7 jump between management tabs (idle-game style hotkeys).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return
+      if (!/^[1-9]$/.test(e.key)) return
+      if (pendingRebirth || settingsOpen || endingOpen || adminOpen || enteringMine) return
+      const target = e.target instanceof HTMLElement ? e.target : null
+      if (target?.closest("input, textarea, select, [contenteditable='true'], [role='dialog'], [role='alertdialog']")) return
+      const buttons = document.querySelectorAll<HTMLButtonElement>("[data-clicker] .clicker-tabs button")
+      const button = buttons[Number(e.key) - 1]
+      if (!button) return
+      e.preventDefault()
+      button.click()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [pendingRebirth, settingsOpen, endingOpen, adminOpen, enteringMine])
+
   const flashStage = () => {
     setStageEvent(true)
     window.setTimeout(() => setStageEvent(false), 300)
@@ -1172,11 +1190,13 @@ export function ClickerApp() {
         ) : null}
         {!inMine ? (
           <nav className="clicker-hub-dock" aria-label="관리 화면으로 이동">
-            {drawerTabs.map(([id, label, ko]) => (
+            {drawerTabs.map(([id, label, ko], i) => (
               <button
                 key={id}
                 type="button"
                 className="clicker-hub-dock-btn"
+                aria-keyshortcuts={String(i + 1)}
+                title={`단축키 ${i + 1}`}
                 aria-label={`${ko} 화면 열기${readyLabel(id)}`}
                 onClick={() => selectTab(id)}
               >
@@ -1308,14 +1328,15 @@ export function ClickerApp() {
         </div>
 
         <nav className="clicker-tabs" aria-label="하단 패널 탭">
-          {drawerTabs.map(([id, label, ko]) => (
+          {drawerTabs.map(([id, label, ko], i) => (
             <button
               key={id}
               type="button"
               data-active={tab === id}
               aria-label={`${ko}${readyLabel(id)}`}
               aria-current={tab === id ? "page" : undefined}
-              title={label}
+              aria-keyshortcuts={String(i + 1)}
+              title={`${label} · 단축키 ${i + 1}`}
               onClick={() => selectTab(id)}
             >
               {ko}
