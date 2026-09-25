@@ -6,8 +6,8 @@ cards, that black square reads as a pasted tile. This keys the black out
 (luminance matte, kept solid near the center so dark metal survives), feathers
 the edge, and writes 256px WebP next to the master.
 
-Producers that share a master get a mirrored, hue-rotated variant so every
-tier reads as its own machine.
+Echo Lattice still borrows Resonance Array's master, mirrored and hue-rotated
+so it reads as its own machine.
 
     python3 scripts/clicker-icons.py
 """
@@ -25,17 +25,17 @@ SIZE = 256
 VARIANTS = {
     "producer": [
         ("producer_solar_node", "producer_solar_node", False, 0),
-        ("producer_pulse_relay", "producer_core_extractor", True, 38),
+        ("producer_pulse_relay", "producer_pulse_relay", False, 0),
         ("producer_core_extractor", "producer_core_extractor", False, 0),
-        ("producer_coil_harvester", "producer_flux_generator", True, -28),
+        ("producer_coil_harvester", "producer_coil_harvester", False, 0),
         ("producer_flux_generator", "producer_flux_generator", False, 0),
-        ("producer_phase_regulator", "producer_quantum_foundry", True, 42),
+        ("producer_phase_regulator", "producer_phase_regulator", False, 0),
         ("producer_quantum_foundry", "producer_quantum_foundry", False, 0),
         ("producer_echo_lattice", "producer_resonance_array", True, 55),
         ("producer_resonance_array", "producer_resonance_array", False, 0),
-        ("producer_void_condenser", "producer_singularity_plant", True, -40),
+        ("producer_void_condenser", "producer_void_condenser", False, 0),
         ("producer_singularity_plant", "producer_singularity_plant", False, 0),
-        ("producer_horizon_engine", "producer_singularity_plant", False, 150),
+        ("producer_horizon_engine", "producer_horizon_engine", False, 0),
     ],
 }
 PLAIN = ["potion", "skill", "buff"]

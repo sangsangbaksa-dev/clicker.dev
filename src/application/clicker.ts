@@ -1,8 +1,7 @@
 import { clickerConfig } from "@/data/clicker/catalog"
 import { ok, type UseCaseResult } from "@/application/result"
-import type { CrisisChoice, RunState, SaveData } from "@/domain/entities/clicker"
+import type { CrisisChoice, RegionIntroDef, RunState, SaveData } from "@/domain/entities/clicker"
 import {
-  applyOffline,
   applyRebirth,
   applyTrueEnding,
   buyActiveSkillItem,
@@ -14,11 +13,14 @@ import {
   createInitialSave,
   enterClickerMine,
   mineEntryCheck,
+  MINE_HOME_ONLY_ERROR,
+  regionHasMine,
   exitClickerMine,
   grantAdminEnergy,
   isGameCompleted,
   processClick,
   processTick,
+  resumeAfterGap,
   productionSnapshot,
   resolveCrisis,
   sanitizeSave,
@@ -26,14 +28,17 @@ import {
   startFever,
   syncClickerMineSession,
   returnHomeRegion,
+  activateRegion,
+  claimRegionChallenge,
+  regionChallengeError,
   travelToRegion,
-  useActiveSkill,
+  markRegionVisited,
+  activateSkill,
   type Rng,
 } from "@/domain/services/clicker-engine"
 import {
   awardAchievements,
   claimGoldenVein,
-  grantBonusEnergy,
   recordOreBroken,
   startDrillOverdrive,
   type VeinOutcome,
@@ -86,35 +91,18 @@ export function persistClickerGame(save: SaveData): void {
   writeClickerRaw(JSON.stringify({ ...save, savedAt: Date.now() }))
 }
 
+/** Ticks further apart than this are a gap (reload, hidden tab), not play time. */
+const TICK_GAP_MS = 2500
+
 export function clickerTick(save: SaveData, now: number): SaveData {
   if (isGameCompleted(save.metaState)) return save
   const synced = syncClickerMineSession(save, now)
-  const elapsed = now - synced.runState.lastTickAt
-  if (elapsed > 2500) {
-    const off = applyOffline(synced.runState, synced.metaState, config, now)
-    return withAchievements({ ...synced, runState: off.run, metaState: off.meta })
-  }
-  const next = processTick(synced.runState, synced.metaState, config, now)
+  const run =
+    now - synced.runState.lastTickAt > TICK_GAP_MS
+      ? { ...resumeAfterGap(synced.runState), lastTickAt: now }
+      : synced.runState
+  const next = processTick(run, synced.metaState, config, now)
   return withAchievements(maybeAutoStartGaugeFever({ ...synced, runState: next.run, metaState: next.meta }))
-}
-
-/** Resume from persistence: apply the offline grant and report it for the welcome-back panel. */
-export function clickerResume(save: SaveData, now: number): {
-  save: SaveData
-  offline: { seconds: number; gained: number; capped: boolean } | null
-} {
-  if (isGameCompleted(save.metaState)) return { save, offline: null }
-  const elapsedMs = now - save.runState.lastTickAt
-  if (elapsedMs <= 2500) {
-    return { save: clickerTick(save, now), offline: null }
-  }
-  const off = applyOffline(save.runState, save.metaState, config, now)
-  const next = withAchievements({ ...save, runState: off.run, metaState: off.meta })
-  if (off.gained <= 0) return { save: next, offline: null }
-  return {
-    save: next,
-    offline: { seconds: off.seconds, gained: off.gained, capped: elapsedMs / 1000 > config.offlineCapSeconds },
-  }
 }
 
 export function clickerStartGame(save: SaveData): SaveData {
@@ -127,6 +115,7 @@ export function clickerEnterMine(save: SaveData, now: number): { save: SaveData;
 
 /** Why Enter Mine would be refused right now (cooldown / cost), or undefined when allowed. */
 export function clickerMineEntryError(save: SaveData, now: number): string | undefined {
+  if (!regionHasMine(save.runState, config)) return MINE_HOME_ONLY_ERROR
   return mineEntryCheck(save, now).error
 }
 
@@ -143,9 +132,12 @@ export function clickerClick(save: SaveData, now: number): {
   save: SaveData
   energy: number
   critical: boolean
+  lightning: boolean
+  quake: boolean
+  echo: boolean
 } {
   if (isGameCompleted(save.metaState)) {
-    return { save, energy: 0, critical: false }
+    return { save, energy: 0, critical: false, lightning: false, quake: false, echo: false }
   }
   const next = processClick(save.runState, save.metaState, config, now, rng)
   const saveAfterClick = withAchievements(
@@ -159,6 +151,9 @@ export function clickerClick(save: SaveData, now: number): {
     save: saveAfterClick,
     energy: next.result.energyGained,
     critical: next.result.isCritical,
+    lightning: next.result.lightning,
+    quake: next.result.quake,
+    echo: next.result.echo,
   }
 }
 
@@ -193,7 +188,7 @@ export function clickerStartGaugeFever(save: SaveData): UseCaseResult<SaveData> 
 }
 
 export function clickerUseSkill(save: SaveData, id: string, now: number): UseCaseResult<SaveData> {
-  return withRun(save, useActiveSkill(save.runState, save.metaState, config, id, now))
+  return withRun(save, activateSkill(save.runState, save.metaState, config, id, now))
 }
 
 export function clickerResolveCrisis(save: SaveData, choice: CrisisChoice, now: number): SaveData {
@@ -201,8 +196,37 @@ export function clickerResolveCrisis(save: SaveData, choice: CrisisChoice, now: 
   return { ...save, runState: next.run, metaState: next.meta }
 }
 
-export function clickerTravelRegion(save: SaveData, regionId: string): UseCaseResult<SaveData> {
-  return withRun(save, travelToRegion(save.runState, config, regionId))
+/** Travel; `intro` is the region's cinematic when this is its first visit. */
+export function clickerTravelRegion(
+  save: SaveData,
+  regionId: string,
+): UseCaseResult<{ save: SaveData; intro: RegionIntroDef | null }> {
+  const next = travelToRegion(save.runState, config, regionId)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  const visit = markRegionVisited(save.metaState, regionId)
+  const intro = visit.firstVisit ? (config.regions.find((r) => r.id === regionId)?.intro ?? null) : null
+  return ok({ save: { ...save, runState: next.run, metaState: visit.meta }, intro })
+}
+
+export function clickerRegionActivity(save: SaveData, regionId: string, now: number): UseCaseResult<SaveData> {
+  const next = activateRegion(save.runState, save.metaState, config, regionId, now)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ ...save, runState: next.run, metaState: next.meta })
+}
+
+export function clickerRegionChallengeError(save: SaveData, regionId: string, now: number): string | undefined {
+  return regionChallengeError(save.runState, config, regionId, now)
+}
+
+export function clickerClaimChallenge(
+  save: SaveData,
+  regionId: string,
+  score: number,
+  now: number,
+): UseCaseResult<{ save: SaveData; reward: number }> {
+  const next = claimRegionChallenge(save.runState, save.metaState, config, regionId, score, now)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ save: withAchievements({ ...save, runState: next.run, metaState: next.meta }), reward: next.reward })
 }
 
 export function clickerReturnHome(save: SaveData): UseCaseResult<SaveData> {
@@ -269,11 +293,5 @@ export function clickerFinishMineSession(
 }
 
 export { mineSessionStart as clickerMineSessionStart }
-
-/** Earned bonus CORE (e.g. doubling the offline reward) — counts toward lifetime totals. */
-export function clickerGrantBonus(save: SaveData, amount: number): SaveData {
-  const next = grantBonusEnergy(save.runState, save.metaState, amount)
-  return withAchievements({ ...save, runState: next.run, metaState: next.meta })
-}
 
 export { config as clickerGameConfig }

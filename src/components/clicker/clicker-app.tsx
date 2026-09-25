@@ -15,9 +15,10 @@ import { useClickerBgm } from "@/hooks/use-clicker-bgm"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine } from "@/components/clicker/clicker-mine"
-import { ClickerMineEnter } from "@/components/clicker/clicker-mine-enter"
+import { ClickerCinematic } from "@/components/clicker/clicker-cinematic"
+import { ClickerRegionChallenge } from "@/components/clicker/clicker-region-challenge"
+import { MineArt } from "@/data/clicker/mine-assets"
 import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
-import { ClickerWelcomeBack } from "@/components/clicker/clicker-welcome-back"
 import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motion"
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
@@ -115,6 +116,8 @@ export function ClickerApp() {
   const game = useClicker()
   // Door-walk entry cinematic between Enter Mine and the timed session (carries its own SFX).
   const [enteringMine, setEnteringMine] = useState(false)
+  /** Region whose field challenge is open (mini-game overlay), or null. */
+  const [challengeRegionId, setChallengeRegionId] = useState<string | null>(null)
 
   // Prime Web Audio on first gesture so click/laser SFX are not stuck suspended.
   useEffect(() => {
@@ -157,7 +160,8 @@ export function ClickerApp() {
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   useClickerBgm(game.hud?.coreVisual, {
-    scene: enteringMine
+    // Cinematics carry their own soundtrack.
+    scene: enteringMine || game.regionIntro
       ? "silent"
       : pendingRebirth || endingOpen
         ? "chamber"
@@ -398,11 +402,11 @@ export function ClickerApp() {
     if (!game.hud?.canRebirth && tab === "transcendence") {
       // Keep locked approach panel open; only eject when tab is unavailable.
       const ratio = game.save
-        ? game.save.runState.lifetimeCoreEnergy / game.config.rebirthEnergy
+        ? game.save.runState.lifetimeCoreEnergy / (game.hud?.rebirthRequirement ?? game.config.rebirthEnergy)
         : 0
       if (ratio < 0.25) setTab("producers")
     }
-  }, [game.hud?.canRebirth, game.save, game.config.rebirthEnergy, tab])
+  }, [game.hud?.canRebirth, game.hud?.rebirthRequirement, game.save, game.config.rebirthEnergy, tab])
 
   const prevCanRebirth = useRef<boolean | null>(null)
   useEffect(() => {
@@ -567,7 +571,7 @@ export function ClickerApp() {
       ? CLICKER_ASSETS.bgMineEntrance
       : (game.currentRegion?.bgAssetId ?? CLICKER_ASSETS.bgChamber)
   const transcendenceUnlocked = hud.canRebirth
-  const rebirthRatio = Math.min(1, run.lifetimeCoreEnergy / game.config.rebirthEnergy)
+  const rebirthRatio = Math.min(1, run.lifetimeCoreEnergy / hud.rebirthRequirement)
   const showTranscendenceTab = transcendenceUnlocked || rebirthRatio >= 0.25
   const transcendenceOwned = new Set(game.save.metaState.transcendenceIds).size
   const transcendenceTotal = game.config.transcendence.length
@@ -601,6 +605,7 @@ export function ClickerApp() {
   const panelProps = { game, run, popIcons, bumpIcon }
 
   const atHomeHub = !inMine && Boolean(game.currentRegion?.isHome)
+  const regionIntroPlaying = Boolean(game.regionIntro)
   const managing = !inMine && hubView === "manage"
 
   const beginEnterMine = () => {
@@ -620,7 +625,7 @@ export function ClickerApp() {
     <div
       data-clicker
       data-visual={hud.coreVisual}
-      className={`clicker-shell${pendingRebirth ? " is-rebirth-active" : ""}${inMine ? " is-mine-surface" : ""}${atHomeHub ? " is-entrance-hub" : ""}${inMine ? "" : ` is-view-${hubView}`}`}
+      className={`clicker-shell${pendingRebirth ? " is-rebirth-active" : ""}${inMine ? " is-mine-surface" : ""}${atHomeHub ? " is-entrance-hub" : ""}${!inMine && !atHomeHub ? " is-region-hub" : ""}${inMine ? "" : ` is-view-${hubView}`}`}
     >
       <header className="clicker-top">
         {!inMine ? (
@@ -971,7 +976,7 @@ export function ClickerApp() {
                 onOreBroken={game.oreBroken}
               />
             </div>
-          ) : (
+          ) : atHomeHub ? (
             <button
               type="button"
               className={`clicker-hub-enter-only${mineCooldownSec > 0 ? " is-cooling" : ""}`}
@@ -992,7 +997,58 @@ export function ClickerApp() {
                 <span className="clicker-hub-enter-sub">입장료 {formatNumber(mineEntryCost)} CORE</span>
               ) : null}
             </button>
-          )}
+          ) : game.currentRegion?.activity || game.currentRegion?.challenge ? (() => {
+            // Away from home there is no mine: the region's own activity and challenge take the stage.
+            const region = game.currentRegion
+            const act = region.activity
+            const challenge = region.challenge
+            const busy = (act?.activeMs ?? 0) > 0
+            const cooling = (act?.readyInMs ?? 0) > 0
+            return (
+              <div className="clicker-region-station" aria-label={`${region.name} · 지역 활동`}>
+                <p className="clicker-region-station-kicker">{region.name} · 지역 활동</p>
+                {challenge ? (
+                  <button
+                    type="button"
+                    className="clicker-region-activity is-challenge"
+                    disabled={challenge.readyInMs > 0 || regionIntroPlaying}
+                    title={challenge.description}
+                    aria-label={`${challenge.name} · ${challenge.description}`}
+                    onClick={() => {
+                      if (game.canStartChallenge(region.id)) setChallengeRegionId(region.id)
+                    }}
+                  >
+                    <strong>▶ {challenge.name}</strong>
+                    <span>
+                      {challenge.readyInMs > 0
+                        ? `재도전 ${Math.ceil(challenge.readyInMs / 1000)}초`
+                        : challenge.description}
+                    </span>
+                  </button>
+                ) : null}
+                {act ? (
+                  <button
+                    type="button"
+                    className={`clicker-region-activity${busy ? " is-active" : ""}`}
+                    disabled={cooling || regionIntroPlaying}
+                    title={act.description}
+                    aria-label={`${act.name} · ${act.description}`}
+                    onClick={() => game.regionActivity(region.id)}
+                  >
+                    <strong>{act.name}</strong>
+                    <span>
+                      {busy
+                        ? `진행 중 ${Math.ceil(act.activeMs / 1000)}초${act.deposit > 0 ? ` · 예치 ${formatNumber(act.deposit)}` : ""}`
+                        : cooling
+                          ? `재사용 ${Math.ceil(act.readyInMs / 1000)}초`
+                          : act.description}
+                    </span>
+                  </button>
+                ) : null}
+                <p className="clicker-region-station-note">광산은 Core Mine에서만 열립니다.</p>
+              </div>
+            )
+          })() : null}
           {hud.comboText ? (
             <div
               className="clicker-combo"
@@ -1155,10 +1211,10 @@ export function ClickerApp() {
             <button
               type="button"
               className="clicker-manage-back"
-              aria-label="광산 입구로 돌아가기 · Esc"
+              aria-label={`${atHomeHub ? "광산 입구" : (game.currentRegion?.name ?? "지역")}(으)로 돌아가기 · Esc`}
               onClick={() => setHubView("entrance")}
             >
-              ◀ 광산 입구
+              ◀ {atHomeHub ? "광산 입구" : (game.currentRegion?.name ?? "지역")}
             </button>
             <span className="clicker-manage-title">
               {drawerTabs.find(([id]) => id === tab)?.[2] ?? ""}
@@ -1269,19 +1325,6 @@ export function ClickerApp() {
         </footer>
       </aside>
 
-      {game.offlineSummary && !inMine && !enteringMine ? (
-        <ClickerWelcomeBack
-          summary={game.offlineSummary}
-          doubleWindowSec={Math.round(game.offlineDoubleWindowMs / 1000)}
-          onClaim={game.dismissOffline}
-          onEnterMine={() => {
-            game.dismissOffline()
-            setHubView("entrance")
-            beginEnterMine()
-          }}
-        />
-      ) : null}
-
       {settingsOpen ? (
         <ClickerSettings
           muted={game.save.settings.muted}
@@ -1294,7 +1337,7 @@ export function ClickerApp() {
         />
       ) : null}
 
-      {game.mineSummary && !inMine && !enteringMine && !game.offlineSummary ? (
+      {game.mineSummary && !inMine && !enteringMine ? (
         <ClickerMineResult
           summary={game.mineSummary}
           cooldownSec={mineCooldownSec}
@@ -1303,7 +1346,10 @@ export function ClickerApp() {
       ) : null}
 
       {enteringMine ? (
-        <ClickerMineEnter
+        <ClickerCinematic
+          src={MineArt.enterCinematic}
+          poster={MineArt.entranceGate}
+          label="광산 입장 중"
           muted={game.save.settings.muted}
           onDone={() => {
             setEnteringMine(false)
@@ -1313,13 +1359,50 @@ export function ClickerApp() {
         />
       ) : null}
 
+      {(() => {
+        const region = challengeRegionId ? game.regions.find((r) => r.id === challengeRegionId) : null
+        if (!region?.challenge) return null
+        return (
+          <ClickerRegionChallenge
+            key={region.id}
+            kind={region.challenge.kind}
+            name={region.challenge.name}
+            description={region.challenge.description}
+            durationSec={region.challenge.durationSec}
+            muted={game.save.settings.muted}
+            onFinish={(score) => {
+              setChallengeRegionId(null)
+              game.claimChallenge(region.id, score)
+            }}
+            onCancel={() => setChallengeRegionId(null)}
+          />
+        )
+      })()}
+
+      {game.regionIntro ? (
+        <ClickerCinematic
+          key={game.regionIntro.regionId}
+          src={game.regionIntro.video}
+          poster={game.regionIntro.poster}
+          label={`${game.regionIntro.name} 첫 진입`}
+          caption={{
+            kicker: "NEW REGION · 첫 진입",
+            title: game.regionIntro.name,
+            body: game.regionIntro.description,
+          }}
+          muted={game.save.settings.musicMuted}
+          onDone={game.dismissRegionIntro}
+        />
+      ) : null}
+
       {game.floats.map((f) => (
         <div
           key={f.id}
-          className={`clicker-float ${f.critical ? "is-crit" : ""}`}
+          className={`clicker-float ${f.critical ? "is-crit" : ""}${f.strike ? ` is-${f.strike}` : ""}`}
           style={{ left: f.x || "50%", top: f.y || "45%" }}
           aria-hidden
         >
+          {f.strike === "quake" ? "지진파 " : f.strike === "lightning" ? "번개 " : f.strike === "echo" ? "잔향 " : ""}
           {f.critical ? "치명타 " : ""}
           {f.text}
         </div>

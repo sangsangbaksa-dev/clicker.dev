@@ -52,7 +52,8 @@ export function createInitialFever(): FeverState {
 }
 
 export function createInitialRun(now: number, meta: MetaState, config: GameConfig): RunState {
-  const starting = startingEnergy(meta, config)
+  const scale = worldlineCostScale(meta, config)
+  const starting = startingEnergy(meta, config) * scale
   return {
     coreEnergy: starting,
     lifetimeCoreEnergy: starting,
@@ -84,6 +85,13 @@ export function createInitialRun(now: number, meta: MetaState, config: GameConfi
     eventBoosts: [],
     drillOverdriveUntil: 0,
     drillOverdriveReadyAt: 0,
+    regionCooldowns: {},
+    challengeCooldowns: {},
+    vaultDeposit: 0,
+    vaultReadyAt: 0,
+    lightningStormUntil: 0,
+    droneSwarmUntil: 0,
+    costScale: scale,
   }
 }
 
@@ -103,6 +111,7 @@ export function createInitialMeta(): MetaState {
       bestMineHaul: 0,
     },
     achievementIds: [],
+    visitedRegionIds: [],
     gameCompleted: false,
     completedAt: null,
   }
@@ -187,7 +196,7 @@ export function mineEntryCheck(save: SaveData, now: number): { cost: number; err
     return { cost: 0, error: `광산 재입장 대기 ${secs}초` }
   }
   const hadCooldown = save.runState.mineCooldownUntil > 0
-  const cost = hadCooldown ? MINE_REENTER_CORE_COST : 0
+  const cost = hadCooldown ? scaledCost(save.runState, MINE_REENTER_CORE_COST) : 0
   if (cost > 0 && save.runState.coreEnergy < cost) {
     const hasProducers = Object.values(save.runState.producerLevels ?? {}).some((level) => level > 0)
     if (!hasProducers) return { cost: 0 }
@@ -205,6 +214,7 @@ export function enterClickerMine(
   if (save.settings.playSurface === "mine" && save.runState.mineSessionEndsAt > now) {
     return { save }
   }
+  if (!regionHasMine(save.runState, config)) return { save, error: MINE_HOME_ONLY_ERROR }
   const { cost, error } = mineEntryCheck(save, now)
   if (error) return { save, error }
   const coreAfterCost = save.runState.coreEnergy - cost
@@ -267,9 +277,93 @@ function ownedSkills(run: RunState, config: GameConfig): SkillNodeDef[] {
   return config.skillNodes.filter((n) => set.has(n.id))
 }
 
+/** Lightning starts at ×3, shockwave every 30 clicks (floor 5), drones at 50% click power. */
+export const LIGHTNING_BASE_MULTIPLIER = 3
+export const LIGHTNING_CHANCE_CAP = 0.6
+export const QUAKE_BASE_INTERVAL = 30
+export const QUAKE_MIN_INTERVAL = 5
+export const ECHO_CHANCE_CAP = 0.5
+export const DRONE_BASE_EFFICIENCY = 0.5
+
+export type StrikeStats = {
+  lightningChance: number
+  lightningMultiplier: number
+  lightningChains: number
+  quakeMultiplier: number
+  quakeInterval: number
+  echoChance: number
+  droneStrikesPerSecond: number
+  droneEfficiency: number
+}
+
+/** Skills, walked worldlines and the current region all feed the strike methods; `now` adds timed region effects. */
+export function strikeStats(run: RunState, config: GameConfig, meta?: MetaState, now?: number): StrikeStats {
+  const skills = ownedSkills(run, config)
+  const trans = meta ? ownedTranscendence(meta, config) : []
+  const region = currentRegionDef(run, config)
+  const sum = (key: keyof SkillNodeDef) => skills.reduce((s, n) => s + ((n[key] as number | undefined) ?? 0), 0)
+  const transSum = (key: "lightningChanceAdd" | "echoChanceAdd" | "droneStrikesPerSecond") =>
+    trans.reduce((s, t) => s + (t[key] ?? 0), 0)
+  const storm = now !== undefined && run.lightningStormUntil > now
+  const lightningChance = storm
+    ? 1
+    : Math.min(LIGHTNING_CHANCE_CAP, sum("lightningChanceAdd") + transSum("lightningChanceAdd") + (region?.lightningChanceAdd ?? 0))
+  const quakeMultiplier = sum("quakeMultiplierAdd")
+  const swarm = now !== undefined && run.droneSwarmUntil > now ? droneSwarmMultiplier(config) : 1
+  return {
+    lightningChance,
+    lightningMultiplier: lightningChance > 0 ? LIGHTNING_BASE_MULTIPLIER + sum("lightningMultiplierAdd") : 0,
+    lightningChains: sum("lightningChainAdd"),
+    quakeMultiplier,
+    quakeInterval: Math.max(
+      QUAKE_MIN_INTERVAL,
+      QUAKE_BASE_INTERVAL - sum("quakeIntervalReduce") - (region?.quakeIntervalReduce ?? 0),
+    ),
+    echoChance: Math.min(ECHO_CHANCE_CAP, sum("echoChanceAdd") + transSum("echoChanceAdd")),
+    droneStrikesPerSecond: (sum("droneStrikesPerSecond") + transSum("droneStrikesPerSecond")) * swarm,
+    droneEfficiency: DRONE_BASE_EFFICIENCY + sum("droneEfficiencyAdd") + (region?.droneEfficiencyAdd ?? 0),
+  }
+}
+
+function droneSwarmMultiplier(config: GameConfig): number {
+  const def = config.regions.find((r) => r.activity?.kind === "DRONE_SWARM")?.activity
+  return def?.multiplier ?? 1
+}
+
+/** CORE per second from mining drones (outside of producer production). */
+export function droneEnergyPerSecond(run: RunState, meta: MetaState, config: GameConfig, now?: number): number {
+  const stats = strikeStats(run, config, meta, now)
+  if (stats.droneStrikesPerSecond <= 0) return 0
+  return derivedClick(run, meta, config).click * stats.droneStrikesPerSecond * stats.droneEfficiency
+}
+
 function ownedTranscendence(meta: MetaState, config: GameConfig): TranscendenceDef[] {
   const set = new Set(meta.transcendenceIds)
   return config.transcendence.filter((t) => set.has(t.id))
+}
+
+/** Permanent multiplier on click and production: compounding per rebirth. */
+export function worldlineMultiplier(meta: MetaState, config: GameConfig): number {
+  return (1 + config.worldlineBonus) ** meta.rebirthCount
+}
+
+/**
+ * Price level of a worldline: producer, upgrade, circuit and shop prices and unlock thresholds
+ * scale by it. The rebirth goal grows faster (`rebirthGrowth`), so each worldline climbs
+ * further up the producer ladder and circuit tree than the last.
+ */
+export function worldlineCostScale(meta: MetaState, config: GameConfig): number {
+  return config.priceGrowth ** meta.rebirthCount
+}
+
+/** A catalog price at this run's price level. */
+export function scaledCost(run: RunState, cost: number): number {
+  return cost * (run.costScale || 1)
+}
+
+/** Lifetime CORE the current worldline must reach before it can fold. */
+export function rebirthRequirement(meta: MetaState, config: GameConfig): number {
+  return config.rebirthEnergy * config.rebirthGrowth ** meta.rebirthCount
 }
 
 function startingEnergy(meta: MetaState, config: GameConfig): number {
@@ -331,7 +425,7 @@ export function regionPresenceMultipliers(run: RunState, config: GameConfig): {
   }
 }
 
-function derivedClick(run: RunState, meta: MetaState, config: GameConfig) {
+export function derivedClick(run: RunState, meta: MetaState, config: GameConfig) {
   const upgrades = ownedUpgrades(run, config)
   const skills = ownedSkills(run, config)
   const trans = ownedTranscendence(meta, config)
@@ -340,6 +434,7 @@ function derivedClick(run: RunState, meta: MetaState, config: GameConfig) {
   click *= product(upgrades.map((u) => u.clickMultiplier ?? 1))
   click *= product(skills.map((s) => s.clickMultiplier ?? 1))
   click *= product(trans.map((t) => t.clickMultiplier ?? 1))
+  click *= worldlineMultiplier(meta, config)
   click *= region.click
   for (const syn of config.synergies) {
     if ((run.producerLevels[syn.producerId] ?? 0) >= syn.minLevel && syn.clickBonus) {
@@ -361,8 +456,15 @@ function derivedClick(run: RunState, meta: MetaState, config: GameConfig) {
     critChance = config.critChanceSoftCap + (critChance - config.critChanceSoftCap) * 0.3
   }
   critChance = clamp(critChance, 0, 0.85)
-  let critMult = config.baseCritMultiplier * product(upgrades.map((u) => u.criticalMultiplier ?? 1))
-  const comboMax = 25 + upgrades.reduce((s, u) => s + (u.comboMaxAdd ?? 0), 0)
+  const critMult =
+    config.baseCritMultiplier *
+    product(upgrades.map((u) => u.criticalMultiplier ?? 1)) *
+    product(skills.map((s) => s.criticalMultiplier ?? 1)) *
+    product(trans.map((t) => t.criticalMultiplier ?? 1))
+  const comboMax =
+    25 +
+    upgrades.reduce((s, u) => s + (u.comboMaxAdd ?? 0), 0) +
+    skills.reduce((s, n) => s + (n.comboMaxAdd ?? 0), 0)
   const comboWindow =
     config.comboWindow +
     skills.reduce((s, n) => s + (n.comboWindowAdd ?? 0), 0) +
@@ -377,9 +479,10 @@ function feverMultipliers(run: RunState, meta: MetaState, config: GameConfig) {
   const upgrades = ownedUpgrades(run, config)
   const skills = ownedSkills(run, config)
   const trans = ownedTranscendence(meta, config)
-  let intensity =
+  const intensity =
     product(upgrades.map((u) => u.feverIntensity ?? 1)) *
-    product(skills.map((s) => s.feverIntensity ?? 1))
+    product(skills.map((s) => s.feverIntensity ?? 1)) *
+    product(trans.map((t) => t.feverIntensity ?? 1))
   let click = config.feverClickMultiplier
   let production = config.feverProductionMultiplier
   if (run.fever.potionId) {
@@ -414,29 +517,41 @@ function feverDurationSeconds(run: RunState, meta: MetaState, config: GameConfig
   return duration
 }
 
-export function producerCost(config: GameConfig, producerId: string, level: number): number {
+export function producerCost(config: GameConfig, producerId: string, level: number, scale = 1): number {
   const producer = config.producers.find((p) => p.id === producerId)
   if (!producer) return Number.POSITIVE_INFINITY
-  return producer.baseCost * producer.costGrowth ** level
+  return producer.baseCost * producer.costGrowth ** level * scale
 }
 
-export function producerBulkCost(config: GameConfig, producerId: string, level: number, count: number): number {
+export function producerBulkCost(
+  config: GameConfig,
+  producerId: string,
+  level: number,
+  count: number,
+  scale = 1
+): number {
   const producer = config.producers.find((p) => p.id === producerId)
   if (!producer || count <= 0) return 0
   const g = producer.costGrowth
-  const first = producer.baseCost * g ** level
+  const first = producer.baseCost * g ** level * scale
   if (Math.abs(g - 1) < 1e-9) return first * count
   return first * (g ** count - 1) / (g - 1)
 }
 
-export function maxAffordable(config: GameConfig, producerId: string, level: number, energy: number): number {
+export function maxAffordable(
+  config: GameConfig,
+  producerId: string,
+  level: number,
+  energy: number,
+  scale = 1
+): number {
   if (energy <= 0) return 0
   let lo = 0
   let hi = 1
-  while (producerBulkCost(config, producerId, level, hi) <= energy && hi < 10_000) hi *= 2
+  while (producerBulkCost(config, producerId, level, hi, scale) <= energy && hi < 10_000) hi *= 2
   while (lo < hi) {
     const mid = Math.floor((lo + hi + 1) / 2)
-    if (producerBulkCost(config, producerId, level, mid) <= energy) lo = mid
+    if (producerBulkCost(config, producerId, level, mid, scale) <= energy) lo = mid
     else hi = mid - 1
   }
   return lo
@@ -445,7 +560,7 @@ export function maxAffordable(config: GameConfig, producerId: string, level: num
 export function isProducerUnlocked(run: RunState, config: GameConfig, producerId: string): boolean {
   const producer = config.producers.find((p) => p.id === producerId)
   if (!producer) return false
-  return run.lifetimeCoreEnergy >= producer.unlockAt || (run.producerLevels[producerId] ?? 0) > 0
+  return run.lifetimeCoreEnergy >= scaledCost(run, producer.unlockAt) || (run.producerLevels[producerId] ?? 0) > 0
 }
 
 function buffMultiplier(run: RunState, now: number, skillId: string, field: "productionMultiplier" | "clickMultiplier", config: GameConfig): number {
@@ -472,13 +587,14 @@ export function productionSnapshot(
     }
   }
   instabBonus += trans.reduce((s, t) => s + (t.instabilityRewardBonus ?? 0), 0)
+  instabBonus += skills.reduce((s, n) => s + (n.instabilityRewardBonus ?? 0), 0)
   const instab = instabilityReward(run.instability, instabBonus)
   const overclock = buffMultiplier(run, now, "overclock", "productionMultiplier", config)
   const stabilizer = buffMultiplier(run, now, "stabilizer", "productionMultiplier", config)
   const region = regionPresenceMultipliers(run, config)
   const globalProd =
     product(upgrades.filter((u) => !u.producerId && !u.producerTag).map((u) => u.productionMultiplier ?? 1)) *
-    product(skills.map((s) => s.productionMultiplier ?? 1)) *
+    product(skills.filter((s) => !s.producerTag).map((s) => s.productionMultiplier ?? 1)) *
     product(trans.map((t) => t.productionMultiplier ?? 1)) *
     fever.production *
     instab *
@@ -486,6 +602,8 @@ export function productionSnapshot(
     stabilizer *
     region.production *
     eventBoostMultiplier(run, "surge", now) *
+    eventBoostMultiplier(run, "relay", now) *
+    worldlineMultiplier(meta, config) *
     achievementProductionMultiplier(meta)
 
   const byProducer: Record<string, number> = {}
@@ -501,6 +619,11 @@ export function productionSnapshot(
       if (u.productionMultiplier && u.producerId === producer.id) rate *= u.productionMultiplier
       if (u.productionMultiplier && u.producerTag && producer.tags.includes(u.producerTag)) {
         rate *= u.productionMultiplier
+      }
+    }
+    for (const s of skills) {
+      if (s.productionMultiplier && s.producerTag && producer.tags.includes(s.producerTag)) {
+        rate *= s.productionMultiplier
       }
     }
     for (const syn of config.synergies) {
@@ -538,6 +661,9 @@ export function processClick(
         feverBonus: 1,
         instabilityDelta: 0,
         fx: "CLICK",
+        lightning: false,
+        quake: false,
+        echo: false,
       },
     }
   }
@@ -554,10 +680,19 @@ export function processClick(
   const isCritical = rng() < derived.critChance
   if (isCritical) combo.expiresAt += 250
 
-  let energy = derived.click * combo.multiplier * fever.click * eventBoostMultiplier(run, "laser_rush", now)
-  if (isCritical) energy *= derived.critMult
+  let hit = derived.click * combo.multiplier * fever.click * eventBoostMultiplier(run, "laser_rush", now)
+  if (isCritical) hit *= derived.critMult
 
-  let feverState = { ...run.fever }
+  const strikes = strikeStats(run, config, meta, now)
+  let energy = hit
+  const echo = strikes.echoChance > 0 && rng() < strikes.echoChance
+  if (echo) energy += hit
+  const lightning = strikes.lightningChance > 0 && rng() < strikes.lightningChance
+  if (lightning) energy += hit * strikes.lightningMultiplier * (1 + 0.5 * strikes.lightningChains)
+  const quake = strikes.quakeMultiplier > 0 && (run.clickCount + 1) % strikes.quakeInterval === 0
+  if (quake) energy += hit * strikes.quakeMultiplier
+
+  const feverState = { ...run.fever }
   if (feverActive(feverState)) {
     feverState.combo = Math.min(feverState.combo + 1, config.feverComboCap)
     if (isCritical) feverState.critsThisFever += 1
@@ -601,6 +736,9 @@ export function processClick(
       feverBonus: fever.click,
       instabilityDelta: 0,
       fx: isCritical ? "CRITICAL" : feverActive(feverState) ? "FEVER_CLICK" : "CLICK",
+      lightning,
+      quake,
+      echo,
     },
   }
 }
@@ -608,11 +746,12 @@ export function processClick(
 export function buyPotion(run: RunState, config: GameConfig, potionId: string): { run: RunState; error?: string } {
   const potion = config.potions.find((p) => p.id === potionId)
   if (!potion) return { run, error: "물약을 찾을 수 없습니다." }
-  if (run.coreEnergy < potion.shopCost) return { run, error: "CORE가 부족합니다." }
+  const cost = scaledCost(run, potion.shopCost)
+  if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   return {
     run: {
       ...run,
-      coreEnergy: run.coreEnergy - potion.shopCost,
+      coreEnergy: run.coreEnergy - cost,
       potions: { ...run.potions, [potionId]: (run.potions[potionId] ?? 0) + 1 },
     },
   }
@@ -625,11 +764,12 @@ export function buyActiveSkillItem(
 ): { run: RunState; error?: string } {
   const skill = config.activeSkills.find((s) => s.id === skillId)
   if (!skill) return { run, error: "스킬을 찾을 수 없습니다." }
-  if (run.coreEnergy < skill.shopCost) return { run, error: "CORE가 부족합니다." }
+  const cost = scaledCost(run, skill.shopCost)
+  if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   return {
     run: {
       ...run,
-      coreEnergy: run.coreEnergy - skill.shopCost,
+      coreEnergy: run.coreEnergy - cost,
       skillItems: { ...run.skillItems, [skillId]: (run.skillItems[skillId] ?? 0) + 1 },
     },
   }
@@ -687,7 +827,9 @@ export function startFever(
 function tryFinisher(run: RunState, meta: MetaState, config: GameConfig, now: number): RunState {
   if (!run.fever.finisherReady || run.fever.finisherUsed) return run
   const snapshot = productionSnapshot(run, meta, config, now)
-  const rewardMult = ownedUpgrades(run, config).reduce((s, u) => s * (u.finisherReward ?? 1), 1)
+  const rewardMult =
+    ownedUpgrades(run, config).reduce((s, u) => s * (u.finisherReward ?? 1), 1) *
+    ownedSkills(run, config).reduce((s, n) => s * (n.finisherReward ?? 1), 1)
   const burst = snapshot.perSecond * 3 * rewardMult + run.coreEnergy * 0.02
   return {
     ...run,
@@ -756,7 +898,14 @@ export function processTick(
   }
 
   const snapshot = productionSnapshot(next, meta, config, now)
-  const gained = snapshot.perSecond * dt
+  const drones = next.crisisActive ? 0 : droneEnergyPerSecond(next, meta, config, now)
+  let gained = (snapshot.perSecond + drones) * dt
+  if (next.vaultDeposit > 0 && next.vaultReadyAt <= now) {
+    const payout = next.vaultDeposit * vaultMultiplier(config)
+    // The deposit left the bank but was already counted as earned; only the interest is new.
+    gained += payout - next.vaultDeposit
+    next = { ...next, coreEnergy: next.coreEnergy + next.vaultDeposit, vaultDeposit: 0, vaultReadyAt: 0 }
+  }
   next = {
     ...next,
     coreEnergy: next.coreEnergy + gained,
@@ -804,7 +953,7 @@ function refreshObjective(run: RunState, meta: MetaState, config: GameConfig): R
                 : meta.rebirthCount >= obj.target
     if (!done || !obj.nextId) break
     const nextObjective = config.objectives.find((o) => o.id === obj.nextId)
-    if (nextObjective?.kind === "REBIRTH" && run.lifetimeCoreEnergy < config.rebirthEnergy) break
+    if (nextObjective?.kind === "REBIRTH" && run.lifetimeCoreEnergy < rebirthRequirement(meta, config)) break
     id = obj.nextId
   }
   if (id === run.currentObjectiveId) return run
@@ -822,9 +971,9 @@ export function buyProducer(
     return { run, error: "아직 잠겨 있습니다." }
   }
   const level = run.producerLevels[producerId] ?? 0
-  const n = count === "MAX" ? maxAffordable(config, producerId, level, run.coreEnergy) : count
+  const n = count === "MAX" ? maxAffordable(config, producerId, level, run.coreEnergy, run.costScale) : count
   if (n <= 0) return { run, error: "CORE가 부족합니다." }
-  const cost = producerBulkCost(config, producerId, level, n)
+  const cost = producerBulkCost(config, producerId, level, n, run.costScale)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const next = refreshSkillPoints(
     {
@@ -851,14 +1000,21 @@ export function buyUpgrade(
   if (upgrade.unlockFeverStarts && run.feverStarts < upgrade.unlockFeverStarts) {
     return { run, error: "조건 미달" }
   }
-  if (run.coreEnergy < upgrade.cost) return { run, error: "CORE가 부족합니다." }
+  const cost = scaledCost(run, upgrade.cost)
+  if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   return {
     run: {
       ...run,
-      coreEnergy: run.coreEnergy - upgrade.cost,
+      coreEnergy: run.coreEnergy - cost,
       ownedUpgradeIds: [...run.ownedUpgradeIds, upgradeId],
     },
   }
+}
+
+/** A circuit appears once all of its prerequisites are owned (roots are always shown). */
+export function isSkillNodeVisible(run: RunState, node: SkillNodeDef): boolean {
+  if (run.ownedSkillNodeIds.includes(node.id)) return true
+  return (node.requires ?? []).every((id) => run.ownedSkillNodeIds.includes(id))
 }
 
 export function buySkillNode(
@@ -872,17 +1028,18 @@ export function buySkillNode(
   if ((node.requires ?? []).some((id) => !run.ownedSkillNodeIds.includes(id))) {
     return { run, error: "선행 스킬이 필요합니다." }
   }
-  if (run.coreEnergy < node.cost) return { run, error: "CORE가 부족합니다." }
+  const cost = scaledCost(run, node.cost)
+  if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   return {
     run: {
       ...run,
-      coreEnergy: run.coreEnergy - node.cost,
+      coreEnergy: run.coreEnergy - cost,
       ownedSkillNodeIds: [...run.ownedSkillNodeIds, nodeId],
     },
   }
 }
 
-export function useActiveSkill(
+export function activateSkill(
   run: RunState,
   meta: MetaState,
   config: GameConfig,
@@ -959,7 +1116,7 @@ export function applyRebirth(
   now: number
 ): { run: RunState; meta: MetaState; error?: string } {
   if (meta.gameCompleted) return { run, meta, error: "완료된 기록입니다." }
-  if (run.lifetimeCoreEnergy < config.rebirthEnergy) {
+  if (!canRebirth(run, meta, config)) {
     return { run, meta, error: "아직 REBIRTH 조건이 아닙니다." }
   }
   const buff = config.transcendence.find((t) => t.id === buffId)
@@ -970,21 +1127,145 @@ export function applyRebirth(
     transcendenceIds: [...meta.transcendenceIds, buffId],
     statistics: { ...meta.statistics, feverStarts: meta.statistics.feverStarts + run.feverStarts },
   }
-  return { run: createInitialRun(now, nextMeta, config), meta: nextMeta }
+  const fresh = createInitialRun(now, nextMeta, config)
+  const carried = ownedSkills(run, config).reduce((sum, n) => sum + (n.startingEnergy ?? 0), 0) * fresh.costScale
+  return {
+    run: {
+      ...fresh,
+      coreEnergy: fresh.coreEnergy + carried,
+      lifetimeCoreEnergy: fresh.lifetimeCoreEnergy + carried,
+    },
+    meta: nextMeta,
+  }
 }
 
-export function canRebirth(run: RunState, config: GameConfig): boolean {
-  return run.lifetimeCoreEnergy >= config.rebirthEnergy
+export function canRebirth(run: RunState, meta: MetaState, config: GameConfig): boolean {
+  return run.lifetimeCoreEnergy >= rebirthRequirement(meta, config)
+}
+
+function vaultMultiplier(config: GameConfig): number {
+  return config.regions.find((r) => r.activity?.kind === "PHASE_DEPOSIT")?.activity?.multiplier ?? 1
+}
+
+/** Region activity is off cooldown (it may still need the player to stand in the region). */
+export function regionActivityReady(run: RunState, regionId: string, now: number): boolean {
+  return (run.regionCooldowns[regionId] ?? 0) <= now
+}
+
+/** Use the current region's activity. The player must be standing in that region. */
+export function activateRegion(
+  run: RunState,
+  meta: MetaState,
+  config: GameConfig,
+  regionId: string,
+  now: number
+): { run: RunState; meta: MetaState; error?: string } {
+  const region = config.regions.find((r) => r.id === regionId)
+  const activity = region?.activity
+  if (!region || !activity) return { run, meta, error: "이 지역에는 활동이 없습니다." }
+  if (run.currentRegionId !== regionId) return { run, meta, error: `${region.name}에 있어야 합니다.` }
+  if (run.crisisActive) return { run, meta, error: "위기 중에는 사용할 수 없습니다." }
+  if (!regionActivityReady(run, regionId, now)) {
+    const secs = Math.ceil(((run.regionCooldowns[regionId] ?? 0) - now) / 1000)
+    return { run, meta, error: `${activity.name} 재사용 대기 ${secs}초` }
+  }
+  let next: RunState = {
+    ...run,
+    regionCooldowns: { ...run.regionCooldowns, [regionId]: now + activity.cooldownSec * 1000 },
+  }
+  let nextMeta = meta
+  const until = now + (activity.durationSec ?? 0) * 1000
+  switch (activity.kind) {
+    case "PRODUCTION_BOOST":
+      next.eventBoosts = [
+        ...next.eventBoosts.filter((b) => b.id !== "relay"),
+        { id: "relay", multiplier: activity.multiplier ?? 1, expiresAt: until },
+      ]
+      break
+    case "PHASE_DEPOSIT": {
+      if (next.vaultDeposit > 0) return { run, meta, error: "이미 예치 중입니다." }
+      const amount = Math.floor(next.coreEnergy * (activity.depositShare ?? 0.5))
+      if (amount <= 0) return { run, meta, error: "예치할 CORE가 없습니다." }
+      next = { ...next, coreEnergy: next.coreEnergy - amount, vaultDeposit: amount, vaultReadyAt: until }
+      break
+    }
+    case "LIGHTNING_STORM":
+      next.lightningStormUntil = until
+      break
+    case "DRONE_SWARM":
+      next.droneSwarmUntil = until
+      break
+    case "PRODUCTION_BURST": {
+      const perSecond = productionSnapshot(next, meta, config, now).perSecond
+      const burst = perSecond * (activity.productionSeconds ?? 0)
+      next = { ...next, coreEnergy: next.coreEnergy + burst, lifetimeCoreEnergy: next.lifetimeCoreEnergy + burst }
+      nextMeta = { ...meta, totalCoreEnergy: meta.totalCoreEnergy + burst }
+      break
+    }
+  }
+  return { run: next, meta: nextMeta }
+}
+
+/** Why the region's field challenge can't start right now, or undefined when it can. */
+export function regionChallengeError(run: RunState, config: GameConfig, regionId: string, now: number): string | undefined {
+  const region = config.regions.find((r) => r.id === regionId)
+  const challenge = region?.challenge
+  if (!region || !challenge) return "이 지역에는 도전 과제가 없습니다."
+  if (run.currentRegionId !== regionId) return `${region.name}에 있어야 합니다.`
+  if (run.crisisActive) return "위기 중에는 도전할 수 없습니다."
+  const readyAt = run.challengeCooldowns[regionId] ?? 0
+  if (readyAt > now) return `${challenge.name} 재도전 대기 ${Math.ceil((readyAt - now) / 1000)}초`
+  return undefined
+}
+
+/**
+ * Settle a finished field challenge. `score` is 0..1 (share of targets hit); a perfect run pays
+ * `rewardSeconds` of current production. Starts the cooldown whatever the score.
+ */
+export function claimRegionChallenge(
+  run: RunState,
+  meta: MetaState,
+  config: GameConfig,
+  regionId: string,
+  score: number,
+  now: number
+): { run: RunState; meta: MetaState; reward: number; error?: string } {
+  const error = regionChallengeError(run, config, regionId, now)
+  if (error) return { run, meta, reward: 0, error }
+  const challenge = config.regions.find((r) => r.id === regionId)!.challenge!
+  const ratio = Number.isFinite(score) ? clamp(score, 0, 1) : 0
+  const reward = productionSnapshot(run, meta, config, now).perSecond * challenge.rewardSeconds * ratio
+  return {
+    run: refreshObjective(
+      {
+        ...run,
+        coreEnergy: run.coreEnergy + reward,
+        lifetimeCoreEnergy: run.lifetimeCoreEnergy + reward,
+        challengeCooldowns: { ...run.challengeCooldowns, [regionId]: now + challenge.cooldownSec * 1000 },
+      },
+      meta,
+      config
+    ),
+    meta: { ...meta, totalCoreEnergy: meta.totalCoreEnergy + reward },
+    reward,
+  }
 }
 
 export function isRegionUnlocked(run: RunState, config: GameConfig, regionId: string): boolean {
   const region = config.regions.find((r) => r.id === regionId)
   if (!region) return false
-  return run.lifetimeCoreEnergy >= region.unlockAtLifetimeEnergy
+  return run.lifetimeCoreEnergy >= scaledCost(run, region.unlockAtLifetimeEnergy)
 }
 
 export function homeRegionId(config: GameConfig): string {
   return config.regions.find((r) => r.isHome)?.id ?? config.regions[0]?.id ?? "core_chamber"
+}
+
+export const MINE_HOME_ONLY_ERROR = "광산은 Core Mine에서만 입장할 수 있습니다."
+
+/** The timed mine exists only in the home region; other regions run their own activity. */
+export function regionHasMine(run: RunState, config: GameConfig): boolean {
+  return run.currentRegionId === homeRegionId(config)
 }
 
 export function travelToRegion(
@@ -999,45 +1280,29 @@ export function travelToRegion(
   return { run: { ...run, currentRegionId: regionId } }
 }
 
+/** Records a region visit; `firstVisit` is true only the first time the region is entered. */
+export function markRegionVisited(meta: MetaState, regionId: string): { meta: MetaState; firstVisit: boolean } {
+  if (meta.visitedRegionIds.includes(regionId)) return { meta, firstVisit: false }
+  return { meta: { ...meta, visitedRegionIds: [...meta.visitedRegionIds, regionId] }, firstVisit: true }
+}
+
 export function returnHomeRegion(run: RunState, config: GameConfig): { run: RunState; error?: string } {
   const homeId = homeRegionId(config)
   if (run.currentRegionId === homeId) return { run, error: "이미 Core Mine에 있습니다." }
   return { run: { ...run, currentRegionId: homeId } }
 }
 
-export function applyOffline(
-  run: RunState,
-  meta: MetaState,
-  config: GameConfig,
-  now: number
-): { run: RunState; meta: MetaState; seconds: number; gained: number } {
-  const raw = Math.max(0, (now - run.lastTickAt) / 1000)
-  const seconds = Math.min(raw, config.offlineCapSeconds)
-  if (seconds < 2) return { run: { ...run, lastTickAt: now }, meta, seconds: 0, gained: 0 }
-  const expired: RunState = {
+/**
+ * Resume after a gap (reload, hidden tab): nothing is earned while away.
+ * Timed state (fever, combo, buffs, boosts) lapses and the tick clock restarts at `now`.
+ */
+export function resumeAfterGap(run: RunState): RunState {
+  return {
     ...run,
     fever: run.fever.phase === "IDLE" ? run.fever : { ...createInitialFever(), gauge: run.fever.gauge },
     combo: createInitialCombo(),
     activeBuffs: [],
     eventBoosts: [],
-  }
-  const snapshot = productionSnapshot(expired, meta, config, now)
-  const gained = snapshot.perSecond * seconds * config.offlineProductionRatio
-  const nextRun = refreshObjective(
-    {
-      ...expired,
-      coreEnergy: expired.coreEnergy + gained,
-      lifetimeCoreEnergy: expired.lifetimeCoreEnergy + gained,
-      lastTickAt: now,
-    },
-    meta,
-    config
-  )
-  return {
-    run: nextRun,
-    meta: { ...meta, totalCoreEnergy: meta.totalCoreEnergy + gained },
-    seconds,
-    gained,
   }
 }
 
@@ -1089,6 +1354,9 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         achievementIds: Array.isArray(meta.achievementIds)
           ? meta.achievementIds.filter((id) => typeof id === "string")
           : [],
+        visitedRegionIds: Array.isArray(meta.visitedRegionIds)
+          ? meta.visitedRegionIds.filter((id) => typeof id === "string")
+          : [],
         gameCompleted: Boolean(meta.gameCompleted),
         completedAt: typeof meta.completedAt === "number" ? meta.completedAt : null,
       },
@@ -1113,6 +1381,14 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         eventBoosts: Array.isArray(run.eventBoosts) ? run.eventBoosts : [],
         drillOverdriveUntil: typeof run.drillOverdriveUntil === "number" ? run.drillOverdriveUntil : 0,
         drillOverdriveReadyAt: typeof run.drillOverdriveReadyAt === "number" ? run.drillOverdriveReadyAt : 0,
+        regionCooldowns:
+          run.regionCooldowns && typeof run.regionCooldowns === "object" ? { ...run.regionCooldowns } : {},
+        challengeCooldowns:
+          run.challengeCooldowns && typeof run.challengeCooldowns === "object" ? { ...run.challengeCooldowns } : {},
+        costScale:
+          typeof run.costScale === "number" && run.costScale > 0
+            ? run.costScale
+            : worldlineCostScale({ ...createInitialMeta(), ...meta }, config),
         currentRegionId: (() => {
           const fallback = homeRegionId(config)
           const id = typeof run.currentRegionId === "string" ? run.currentRegionId : fallback

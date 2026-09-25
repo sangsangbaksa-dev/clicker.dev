@@ -22,7 +22,6 @@ import {
   clickerFinishMineSession,
   clickerGameConfig,
   clickerMineSessionStart,
-  clickerGrantBonus,
   clickerOreBroken,
   clickerRebirth,
   clickerResolveCrisis,
@@ -30,8 +29,10 @@ import {
   clickerStartGaugeFever,
   clickerStartGame,
   clickerTravelRegion,
+  clickerRegionActivity,
+  clickerClaimChallenge,
+  clickerRegionChallengeError,
   clickerTick,
-  clickerResume,
   clickerUseSkill,
   loadClickerGame,
   persistClickerGame,
@@ -39,7 +40,7 @@ import {
 import { createInitialSave } from "@/domain/services/clicker-engine"
 import { playSfx, setSfxMuted } from "@/components/clicker/clicker-sfx"
 import { clearClickerRaw } from "@/infrastructure/persistence/clicker-save"
-import type { ClickerSettings, CrisisChoice, SaveData } from "@/domain/entities/clicker"
+import type { ClickerSettings, CrisisChoice, RegionIntroDef, SaveData } from "@/domain/entities/clicker"
 import { productionSnapshot } from "@/domain/services/clicker-engine"
 import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { achievementProgress, autoDrillRate, baseDrillRate } from "@/domain/services/clicker-bonus"
@@ -59,6 +60,8 @@ export type FloatNumber = {
   id: number
   text: string
   critical: boolean
+  /** Extra strike label — lightning / shockwave / echo. */
+  strike?: "lightning" | "quake" | "echo"
   x: number
   y: number
 }
@@ -67,19 +70,11 @@ function now() {
   return Date.now()
 }
 
-export type OfflineSummary = {
-  seconds: number
-  gained: number
-  capped: boolean
-}
-
-/** Entering the mine within this window after the welcome-back panel doubles the offline reward. */
-export const OFFLINE_DOUBLE_WINDOW_MS = 60_000
+export type RegionIntro = RegionIntroDef & { regionId: string; name: string; description: string }
 
 export function useClicker() {
   const [save, setSave] = useState<SaveData | null>(null)
   const [floats, setFloats] = useState<FloatNumber[]>([])
-  const [offlineSummary, setOfflineSummary] = useState<OfflineSummary | null>(null)
   const [savePulse, setSavePulse] = useState<"idle" | "saving" | "saved">("idle")
   const savePulseTimer = useRef<number | null>(null)
 
@@ -105,21 +100,18 @@ export function useClicker() {
   const saveRef = useRef<SaveData | null>(null)
   const floatId = useRef(0)
   const knownAchievements = useRef<Set<string> | null>(null)
-  const offlineBonus = useRef<{ amount: number; expiresAt: number } | null>(null)
   const mineStartRef = useRef<MineSessionStart | null>(null)
   const [mineSummary, setMineSummary] = useState<MineSessionSummary | null>(null)
+  /** First-visit cinematic for the region just entered; null when none is playing. */
+  const [regionIntro, setRegionIntro] = useState<RegionIntro | null>(null)
 
   useEffect(() => {
     const t = now()
     const loaded = loadClickerGame(t)
-    const resumed = clickerResume(loaded, t)
-    setSave(resumed.save)
-    saveRef.current = resumed.save
-    knownAchievements.current = new Set(resumed.save.metaState.achievementIds)
-    if (resumed.offline && resumed.save.settings.gameStarted) {
-      setOfflineSummary(resumed.offline)
-      offlineBonus.current = { amount: resumed.offline.gained, expiresAt: t + OFFLINE_DOUBLE_WINDOW_MS }
-    }
+    const resumed = clickerTick(loaded, t)
+    setSave(resumed)
+    saveRef.current = resumed
+    knownAchievements.current = new Set(resumed.metaState.achievementIds)
   }, [])
 
   useEffect(() => {
@@ -242,6 +234,7 @@ export function useClicker() {
         id,
         text: `+${result.energy.toFixed(result.energy >= 100 ? 0 : 1)}`,
         critical: result.critical,
+        strike: result.quake ? "quake" : result.lightning ? "lightning" : result.echo ? "echo" : undefined,
         x: clientX ?? 0,
         y: clientY ?? 0,
       },
@@ -339,12 +332,45 @@ export function useClicker() {
 
   const travelRegion = useCallback((regionId: string) => {
     if (!saveRef.current) return
-    const label = clickerGameConfig.regions.find((r) => r.id === regionId)?.name ?? regionId
+    const region = clickerGameConfig.regions.find((r) => r.id === regionId)
+    const label = region?.name ?? regionId
     const result = clickerTravelRegion(saveRef.current, regionId)
     if (!result.ok) return refuse(result.error)
-    commit(result.value)
+    commit(result.value.save)
+    persistNow(result.value.save)
     playSfx("travel")
-    flash(`${label}(으)로 이동`)
+    if (result.value.intro) setRegionIntro({ regionId, name: label, description: region?.description ?? "", ...result.value.intro })
+    else flash(`${label}(으)로 이동`)
+  }, [commit, flash, refuse, persistNow])
+
+  const dismissRegionIntro = useCallback(() => setRegionIntro(null), [])
+
+  /** Checked before the mini-game opens so a refused start fails fast. Returns true when it may start. */
+  const canStartChallenge = useCallback((regionId: string) => {
+    if (!saveRef.current) return false
+    const error = clickerRegionChallengeError(saveRef.current, regionId, now())
+    if (error) refuse(error)
+    return !error
+  }, [refuse])
+
+  const claimChallenge = useCallback((regionId: string, score: number) => {
+    if (!saveRef.current) return
+    const result = clickerClaimChallenge(saveRef.current, regionId, score, now())
+    if (!result.ok) return refuse(result.error)
+    commit(result.value.save)
+    persistNow(result.value.save)
+    playSfx("achievement")
+    flash(`도전 완료 · 성공률 ${Math.round(score * 100)}% · +${formatNumber(result.value.reward)} CORE`)
+  }, [commit, flash, refuse, persistNow])
+
+  const regionActivity = useCallback((regionId: string) => {
+    if (!saveRef.current) return
+    const region = clickerGameConfig.regions.find((r) => r.id === regionId)
+    const result = clickerRegionActivity(saveRef.current, regionId, now())
+    if (!result.ok) return refuse(result.error)
+    commit(result.value)
+    playSfx("skillUse")
+    flash(`${region?.activity?.name ?? "지역 활동"} 발동`)
   }, [commit, flash, refuse])
 
   const returnHome = useCallback(() => {
@@ -466,21 +492,7 @@ export function useClicker() {
     if (!saveRef.current) return
     const t = now()
     const result = clickerEnterMine(saveRef.current, t)
-    let next = result.save
-    const bonus = offlineBonus.current
-    if (!result.error && bonus) {
-      offlineBonus.current = null
-      if (bonus.expiresAt > t) {
-        next = clickerGrantBonus(next, bonus.amount)
-        // The in-mine haul counter diffs against this mark; the bonus isn't mined.
-        next = {
-          ...next,
-          runState: { ...next.runState, mineSessionCoreAtEnter: next.runState.mineSessionCoreAtEnter + bonus.amount },
-        }
-        flash(`복귀 보상 2배 · +${formatNumber(bonus.amount)} CORE`)
-      }
-    }
-    // Mark after the welcome-back bonus so it doesn't count toward the session haul.
+    const next = result.save
     if (!result.error && next.settings.playSurface === "mine") {
       mineStartRef.current = clickerMineSessionStart(next, t)
       setMineSummary(null)
@@ -577,7 +589,7 @@ export function useClicker() {
   const upgrades = save ? buildUpgradeViews(save.runState, clickerGameConfig) : []
   const potionShop = save ? buildPotionShopViews(save.runState, clickerGameConfig) : []
   const activeSkillShop = save ? buildActiveSkillShopViews(save.runState, clickerGameConfig) : []
-  const regions = save ? buildRegionViews(save.runState, clickerGameConfig) : []
+  const regions = save ? buildRegionViews(save.runState, clickerGameConfig, t) : []
   const currentRegion =
     regions.find((r) => r.isCurrent) ?? regions.find((r) => r.isHome) ?? regions[0] ?? null
   const skillNodes = save ? buildSkillNodeViews(save.runState, clickerGameConfig) : []
@@ -607,13 +619,8 @@ export function useClicker() {
     config: clickerGameConfig,
     floats,
     toast,
-    offlineSummary,
     savePulse,
     forceSave,
-    dismissOffline: () => {
-      playSfx("reward")
-      setOfflineSummary(null)
-    },
     dismissToast,
     clickCore,
     buyPotion,
@@ -626,6 +633,7 @@ export function useClicker() {
     useSkill,
     resolveCrisis,
     travelRegion,
+    regionActivity,
     returnHome,
     rebirth,
     completeEnding,
@@ -644,12 +652,15 @@ export function useClicker() {
     claimVein,
     oreBroken,
     achievements,
-    offlineDoubleWindowMs: OFFLINE_DOUBLE_WINDOW_MS,
     drill,
     drillOverdrive,
     exitMine,
     mineSummary,
     dismissMineSummary,
+    regionIntro,
+    dismissRegionIntro,
+    canStartChallenge,
+    claimChallenge,
     mineGate,
   }
 }

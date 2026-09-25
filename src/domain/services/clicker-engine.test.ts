@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import test from "node:test"
 import { clickerConfig } from "../../data/clicker/catalog.ts"
 import {
-  applyOffline,
+  resumeAfterGap,
   applyRebirth,
   applyTrueEnding,
   buyActiveSkillItem,
@@ -15,8 +15,6 @@ import {
   buySkillNode,
   buyUpgrade,
   canRebirth,
-  createInitialCombo,
-  createInitialFever,
   createInitialMeta,
   createInitialRun,
   enterClickerMine,
@@ -26,6 +24,7 @@ import {
   processTick,
   producerBulkCost,
   producerCost,
+  rebirthRequirement,
   productionSnapshot,
   resolveCrisis,
   regionPresenceMultipliers,
@@ -33,7 +32,11 @@ import {
   startClickerGame,
   startFever,
   syncClickerMineSession,
-  useActiveSkill,
+  activateSkill,
+  markRegionVisited,
+  claimRegionChallenge,
+  regionChallengeError,
+  MINE_HOME_ONLY_ERROR,
 } from "./clicker-engine.ts"
 import { MINE_SESSION_BASE_MS as MINE_SESSION_MS, mineSessionDurationMs } from "./clicker-engine.ts"
 import { formatNumber } from "./clicker-format.ts"
@@ -51,18 +54,20 @@ test("formatNumber uses a single suffix scale", () => {
 
 test("producer cost follows base × growth^level and bulk uses the same rule", () => {
   const one = producerCost(config, "solar_node", 0)
-  assert.equal(one, 20)
+  assert.equal(one, 600)
   const ten = producerBulkCost(config, "solar_node", 0, 10)
   let sum = 0
   for (let i = 0; i < 10; i++) sum += producerCost(config, "solar_node", i)
   assert.ok(Math.abs(ten - sum) < 1e-6)
-  assert.equal(maxAffordable(config, "solar_node", 0, 19), 0)
-  assert.equal(maxAffordable(config, "solar_node", 0, 20), 1)
+  assert.equal(maxAffordable(config, "solar_node", 0, 599), 0)
+  assert.equal(maxAffordable(config, "solar_node", 0, 600), 1)
+  // Later worldlines price everything up by priceGrowth^rebirths.
+  assert.equal(producerCost(config, "solar_node", 0, config.priceGrowth), 600 * config.priceGrowth)
 })
 
 test("click adds energy, combo expires by clock, critical uses rng", () => {
   const now = 1_000_000
-  let run = createInitialRun(now, createInitialMeta(), config)
+  const run = createInitialRun(now, createInitialMeta(), config)
   const meta = createInitialMeta()
   const first = processClick(run, meta, config, now, rng)
   assert.ok(first.result.energyGained >= 1)
@@ -80,7 +85,7 @@ test("click adds energy, combo expires by clock, critical uses rng", () => {
 test("buying a producer spends CORE and tick adds production", () => {
   const now = 2_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 100)
+  const run = grantAdminEnergy(createInitialRun(now, meta, config), 1_000)
   const bought = buyProducer(run, meta, config, "solar_node", 1)
   assert.equal(bought.error, undefined)
   assert.equal(bought.run.producerLevels.solar_node, 1)
@@ -242,21 +247,23 @@ test("rebirth resets region to home chamber", () => {
   assert.equal(reborn.run.currentRegionId, "core_chamber")
 })
 
-test("transcendence gate stays at 10M lifetime CORE", () => {
+test("transcendence gate starts at 10M lifetime CORE and grows each worldline", () => {
   const now = 12_000_000
   const meta = createInitialMeta()
   let run = createInitialRun(now, meta, config)
-  assert.equal(canRebirth(run, config), false)
+  assert.equal(canRebirth(run, meta, config), false)
   run = grantAdminEnergy(run, 9_999_999)
-  assert.equal(canRebirth(run, config), false)
+  assert.equal(canRebirth(run, meta, config), false)
   run = grantAdminEnergy(run, 1)
-  assert.equal(canRebirth(run, config), true)
+  assert.equal(canRebirth(run, meta, config), true)
+  const later = { ...meta, rebirthCount: 1 }
+  assert.equal(canRebirth(run, later, config), false)
+  assert.equal(rebirthRequirement(later, config), 10_000_000 * config.rebirthGrowth)
 })
 
 test("45min-to-10M balance knobs remain on tuned values", () => {
   assert.equal(config.baseClick, 6.5)
   assert.equal(config.rebirthEnergy, 10_000_000)
-  assert.equal(config.offlineProductionRatio, 0.25)
   assert.equal(config.producers[0]?.productionPerSecond, 1.5)
   assert.equal(config.producers.find((p) => p.id === "resonance_array")?.unlockAt, 10_000_000)
 })
@@ -265,12 +272,12 @@ test("active skill shop purchase adds charges and use consumes one", () => {
   const now = 6_500_000
   const meta = createInitialMeta()
   const skill = config.activeSkills[0]
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), skill.shopCost + 100)
+  const run = grantAdminEnergy(createInitialRun(now, meta, config), skill.shopCost + 100)
   const bought = buyActiveSkillItem(run, config, skill.id)
   assert.equal(bought.error, undefined)
   assert.equal(bought.run.skillItems[skill.id], 1)
   assert.ok(bought.run.coreEnergy < run.coreEnergy)
-  const used = useActiveSkill(bought.run, meta, config, skill.id, now + 100)
+  const used = activateSkill(bought.run, meta, config, skill.id, now + 100)
   assert.equal(used.error, undefined)
   assert.equal(used.run.skillItems[skill.id], 0)
 })
@@ -278,7 +285,7 @@ test("active skill shop purchase adds charges and use consumes one", () => {
 test("clicks do not drop potions and shop purchase adds inventory", () => {
   const now = 6_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 60_000)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), 2_000_000)
   for (let i = 0; i < 200; i++) {
     const click = processClick(run, meta, config, now + i * 50, () => 0.99)
     run = click.run
@@ -306,7 +313,7 @@ test("instability clamps and crisis choices leave a finite value", () => {
 test("rebirth resets run and keeps transcendence on meta", () => {
   const now = 5_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), config.rebirthEnergy)
+  const run = grantAdminEnergy(createInitialRun(now, meta, config), config.rebirthEnergy)
   const result = applyRebirth(run, meta, config, "focus_line", now + 10)
   assert.equal(result.error, undefined)
   assert.equal(result.meta.rebirthCount, 1)
@@ -315,25 +322,17 @@ test("rebirth resets run and keeps transcendence on meta", () => {
   assert.ok(result.run.coreEnergy < config.rebirthEnergy)
 })
 
-test("offline uses 1/4 production rate and respects cap", () => {
+test("time away earns nothing and lapses timed state", () => {
   const now = 6_000_000
   const meta = createInitialMeta()
   let run = grantAdminEnergy(createInitialRun(now, meta, config), 100)
   run = buyProducer(run, meta, config, "solar_node", 1).run
-  run = { ...run, lastTickAt: now - 10_000, fever: { ...run.fever, phase: "FEVER", remainingTime: 10 } }
-  const expired = {
-    ...run,
-    fever: { ...createInitialFever(), gauge: run.fever.gauge },
-    combo: createInitialCombo(),
-    activeBuffs: [],
-  }
-  const snap = productionSnapshot(expired, meta, config, now)
-  const off = applyOffline(run, meta, config, now)
-  assert.ok(off.seconds >= 9)
-  assert.ok(off.gained > 0)
-  assert.ok(Math.abs(off.gained - snap.perSecond * off.seconds * config.offlineProductionRatio) < 1e-6)
-  assert.equal(config.offlineProductionRatio, 0.25)
-  assert.equal(off.run.fever.phase, "IDLE")
+  run = { ...run, lastTickAt: now - 3_600_000, fever: { ...run.fever, phase: "FEVER", remainingTime: 10 } }
+  const resumed = resumeAfterGap(run)
+  assert.equal(resumed.coreEnergy, run.coreEnergy)
+  assert.equal(resumed.lifetimeCoreEnergy, run.lifetimeCoreEnergy)
+  assert.equal(resumed.fever.phase, "IDLE")
+  assert.deepEqual(resumed.activeBuffs, [])
 })
 
 test("corrupted save falls back without throwing", () => {
@@ -362,7 +361,7 @@ test("owned skills persist through sanitizeSave reload", () => {
 test("skill nodes cost CORE and focus_click boosts click gain", () => {
   const now = 9_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 10_000)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), 1_000_000)
   const cost = config.skillNodes.find((n) => n.id === "focus_click")!.cost
   const beforeEnergy = run.coreEnergy
   const beforeClick = processClick(run, meta, config, now, rng).result.energyGained
@@ -396,6 +395,50 @@ test("Enter Mine starts a timed session from any UI locale", () => {
   assert.ok(cooling.error)
 })
 
+test("the mine opens only in the home region", () => {
+  const now = 11_200_000
+  const save = startClickerGame(createInitialSave(now, config))
+  const away = grantAdminEnergy(save.runState, 300_000)
+  const traveled = { ...save, runState: travelToRegion(away, config, "signal_relay").run }
+  const refused = enterClickerMine(traveled, now, config)
+  assert.equal(refused.error, MINE_HOME_ONLY_ERROR)
+  assert.equal(refused.save.settings.playSurface, "hub")
+  const home = { ...traveled, runState: returnHomeRegion(traveled.runState, config).run }
+  assert.equal(enterClickerMine(home, now, config).save.settings.playSurface, "mine")
+})
+
+test("field challenge pays production by score and then cools down", () => {
+  const now = 12_000_000
+  const meta = createInitialMeta()
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), 60_000_000)
+  run = buyProducer(run, meta, config, "solar_node", 5).run
+  const away = claimRegionChallenge(run, meta, config, "storm_spire", 1, now)
+  assert.ok(away.error, "must stand in the region")
+  run = travelToRegion(run, config, "storm_spire").run
+  const perSecond = productionSnapshot(run, meta, config, now).perSecond
+  const spire = config.regions.find((r) => r.id === "storm_spire")!.challenge!
+  const half = claimRegionChallenge(run, meta, config, "storm_spire", 0.5, now)
+  assert.equal(half.error, undefined)
+  assert.ok(Math.abs(half.reward - perSecond * spire.rewardSeconds * 0.5) < 1e-6)
+  assert.ok(Math.abs(half.run.coreEnergy - run.coreEnergy - half.reward) < 1e-6)
+  assert.ok(regionChallengeError(half.run, config, "storm_spire", now + 1000))
+  assert.equal(regionChallengeError(half.run, config, "storm_spire", now + spire.cooldownSec * 1000), undefined)
+  const cheat = claimRegionChallenge(run, meta, config, "storm_spire", 7, now)
+  assert.ok(Math.abs(cheat.reward - perSecond * spire.rewardSeconds) < 1e-6, "score is clamped to 1")
+  assert.ok(claimRegionChallenge(run, meta, config, "signal_relay", 1, now).error, "relay has no challenge")
+})
+
+test("region visits are recorded once so the intro plays only on the first entry", () => {
+  const meta = createInitialMeta()
+  const first = markRegionVisited(meta, "signal_relay")
+  assert.equal(first.firstVisit, true)
+  const again = markRegionVisited(first.meta, "signal_relay")
+  assert.equal(again.firstVisit, false)
+  assert.deepEqual(again.meta.visitedRegionIds, ["signal_relay"])
+  const legacy = sanitizeSave({ ...createInitialSave(1, config), metaState: { ...meta, visitedRegionIds: undefined } }, config, 1)
+  assert.deepEqual(legacy.metaState.visitedRegionIds, [])
+})
+
 test("broke re-entry is free without producers, charged once producers exist", () => {
   const now = 11_500_000
   const start = startClickerGame(createInitialSave(now, config))
@@ -421,7 +464,7 @@ test("mine session length grows from skill-tree dwell nodes", () => {
   let save = startClickerGame(createInitialSave(now, config))
   save = {
     ...save,
-    runState: grantAdminEnergy(save.runState, 2_000),
+    runState: grantAdminEnergy(save.runState, 200_000),
   }
   let run = buySkillNode(save.runState, config, "focus_click").run
   run = buySkillNode(run, config, "mine_dwell").run
@@ -441,7 +484,7 @@ test("true ending unlocks when all transcendence buffs were chosen once", () => 
   for (const buff of config.transcendence) {
     save = {
       ...save,
-      runState: grantAdminEnergy(save.runState, config.rebirthEnergy),
+      runState: grantAdminEnergy(save.runState, rebirthRequirement(save.metaState, config)),
       metaState: save.metaState,
     }
     const result = applyRebirth(save.runState, save.metaState, config, buff.id, now + buff.id.length)
@@ -462,7 +505,7 @@ test("upgrade purchase is rejected when CORE is short or already owned", () => {
   const run = createInitialRun(now, meta, config)
   const poor = buyUpgrade(run, config, "reinforced_input")
   assert.equal(poor.error, "CORE가 부족합니다.")
-  const rich = buyUpgrade(grantAdminEnergy(run, 100), config, "reinforced_input")
+  const rich = buyUpgrade(grantAdminEnergy(run, 10_000), config, "reinforced_input")
   assert.equal(rich.error, undefined)
   const again = buyUpgrade(rich.run, config, "reinforced_input")
   assert.equal(again.error, "이미 보유함")

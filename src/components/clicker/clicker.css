@@ -39,7 +39,6 @@
   .clicker-tabs button,
   .clicker-drawer-toggle,
   .clicker-admin-launch,
-  .clicker-cinematic-skip,
   .clicker-settings-toggle,
   .clicker-toast,
   .clicker-stage-region-explore,
@@ -582,6 +581,25 @@ button.clicker-metric-action.is-active {
 .clicker-float.is-crit {
   color: #fff;
   font-size: 22px;
+}
+
+.clicker-float.is-lightning {
+  color: #fff6a8;
+  font-size: 22px;
+  text-shadow:
+    0 0 6px #fff,
+    0 0 16px color-mix(in srgb, #ffe45c 80%, transparent);
+}
+
+.clicker-float.is-quake {
+  color: #ffb36b;
+  font-size: 24px;
+  text-shadow: 0 0 14px color-mix(in srgb, #ff8a3d 70%, transparent);
+}
+
+.clicker-float.is-echo {
+  color: #c9b6ff;
+  text-shadow: 0 0 12px color-mix(in srgb, #a98cff 60%, transparent);
 }
 
 .clicker-combo {
@@ -1631,14 +1649,27 @@ button.clicker-metric-action.is-fever-ready em {
   filter: grayscale(0.35);
 }
 
+.clicker-skill-legend li.is-hidden::before {
+  opacity: 0.25;
+  border-style: dashed;
+}
+
 .clicker-skill-legend li.is-owned::before {
   background: color-mix(in srgb, var(--core) 30%, var(--panel));
   border-color: color-mix(in srgb, var(--core) 55%, var(--line));
 }
 
+.clicker-skill-tree-scroll {
+  --cell: 56px;
+  max-height: min(68vh, 640px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-card);
+}
+
 .clicker-skill-tree-board {
   position: relative;
-  min-height: 300px;
+  margin-inline: auto;
   border-radius: var(--radius-card);
   border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
   background:
@@ -1664,8 +1695,8 @@ button.clicker-metric-action.is-fever-ready em {
 
 .clicker-skill-node {
   position: absolute;
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   padding: 0;
   border: 1px solid color-mix(in srgb, var(--branch-color, var(--line)) 55%, var(--line));
   background: color-mix(in srgb, var(--void) 70%, var(--panel));
@@ -1691,8 +1722,8 @@ button.clicker-metric-action.is-fever-ready em {
 }
 
 .clicker-skill-node.is-hub {
-  width: 48px;
-  height: 48px;
+  width: 38px;
+  height: 38px;
   pointer-events: none;
   border-color: color-mix(in srgb, var(--core) 55%, var(--line));
   box-shadow: 0 0 18px color-mix(in srgb, var(--core-glow) 35%, transparent);
@@ -1700,6 +1731,12 @@ button.clicker-metric-action.is-fever-ready em {
 
 .clicker-skill-node.is-hub .clicker-skill-node-glyph {
   color: var(--core-bright);
+}
+
+.clicker-skill-node.is-apex {
+  width: 38px;
+  height: 38px;
+  border-width: 2px;
 }
 
 .clicker-skill-node.is-owned {
@@ -2649,135 +2686,6 @@ button.clicker-metric-action.is-fever-ready em {
   backdrop-filter: blur(6px);
 }
 
-.clicker-cinematic {
-  position: fixed;
-  inset: 0;
-  z-index: 120;
-  display: grid;
-  place-items: end center;
-  padding: clamp(24px, 6vh, 64px) clamp(20px, 5vw, 72px);
-  cursor: pointer;
-  outline: none;
-  overflow: hidden;
-  background: #05070d;
-}
-
-.clicker-cinematic-base {
-  position: absolute;
-  inset: 0;
-  background: #05070d;
-  z-index: 0;
-}
-
-.clicker-cinematic-bg {
-  position: absolute;
-  inset: 0;
-  background: center / cover no-repeat;
-  transform: scale(1.04);
-  z-index: 1;
-}
-
-.clicker-cinematic-bg.is-under {
-  z-index: 1;
-  opacity: 1;
-}
-
-.clicker-cinematic-bg.is-front {
-  z-index: 2;
-  animation: cinematic-bg-in 320ms ease-out;
-}
-
-.clicker-cinematic-veil {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, #05070d 35%, transparent) 0%, transparent 28%, color-mix(in srgb, #05070d 78%, transparent) 72%, #05070d 100%),
-    radial-gradient(ellipse at 50% 40%, transparent 30%, color-mix(in srgb, #05070d 45%, transparent) 100%);
-  pointer-events: none;
-}
-
-.clicker-cinematic-skip {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  z-index: 5;
-  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
-  background: color-mix(in srgb, var(--void) 72%, transparent);
-  color: var(--text-2);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  padding: 8px 12px;
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-.clicker-cinematic-skip:hover {
-  color: var(--core-bright);
-  border-color: color-mix(in srgb, var(--core) 45%, var(--line));
-}
-
-.clicker-cinematic-copy {
-  position: relative;
-  z-index: 4;
-  width: min(720px, 100%);
-  text-align: center;
-  pointer-events: none;
-}
-
-.clicker-cinematic-kicker {
-  margin: 0 0 10px;
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--core-bright) 70%, var(--muted));
-}
-
-.clicker-cinematic-copy h2 {
-  margin: 0 0 14px;
-  font-size: clamp(28px, 5vw, 42px);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--core-bright);
-  text-shadow: 0 0 28px color-mix(in srgb, var(--core-glow) 45%, transparent);
-}
-
-.clicker-cinematic-body {
-  margin: 0 auto 22px;
-  max-width: 38em;
-  font-size: clamp(15px, 2.2vw, 18px);
-  line-height: 1.7;
-  color: color-mix(in srgb, var(--text) 92%, transparent);
-  text-shadow: 0 2px 18px color-mix(in srgb, #05070d 80%, transparent);
-}
-
-.clicker-cinematic-hint {
-  margin: 0;
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  color: var(--muted);
-  animation: cinematic-hint 2.2s ease-in-out infinite;
-}
-
-@keyframes cinematic-bg-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes cinematic-hint {
-  0%,
-  100% {
-    opacity: 0.45;
-  }
-  50% {
-    opacity: 0.95;
-  }
-}
-
 .clicker-tutorial {
   position: fixed;
   inset: 0;
@@ -2847,13 +2755,6 @@ button.clicker-metric-action.is-fever-ready em {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .clicker-cinematic-bg.is-front,
-  .clicker-cinematic-hint {
-    animation: none !important;
-  }
 }
 
 .clicker-ending {
@@ -4908,22 +4809,27 @@ button.clicker-metric-action.is-fever-ready em {
     font-size: 12px;
   }
 
-  .clicker-skill-tree-board {
-    min-height: 220px;
+  .clicker-skill-tree-scroll {
+    --cell: 46px;
   }
 
   .clicker-skill-node {
-    width: 34px;
-    height: 34px;
+    width: 28px;
+    height: 28px;
   }
 
   .clicker-skill-node.is-hub {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
   }
 
   .clicker-skill-node-glyph {
     font-size: 13px;
+  }
+
+  .clicker-skill-node.is-apex {
+    width: 32px;
+    height: 32px;
   }
 
   .clicker-skill-detail .clicker-primary {
@@ -4994,3 +4900,103 @@ button.clicker-metric-action.is-fever-ready em {
   }
 }
 
+
+.clicker-region-activity {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  margin-top: 10px;
+  padding: 8px 14px;
+  max-width: 260px;
+  border-radius: var(--radius-card);
+  border: 1px solid color-mix(in srgb, var(--core) 45%, var(--line));
+  background: color-mix(in srgb, var(--void) 70%, var(--panel));
+  color: var(--core-bright);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.clicker-region-activity span {
+  color: color-mix(in srgb, var(--core-bright) 70%, transparent);
+  font-size: 11px;
+}
+
+.clicker-region-activity.is-active {
+  box-shadow: 0 0 14px color-mix(in srgb, var(--core) 40%, transparent);
+}
+
+.clicker-region-activity:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Non-home regions: the region activity replaces the Enter Mine CTA. */
+.clicker-shell.is-region-hub .clicker-core-wrap {
+  position: absolute;
+  inset: 0;
+  display: block;
+  grid-column: 1 / -1;
+  pointer-events: none;
+}
+
+.clicker-shell.is-region-hub .clicker-region-station {
+  pointer-events: auto;
+}
+
+.clicker-region-station {
+  position: absolute;
+  left: 50%;
+  bottom: max(18%, calc(28px + env(safe-area-inset-bottom, 0px)));
+  z-index: 8;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  width: min(86vw, 20rem);
+  text-align: center;
+}
+
+.clicker-region-station-kicker,
+.clicker-region-station-note {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: color-mix(in srgb, var(--core-bright) 75%, transparent);
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.7);
+}
+
+.clicker-region-station-note {
+  letter-spacing: 0.02em;
+  opacity: 0.8;
+}
+
+.clicker-region-station .clicker-region-activity {
+  margin-top: 0;
+  width: 100%;
+  max-width: none;
+  min-height: 56px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+}
+
+.clicker-region-station .clicker-region-activity.is-challenge {
+  border-color: color-mix(in srgb, #ffc266 60%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, #3a2a10 70%, transparent), color-mix(in srgb, var(--void) 85%, black));
+  color: #ffe3b0;
+}
+
+.clicker-region-station .clicker-region-activity.is-challenge span {
+  color: color-mix(in srgb, #ffe3b0 75%, transparent);
+}
+
+.clicker-transcendence-momentum {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.clicker-transcendence-momentum strong {
+  color: var(--core-bright);
+}
