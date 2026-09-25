@@ -9,7 +9,6 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { MineArt, MINE_ORE_PLATE } from "@/data/clicker/mine-assets"
-import { playSfx } from "@/components/clicker/clicker-sfx"
 import "./clicker-mine.css"
 
 export type MineStrikeResult = { critical: boolean }
@@ -71,6 +70,35 @@ function oreBoxFor(width: number, height: number): Box {
     width: ore.w * scale,
     height: ore.h * scale,
   }
+}
+
+/** Ore outline as fractions (0–1) of the ore box — scales with any viewport. */
+const ORE_SHAPE = MINE_ORE_PLATE.outline.map(([x, y]) => [
+  (x - MINE_ORE_PLATE.ore.x) / MINE_ORE_PLATE.ore.w,
+  (y - MINE_ORE_PLATE.ore.y) / MINE_ORE_PLATE.ore.h,
+]) as ReadonlyArray<readonly [number, number]>
+
+/** clip-path on the ore button: browsers hit-test clip-path, so only the silhouette takes taps. */
+const ORE_CLIP = `polygon(${ORE_SHAPE.map(([x, y]) => `${(x * 100).toFixed(2)}% ${(y * 100).toFixed(2)}%`).join(", ")})`
+
+function insideOre(fx: number, fy: number): boolean {
+  let inside = false
+  for (let i = 0, j = ORE_SHAPE.length - 1; i < ORE_SHAPE.length; j = i++) {
+    const [xi, yi] = ORE_SHAPE[i]
+    const [xj, yj] = ORE_SHAPE[j]
+    if (yi > fy !== yj > fy && fx < ((xj - xi) * (fy - yi)) / (yj - yi) + xi) inside = !inside
+  }
+  return inside
+}
+
+/** Random point on the crystal itself (mine-local px), for drill strikes and shatter bonuses. */
+function randomOrePoint(b: Box): { x: number; y: number } {
+  for (let tries = 0; tries < 24; tries++) {
+    const fx = 0.1 + Math.random() * 0.8
+    const fy = 0.15 + Math.random() * 0.7
+    if (insideOre(fx, fy)) return { x: b.left + b.width * fx, y: b.top + b.height * fy }
+  }
+  return { x: b.left + b.width * 0.5, y: b.top + b.height * 0.6 }
 }
 
 /** Single center ore: tap the big crystal, a laser fires from the rig below. */
@@ -188,8 +216,7 @@ export function ClickerMine({
       const b = cur.box
       for (let i = 0; i < BREAK_BONUS; i++) {
         later(() => {
-          const cx = b ? b.left + b.width * (0.3 + Math.random() * 0.4) : rect.width / 2
-          const cy = b ? b.top + b.height * (0.3 + Math.random() * 0.4) : rect.height / 2
+          const { x: cx, y: cy } = b ? randomOrePoint(b) : { x: rect.width / 2, y: rect.height / 2 }
           live.current.onMine(rect.left + cx, rect.top + cy)
           fireLaser(cx, cy, false)
         }, 90 * (i + 1))
@@ -221,7 +248,8 @@ export function ClickerMine({
     const id = window.setInterval(() => {
       const b = live.current.box
       if (!b) return
-      hitAt(b.left + b.width * (0.25 + Math.random() * 0.5), b.top + b.height * (0.2 + Math.random() * 0.55), true)
+      const { x, y } = randomOrePoint(b)
+      hitAt(x, y, true)
     }, 1000 / autoRate)
     return () => window.clearInterval(id)
   }, [autoRate, hitAt])
@@ -248,7 +276,7 @@ export function ClickerMine({
               ? `코어 광석 채굴 · 내구도 ${hp}/${ORE_HP} · 음소거`
               : `코어 광석 채굴 · 레이저 · 내구도 ${hp}/${ORE_HP}`
           }
-          style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
+          style={{ left: box.left, top: box.top, width: box.width, height: box.height, clipPath: ORE_CLIP }}
           onPointerDown={strike}
         >
           {/* Same plate, cropped to the crystal, so hits can pulse just the ore. */}
@@ -266,6 +294,18 @@ export function ClickerMine({
           />
           <span className="clicker-mine-crystal-glow" />
         </button>
+      ) : null}
+      {box ? (
+        // Traced silhouette: lights up on hover / keyboard focus so the hit area is plain to see.
+        <svg
+          className="clicker-mine-crystal-outline"
+          style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
+          viewBox="0 0 1 1"
+          preserveAspectRatio="none"
+          aria-hidden
+        >
+          <polygon points={ORE_SHAPE.map(([x, y]) => `${x},${y}`).join(" ")} vectorEffect="non-scaling-stroke" />
+        </svg>
       ) : null}
 
       {box ? (

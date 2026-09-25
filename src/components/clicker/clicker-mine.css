@@ -67,10 +67,36 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* The button is clipped to the ore silhouette, so its own outline can't show — the SVG trace does. */
 .clicker-mine-crystal:focus-visible {
-  outline: 2px solid #9ff6ff;
-  outline-offset: 6px;
-  border-radius: 24px;
+  outline: none;
+}
+
+.clicker-mine-crystal-outline {
+  position: absolute;
+  z-index: 5;
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.clicker-mine-crystal-outline polygon {
+  fill: none;
+  stroke: #9ff6ff;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px rgb(99 230 255 / 0.8));
+}
+
+@media (hover: hover) {
+  .clicker-mine-crystal:hover + .clicker-mine-crystal-outline {
+    opacity: 0.55;
+  }
+}
+
+.clicker-mine-crystal:focus-visible + .clicker-mine-crystal-outline {
+  opacity: 1;
 }
 
 .clicker-mine-crystal-art {
