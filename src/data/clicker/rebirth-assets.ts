@@ -10,6 +10,9 @@ const SLUG: Record<string, string> = {
   risk_line: "volatile_core",
 }
 
+/** Slugs with their own tinted stamp-phase particle plate (particles-gap pack). */
+const TINTED_PARTICLE_SLUGS = new Set(["resonance_protocol", "volatile_core"])
+
 /** Legacy geometric stamps under /clicker/stamp/ — the only art for hybrid_line. */
 const STAMP_FALLBACK: Record<string, string> = {
   hybrid_line: "/clicker/stamp/stamp_adaptive_architect.png",
@@ -44,12 +47,20 @@ export const RebirthPhaseArt = {
     return slug ? `${DIR}/rebirth_reduced_motion_${slug}_v1.png` : undefined
   },
 
-  plateForPhase(phase: PlatePhase): string {
+  /** Stamp-phase particle overlay; worldlines with a tinted plate use it, the rest share one. */
+  particlesFor(transcendenceId?: string): string {
+    const slug = transcendenceId ? SLUG[transcendenceId] : undefined
+    return slug && TINTED_PARTICLE_SLUGS.has(slug)
+      ? `${DIR}/rebirth_particles_${slug}_v1.png`
+      : RebirthPhaseArt.particlesShared
+  },
+
+  plateForPhase(phase: PlatePhase, transcendenceId?: string): string {
     if (phase === "collapse") return RebirthPhaseArt.collapseShared
     if (phase === "void_tear") return RebirthPhaseArt.voidTearShared
     if (phase === "rebuild") return RebirthPhaseArt.rebuildShared
     if (phase === "settle") return RebirthPhaseArt.settleShared
-    return RebirthPhaseArt.particlesShared
+    return RebirthPhaseArt.particlesFor(transcendenceId)
   },
 
   /** HUD plate crossfade for rebuild→settle (MW-03 / sheet 11). */

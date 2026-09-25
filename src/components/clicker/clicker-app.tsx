@@ -24,7 +24,7 @@ import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
 import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
-import { playLaser, unlockSfx } from "@/components/clicker/clicker-sfx"
+import { playLaser, playSfx, unlockSfx } from "@/components/clicker/clicker-sfx"
 import { ClickerAchievementsPanel } from "@/components/clicker/panels/achievements-panel"
 import { ClickerProducersPanel } from "@/components/clicker/panels/producers-panel"
 import { ClickerUpgradesPanel } from "@/components/clicker/panels/upgrades-panel"
@@ -206,6 +206,9 @@ export function ClickerApp() {
 
   const selectTab = useCallback(
     (id: TabId) => {
+      if (id === "transcendence" && tab !== "transcendence") {
+        playSfx("sfx_transcend_open", game.save?.settings.muted ?? true)
+      }
       setTab(id)
       setHubView("manage")
       if (drawerHeight <= drawerSnaps.peek + 16) {
@@ -221,7 +224,7 @@ export function ClickerApp() {
           ?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" })
       })
     },
-    [drawerHeight, drawerSnaps, persistDrawerHeight],
+    [drawerHeight, drawerSnaps, persistDrawerHeight, tab, game.save?.settings.muted],
   )
 
   const playSurface = game.save?.settings.playSurface ?? "hub"
@@ -380,8 +383,13 @@ export function ClickerApp() {
     if (prev && prev !== next && (next === "fever" || next === "crisis" || prev === "fever" || prev === "crisis")) {
       flashStage()
     }
-    if (next === "crisis" && prev !== "crisis") triggerShake()
+    if (next === "crisis" && prev !== "crisis") {
+      triggerShake()
+      playSfx("sfx_crisis_alert", game.save?.settings.muted ?? true)
+    }
     prevVisual.current = next
+    // Only the visual transition should fire; muted is read at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.hud?.coreVisual])
 
   useEffect(() => {

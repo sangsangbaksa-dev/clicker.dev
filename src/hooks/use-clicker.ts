@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { playSfx, type SfxName } from "@/components/clicker/clicker-sfx"
 import {
   clickerAdminGrant,
   clickerAdminPatch,
@@ -75,6 +76,9 @@ export type OfflineSummary = {
 /** Entering the mine within this window after the welcome-back panel doubles the offline reward. */
 export const OFFLINE_DOUBLE_WINDOW_MS = 60_000
 
+/** Low-time cue plays once when a mine session has this long left. */
+const MINE_WARN_MS = 3000
+
 export function useClicker() {
   const [save, setSave] = useState<SaveData | null>(null)
   const [floats, setFloats] = useState<FloatNumber[]>([])
@@ -125,12 +129,16 @@ export function useClicker() {
     saveRef.current = save
   }, [save])
 
+  /** Session end time already warned for, so the low-time cue fires once per session. */
+  const warnedMineEndRef = useRef(0)
+
   /** Mine → hub: record the session and raise the result card. Returns the save to commit. */
   const finishMine = useCallback((before: SaveData, after: SaveData) => {
     const t = now()
     const { save: recorded, summary } = clickerFinishMineSession(mineStartRef.current, before, after, t)
     mineStartRef.current = null
     setMineSummary(summary)
+    playSfx("sfx_exit_mine", before.settings.muted)
     return recorded
   }, [])
 
@@ -155,6 +163,15 @@ export function useClicker() {
               : next
           saveRef.current = committed
           setSave(committed)
+          const endsAt = committed.runState.mineSessionEndsAt
+          if (
+            committed.settings.playSurface === "mine" &&
+            endsAt - now() <= MINE_WARN_MS &&
+            warnedMineEndRef.current !== endsAt
+          ) {
+            warnedMineEndRef.current = endsAt
+            playSfx("sfx_session_timer_warn", committed.settings.muted)
+          }
         }
       }
       frame = window.requestAnimationFrame(loop)
@@ -193,6 +210,16 @@ export function useClicker() {
     }, 2200)
   }, [])
 
+  const sfx = useCallback((name: SfxName) => {
+    playSfx(name, saveRef.current?.settings.muted ?? true)
+  }, [])
+
+  /** Refused action: deny cue + the reason as a toast. */
+  const refuse = useCallback((message: string) => {
+    sfx("sfx_ui_deny")
+    flash(message)
+  }, [sfx, flash])
+
   // Toast newly unlocked achievements (ids already present at load are not announced).
   const achievementIds = save?.metaState.achievementIds
   useEffect(() => {
@@ -204,7 +231,8 @@ export function useClicker() {
       .map((id) => clickerGameConfig.achievements.find((a) => a.id === id)?.name ?? id)
       .join(" · ")
     flash(`업적 달성 · ${names} (생산 +${fresh.length}%)`)
-  }, [achievementIds, flash])
+    sfx("sfx_achievement")
+  }, [achievementIds, flash, sfx])
 
   const dismissToast = useCallback(() => {
     if (toastTimer.current != null) {
@@ -239,104 +267,115 @@ export function useClicker() {
   const buyPotion = useCallback((id: string) => {
     if (!saveRef.current) return
     const result = clickerBuyPotion(saveRef.current, id)
-    if (!result.ok) return flash(result.error)
+    if (!result.ok) return refuse(result.error)
     commit(result.value)
+    sfx("sfx_ui_purchase")
     const name = clickerGameConfig.potions.find((p) => p.id === id)?.name ?? id
     flash(`구매 · ${name}`)
-  }, [commit, flash])
+  }, [commit, flash, refuse, sfx])
 
   const buyActiveSkill = useCallback((id: string) => {
     if (!saveRef.current) return
     const result = clickerBuyActiveSkill(saveRef.current, id)
-    if (!result.ok) return flash(result.error)
+    if (!result.ok) return refuse(result.error)
     commit(result.value)
+    sfx("sfx_ui_purchase")
     const name = clickerGameConfig.activeSkills.find((s) => s.id === id)?.name ?? id
     flash(`구매 · ${name}`)
-  }, [commit, flash])
+  }, [commit, flash, refuse, sfx])
 
   const buyProducer = useCallback((id: string, count: number | "MAX") => {
     if (!saveRef.current) return
     const result = clickerBuyProducer(saveRef.current, id, count)
-    if (!result.ok) return flash(result.error)
+    if (!result.ok) return refuse(result.error)
     commit(result.value)
-  }, [commit, flash])
+    sfx("sfx_producer_buy")
+  }, [commit, refuse, sfx])
 
   const buyUpgrade = useCallback((id: string) => {
     if (!saveRef.current) return
     const result = clickerBuyUpgrade(saveRef.current, id)
-    if (!result.ok) return flash(result.error)
+    if (!result.ok) return refuse(result.error)
     commit(result.value)
+    sfx("sfx_upgrade_level")
     const name = clickerGameConfig.upgrades.find((u) => u.id === id)?.name ?? id
     flash(`강화 · ${name}`)
-  }, [commit, flash])
+  }, [commit, flash, refuse, sfx])
 
   const buySkill = useCallback((id: string) => {
     if (!saveRef.current) return
     const result = clickerBuySkill(saveRef.current, id)
-    if (!result.ok) return flash(result.error)
+    if (!result.ok) return refuse(result.error)
     commit(result.value)
+    sfx("sfx_skill_unlock")
     const name = clickerGameConfig.skillNodes.find((s) => s.id === id)?.name ?? id
     flash(`회로 해금 · ${name}`)
-  }, [commit, flash])
+  }, [commit, flash, refuse, sfx])
 
   const drinkPotion = useCallback((id: string) => {
     if (!saveRef.current) return
     const result = clickerDrinkPotion(saveRef.current, id)
-    if (!result.ok) return flash(result.error)
+    if (!result.ok) return refuse(result.error)
     commit(result.value)
+    sfx("sfx_potion_fever")
     const name = clickerGameConfig.potions.find((p) => p.id === id)?.name ?? id
     flash(`${name} 사용`)
-  }, [commit, flash])
+  }, [commit, flash, refuse, sfx])
 
   const startFever = useCallback(() => {
     if (!saveRef.current) return
     const result = clickerStartGaugeFever(saveRef.current)
-    if (!result.ok) return flash(result.error)
+    if (!result.ok) return refuse(result.error)
     commit(result.value)
+    sfx("sfx_potion_fever")
     flash("FEVER 시작")
-  }, [commit, flash])
+  }, [commit, flash, refuse, sfx])
 
   const useSkill = useCallback((id: string) => {
     if (!saveRef.current) return
     const result = clickerUseSkill(saveRef.current, id, now())
-    if (!result.ok) return flash(result.error)
+    if (!result.ok) return refuse(result.error)
     commit(result.value)
+    sfx("sfx_skill_activate")
     const name = clickerGameConfig.activeSkills.find((s) => s.id === id)?.name ?? id
     flash(`${name} 발동`)
-  }, [commit, flash])
+  }, [commit, flash, refuse, sfx])
 
   const resolveCrisis = useCallback((choice: CrisisChoice) => {
     if (!saveRef.current) return
     commit(clickerResolveCrisis(saveRef.current, choice, now()))
+    sfx("sfx_crisis_resolve")
     const label =
       choice === "STABILIZE" ? "안정화" : choice === "RISK_IT" ? "위험 감수" : "비상 오버클럭"
     flash(`위기 해소 · ${label}`)
-  }, [commit, flash])
+  }, [commit, flash, sfx])
 
   const travelRegion = useCallback((regionId: string) => {
     if (!saveRef.current) return
     const label = clickerGameConfig.regions.find((r) => r.id === regionId)?.name ?? regionId
     const result = clickerTravelRegion(saveRef.current, regionId)
-    if (!result.ok) return flash(result.error)
+    if (!result.ok) return refuse(result.error)
     commit(result.value)
+    sfx("sfx_region_travel")
     flash(`${label}(으)로 이동`)
-  }, [commit, flash])
+  }, [commit, flash, refuse, sfx])
 
   const returnHome = useCallback(() => {
     if (!saveRef.current) return
     const result = clickerReturnHome(saveRef.current)
-    if (!result.ok) return flash(result.error)
+    if (!result.ok) return refuse(result.error)
     commit(result.value)
+    sfx("sfx_region_travel")
     flash("Core Mine으로 돌아왔습니다")
-  }, [commit, flash])
+  }, [commit, flash, refuse, sfx])
 
   const rebirth = useCallback((buffId: string) => {
     if (!saveRef.current) return
     const result = clickerRebirth(saveRef.current, buffId, now())
-    if (!result.ok) return flash(result.error)
+    if (!result.ok) return refuse(result.error)
     commit(result.value)
     flash("WORLD LINE이 열렸습니다.")
-  }, [commit, flash])
+  }, [commit, flash, refuse])
 
   const completeEnding = useCallback(() => {
     if (!saveRef.current) return false
@@ -453,8 +492,8 @@ export function useClicker() {
     }
     commit(next)
     persistNow(next)
-    if (result.error) flash(result.error)
-  }, [commit, persistNow, flash])
+    if (result.error) refuse(result.error)
+  }, [commit, persistNow, flash, refuse])
 
   /** Golden vein hit in the mine; returns a short label for the in-scene burst. */
   const claimVein = useCallback(
@@ -480,15 +519,17 @@ export function useClicker() {
   const oreBroken = useCallback(() => {
     if (!saveRef.current) return
     commit(clickerOreBroken(saveRef.current))
-  }, [commit])
+    sfx("sfx_yield_big")
+  }, [commit, sfx])
 
   const drillOverdrive = useCallback(() => {
     if (!saveRef.current) return
     const result = clickerDrillOverdrive(saveRef.current, now())
-    if (!result.ok) return flash(result.error)
+    if (!result.ok) return refuse(result.error)
     commit(result.value)
+    sfx("sfx_skill_activate")
     flash("드릴 과부하 · 30초간 자동 채굴 ×3")
-  }, [commit, flash])
+  }, [commit, flash, refuse, sfx])
 
   /** Checked before the entry cinematic so a refused entry fails fast instead of after 10s. */
   const mineEntryError = useCallback(() => {

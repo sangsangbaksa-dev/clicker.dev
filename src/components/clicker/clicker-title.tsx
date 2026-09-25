@@ -21,7 +21,19 @@ export function ClickerTitle({ muted, onToggleMute, onStart }: Props) {
         className="clicker-title-bg"
         style={{ backgroundImage: `url(${CLICKER_ASSETS.bgMineEntrance})` }}
         aria-hidden
-      />
+      >
+        {/* Starts on the same still as the background, so a slow or failed load shows no seam. */}
+        <video
+          className="clicker-title-bg-video"
+          src={CLICKER_ASSETS.titleLoop}
+          poster={CLICKER_ASSETS.bgMineEntrance}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+        />
+      </div>
       <div className="clicker-title-veil" aria-hidden />
       <div className="clicker-title-grain" aria-hidden />
       <button

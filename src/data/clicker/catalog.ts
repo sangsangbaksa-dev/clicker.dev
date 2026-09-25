@@ -8,6 +8,8 @@ export const CLICKER_ASSETS = {
   bgChamber: "/clicker/bg/region_core_chamber.png",
   /** Hub pre-enter — exterior gate only. */
   bgMineEntrance: MineArt.entranceGate,
+  /** Title-screen loop layered over `bgMineEntrance`. */
+  titleLoop: MineArt.titleAmbientLoop,
   /** Timed mine session — hi-tech interior chamber. */
   bgMine: MineArt.chamberBg,
   mineCoreOre: MineArt.coreOre,

@@ -63,3 +63,16 @@ t≈5.0  sfx_rebirth_settle_chime
 Adjust to match actual animation keys; keep stamp variant tied to selected worldline id.
 | `sfx_hub_nav.wav`, `sfx_producer_buy.wav`, `sfx_upgrade_level.wav`, `sfx_mine_timeout_warn_soft.wav` | Hub navigation, producer purchase, level-up, softer mine timeout warning | 0.10s / 0.20s / 0.35s / 0.40s; mono 44.1kHz 16-bit; peak −3 dBFS |
 | `sfx_rebirth_open.wav`, `sfx_rebirth_cancel.wav`, `sfx_worldline_hover.wav`, `sfx_confirm_focus.wav` | Rebirth open, rebirth cancel, worldline hover, and confirm-focus UI cues | 0.50s / 0.25s / 0.12s / 0.20s; mono 44.1kHz 16-bit; peak −3 dBFS |
+
+## Pack v3 (generate_audio_v3.py)
+
+Game uses MP3 copies under `public/clicker/audio/` (`python3 generate_audio_v3.py --publish`); wiring lives in `src/components/clicker/clicker-sfx.ts` and `src/hooks/use-clicker.ts`.
+
+| File | Game event | Notes |
+|------|------------|-------|
+| `sfx_skill_activate.wav` | Active skill cast / drill overdrive | Charge zip + cyan burst, ~0.45s |
+| `sfx_achievement.wav` | Achievement unlocked | Rising glass arpeggio, ~1.1s |
+| `sfx_crisis_alert.wav` | Core enters crisis | Low dissonant pulses + siren, ~0.9s |
+| `sfx_crisis_resolve.wav` | Crisis choice resolved | Hiss release into stable fifth, ~0.8s |
+| `sfx_region_travel.wav` | Region travel / return home | Doppler whoosh + arrival thump, ~0.75s |
+| `sfx_rebirth_stamp_adaptive_architect.wav` | Worldline stamp — Adaptive Architect | Emerald chord, root A#4 |
