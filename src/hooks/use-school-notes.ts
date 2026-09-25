@@ -10,12 +10,21 @@ import { SYNC_VISIBLE_MS, TEXT_SAVE_DEBOUNCE_MS } from "@/shared/sync"
 import type { AuthUser, SchoolNotesDocument, SchoolNoteKind } from "@/domain/entities/board"
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
+import { errorMessage, getJson } from "@/shared/get-json"
 
 type SaveState = "saved" | "saving" | "offline"
 
 const fetchOpts: RequestInit = {
   credentials: "same-origin",
   cache: "no-store",
+}
+
+const LOAD_ERROR = "전교 노트를 불러오지 못했습니다."
+
+async function requestSchoolNotes(): Promise<SchoolNotesDocument> {
+  const payload = await getJson<{ schoolNotes?: SchoolNotesDocument }>("/api/school-notes", LOAD_ERROR)
+  if (!payload.schoolNotes) throw new Error(LOAD_ERROR)
+  return payload.schoolNotes
 }
 
 function mergeLocalOnConflict(
@@ -49,40 +58,55 @@ export function useSchoolNotes(
     docRef.current = doc
   }, [doc])
 
+  // Losing edit rights drops any pending save, so the badge goes back to "saved".
+  const [prevCanEdit, setPrevCanEdit] = useState(canEdit)
+  if (prevCanEdit !== canEdit) {
+    setPrevCanEdit(canEdit)
+    if (!canEdit) setSaveState("saved")
+  }
+
   useEffect(() => {
     canEditRef.current = canEdit
     if (canEdit) return
     dirtyRef.current = false
     if (saveTimer.current) window.clearTimeout(saveTimer.current)
-    setSaveState("saved")
   }, [canEdit])
 
-  const load = useCallback(async (quiet = false) => {
+  /** Adopt the server copy unless the user has unsaved edits. */
+  const adoptServerDoc = useCallback((next: SchoolNotesDocument) => {
     if (dirtyRef.current) return
-    try {
-      const res = await fetch("/api/school-notes", fetchOpts)
-      const payload = (await res.json()) as {
-        schoolNotes?: SchoolNotesDocument
-        error?: string
-      }
-      if (!res.ok || !payload.schoolNotes) {
-        throw new Error(payload.error ?? "전교 노트를 불러오지 못했습니다.")
-      }
-      if (dirtyRef.current) return
-      lastSyncedRef.current = payload.schoolNotes
-      docRef.current = payload.schoolNotes
-      setDoc(payload.schoolNotes)
-    } catch (error) {
-      if (quiet) return
-      const message = error instanceof Error ? error.message : "전교 노트를 불러오지 못했습니다."
-      toast.error(message)
-    }
+    lastSyncedRef.current = next
+    docRef.current = next
+    setDoc(next)
   }, [])
 
+  const load = useCallback(
+    async (quiet = false) => {
+      if (dirtyRef.current) return
+      try {
+        adoptServerDoc(await requestSchoolNotes())
+      } catch (error) {
+        if (!quiet) toast.error(errorMessage(error, LOAD_ERROR))
+      }
+    },
+    [adoptServerDoc]
+  )
+
   useEffect(() => {
-    if (!enabled) return
-    void load()
-  }, [enabled, load])
+    if (!enabled || dirtyRef.current) return
+    let active = true
+    requestSchoolNotes().then(
+      (next) => {
+        if (active) adoptServerDoc(next)
+      },
+      (error) => {
+        if (active) toast.error(errorMessage(error, LOAD_ERROR))
+      }
+    )
+    return () => {
+      active = false
+    }
+  }, [enabled, adoptServerDoc])
 
   useEffect(() => {
     if (!enabled) return

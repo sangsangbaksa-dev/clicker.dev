@@ -1,5 +1,5 @@
 import type { SessionUser } from "@/domain/entities/user"
-import type { Room, Task, TaskComment, Update } from "@/domain/entities/board"
+import type { Room, Task, Update } from "@/domain/entities/board"
 
 export function stampRoomAuthors(
   incoming: Room,

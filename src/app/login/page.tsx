@@ -23,16 +23,18 @@ function LoginPageContent() {
   const { user, ready } = useAuth()
   const initialMode = searchParams.get("mode") === "signup" ? "signup" : "login"
   const [mode, setMode] = useState<AuthMode>(initialMode)
+  // Follow the URL when it changes (back/forward), without an extra effect pass.
+  const [urlMode, setUrlMode] = useState<AuthMode>(initialMode)
+  if (urlMode !== initialMode) {
+    setUrlMode(initialMode)
+    setMode(initialMode)
+  }
   const next = safeNextPath(searchParams.get("next"))
 
   function handleModeChange(nextMode: AuthMode) {
     setMode(nextMode)
     router.replace(loginPageHref(nextMode, next), { scroll: false })
   }
-
-  useEffect(() => {
-    setMode(initialMode)
-  }, [initialMode])
 
   useEffect(() => {
     if (ready && user) {

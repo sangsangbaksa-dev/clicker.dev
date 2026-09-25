@@ -107,7 +107,11 @@ export function SettingsProfileForm({ user }: { user: AuthUser }) {
     }
   }, [])
 
-  useEffect(() => {
+  // Pick up the account's new values after a save or refresh, without an extra effect pass.
+  const userKey = [user.id, user.loginId, user.classN, user.englishLevel, user.mathLevel].join("|")
+  const [syncedUserKey, setSyncedUserKey] = useState(userKey)
+  if (syncedUserKey !== userKey) {
+    setSyncedUserKey(userKey)
     setSavedLoginId(user.loginId)
     setSavedClassN(user.classN ?? null)
     setSavedEnglishLevel(user.englishLevel ?? null)
@@ -116,16 +120,11 @@ export function SettingsProfileForm({ user }: { user: AuthUser }) {
     setClassN(user.classN ?? null)
     setEnglishLevel(user.englishLevel ?? null)
     setMathLevel(user.mathLevel ?? null)
-    void loadPending()
-  }, [
-    loadPending,
-    user.id,
-    user.loginId,
-    user.classN,
-    user.englishLevel,
-    user.mathLevel,
-  ])
+  }
 
+  useEffect(() => {
+    void loadPending()
+  }, [loadPending, userKey])
   async function submit(event: React.FormEvent) {
     event.preventDefault()
     if (pendingRequest && !direct) {

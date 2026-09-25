@@ -27,6 +27,19 @@ import { Spinner } from "@/components/ui/spinner"
 import { ChevronDown, ChevronUp, Eraser, UserMinus } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
+import { errorMessage, getJson } from "@/shared/get-json"
+
+type MembersPayload = {
+  members?: AuthUser[]
+  activity?: Record<string, UserActivityItem[]>
+  canReorder?: boolean
+}
+
+const LOAD_ERROR = "목록을 불러오지 못했습니다."
+
+function requestMembers() {
+  return getJson<MembersPayload>("/api/auth/members", "회원 목록을 불러오지 못했습니다.")
+}
 
 export function MembersPanel({
   actor,
@@ -68,37 +81,40 @@ export function MembersPanel({
     setActivityVisible(Object.fromEntries(members.map((member) => [member.id, false])))
   }
 
-  const load = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true)
+  const applyMembers = useCallback((payload: MembersPayload) => {
+    setMembers(payload.members ?? [])
+    setActivity(payload.activity ?? {})
+    setCanReorder(Boolean(payload.canReorder))
+  }, [])
+
+  /** Refetch after an action; the first load's spinner comes from the initial state. */
+  const load = useCallback(async () => {
+    setLoading(true)
     try {
-      const response = await fetch("/api/auth/members", {
-        cache: "no-store",
-        credentials: "same-origin",
-      })
-      const payload = (await response.json()) as {
-        members?: AuthUser[]
-        activity?: Record<string, UserActivityItem[]>
-        canReorder?: boolean
-        error?: string
-      }
-      if (!response.ok) {
-        throw new Error(payload.error ?? "회원 목록을 불러오지 못했습니다.")
-      }
-      setMembers(payload.members ?? [])
-      setActivity(payload.activity ?? {})
-      setCanReorder(Boolean(payload.canReorder))
+      applyMembers(await requestMembers())
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "목록을 불러오지 못했습니다."
-      )
+      toast.error(errorMessage(error, LOAD_ERROR))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [applyMembers])
 
   useEffect(() => {
-    void load(initialMembers !== undefined)
-  }, [load, actor.id])
+    let active = true
+    requestMembers()
+      .then((payload) => {
+        if (active) applyMembers(payload)
+      })
+      .catch((error) => {
+        if (active) toast.error(errorMessage(error, LOAD_ERROR))
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [applyMembers])
 
   async function restoreMembers() {
     setRestoring(true)

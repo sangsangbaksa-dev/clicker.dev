@@ -10,6 +10,11 @@ const eslintConfig = defineConfig([
       // Most hits are mount-time loads (localStorage, fetch) that must run after
       // hydration; keep them visible as warnings until each is refactored.
       "react-hooks/set-state-in-effect": "warn",
+      // `_name` marks a value kept on purpose (API shape, omitted by destructuring).
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", ignoreRestSiblings: true },
+      ],
     },
   },
   // Override default ignores of eslint-config-next.

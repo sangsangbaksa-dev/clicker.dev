@@ -42,8 +42,10 @@ export function usePlannerTimetable() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
+    // localStorage is only readable after hydration, so the first real value lands here.
     const stored = applyPlannerWeekRollover(readStored())
     persist(stored)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTimetable(stored)
     setReady(true)
 

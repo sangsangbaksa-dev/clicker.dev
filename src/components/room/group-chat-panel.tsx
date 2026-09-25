@@ -36,7 +36,7 @@ export function GroupChatPanel({
   const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const messages = chat?.messages ?? []
+  const messages = useMemo(() => chat?.messages ?? [], [chat?.messages])
 
   const clusters = useMemo(() => {
     return messages.map((message, index) => {

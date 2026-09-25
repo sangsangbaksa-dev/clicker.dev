@@ -1,6 +1,5 @@
 import {
   CLASSES,
-  HOMEROOM_CLASSES,
   classFromCode,
   createClassRoom,
   toClassSummary,
@@ -83,7 +82,7 @@ async function expireRoomTasksIfNeeded(room: Room): Promise<Room> {
 }
 
 async function loadRoom(normalized: string, fresh = false): Promise<Room | null> {
-  const { dir, unreliable, confirmedEmpty } = await loadRoomDirectory({ fresh })
+  const { dir } = await loadRoomDirectory({ fresh })
   const room = dir.rooms[normalized] ?? null
 
   if (!room) {
@@ -154,17 +153,6 @@ export async function removeMemberFromAllRooms(userId: string): Promise<number> 
   }
   invalidateRoomCache()
   return removed
-}
-
-/** BAN1–BAN4 중 userId가 members에 있는 방 코드, 없으면 null. */
-export async function findUserClassCode(userId: string): Promise<string | null> {
-  for (const info of HOMEROOM_CLASSES) {
-    const room = await getRoom(info.code)
-    if (room?.members.some((member) => member.id === userId)) {
-      return info.code
-    }
-  }
-  return null
 }
 
 export function warmClassSummariesCache(data: ClassSummary[]) {

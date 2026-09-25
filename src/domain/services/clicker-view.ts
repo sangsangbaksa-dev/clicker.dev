@@ -20,8 +20,8 @@ import {
   rebirthRequirement,
   scaledCost,
   worldlineMultiplier,
-} from "./clicker-engine"
-import { formatNumber } from "./clicker-format"
+} from "./clicker-engine.ts"
+import { formatNumber } from "./clicker-format.ts"
 
 export type CoreVisual = "idle" | "fever" | "crisis"
 

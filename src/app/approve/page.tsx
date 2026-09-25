@@ -38,7 +38,6 @@ export default async function ApprovePage() {
     <AuthAccessGate>
       {allowed ? (
         <ApprovePanel
-          actor={user}
           initialPending={pendingData.pending}
           initialActivity={pendingData.activity}
           initialRequests={requests}

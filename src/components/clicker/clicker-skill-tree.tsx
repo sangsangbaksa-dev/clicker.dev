@@ -40,6 +40,15 @@ function cellStyle(cell: SkillCell): CSSProperties {
   }
 }
 
+function defaultSelection(nodes: TreeNode[]): string | null {
+  return (
+    nodes.find((n) => n.status === "AVAILABLE")?.id ??
+    nodes.find((n) => n.status === "OWNED")?.id ??
+    nodes[0]?.id ??
+    null
+  )
+}
+
 export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
   // The whole tree is always on the board; locked circuits show dimmed with their prerequisites.
   const layout = useMemo(() => layoutSkillTree(nodes), [nodes])
@@ -53,21 +62,11 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(
     () => treeNodes.find((n) => n.status === "AVAILABLE")?.id ?? treeNodes[0]?.id ?? null,
   )
-
-  useEffect(() => {
-    if (!treeNodes.length) {
-      setSelectedId(null)
-      return
-    }
-    const current = treeNodes.find((n) => n.id === selectedId)
-    if (current) return
-    setSelectedId(
-      treeNodes.find((n) => n.status === "AVAILABLE")?.id ??
-        treeNodes.find((n) => n.status === "OWNED")?.id ??
-        treeNodes[0]?.id ??
-        null,
-    )
-  }, [selectedId, treeNodes])
+  // Re-pick during render when the selected node leaves the tree (no extra effect pass).
+  if (!treeNodes.some((n) => n.id === selectedId)) {
+    const fallback = defaultSelection(treeNodes)
+    if (fallback !== selectedId) setSelectedId(fallback)
+  }
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const hubCol = layout.hub.col

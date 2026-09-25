@@ -9,6 +9,7 @@ import { refreshAuthSession } from "@/hooks/use-auth"
 import { SYNC_HIDDEN_MS, SYNC_VISIBLE_MS, TEXT_SAVE_DEBOUNCE_MS } from "@/shared/sync"
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { toast } from "sonner"
+import { errorMessage } from "@/shared/get-json"
 
 type SaveState = "saved" | "saving" | "offline"
 
@@ -46,14 +47,53 @@ const emptyChat = (groupId: string): GroupChatView => ({
   messages: [],
 })
 
+type LiveStatus = "loading" | "ready" | "forbidden" | "missing"
+
+type LiveResult =
+  | { kind: "ok"; payload: GroupLiveView }
+  | { kind: "forbidden" | "missing"; error: string }
+
+async function requestLive(
+  roomCode: string,
+  groupId: string,
+  docsStamp: string,
+  chatStamp: string
+): Promise<LiveResult> {
+  const res = await fetch(liveUrl(roomCode, groupId, docsStamp, chatStamp), fetchOpts)
+  const payload = (await res.json()) as GroupLiveView & { error?: string }
+  if (res.status === 403) {
+    return { kind: "forbidden", error: payload.error ?? "이 조 조원만 문서와 대화를 볼 수 있습니다." }
+  }
+  if (res.status === 404) {
+    return { kind: "missing", error: payload.error ?? "조를 찾을 수 없습니다." }
+  }
+  if (!res.ok) throw new Error(payload.error ?? LOAD_ERROR)
+  return { kind: "ok", payload }
+}
+
+const LOAD_ERROR = "불러오지 못했습니다."
+
 export function useGroupLive(roomCode: string, groupId: string | null) {
   const [docs, setDocs] = useState<GroupDocsView | null>(null)
-  const [chat, setChat] = useState<GroupChatView | null>(null)
+  const [chat, setChat] = useState<GroupChatView | null>(() => (groupId ? emptyChat(groupId) : null))
   const [typing, setTyping] = useState<GroupTyping[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [saveState, setSaveState] = useState<SaveState>("saved")
   const [error, setError] = useState<string | null>(null)
-  const [status, setStatus] = useState<"loading" | "ready" | "forbidden" | "missing">("loading")
+  const [status, setStatus] = useState<LiveStatus>(groupId ? "loading" : "missing")
+
+  // Switching groups starts from a blank view (refs are reset in the effect below).
+  const [viewGroupId, setViewGroupId] = useState(groupId)
+  if (viewGroupId !== groupId) {
+    setViewGroupId(groupId)
+    setDocs(null)
+    setChat(groupId ? emptyChat(groupId) : null)
+    setTyping([])
+    setActiveId(null)
+    setSaveState("saved")
+    setError(null)
+    setStatus(groupId ? "loading" : "missing")
+  }
 
   const docsRef = useRef<GroupDocsView | null>(null)
   const lastSyncedDocsRef = useRef<GroupDocsView | null>(null)
@@ -107,39 +147,36 @@ export function useGroupLive(roomCode: string, groupId: string | null) {
     setStatus("ready")
   }, [])
 
+  const applyResult = useCallback(
+    (result: LiveResult) => {
+      if (result.kind === "ok") {
+        applyLive(result.payload, dirtyRef.current)
+        return
+      }
+      setStatus(result.kind)
+      setError(result.error)
+      setDocs(null)
+      setChat(null)
+    },
+    [applyLive]
+  )
+
+  const showLoadError = useCallback((err: unknown) => {
+    const message = errorMessage(err, LOAD_ERROR)
+    setError(message)
+    toast.error(message)
+  }, [])
+
   const load = useCallback(
     async (quiet = false) => {
       if (!groupId) return
       try {
-        const res = await fetch(
-          liveUrl(roomCode, groupId, docsStampRef.current, chatStampRef.current),
-          fetchOpts
-        )
-        const payload = (await res.json()) as GroupLiveView & { error?: string }
-        if (res.status === 403) {
-          setStatus("forbidden")
-          setError(payload.error ?? "이 조 조원만 문서와 대화를 볼 수 있습니다.")
-          setDocs(null)
-          setChat(null)
-          return
-        }
-        if (res.status === 404) {
-          setStatus("missing")
-          setError(payload.error ?? "조를 찾을 수 없습니다.")
-          setDocs(null)
-          setChat(null)
-          return
-        }
-        if (!res.ok) throw new Error(payload.error ?? "불러오지 못했습니다.")
-        applyLive(payload, dirtyRef.current)
+        applyResult(await requestLive(roomCode, groupId, docsStampRef.current, chatStampRef.current))
       } catch (err) {
-        if (quiet) return
-        const message = err instanceof Error ? err.message : "불러오지 못했습니다."
-        setError(message)
-        toast.error(message)
+        if (!quiet) showLoadError(err)
       }
     },
-    [applyLive, groupId, roomCode]
+    [applyResult, groupId, roomCode, showLoadError]
   )
 
   useEffect(() => {
@@ -148,15 +185,20 @@ export function useGroupLive(roomCode: string, groupId: string | null) {
     docsRef.current = null
     docsStampRef.current = ""
     chatStampRef.current = ""
-    setDocs(null)
-    setChat(groupId ? emptyChat(groupId) : null)
-    setTyping([])
-    setActiveId(null)
-    setSaveState("saved")
-    setError(null)
-    setStatus(groupId ? "loading" : "missing")
-    if (groupId) void load()
-  }, [groupId, load])
+    if (!groupId) return
+    let active = true
+    requestLive(roomCode, groupId, "", "").then(
+      (result) => {
+        if (active) applyResult(result)
+      },
+      (err) => {
+        if (active) showLoadError(err)
+      }
+    )
+    return () => {
+      active = false
+    }
+  }, [applyResult, groupId, roomCode, showLoadError])
 
   // Retries re-enter through the ref so they always run the latest flushSave.
   const flushSaveRef = useRef<() => Promise<void>>(async () => {})

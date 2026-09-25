@@ -259,7 +259,6 @@ async function runHttpTests() {
   }
 
   const joinBan1 = await patchJoin("BAN1", testCookie)
-  const joinedRoom = joinBan1.body.room ?? ownClassPut.body.room ?? ban1Before.body.room
   const memberCountAfterJoin =
     joinBan1.body.room?.members?.filter((m) => m.id === testUserId).length ?? 0
   if (!log("API join own class BAN1", memberCountAfterJoin === 1, `members ${memberCountAfterJoin}`)) {
