@@ -8,7 +8,9 @@ function rootDir(): string {
 }
 
 export function dataPath(...segments: string[]): string {
-  return path.join(rootDir(), ...segments)
+  // Runtime data only (written on first use, /tmp on Vercel/Netlify): keep the bundler from
+  // tracing the whole project, public/ included, into every server function.
+  return path.join(/*turbopackIgnore: true*/ rootDir(), ...segments)
 }
 
 export function isReadonlyFsError(error: unknown): boolean {
