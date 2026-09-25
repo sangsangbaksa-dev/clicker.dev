@@ -11,7 +11,7 @@ import {
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
 import { formatNumber } from "@/domain/services/clicker-format"
 import { useClicker } from "@/hooks/use-clicker"
-import { useClickerBgm } from "@/hooks/use-clicker-bgm"
+import { regionBgm, useClickerBgm } from "@/hooks/use-clicker-bgm"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine } from "@/components/clicker/clicker-mine"
@@ -168,7 +168,7 @@ export function ClickerApp() {
         ? "chamber"
         : game.save?.settings.playSurface === "mine"
           ? "mine"
-          : "hub",
+          : regionBgm(game.currentRegion?.id),
     muted: game.otherTabActive || (game.save?.settings.musicMuted ?? false),
     volume: game.save?.settings.musicVolume ?? 0,
   })

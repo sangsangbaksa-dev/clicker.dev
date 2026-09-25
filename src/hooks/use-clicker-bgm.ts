@@ -3,120 +3,197 @@
 import { useEffect, useRef } from "react"
 import type { CoreVisual } from "@/domain/services/clicker-view"
 
-/** Hub / mine loops plus the chamber cue for rebirth and ending. */
-const BGM_SRC = {
-  hub: "/clicker/audio/bgm_hub_loop.wav",
-  mine: "/clicker/audio/bgm_mine_loop.wav",
-  chamber: "/clicker/audio/bgm_chamber.ogg",
+/**
+ * Region loops come from scripts/clicker-bgm.py: each file is `loop + 1s` where the last
+ * second repeats the first, so looping [LOOP_START, LOOP_START + loop) is seamless no
+ * matter how much encoder delay the browser's MP3 decoder leaves at the front.
+ * `loop` lengths must match what the script prints.
+ */
+const LOOP_START = 0.5
+const BGM_TRACKS = {
+  core_chamber: { src: "/clicker/audio/bgm_core_chamber.mp3", loop: 53.3333 },
+  signal_relay: { src: "/clicker/audio/bgm_signal_relay.mp3", loop: 58.1818 },
+  phase_vault: { src: "/clicker/audio/bgm_phase_vault.mp3", loop: 60 },
+  storm_spire: { src: "/clicker/audio/bgm_storm_spire.mp3", loop: 41.7391 },
+  deep_fault: { src: "/clicker/audio/bgm_deep_fault.mp3", loop: 61.9355 },
+  drone_foundry: { src: "/clicker/audio/bgm_drone_foundry.mp3", loop: 45.7143 },
+  mine: { src: "/clicker/audio/bgm_mine.mp3", loop: 38.4 },
+  /** Rebirth / ending cue — loops whole. */
+  chamber: { src: "/clicker/audio/bgm_chamber.ogg", loop: 0 },
 } as const
 
-type Track = keyof typeof BGM_SRC
-export type BgmScene = Track | "silent"
+export type BgmTrack = keyof typeof BGM_TRACKS
+export type BgmScene = BgmTrack | "silent"
 
-/** Scene changes crossfade over this long instead of cutting. */
-const FADE_MS = 900
+/** Each world has its own theme; unknown regions fall back to home. */
+export function regionBgm(regionId: string | undefined): BgmTrack {
+  return regionId && regionId in BGM_TRACKS && regionId !== "mine" && regionId !== "chamber"
+    ? (regionId as BgmTrack)
+    : "core_chamber"
+}
+
+/** Scene changes crossfade over roughly this long instead of cutting. */
+const FADE_S = 1.8
 /** Fever lifts the mix, crisis sits it back; neither changes pitch. */
 const VISUAL_GAIN: Partial<Record<CoreVisual, number>> = { fever: 1.2, crisis: 0.75 }
 
+type Voice = {
+  gain: GainNode
+  source: AudioBufferSourceNode | null
+  buffer: AudioBuffer | null
+  loading: boolean
+  stopTimer: number
+}
+
 /**
- * Looping BGM with crossfades between scenes. Fades out while the tab is hidden and
- * retries play on gesture until the browser allows it. Tracks load lazily on first use.
+ * Looping BGM on Web Audio with crossfades between scenes. Suspends while the tab is
+ * hidden, and creates/resumes the context on the first gesture (autoplay policy).
+ * Tracks load lazily and are released once they fade out.
  */
 export function useClickerBgm(
   visual: CoreVisual | undefined,
   { scene, muted, volume }: { scene: BgmScene; muted: boolean; volume: number },
 ) {
   const stateRef = useRef({ scene, gain: 0 })
-  const kickRef = useRef<() => void>(() => {})
+  const applyRef = useRef<() => void>(() => {})
 
   useEffect(() => {
-    const tracks: Partial<Record<Track, HTMLAudioElement>> = {}
-    const levels: Record<Track, number> = { hub: 0, mine: 0, chamber: 0 }
-    let unlocked = false
-    let hidden = document.visibilityState === "hidden"
-    let raf = 0
-    let last = 0
+    let ctx: AudioContext | null = null
+    let master: GainNode | null = null
+    let disposed = false
+    const voices = new Map<BgmTrack, Voice>()
 
-    const track = (key: Track) => {
-      let audio = tracks[key]
-      if (!audio) {
-        audio = new Audio(BGM_SRC[key])
-        audio.loop = true
-        audio.volume = 0
-        tracks[key] = audio
-      }
-      return audio
+    const ensureContext = () => {
+      if (ctx) return ctx
+      const Ctor =
+        window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (!Ctor) return null
+      ctx = new Ctor()
+      master = ctx.createGain()
+      master.gain.value = 0
+      master.connect(ctx.destination)
+      return ctx
     }
 
-    const step = (t: number) => {
-      const dt = last ? t - last : 16
-      last = t
+    const voiceFor = (c: AudioContext, key: BgmTrack) => {
+      let v = voices.get(key)
+      if (!v) {
+        const gain = c.createGain()
+        gain.gain.value = 0
+        gain.connect(master!)
+        v = { gain, source: null, buffer: null, loading: false, stopTimer: 0 }
+        voices.set(key, v)
+      }
+      return v
+    }
+
+    const load = (c: AudioContext, key: BgmTrack, v: Voice) => {
+      if (v.buffer || v.loading) return
+      v.loading = true
+      fetch(BGM_TRACKS[key].src)
+        .then((res) => {
+          if (!res.ok) throw new Error(`bgm ${res.status}`)
+          return res.arrayBuffer()
+        })
+        .then((data) => c.decodeAudioData(data))
+        .then((buffer) => {
+          if (disposed || voices.get(key) !== v) return
+          v.buffer = buffer
+          apply()
+        })
+        .catch(() => {
+          /* missing / undecodable — stay silent for this scene */
+        })
+        .finally(() => {
+          v.loading = false
+        })
+    }
+
+    const start = (c: AudioContext, key: BgmTrack, v: Voice) => {
+      if (v.source || !v.buffer) return
+      const source = c.createBufferSource()
+      source.buffer = v.buffer
+      source.loop = true
+      const { loop } = BGM_TRACKS[key]
+      if (loop > 0 && v.buffer.duration >= LOOP_START + loop) {
+        source.loopStart = LOOP_START
+        source.loopEnd = LOOP_START + loop
+      }
+      source.connect(v.gain)
+      source.start()
+      v.source = source
+    }
+
+    const release = (key: BgmTrack, v: Voice) => {
+      v.source?.stop()
+      v.source?.disconnect()
+      v.gain.disconnect()
+      voices.delete(key)
+    }
+
+    const apply = () => {
+      const c = ctx
+      if (!c || !master || disposed) return
       const { scene: current, gain } = stateRef.current
-      let moving = false
-      for (const key of Object.keys(levels) as Track[]) {
-        const target = !hidden && gain > 0 && current === key ? 1 : 0
-        if (target === 0 && levels[key] === 0 && !tracks[key]) continue
-        const audio = track(key)
-        if (target > 0 && audio.paused && unlocked) {
-          void audio.play().catch(() => {
-            /* autoplay / not-ready — next gesture retries */
-          })
+      const now = c.currentTime
+      master.gain.setTargetAtTime(Math.min(1, gain), now, 0.12)
+      const target = gain > 0 && current !== "silent" ? current : null
+
+      if (target) {
+        const v = voiceFor(c, target)
+        window.clearTimeout(v.stopTimer)
+        v.stopTimer = 0
+        load(c, target, v)
+        if (v.buffer) {
+          start(c, target, v)
+          v.gain.gain.cancelScheduledValues(now)
+          v.gain.gain.setTargetAtTime(1, now, FADE_S / 3)
         }
-        const delta = dt / FADE_MS
-        const level =
-          target > levels[key] ? Math.min(target, levels[key] + delta) : Math.max(target, levels[key] - delta)
-        levels[key] = level
-        audio.volume = Math.min(1, level * gain)
-        if (level === 0 && !audio.paused) audio.pause()
-        if (level !== target) moving = true
       }
-      raf = moving ? window.requestAnimationFrame(step) : 0
-      if (!moving) last = 0
+      for (const [key, v] of voices) {
+        if (key === target || v.stopTimer) continue
+        v.gain.gain.cancelScheduledValues(now)
+        v.gain.gain.setTargetAtTime(0, now, FADE_S / 4)
+        // Free the decoded buffer once it's inaudible; revisiting refetches from HTTP cache.
+        v.stopTimer = window.setTimeout(() => release(key, v), FADE_S * 1000 * 1.6)
+      }
     }
+    applyRef.current = apply
 
-    const kick = () => {
-      if (!raf) raf = window.requestAnimationFrame(step)
-    }
-    kickRef.current = kick
-
-    // Keep listening: a failed first play (or mute-on-gesture) must keep retrying.
+    // Keep listening: a context created before the first gesture stays suspended.
     // Capture phase: mine ore buttons stopPropagation() on pointerdown.
     const onGesture = () => {
-      unlocked = true
-      kick()
+      const c = ensureContext()
+      if (!c) return
+      if (c.state === "suspended" && document.visibilityState === "visible") void c.resume()
+      apply()
     }
-    // rAF stalls in background tabs, so pause directly instead of fading.
     const onVisibility = () => {
-      hidden = document.visibilityState === "hidden"
-      if (hidden) {
-        for (const key of Object.keys(levels) as Track[]) {
-          levels[key] = 0
-          tracks[key]?.pause()
-        }
-      }
-      kick()
+      if (!ctx) return
+      if (document.visibilityState === "hidden") void ctx.suspend()
+      else void ctx.resume()
     }
 
     window.addEventListener("pointerdown", onGesture, true)
     window.addEventListener("keydown", onGesture, true)
     document.addEventListener("visibilitychange", onVisibility)
-    kick()
     return () => {
+      disposed = true
       window.removeEventListener("pointerdown", onGesture, true)
       window.removeEventListener("keydown", onGesture, true)
       document.removeEventListener("visibilitychange", onVisibility)
-      if (raf) window.cancelAnimationFrame(raf)
-      for (const audio of Object.values(tracks)) {
-        audio.pause()
-        audio.src = ""
+      for (const [key, v] of voices) {
+        window.clearTimeout(v.stopTimer)
+        release(key, v)
       }
-      kickRef.current = () => {}
+      void ctx?.close()
+      applyRef.current = () => {}
     }
   }, [])
 
   useEffect(() => {
     const gain = muted ? 0 : volume * (visual ? (VISUAL_GAIN[visual] ?? 1) : 1)
     stateRef.current = { scene, gain }
-    kickRef.current()
+    applyRef.current()
   }, [visual, scene, muted, volume])
 }

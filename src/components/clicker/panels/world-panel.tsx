@@ -4,6 +4,7 @@ import { CLICKER_ASSETS } from "@/data/clicker/catalog"
 import { formatNumber } from "@/domain/services/clicker-format"
 import type { RunState } from "@/domain/entities/clicker"
 import type { ClickerGame } from "./types"
+import { ClickerZoomImage } from "@/components/clicker/clicker-zoom-image"
 
 export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; run: RunState; onBack: () => void }) {
   return (
@@ -64,9 +65,9 @@ export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; ru
                 aria-label={regionTip}
                 aria-current={region.isCurrent ? "location" : undefined}
               >
-                <img
+                <ClickerZoomImage
                   src={region.bgAssetId || CLICKER_ASSETS.bgChamber}
-                  alt=""
+                  label={region.name}
                   onError={(e) => {
                     e.currentTarget.src = CLICKER_ASSETS.bgChamber
                   }}

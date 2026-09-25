@@ -4,6 +4,7 @@ import { useState } from "react"
 import { formatNumber } from "@/domain/services/clicker-format"
 import { bulkAffordable, bulkCostText } from "@/domain/services/clicker-view"
 import type { PanelProps } from "./types"
+import { ClickerZoomImage } from "@/components/clicker/clicker-zoom-image"
 
 export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automationBuff }: PanelProps & { automationBuff: boolean }) {
   const [selectedProducerId, setSelectedProducerId] = useState<string | null>(null)
@@ -33,7 +34,7 @@ export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automatio
             aria-current={selected ? "true" : undefined}
             onClick={() => setSelectedProducerId(p.id)}
           >
-            <img src={p.assetId} alt="" />
+            <ClickerZoomImage src={p.assetId} label={p.name} />
             <div className="clicker-producer-body">
               <div className="clicker-producer-title-row">
                 <strong>{p.name}</strong>

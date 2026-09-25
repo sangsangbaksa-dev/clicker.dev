@@ -2,6 +2,7 @@
 
 import { formatNumber } from "@/domain/services/clicker-format"
 import type { PanelProps } from "./types"
+import { ClickerZoomImage } from "@/components/clicker/clicker-zoom-image"
 
 export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) {
   return (
@@ -32,7 +33,7 @@ export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) 
             key={item.id}
             className={`clicker-card clicker-shop-card ${statusClass}${item.owned > 0 ? " is-stocked" : ""}${(popIcons[item.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
           >
-            <img src={item.assetId} alt="" />
+            <ClickerZoomImage src={item.assetId} label={item.name} />
             <div className="clicker-shop-body">
               <div className="clicker-shop-title-row">
                 <strong>{item.name}</strong>
@@ -75,7 +76,7 @@ export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) 
             key={item.id}
             className={`clicker-card clicker-shop-card ${statusClass}${item.owned > 0 ? " is-stocked" : ""}${(popIcons[item.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
           >
-            <img src={item.assetId} alt="" />
+            <ClickerZoomImage src={item.assetId} label={item.name} />
             <div className="clicker-shop-body">
               <div className="clicker-shop-title-row">
                 <strong>{item.name}</strong>

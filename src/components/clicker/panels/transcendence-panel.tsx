@@ -5,6 +5,7 @@ import { formatNumber } from "@/domain/services/clicker-format"
 import { ClickerRebirthWorldlineSelect } from "@/components/clicker/clicker-rebirth-worldline-select"
 import type { MetaState, TranscendenceDef } from "@/domain/entities/clicker"
 import type { PanelProps } from "./types"
+import { ClickerZoomImage } from "@/components/clicker/clicker-zoom-image"
 
 export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon, onSelectTab, onOpenEnding, onChoose }: PanelProps & {
   meta: MetaState
@@ -90,7 +91,7 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
         <>
           {game.canCompleteEnding ? (
             <article className="clicker-card clicker-protocol-card">
-              <img src={CLICKER_ASSETS.icon} alt="" />
+              <ClickerZoomImage src={CLICKER_ASSETS.icon} label="AURELIA Protocol" />
               <div>
                 <strong>AURELIA Protocol</strong>
                 <p className="clicker-protocol-copy">
