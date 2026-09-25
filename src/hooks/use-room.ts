@@ -252,6 +252,15 @@ export function useRoom(
     persist(options)
   }
 
+  // updateRoom and the pagehide handler are created once, so they reach the save helpers
+  // through refs that always hold this render's versions.
+  const scheduleSaveRef = useRef(scheduleSave)
+  const flushPendingSaveRef = useRef(flushPendingSave)
+  useLayoutEffect(() => {
+    scheduleSaveRef.current = scheduleSave
+    flushPendingSaveRef.current = flushPendingSave
+  })
+
   const updateRoom = useCallback(
     (
       updater: (current: Room) => Room,
@@ -267,7 +276,7 @@ export function useRoom(
         roomRef.current = next
         return next
       })
-      scheduleSave(pendingDebounceMs.current)
+      scheduleSaveRef.current(pendingDebounceMs.current)
     },
     []
   )
@@ -342,11 +351,13 @@ export function useRoom(
     }
   }, [code, initialRoomKey, setRoomSafe, rememberSynced])
 
+  // Keyed on the id, so a refreshed user object doesn't restart presence.
+  const userId = user?.id
   useEffect(() => {
-    if (status !== "ready" || !user) return
+    if (status !== "ready" || !userId) return
     const current = roomRef.current
     if (!current) return
-    const already = current.members.some((member) => member.id === user.id)
+    const already = current.members.some((member) => member.id === userId)
     void fetch(`/api/rooms/${current.code}`, {
       ...fetchOpts,
       method: "PATCH",
@@ -370,14 +381,14 @@ export function useRoom(
       })
       .catch(() => undefined)
     lastHeartbeatAt.current = Date.now()
-  }, [user?.id, status, mergeMembers, setRoomSafe, rememberSynced])
+  }, [userId, status, mergeMembers, setRoomSafe, rememberSynced])
 
   useEffect(() => {
     if (status !== "ready") return
 
     async function sendHeartbeat() {
       const current = roomRef.current
-      if (!current || !user) return
+      if (!current || !userId) return
       if (Date.now() - lastHeartbeatAt.current < HEARTBEAT_MS - 500) return
       lastHeartbeatAt.current = Date.now()
       try {
@@ -485,16 +496,17 @@ export function useRoom(
       if (beatTimer) window.clearTimeout(beatTimer)
       document.removeEventListener("visibilitychange", onVisibilityChange)
     }
-  }, [user?.id, status, mergeMembers, setRoomSafe, rememberSynced])
+  }, [userId, status, mergeMembers, setRoomSafe, rememberSynced])
 
   useEffect(() => {
+    const flush = flushPendingSaveRef.current
     function onPageHide() {
-      flushPendingSave({ keepalive: true })
+      flush({ keepalive: true })
     }
     window.addEventListener("pagehide", onPageHide)
     return () => {
       window.removeEventListener("pagehide", onPageHide)
-      flushPendingSave({ keepalive: true })
+      flush({ keepalive: true })
     }
   }, [code])
 
