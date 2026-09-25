@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next"
 
+export const dynamic = "force-static"
+
 /** Lets phones install the game to the home screen and launch it full-screen. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
