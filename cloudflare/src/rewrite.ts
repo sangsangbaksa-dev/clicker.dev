@@ -33,6 +33,11 @@ export function shouldCacheAtEdge(method: string, pathname: string): boolean {
   return isStaticAsset(pathname)
 }
 
+/** HEAD has no body; storing it under the GET key would serve empty files later. */
+export function shouldStoreAtEdge(method: string, ok: boolean): boolean {
+  return ok && method === "GET"
+}
+
 export function edgeCacheTtlSeconds(pathname: string): number {
   if (pathname.startsWith("/_next/static/")) return 31_536_000
   if (/\.(?:woff2?|ttf|otf|png|jpe?g|gif|svg|ico|webp)$/i.test(pathname)) {

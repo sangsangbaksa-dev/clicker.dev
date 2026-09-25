@@ -1,4 +1,11 @@
 import type { NextConfig } from "next"
+import { authSecretDeployProblem } from "./src/infrastructure/auth/auth-secret"
+
+// 운영 배포에서 세션 키가 없으면 빌드를 멈춰, 이전 배포가 그대로 서비스되게 한다.
+const authSecretProblem = authSecretDeployProblem(process.env)
+if (authSecretProblem) {
+  throw new Error(`${authSecretProblem} Vercel/Netlify 환경 변수에 AUTH_SECRET을 설정하세요 (openssl rand -base64 32).`)
+}
 
 const staticCache = [
   { key: "CDN-Cache-Control", value: "public, max-age=31536000, immutable" },

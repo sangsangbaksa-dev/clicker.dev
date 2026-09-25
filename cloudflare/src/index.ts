@@ -5,6 +5,7 @@ import {
   forwardHeaders,
   originUrlFor,
   shouldCacheAtEdge,
+  shouldStoreAtEdge,
 } from "./rewrite"
 
 export interface Env {
@@ -88,8 +89,7 @@ export default {
       headers,
     })
 
-    // HEAD responses have no body; storing one would serve empty files to later GETs.
-    if (originResponse.ok && request.method === "GET") {
+    if (shouldStoreAtEdge(request.method, originResponse.ok)) {
       ctx.waitUntil(cache.put(cacheKey, response.clone()))
     }
 
