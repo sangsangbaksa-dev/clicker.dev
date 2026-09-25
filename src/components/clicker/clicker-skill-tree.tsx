@@ -66,6 +66,26 @@ function clampZoom(z: number) {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100))
 }
 
+/** Per-viewer zoom preference; storage can be missing or blocked, so every access is guarded. */
+const ZOOM_STORAGE_KEY = "aurelia-clicker-skill-zoom"
+
+function readZoom(): number {
+  try {
+    const n = Number(window.localStorage.getItem(ZOOM_STORAGE_KEY))
+    return Number.isFinite(n) && n > 0 ? clampZoom(n) : 1
+  } catch {
+    return 1
+  }
+}
+
+function saveZoom(z: number) {
+  try {
+    window.localStorage.setItem(ZOOM_STORAGE_KEY, String(z))
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
  * Circuit board in the style of idle-game passive trees (Antimatter Dimensions studies,
  * PoE-like passives): drag to pan, zoom buttons, a docked detail card that never scrolls
@@ -90,7 +110,11 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
   )
   const [hoverId, setHoverId] = useState<string | null>(null)
   const [branch, setBranch] = useState<SkillBranch | "ALL">("ALL")
-  const [zoom, setZoom] = useState(1)
+  const [zoom, setZoomState] = useState(() => (typeof window === "undefined" ? 1 : readZoom()))
+  const setZoom = (z: number) => {
+    setZoomState(z)
+    saveZoom(z)
+  }
   const [summaryOpen, setSummaryOpen] = useState(false)
 
   useEffect(() => {
