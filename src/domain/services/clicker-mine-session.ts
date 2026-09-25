@@ -37,11 +37,14 @@ export function mineSessionStart(save: SaveData, now: number): MineSessionStart 
 
 /**
  * Diff the session. `start` may be missing after a reload mid-session — the haul then
- * falls back to the CORE-at-enter mark and the counters read as 0.
+ * falls back to the CORE-at-enter mark and the counters read as 0. `before` is the state
+ * going into the closing tick; `after` has that tick's own production applied, so the
+ * lifetime-CORE diff must read from `after` or the last slice of production is dropped.
  */
 export function summarizeMineSession(
   start: MineSessionStart | null,
   before: SaveData,
+  after: SaveData,
   now: number,
 ): Omit<MineSessionSummary, "best" | "previousBest"> {
   const stats = before.metaState.statistics
@@ -58,7 +61,7 @@ export function summarizeMineSession(
     }
   }
   return {
-    haul: Math.max(0, run.lifetimeCoreEnergy - start.lifetimeCore),
+    haul: Math.max(0, after.runState.lifetimeCoreEnergy - start.lifetimeCore),
     strikes: Math.max(0, stats.clicks - start.clicks),
     crits: Math.max(0, stats.crits - start.crits),
     oresBroken: Math.max(0, stats.oresBroken - start.oresBroken),

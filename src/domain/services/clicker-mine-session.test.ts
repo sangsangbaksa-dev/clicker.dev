@@ -9,16 +9,26 @@ const NOW = 30_000_000
 test("session summary diffs lifetime CORE and counters", () => {
   const save = createInitialSave(NOW, config)
   const start = mineSessionStart(save, NOW)
-  const after = {
+  const before = {
     ...save,
-    runState: { ...save.runState, lifetimeCoreEnergy: 500, coreEnergy: 120 },
+    runState: { ...save.runState, lifetimeCoreEnergy: 420, coreEnergy: 120 },
     metaState: {
       ...save.metaState,
       statistics: { ...save.metaState.statistics, clicks: 40, crits: 6, oresBroken: 1, veins: 1 },
     },
   }
-  const summary = summarizeMineSession(start, after, NOW + 12_400)
+  const after = { ...before, runState: { ...before.runState, lifetimeCoreEnergy: 500 } }
+  const summary = summarizeMineSession(start, before, after, NOW + 12_400)
   assert.deepEqual(summary, { haul: 500, strikes: 40, crits: 6, oresBroken: 1, veins: 1, seconds: 12 })
+})
+
+test("session summary counts the closing tick's own production, not just the state before it", () => {
+  const save = createInitialSave(NOW, config)
+  const start = mineSessionStart(save, NOW)
+  const before = { ...save, runState: { ...save.runState, lifetimeCoreEnergy: 100 } }
+  const after = { ...save, runState: { ...save.runState, lifetimeCoreEnergy: 130 } }
+  const summary = summarizeMineSession(start, before, after, NOW + 1_000)
+  assert.equal(summary.haul, 130)
 })
 
 test("session summary without a start falls back to the CORE-at-enter mark", () => {
@@ -27,7 +37,7 @@ test("session summary without a start falls back to the CORE-at-enter mark", () 
     ...save,
     runState: { ...save.runState, coreEnergy: 90, mineSessionCoreAtEnter: 30, mineSessionDurationMs: 10_000 },
   }
-  const summary = summarizeMineSession(null, inMine, NOW)
+  const summary = summarizeMineSession(null, inMine, inMine, NOW)
   assert.equal(summary.haul, 60)
   assert.equal(summary.strikes, 0)
   assert.equal(summary.seconds, 10)

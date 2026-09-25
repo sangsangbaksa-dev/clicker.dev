@@ -298,7 +298,7 @@ export function clickerFinishMineSession(
   after: SaveData,
   now: number,
 ): { save: SaveData; summary: MineSessionSummary } {
-  const diff = summarizeMineSession(start, before, now)
+  const diff = summarizeMineSession(start, before, after, now)
   const recorded = recordMineSession(after.metaState, diff.haul)
   return {
     save: { ...after, metaState: recorded.meta },

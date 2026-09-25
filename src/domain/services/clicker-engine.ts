@@ -674,7 +674,6 @@ export function processClick(
   combo.count = Math.min(combo.count + 1, combo.maxCombo)
   combo.multiplier = Math.min(1 + combo.count * config.comboPerStack, config.comboMultiplierCap)
   combo.expiresAt = now + derived.comboWindow * 1000
-  if (combo.count > combo.maxCombo) combo.maxCombo = combo.count
 
   const fever = feverMultipliers(run, meta, config)
   const isCritical = rng() < derived.critChance
