@@ -614,6 +614,21 @@ export function ClickerApp() {
       ...(showTranscendenceTab ? ([["transcendence", "TRANSCENDENCE", "초월"]] as const) : []),
     ] as const
   )
+  // "Something here is affordable" counts, shown as badges on the dock and tabs.
+  const readyCounts: Partial<Record<TabId, number>> = {
+    producers: game.producers.filter((p) => p.canBuy).length,
+    upgrades: game.upgrades.filter((u) => u.status === "AVAILABLE").length,
+    skills: visibleSkillNodes.filter((n) => n.status === "AVAILABLE").length,
+  }
+  const readyBadge = (id: TabId) => {
+    const n = readyCounts[id] ?? 0
+    return n > 0 ? (
+      <b className="clicker-tab-badge" aria-hidden>
+        {n > 99 ? "99+" : n}
+      </b>
+    ) : null
+  }
+  const readyLabel = (id: TabId) => ((readyCounts[id] ?? 0) > 0 ? ` · 구매 가능 ${readyCounts[id]}` : "")
   const instClass =
     hud.instability.level === "CRISIS"
       ? "is-crisis"
@@ -1162,11 +1177,12 @@ export function ClickerApp() {
                 key={id}
                 type="button"
                 className="clicker-hub-dock-btn"
-                aria-label={`${ko} 화면 열기`}
+                aria-label={`${ko} 화면 열기${readyLabel(id)}`}
                 onClick={() => selectTab(id)}
               >
                 <strong>{ko}</strong>
                 <span>{label}</span>
+                {readyBadge(id)}
               </button>
             ))}
           </nav>
@@ -1297,11 +1313,13 @@ export function ClickerApp() {
               key={id}
               type="button"
               data-active={tab === id}
-              aria-label={ko}
+              aria-label={`${ko}${readyLabel(id)}`}
               aria-current={tab === id ? "page" : undefined}
+              title={label}
               onClick={() => selectTab(id)}
             >
-              {label}
+              {ko}
+              {readyBadge(id)}
             </button>
           ))}
         </nav>

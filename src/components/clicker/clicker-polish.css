@@ -278,9 +278,9 @@
   border: 0;
   border-radius: 9px;
   color: var(--text-2);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.02em;
   cursor: pointer;
   transition: color 140ms ease, background 140ms ease, box-shadow 140ms ease;
 }
@@ -577,6 +577,39 @@
   transition: border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
 }
 
+[data-clicker] .clicker-hub-dock-btn,
+[data-clicker] .clicker-tabs button {
+  position: relative;
+}
+
+/* Affordable-count badge (dock + tabs), like the "you can buy this" cue in idle games. */
+[data-clicker] .clicker-tab-badge {
+  /* Inside the button: the dock scrolls sideways and would clip anything outside. */
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 99px;
+  background: var(--core);
+  color: #04202a;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 18px;
+  letter-spacing: 0;
+  text-align: center;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--core) 60%, transparent);
+  pointer-events: none;
+}
+
+[data-clicker] .clicker-tabs .clicker-tab-badge {
+  position: static;
+  display: inline-block;
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+
 [data-clicker] .clicker-hub-dock-btn strong {
   font-size: 14px;
   font-weight: 800;
@@ -605,6 +638,8 @@
 /* Manage: panel owns the screen; the entrance scene steps aside. */
 [data-clicker].is-view-manage {
   grid-template-rows: auto minmax(0, 1fr);
+  /* Fixed to the viewport so the HUD stays put and each panel scrolls inside itself. */
+  height: 100dvh;
 }
 
 [data-clicker].is-view-manage :is(.clicker-stage, .clicker-actions) {
