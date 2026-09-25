@@ -1,0 +1,44 @@
+name: Cloudflare edge
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cloudflare/**"
+      - ".github/workflows/cloudflare-edge.yml"
+  pull_request:
+    paths:
+      - "cloudflare/**"
+      - ".github/workflows/cloudflare-edge.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Edge rewrite tests
+        run: npm --prefix cloudflare test
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy hsms-md-edge
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: e8fbc690d9c26810ae8cc1ee9f83c814
+          workingDirectory: cloudflare
+          command: deploy
+      - name: Skip deploy without API token
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN == '' }}
+        run: echo "Set CLOUDFLARE_API_TOKEN on the GitHub repo to deploy to Cloudflare account e8fbc690d9c26810ae8cc1ee9f83c814."

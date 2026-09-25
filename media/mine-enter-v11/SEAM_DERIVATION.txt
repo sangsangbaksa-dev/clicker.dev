@@ -1,0 +1,10 @@
+match_score=0.9139848351478577
+scale=0.9125
+x0=296
+y0=108
+templ_wh=(753, 516)
+orange_x=397
+markup_size=(825, 566)
+seam_float=658.2625
+SEAM=658
+naive_resize=615.9515151515152

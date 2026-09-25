@@ -1,0 +1,17 @@
+{
+  "name": "화산중 HSMS",
+  "install": "npm install",
+  "ports": [
+    {
+      "name": "dev server",
+      "port": 8080
+    }
+  ],
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "npm run dev",
+      "description": "Next.js dev server on port 8080"
+    }
+  ]
+}

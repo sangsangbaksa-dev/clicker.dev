@@ -1,0 +1,68 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+cloudflare/node_modules/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# cloudflare wrangler
+.wrangler/
+cloudflare/.wrangler/
+.dev.vars
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# local room data
+/data/rooms/*.json
+/data/users/*.json
+/data/profile-requests/*.json
+/data/school-notes.json
+/data/members-live.json
+/data/accounts/
+/data/tasks-live.json
+/data/task-files/
+/data/group-chat/
+
+# local screenshots (not part of the app)
+/assets/
+
+# local transfer bundles
+/media/*.zip
+
+# per-user agent settings
+.claude/settings.local.json
+

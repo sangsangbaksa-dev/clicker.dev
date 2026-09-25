@@ -1,0 +1,25 @@
+# Reduce agent context — generated & bulky paths
+node_modules/
+.next/
+out/
+build/
+coverage/
+
+# TypeScript / tooling cache
+*.tsbuildinfo
+.turbo/
+
+# Local runtime data (sensitive / noisy)
+data/rooms/*.json
+data/users/
+data/profile-requests/
+data/school-notes.json
+
+# Legacy static HTML reference (not edited in app work)
+school-html/
+
+# Chat / screenshot uploads
+assets/
+
+# Lockfiles are large and rarely needed in context
+package-lock.json

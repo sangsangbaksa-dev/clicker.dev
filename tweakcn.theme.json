@@ -1,0 +1,11 @@
+{
+  "name": "화산중",
+  "source": "tweakcn.com",
+  "tailwindVersion": 4,
+  "cssFile": "src/styles/tweakcn-theme.css",
+  "palette": {
+    "background": "#E8F0E0",
+    "card": "#F2F7EB",
+    "primary": "#2F6F7E"
+  }
+}

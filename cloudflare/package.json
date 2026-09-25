@@ -1,0 +1,13 @@
+{
+  "name": "hsms-md-edge",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --test src/rewrite.test.ts",
+    "dev": "wrangler dev --ip 127.0.0.1 --port 8788",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.45.3"
+  }
+}

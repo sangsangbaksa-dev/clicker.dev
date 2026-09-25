@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hsms-md-edge",
+  "account_id": "e8fbc690d9c26810ae8cc1ee9f83c814",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-15",
+  "workers_dev": true,
+  "preview_urls": true,
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "ORIGIN_HOST": "hsms-md.vercel.app"
+  }
+}

@@ -1,0 +1,80 @@
+/**
+ * 화산중 — tweakcn / shadcn theme (Tailwind v4)
+ * 편집: https://tweakcn.com → Export → Tailwind v4 → 이 파일 :root/.dark 교체
+ * 팔레트: 연한 초록 #E8F0E0 · 카드 #F2F7EB · 딥 틸 #2F6F7E
+ */
+
+:root {
+  --background: #e8f0e0;
+  --foreground: #1f2933;
+  --card: #f2f7eb;
+  --card-foreground: #1f2933;
+  --popover: #f2f7eb;
+  --popover-foreground: #1f2933;
+  --primary: #2f6f7e;
+  --primary-hover: #275f6c;
+  --primary-foreground: #fffcf8;
+  --secondary: #eaf3e2;
+  --secondary-foreground: #1f2933;
+  --muted: #eaf3e2;
+  --muted-foreground: #6b7280;
+  --accent: #eaf3e2;
+  --accent-foreground: #1f2933;
+  --destructive: #b42318;
+  --success: #3f6f5a;
+  --border: #d2e6c2;
+  --input: #d2e6c2;
+  --ring: #2f6f7e;
+  --chart-1: #2f6f7e;
+  --chart-2: #3f6f5a;
+  --chart-3: #6b7280;
+  --chart-4: #b42318;
+  --chart-5: #1f2933;
+  --radius: 0.5625rem;
+  --sidebar: #f2f7eb;
+  --sidebar-foreground: #1f2933;
+  --sidebar-primary: #2f6f7e;
+  --sidebar-primary-foreground: #fffcf8;
+  --sidebar-accent: #eaf3e2;
+  --sidebar-accent-foreground: #1f2933;
+  --sidebar-border: #d2e6c2;
+  --sidebar-ring: #2f6f7e;
+  --surface-shadow: 0 1px 0 color-mix(in srgb, #1f2933 5%, transparent);
+}
+
+.dark {
+  --background: #282f26;
+  --foreground: #ece8e1;
+  --card: #2f372c;
+  --card-foreground: #ece8e1;
+  --popover: #2f372c;
+  --popover-foreground: #ece8e1;
+  --primary: #5a9aa8;
+  --primary-hover: #6eb0bd;
+  --primary-foreground: #1a1814;
+  --secondary: #374238;
+  --secondary-foreground: #ece8e1;
+  --muted: #374238;
+  --muted-foreground: #9ca3af;
+  --accent: #374238;
+  --accent-foreground: #ece8e1;
+  --destructive: #d85c52;
+  --success: #5a8f72;
+  --border: #454f47;
+  --input: #454f47;
+  --ring: #5a9aa8;
+  --chart-1: #5a9aa8;
+  --chart-2: #5a8f72;
+  --chart-3: #9ca3af;
+  --chart-4: #d85c52;
+  --chart-5: #ece8e1;
+  --sidebar: #2f372c;
+  --sidebar-foreground: #ece8e1;
+  --sidebar-primary: #5a9aa8;
+  --sidebar-primary-foreground: #1a1814;
+  --sidebar-accent: #374238;
+  --sidebar-accent-foreground: #ece8e1;
+  --sidebar-border: #454f47;
+  --sidebar-ring: #5a9aa8;
+  --surface-shadow: 0 1px 0 color-mix(in srgb, #ece8e1 7%, transparent);
+}

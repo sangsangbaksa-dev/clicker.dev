@@ -1,0 +1,571 @@
+.clicker-rebirth-motion {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: all;
+  overflow: hidden;
+  transform: translate3d(0, 0, 0);
+}
+
+.clicker-rebirth-motion.is-shake {
+  animation: rebirth-shake 120ms ease-in-out infinite;
+}
+
+.clicker-rebirth-motion.is-reduced.is-shake {
+  animation: none;
+}
+
+@keyframes rebirth-shake {
+  0% {
+    transform: translate3d(calc(var(--rebirth-shake, 0px) * -0.3), 0, 0);
+  }
+  50% {
+    transform: translate3d(var(--rebirth-shake, 0px), calc(var(--rebirth-shake, 0px) * 0.2), 0);
+  }
+  100% {
+    transform: translate3d(calc(var(--rebirth-shake, 0px) * -0.2), 0, 0);
+  }
+}
+
+.clicker-rebirth-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 45%, #0b0f1a 0%, #05070d 68%);
+  opacity: calc(var(--rebirth-void-alpha, 0) * 0.85 + var(--rebirth-ui-fade, 0) * 0.35);
+  transition: opacity 80ms linear;
+}
+
+/* MW-01 crumple + MW-03 rebuild: geometric HUD ghost (no new PNG). */
+.clicker-rebirth-ui-crumple {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: min(88vw, 720px);
+  height: min(62vh, 420px);
+  transform: translate(-50%, -50%) scale(var(--rebirth-ui-scale, 1));
+  opacity: calc(var(--rebirth-ui-fade, 0) * 0.72 + var(--rebirth-rebuild, 0) * 0.4);
+  pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--stamp-primary, #e8f4ff) 32%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #0b0f1a 62%, transparent), transparent 40%),
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, #e8f4ff 8%, transparent) 0,
+      color-mix(in srgb, #e8f4ff 8%, transparent) 1px,
+      transparent 1px,
+      transparent 48px
+    );
+  box-shadow: inset 0 0 40px color-mix(in srgb, #05070d 70%, transparent);
+  clip-path: inset(calc(var(--rebirth-ui-fade, 0) * 18%) round 8px);
+}
+
+.clicker-rebirth-confirm-flash {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 2;
+  animation: rebirth-confirm-flash 250ms ease-out forwards;
+}
+
+@keyframes rebirth-confirm-flash {
+  0% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
+
+.clicker-rebirth-hud-plate {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: calc(0.42 + var(--rebirth-rebuild, 0) * 0.48);
+  mix-blend-mode: screen;
+}
+
+.clicker-rebirth-motion[data-phase="settle"] .clicker-rebirth-hud-plate {
+  opacity: 0.96;
+  mix-blend-mode: normal;
+  filter: contrast(1.06) brightness(1.04);
+}
+
+.clicker-rebirth-hud-plate-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.clicker-rebirth-particles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.clicker-rebirth-particles-plate {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.clicker-rebirth-particles-plate-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.clicker-rebirth-particles-plate-placeholder {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 50% 45%, transparent 18%, color-mix(in srgb, #05070d 75%, transparent) 68%),
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--stamp-primary, #e8f4ff) 12%, transparent), transparent 55%);
+}
+
+.clicker-rebirth-particles-plate-placeholder--pulse {
+  background-image:
+    radial-gradient(circle at 50% 45%, transparent 18%, #05070d 70%),
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--stamp-primary) 18%, transparent) 0,
+      color-mix(in srgb, var(--stamp-primary) 18%, transparent) 2px,
+      transparent 2px,
+      transparent 24px
+    );
+}
+
+.clicker-rebirth-particles-plate-placeholder--grid {
+  background-image:
+    radial-gradient(circle at 50% 45%, transparent 18%, #05070d 70%),
+    linear-gradient(color-mix(in srgb, var(--stamp-primary) 20%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--stamp-primary) 20%, transparent) 1px, transparent 1px);
+  background-size: auto, 18px 18px, 18px 18px;
+}
+
+.clicker-rebirth-stamp-still {
+  width: min(280px, 72vw);
+  height: auto;
+}
+
+.clicker-rebirth-motion.is-still-only .clicker-rebirth-stamp-wrap {
+  transform: none;
+  opacity: 1;
+}
+
+.clicker-rebirth-motion.is-still-only .clicker-rebirth-stamp-glyph--still {
+  display: grid;
+  place-items: center;
+}
+
+.clicker-rebirth-motion.is-still-only .clicker-rebirth-stamp-still {
+  width: min(720px, 88vw);
+  max-height: min(58vh, 420px);
+  object-fit: contain;
+  filter: drop-shadow(0 0 28px color-mix(in srgb, var(--stamp-primary) 35%, transparent));
+}
+
+.clicker-rebirth-stamp-still-placeholder {
+  width: min(200px, 56vw);
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--stamp-primary) 40%, transparent);
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--stamp-primary) 15%, #05070d), #05070d);
+}
+
+.clicker-rebirth-tear {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(2px, 0.4vw);
+  height: min(42vh, 320px);
+  transform: translate(-50%, -50%);
+  background: linear-gradient(
+    180deg,
+    transparent,
+    color-mix(in srgb, var(--stamp-primary, #e8f4ff) 80%, white),
+    transparent
+  );
+  box-shadow:
+    0 0 12px color-mix(in srgb, var(--stamp-primary, #e8f4ff) 60%, transparent),
+    -3px 0 8px color-mix(in srgb, var(--stamp-accent, #3d7eff) 40%, transparent),
+    3px 0 8px color-mix(in srgb, var(--stamp-primary, #00e5ff) 40%, transparent);
+  opacity: 0.85;
+}
+
+.clicker-rebirth-chromatic {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: calc(var(--rebirth-chromatic, 0) * 0.35);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--stamp-accent) 30%, transparent), transparent 40%),
+    linear-gradient(270deg, color-mix(in srgb, var(--stamp-primary) 30%, transparent), transparent 40%);
+}
+
+.clicker-rebirth-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 120px color-mix(in srgb, #05070d 80%, transparent);
+}
+
+.clicker-rebirth-skip {
+  position: absolute;
+  z-index: 8;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  min-height: 40px;
+  padding: 8px 14px;
+  pointer-events: auto;
+}
+
+.clicker-rebirth-phase {
+  position: absolute;
+  top: clamp(18px, 4vh, 48px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  pointer-events: none;
+  background: color-mix(in srgb, #05070d 86%, transparent);
+  border: 1px solid color-mix(in srgb, var(--stamp-primary, #e8f4ff) 48%, transparent);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--stamp-primary, #00e5ff) 22%, transparent);
+}
+
+.clicker-rebirth-motion[data-phase="collapse"] .clicker-rebirth-phase {
+  background: color-mix(in srgb, #05070d 92%, transparent);
+  border-color: color-mix(in srgb, #e8f4ff 40%, transparent);
+}
+
+.clicker-rebirth-phase-kicker {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: color-mix(in srgb, #e8f4ff 70%, transparent);
+}
+
+.clicker-rebirth-phase strong {
+  font-size: clamp(14px, 3.2vw, 18px);
+  letter-spacing: 0.12em;
+  color: var(--stamp-primary, #e8f4ff);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--stamp-primary) 45%, transparent);
+}
+
+.clicker-rebirth-phase em {
+  font-style: normal;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--stamp-accent, #3d7eff) 80%, #e8f4ff);
+}
+
+.clicker-rebirth-stamp-wrap {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%) scale(var(--rebirth-stamp-scale, 0));
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  opacity: calc(1 - var(--rebirth-ui-fade, 1) * 0.15);
+}
+
+.clicker-rebirth-stamp-glyph--image {
+  display: grid;
+  place-items: center;
+}
+
+.clicker-rebirth-stamp-image {
+  width: min(220px, 42vw);
+  height: auto;
+  filter: drop-shadow(0 0 24px color-mix(in srgb, var(--stamp-primary) 55%, transparent));
+  transform: scale(calc(0.85 + var(--stamp-intensity, 1) * 0.15));
+}
+
+@media (max-width: 520px) {
+  .clicker-rebirth-stamp-image {
+    width: min(78vw, 280px);
+    filter: drop-shadow(0 0 28px color-mix(in srgb, var(--stamp-primary) 65%, transparent));
+  }
+
+  .clicker-rebirth-stamp-label {
+    font-size: clamp(13px, 3.6vw, 16px);
+    letter-spacing: 0.1em;
+  }
+
+  .clicker-rebirth-phase strong {
+    font-size: clamp(15px, 4.2vw, 18px);
+  }
+
+  .clicker-rebirth-stamp-wrap {
+    top: 48%;
+    gap: 10px;
+  }
+}
+
+.clicker-rebirth-chamber-reminder {
+  margin: 12px auto 0;
+  max-width: min(360px, 88vw);
+  font-size: 13px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--stamp-primary) 70%, #e8f4ff);
+  text-align: center;
+  opacity: calc(var(--rebirth-rebuild, 0) * 0.9 + 0.1);
+}
+
+.clicker-rebirth-stamp-label {
+  margin: 0;
+  font-size: clamp(11px, 2.8vw, 14px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, #e8f4ff 88%, var(--stamp-primary));
+  text-shadow: 0 0 16px color-mix(in srgb, var(--stamp-primary) 55%, transparent);
+}
+
+.clicker-rebirth-stamp-glyph {
+  position: relative;
+  width: min(38vw, 168px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+.clicker-rebirth-stamp-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--stamp-primary) 70%, transparent);
+  box-shadow:
+    0 0 24px color-mix(in srgb, var(--stamp-primary) 45%, transparent),
+    inset 0 0 18px color-mix(in srgb, var(--stamp-accent) 25%, transparent);
+}
+
+/* Directive Pulse */
+.clicker-rebirth-stamp-glyph--pulse .clicker-rebirth-stamp-bars {
+  position: absolute;
+  inset: 12% 18%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.clicker-rebirth-stamp-glyph--pulse .clicker-rebirth-stamp-bars i {
+  flex: 1;
+  display: block;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--stamp-primary), var(--stamp-accent));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--stamp-primary) 50%, transparent);
+}
+
+.clicker-rebirth-stamp-glyph--pulse .clicker-rebirth-stamp-chevrons {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(18px, 5vw, 28px);
+  letter-spacing: -0.15em;
+  color: #e8f4ff;
+  text-shadow: 0 0 12px var(--stamp-primary);
+}
+
+/* AURELIA Grid */
+.clicker-rebirth-stamp-square {
+  position: absolute;
+  border: 2px solid color-mix(in srgb, var(--stamp-primary) 75%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--stamp-primary) 35%, transparent);
+}
+
+.clicker-rebirth-stamp-square--outer {
+  inset: 4%;
+}
+
+.clicker-rebirth-stamp-square--mid {
+  inset: 18%;
+  border-color: color-mix(in srgb, var(--stamp-accent) 70%, transparent);
+}
+
+.clicker-rebirth-stamp-square--inner {
+  inset: 32%;
+}
+
+.clicker-rebirth-stamp-crosshair {
+  position: absolute;
+  width: 62%;
+  height: 62%;
+  background:
+    linear-gradient(var(--stamp-primary), var(--stamp-primary)) center/100% 2px no-repeat,
+    linear-gradient(90deg, var(--stamp-primary), var(--stamp-primary)) center/2px 100% no-repeat;
+  opacity: 0.7;
+}
+
+/* Resonance Protocol */
+.clicker-rebirth-stamp-ring-arc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--stamp-primary);
+  border-right-color: color-mix(in srgb, var(--stamp-accent) 60%, transparent);
+  transform: rotate(calc(var(--motif-t, 0) * 45deg));
+}
+
+.clicker-rebirth-stamp-node {
+  width: 18%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--stamp-primary), var(--stamp-accent));
+  box-shadow: 0 0 16px var(--stamp-primary);
+}
+
+/* Volatile Core */
+.clicker-rebirth-stamp-core-orb {
+  position: absolute;
+  inset: 16%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, var(--stamp-primary) 35%, var(--stamp-accent) 100%);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--stamp-accent) 55%, transparent);
+}
+
+.clicker-rebirth-stamp-crack {
+  position: absolute;
+  width: 2px;
+  height: 46%;
+  background: #05070d;
+  top: 22%;
+  left: 50%;
+  transform-origin: top center;
+}
+
+.clicker-rebirth-stamp-crack--a {
+  transform: rotate(-18deg);
+}
+
+.clicker-rebirth-stamp-crack--b {
+  transform: rotate(24deg);
+}
+
+.clicker-rebirth-stamp-crack--c {
+  height: 32%;
+  transform: rotate(112deg);
+}
+
+/* Hybrid fallback */
+.clicker-rebirth-stamp-diamond {
+  position: absolute;
+  inset: 22%;
+  transform: rotate(45deg);
+  border: 2px solid var(--stamp-primary);
+  background: color-mix(in srgb, var(--stamp-accent) 18%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--stamp-primary) 40%, transparent);
+}
+
+.clicker-rebirth-stamp-axis {
+  position: absolute;
+  background: var(--stamp-primary);
+  opacity: 0.65;
+}
+
+.clicker-rebirth-stamp-axis--h {
+  width: 70%;
+  height: 2px;
+}
+
+.clicker-rebirth-stamp-axis--v {
+  width: 2px;
+  height: 70%;
+}
+
+/* Motif FX layers */
+.clicker-rebirth-motif {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: calc(0.35 + var(--rebirth-rebuild, 0) * 0.35);
+}
+
+.clicker-rebirth-motif--pulse .clicker-rebirth-motif-bar {
+  position: absolute;
+  bottom: 18%;
+  width: 3px;
+  height: 22%;
+  background: linear-gradient(180deg, transparent, var(--stamp-primary));
+  opacity: calc(0.3 + var(--motif-t, 0) * 0.7);
+}
+
+.clicker-rebirth-motif--grid {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--stamp-primary) 25%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--stamp-primary) 25%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at 50% 45%, black 0%, transparent 68%);
+}
+
+.clicker-rebirth-motif--rings .clicker-rebirth-motif-ring {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: min(70vw, 360px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--stamp-primary) 40%, transparent);
+}
+
+.clicker-rebirth-motif--core .clicker-rebirth-motif-flare {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: min(36vw, 180px);
+  height: 3px;
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--stamp-accent), transparent);
+}
+
+.clicker-rebirth-motif--hybrid {
+  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--stamp-primary) 12%, transparent), transparent 55%);
+}
+
+.clicker-rebirth-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.clicker-shell.is-rebirth-active {
+  pointer-events: none;
+  user-select: none;
+}
+
+.clicker-shell.is-rebirth-active .clicker-stage,
+.clicker-shell.is-rebirth-active .clicker-drawer {
+  opacity: calc(1 - var(--rebirth-shell-fade, 0.85));
+  transform: scale(calc(1 - var(--rebirth-shell-fade, 0.85) * 0.08));
+  transition: opacity 120ms ease, transform 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-rebirth-motion.is-shake {
+    animation: none;
+  }
+
+  .clicker-rebirth-chromatic {
+    display: none;
+  }
+
+  .clicker-rebirth-stamp-wrap {
+    transition: none;
+  }
+}
