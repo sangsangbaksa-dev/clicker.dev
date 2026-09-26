@@ -129,24 +129,6 @@
   }
 }
 
-.clicker-mine-shatter {
-  position: absolute;
-  inset: 0;
-  z-index: 7;
-  pointer-events: none;
-  background: radial-gradient(circle at 50% 52%, rgb(255 255 255 / 0.9), rgb(120 240 255 / 0.35) 25%, transparent 60%);
-  animation: clicker-mine-shatter 520ms ease-out forwards;
-}
-
-@keyframes clicker-mine-shatter {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
 /* ---------- Laser ---------- */
 .clicker-mine-single .clicker-mine-lasers {
   position: absolute;
