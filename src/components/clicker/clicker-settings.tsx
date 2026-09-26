@@ -7,9 +7,11 @@ type Props = {
   muted: boolean
   musicMuted: boolean
   musicVolume: number
+  regionIntroAlways: boolean
   onToggleMute: () => void
   onToggleMusic: () => void
   onMusicVolume: (volume: number) => void
+  onToggleRegionIntro: () => void
   onClose: () => void
 }
 
@@ -25,14 +27,16 @@ function useReducedMotion(): boolean {
   return reduced
 }
 
-/** Settings sheet — SFX, music and volume persist in the save; motion mirrors the OS. */
+/** Settings sheet — SFX, music, volume and region intros persist in the save; motion mirrors the OS. */
 export function ClickerSettings({
   muted,
   musicMuted,
   musicVolume,
+  regionIntroAlways,
   onToggleMute,
   onToggleMusic,
   onMusicVolume,
+  onToggleRegionIntro,
   onClose,
 }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -108,6 +112,21 @@ export function ClickerSettings({
               disabled={musicMuted}
               onChange={(e) => onMusicVolume(Number(e.target.value) / 100)}
             />
+          </li>
+          <li className="clicker-settings-row">
+            <div className="clicker-settings-copy">
+              <strong>지역 입장 영상</strong>
+              <p>{regionIntroAlways ? "지역·세계선에 들어갈 때마다 재생합니다." : "지역에 처음 들어갈 때만 재생합니다."}</p>
+            </div>
+            <button
+              type="button"
+              className={`clicker-settings-toggle${regionIntroAlways ? " is-on" : ""}`}
+              aria-pressed={regionIntroAlways}
+              aria-label={regionIntroAlways ? "지역 입장 영상 매번 — 처음만으로 바꾸려면 탭" : "지역 입장 영상 처음만 — 매번으로 바꾸려면 탭"}
+              onClick={onToggleRegionIntro}
+            >
+              {regionIntroAlways ? "매번" : "처음만"}
+            </button>
           </li>
           <li className="clicker-settings-row">
             <div className="clicker-settings-copy">

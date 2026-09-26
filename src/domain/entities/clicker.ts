@@ -135,6 +135,8 @@ export type ClickerSettings = {
   musicMuted: boolean
   /** Background music volume, 0..1. */
   musicVolume: number
+  /** Region entry cinematics play on every entry; off = only on a region's first visit. */
+  regionIntroAlways: boolean
   /** Title screen cleared — lands on hub (upgrades/skills), not the mine. */
   gameStarted: boolean
   introSeen: boolean

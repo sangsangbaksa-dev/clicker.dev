@@ -1355,9 +1355,11 @@ export function ClickerApp() {
           muted={game.save.settings.muted}
           musicMuted={game.save.settings.musicMuted}
           musicVolume={game.save.settings.musicVolume}
+          regionIntroAlways={game.save.settings.regionIntroAlways}
           onToggleMute={game.toggleMute}
           onToggleMusic={game.toggleMusic}
           onMusicVolume={game.setMusicVolume}
+          onToggleRegionIntro={game.toggleRegionIntroAlways}
           onClose={() => setSettingsOpen(false)}
         />
       ) : null}

@@ -395,7 +395,8 @@ export function useClicker() {
     commit(result.value.save)
     persistNow(result.value.save)
     playSfx("travel")
-    if (result.value.intro) setRegionIntro({
+    const always = result.value.save.settings.regionIntroAlways
+    if (result.value.intro && (always || result.value.firstVisit)) setRegionIntro({
         regionId,
         name: label,
         description: region?.description ?? "",
@@ -442,7 +443,7 @@ export function useClicker() {
     if (!result.ok) return refuse(result.error)
     commit(result.value)
     playSfx("travel")
-    const intro = homeIntro("HOME · 귀환", "귀환")
+    const intro = result.value.settings.regionIntroAlways ? homeIntro("HOME · 귀환", "귀환") : null
     if (intro) setRegionIntro(intro)
     else flash("Core Mine으로 돌아왔습니다")
   }, [commit, flash, refuse])
@@ -454,7 +455,7 @@ export function useClicker() {
     commit(result.value)
     // A new world line starts at home: play its entry cinematic after the rebirth motion.
     const line = String(result.value.runState.currentWorldLine).padStart(3, "0")
-    const intro = homeIntro(`WORLD LINE #${line} · 진입`, "새 세계선 진입")
+    const intro = result.value.settings.regionIntroAlways ? homeIntro(`WORLD LINE #${line} · 진입`, "새 세계선 진입") : null
     if (intro) setRegionIntro(intro)
     else flash("WORLD LINE이 열렸습니다.")
   }, [commit, flash, refuse])
@@ -539,6 +540,11 @@ export function useClicker() {
 
   const toggleMusic = useCallback(() => {
     updateSettings({ musicMuted: !saveRef.current?.settings.musicMuted })
+    playSfx("toggle")
+  }, [updateSettings])
+
+  const toggleRegionIntroAlways = useCallback(() => {
+    updateSettings({ regionIntroAlways: !saveRef.current?.settings.regionIntroAlways })
     playSfx("toggle")
   }, [updateSettings])
 
@@ -720,6 +726,7 @@ export function useClicker() {
     toggleMute,
     toggleMusic,
     setMusicVolume,
+    toggleRegionIntroAlways,
     startFromTitle,
     enterMine,
     mineEntryError,

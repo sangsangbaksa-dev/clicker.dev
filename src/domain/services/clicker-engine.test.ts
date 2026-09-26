@@ -440,6 +440,15 @@ test("region visits are recorded once so only the first entry counts as new", ()
   assert.deepEqual(legacy.metaState.visitedRegionIds, [])
 })
 
+test("region intros default to every entry; an explicit opt-out survives a reload", () => {
+  const fresh = createInitialSave(1, config)
+  assert.equal(fresh.settings.regionIntroAlways, true)
+  const legacy = { ...fresh, settings: { ...fresh.settings, regionIntroAlways: undefined } }
+  assert.equal(sanitizeSave(legacy, config, 1).settings.regionIntroAlways, true)
+  const optedOut = { ...fresh, settings: { ...fresh.settings, regionIntroAlways: false } }
+  assert.equal(sanitizeSave(optedOut, config, 1).settings.regionIntroAlways, false)
+})
+
 test("every region has an entry cinematic whose files ship in public/", () => {
   for (const region of config.regions) {
     assert.ok(region.intro, `${region.id} has an intro`)

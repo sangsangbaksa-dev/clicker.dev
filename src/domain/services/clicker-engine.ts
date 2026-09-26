@@ -155,6 +155,7 @@ export function createInitialSave(now: number, config: GameConfig): SaveData {
       muted: false,
       musicMuted: false,
       musicVolume: DEFAULT_MUSIC_VOLUME,
+      regionIntroAlways: true,
       gameStarted: false,
       introSeen: false,
       tutorialSeen: false,
@@ -1334,6 +1335,7 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
           typeof data.settings?.musicVolume === "number" && Number.isFinite(data.settings.musicVolume)
             ? clamp(data.settings.musicVolume, 0, 1)
             : DEFAULT_MUSIC_VOLUME,
+        regionIntroAlways: data.settings?.regionIntroAlways !== false,
         gameStarted:
           Boolean((data.settings as { gameStarted?: boolean } | undefined)?.gameStarted) ||
           Boolean(data.settings?.introSeen) ||
