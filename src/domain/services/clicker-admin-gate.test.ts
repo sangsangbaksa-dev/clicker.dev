@@ -9,21 +9,21 @@ test("clicker admin host detects loopback names", () => {
   assert.equal(isClickerAdminHost("preview.vercel.app"), false)
 })
 
-test("clicker admin gate blocks production builds", () => {
+test("clicker admin gate blocks production builds when the temporary flag is off", () => {
   assert.equal(
-    isClickerAdminAllowed({ nodeEnv: "production", hostname: "localhost", search: "" }),
+    isClickerAdminAllowed({ tempInProduction: false, nodeEnv: "production", hostname: "localhost", search: "" }),
     false
   )
   assert.equal(
-    isClickerAdminAllowed({ nodeEnv: "production", hostname: "localhost", search: "?admin=1" }),
+    isClickerAdminAllowed({ tempInProduction: false, nodeEnv: "production", hostname: "localhost", search: "?admin=1" }),
     false
   )
   assert.equal(
-    isClickerAdminAllowed({ nodeEnv: "production", hostname: "preview.vercel.app", search: "?admin=1" }),
+    isClickerAdminAllowed({ tempInProduction: false, nodeEnv: "production", hostname: "preview.vercel.app", search: "?admin=1" }),
     false
   )
   assert.equal(
-    isClickerAdminAllowed({ nodeEnv: "Production", hostname: "localhost", search: "?admin=1" }),
+    isClickerAdminAllowed({ tempInProduction: false, nodeEnv: "Production", hostname: "localhost", search: "?admin=1" }),
     false
   )
 })
@@ -50,6 +50,21 @@ test("clicker admin gate allows dev ?admin=1 for local playtest", () => {
   )
   assert.equal(
     isClickerAdminAllowed({ nodeEnv: "development", hostname: "preview.vercel.app", search: "" }),
+    false
+  )
+})
+
+test("clicker admin gate temporarily allows production with ?admin=1 only", () => {
+  assert.equal(
+    isClickerAdminAllowed({ tempInProduction: true, nodeEnv: "production", hostname: "clicker.example.com", search: "?admin=1" }),
+    true
+  )
+  assert.equal(
+    isClickerAdminAllowed({ tempInProduction: true, nodeEnv: "production", hostname: "clicker.example.com", search: "" }),
+    false
+  )
+  assert.equal(
+    isClickerAdminAllowed({ tempInProduction: true, nodeEnv: "production", hostname: "localhost", search: "" }),
     false
   )
 })

@@ -1,7 +1,15 @@
+/**
+ * TEMPORARY: until the official release, the deployed (production) build also
+ * ships the playtest admin panel, opened with `?admin=1`. Flip to `false`
+ * before release — that alone restores the dev-only gate and build strip.
+ */
+export const CLICKER_ADMIN_TEMP_IN_PRODUCTION = true
+
 export type ClickerAdminGateInput = {
   nodeEnv?: string
   hostname?: string
   search?: string
+  tempInProduction?: boolean
 }
 
 export function isClickerAdminHost(hostname: string): boolean {
@@ -14,8 +22,9 @@ export function isClickerAdminHost(hostname: string): boolean {
 }
 
 /**
- * Playtest admin panel/cheats — never in production builds.
- * Non-prod only: loopback host, or explicit `?admin=1` for LAN/preview playtest.
+ * Playtest admin panel/cheats.
+ * Non-prod: loopback host, or explicit `?admin=1` for LAN/preview playtest.
+ * Production: denied, unless CLICKER_ADMIN_TEMP_IN_PRODUCTION — then `?admin=1` only.
  * UI also strips via `process.env.NODE_ENV !== "production"` for dead-code elimination.
  */
 export function isClickerAdminAllowed(input: ClickerAdminGateInput = {}): boolean {
@@ -23,8 +32,10 @@ export function isClickerAdminAllowed(input: ClickerAdminGateInput = {}): boolea
     input.nodeEnv ??
     (typeof process !== "undefined" && process.env.NODE_ENV ? process.env.NODE_ENV : "production")
   ).toLowerCase()
-  // Hard deny: production (and Production casing) never exposes admin helpers.
-  if (nodeEnv === "production") return false
+  const tempInProduction = input.tempInProduction ?? CLICKER_ADMIN_TEMP_IN_PRODUCTION
+  // Hard deny: production (and Production casing) never exposes admin helpers,
+  // except during the temporary pre-release window below.
+  if (nodeEnv === "production" && !tempInProduction) return false
 
   if (!input.hostname && typeof window === "undefined") return false
 
@@ -35,5 +46,6 @@ export function isClickerAdminAllowed(input: ClickerAdminGateInput = {}): boolea
   const loopback = isClickerAdminHost(hostname)
   const adminQuery = new URLSearchParams(search).get("admin") === "1"
 
+  if (nodeEnv === "production") return adminQuery
   return loopback || adminQuery
 }

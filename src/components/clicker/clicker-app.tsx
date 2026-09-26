@@ -24,7 +24,7 @@ import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motio
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
-import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
+import { CLICKER_ADMIN_TEMP_IN_PRODUCTION, isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import { playLaser, playSfx, unlockSfx } from "@/components/clicker/clicker-sfx"
 import { ClickerAchievementsPanel } from "@/components/clicker/panels/achievements-panel"
@@ -36,8 +36,11 @@ import { ClickerTranscendencePanel } from "@/components/clicker/panels/transcend
 import "./clicker.css"
 import "./clicker-polish.css"
 
-/** Next inlines NODE_ENV — production builds dead-code-eliminate admin JSX. */
-const CLICKER_ADMIN_UI = process.env.NODE_ENV !== "production"
+/**
+ * Next inlines NODE_ENV — production builds dead-code-eliminate admin JSX,
+ * except while CLICKER_ADMIN_TEMP_IN_PRODUCTION is on (pre-release playtest).
+ */
+const CLICKER_ADMIN_UI = process.env.NODE_ENV !== "production" || CLICKER_ADMIN_TEMP_IN_PRODUCTION
 
 type TabId = "producers" | "upgrades" | "skills" | "shop" | "world" | "achievements" | "transcendence"
 
@@ -307,7 +310,7 @@ export function ClickerApp() {
   }, [])
 
   useEffect(() => {
-    // Defense in depth: build strip + host/?admin gate (never production).
+    // Defense in depth: build strip + host/?admin gate (production only via the temporary flag + ?admin=1).
     // Do not auto-open the panel — launch button keeps the mine playable.
     if (!CLICKER_ADMIN_UI) {
       setAdminAllowed(false)
@@ -1480,7 +1483,7 @@ export function ClickerApp() {
           type="button"
           className="clicker-admin-launch"
           aria-label="임시 관리자 패널 열기"
-          title="개발 전용 · Esc로 닫기"
+          title="임시 관리자 · 정식 배포 전까지만 · Esc로 닫기"
           onClick={() => setAdminOpen(true)}
         >
           관리자
@@ -1527,7 +1530,7 @@ export function ClickerApp() {
         >
           <h2>임시 관리자 · 플레이테스트</h2>
           <p style={{ margin: "0 0 8px", fontSize: 11, color: "var(--text-2)" }}>
-            개발 전용 · loopback 또는 ?admin=1 · production 빌드에서 UI·치트 모두 차단 · Esc로 닫기
+            임시 · 정식 배포 전까지만 · 배포 빌드는 ?admin=1로만 열림 · Esc로 닫기
           </p>
           <div className="clicker-admin-grid">
             <button type="button" className="clicker-primary" aria-label="치트 · CORE 1천 지급" onClick={() => game.adminGrant(1_000)}>
