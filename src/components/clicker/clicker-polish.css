@@ -1208,3 +1208,25 @@
     display: none;
   }
 }
+
+/* CORE CRISIS must stay fully usable: sit above the hub menu (z 9) and stay opaque
+   enough that the scene's ENTER MINE label doesn't read through the copy. */
+[data-clicker] .clicker-crisis {
+  z-index: 10;
+  background: color-mix(in srgb, var(--void) 94%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+/* The crisis lives inside .clicker-core-wrap, whose own z-index (3) caps it; lift the wrap. */
+[data-clicker] .clicker-core-wrap:has(.clicker-crisis) {
+  z-index: 10;
+}
+
+/* Phones: the 12% inset left too little room, so the third choice fell under the menu. */
+@media (max-width: 480px) {
+  [data-clicker] .clicker-crisis {
+    inset: 8px;
+    padding: 16px 14px;
+    overflow-y: auto;
+  }
+}
