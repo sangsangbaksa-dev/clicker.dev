@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="12 14 176 184">
+  <defs>
+    <radialGradient id="halo" cx="50%" cy="42%" r="55%">
+      <stop offset="0" stop-color="#ff4fd8" stop-opacity="0.38"/>
+      <stop offset="0.6" stop-color="#8a3dff" stop-opacity="0.1"/>
+      <stop offset="1" stop-color="#8a3dff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cloak" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a2170"/>
+      <stop offset="0.35" stop-color="#27103f"/>
+      <stop offset="0.75" stop-color="#170a28" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#170a28" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff8ae6"/>
+      <stop offset="0.7" stop-color="#b45cff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#b45cff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="eye" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.35" stop-color="#ffc2f2"/>
+      <stop offset="0.7" stop-color="#ff4fd8"/>
+      <stop offset="1" stop-color="#ff4fd8" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="1.2"/></filter>
+  </defs>
+  <style>
+    .tail { transform-origin: 100px 110px; animation: sway 2.6s ease-in-out infinite; }
+    .echo { transform-origin: 100px 78px; animation: echo 2.2s ease-out infinite; }
+    .echo.b { animation-delay: 1.1s; }
+    .glitch { animation: glitch 1.7s steps(1) infinite; }
+    .glitch.b { animation-delay: 0.6s; }
+    .eyes { animation: flicker 3.1s steps(1) infinite; }
+    @keyframes sway { 0%, 100% { transform: skewX(-6deg); } 50% { transform: skewX(6deg); } }
+    @keyframes echo { from { transform: scale(0.7); opacity: 0.7; } to { transform: scale(1.35); opacity: 0; } }
+    @keyframes glitch { 0% { opacity: 0; } 10% { opacity: 0.9; transform: translateX(6px); } 18% { opacity: 0; } 60% { opacity: 0.6; transform: translateX(-5px); } 64% { opacity: 0; } }
+    @keyframes flicker { 0%, 100% { opacity: 1; } 92% { opacity: 0.2; } 95% { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; } .glitch { opacity: 0; } }
+  </style>
+
+  <ellipse cx="100" cy="92" rx="92" ry="86" fill="url(#halo)"/>
+
+  <!-- signal echo rings -->
+  <circle class="echo" cx="100" cy="78" r="46" fill="none" stroke="#ff4fd8" stroke-width="1.5"/>
+  <circle class="echo b" cx="100" cy="78" r="46" fill="none" stroke="#b45cff" stroke-width="1.5"/>
+
+  <!-- tattered cloak and tail -->
+  <g class="tail">
+    <path d="M100 20
+             C 70 22 52 48 50 80
+             C 36 92 26 104 22 120
+             C 40 112 50 112 58 118
+             C 56 140 64 160 70 190
+             C 78 170 86 162 92 160
+             C 96 172 100 184 104 198
+             C 108 180 112 166 116 158
+             C 124 164 132 172 140 186
+             C 140 160 144 138 142 118
+             C 150 112 162 112 178 120
+             C 174 104 164 92 150 80
+             C 148 48 130 22 100 20 Z"
+          fill="url(#cloak)" stroke="url(#edge)" stroke-width="2" stroke-linejoin="round"/>
+    <!-- inner folds -->
+    <path d="M78 96 C 76 128 80 150 86 172 M122 96 C 124 128 120 150 114 170 M100 104 C 100 132 100 150 101 176"
+          fill="none" stroke="#ff8ae6" stroke-width="1.2" opacity="0.28"/>
+  </g>
+
+  <!-- wisp arms -->
+  <g fill="none" stroke="#ff8ae6" stroke-width="2.4" stroke-linecap="round" opacity="0.75" filter="url(#glow)">
+    <path d="M58 104 C 44 118 34 136 24 142 C 32 146 40 142 46 136"/>
+    <path d="M142 104 C 156 118 166 136 176 142 C 168 146 160 142 154 136"/>
+  </g>
+
+  <!-- hood void -->
+  <path d="M100 42 C 80 42 70 58 70 80 C 70 98 84 110 100 112 C 116 110 130 98 130 80 C 130 58 120 42 100 42 Z"
+        fill="#06020c" stroke="#3a1a58" stroke-width="2"/>
+  <path d="M100 42 C 84 42 74 52 72 66" fill="none" stroke="#ff8ae6" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- eyes -->
+  <g class="eyes" filter="url(#glow)">
+    <path d="M78 76 Q 88 68 95 78 Q 86 82 78 76 Z" fill="url(#eye)"/>
+    <path d="M122 76 Q 112 68 105 78 Q 114 82 122 76 Z" fill="url(#eye)"/>
+    <circle cx="88" cy="76" r="2.2" fill="#ffffff"/>
+    <circle cx="112" cy="76" r="2.2" fill="#ffffff"/>
+  </g>
+  <!-- waveform mouth -->
+  <path d="M84 96 L89 92 L93 100 L97 88 L101 102 L105 90 L109 98 L113 94 L116 96"
+        fill="none" stroke="#ff4fd8" stroke-width="1.8" stroke-linejoin="round" filter="url(#glow)" opacity="0.9"/>
+
+  <!-- glitch scanlines -->
+  <rect class="glitch" x="54" y="124" width="92" height="3" fill="#ff4fd8"/>
+  <rect class="glitch b" x="66" y="60" width="70" height="2" fill="#9ff3ff"/>
+  <rect class="glitch" x="62" y="148" width="60" height="2" fill="#b45cff" filter="url(#soft)"/>
+</svg>

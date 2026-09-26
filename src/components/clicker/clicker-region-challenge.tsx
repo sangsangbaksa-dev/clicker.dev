@@ -1,7 +1,17 @@
 "use client"
 
-import { useEffect, useRef, useState, type CSSProperties } from "react"
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
 import type { RegionChallengeKind } from "@/domain/entities/clicker"
+import {
+  HUNT_FLEE_SHARE,
+  MONSTERS,
+  buildHuntSchedule,
+  huntPresentedHp,
+  huntScore,
+  huntX,
+  type HuntSpawn,
+} from "@/domain/services/clicker-hunt"
+import { MONSTER_ART } from "@/data/clicker/hunt-assets"
 import { playChallengeCue } from "@/components/clicker/clicker-sfx"
 import "./clicker-region-challenge.css"
 
@@ -45,7 +55,10 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
   const [clock, setClock] = useState(0)
   const [hits, setHits] = useState(0)
   const [misses, setMisses] = useState(0)
+  const [kills, setKills] = useState(0)
   const durationMs = durationSec * 1000
+  // The hunt's monsters are fixed for the whole run so the score knows how much HP has surfaced.
+  const [hunt] = useState(() => (kind === "MONSTER_HUNT" ? buildHuntSchedule(durationSec * 1000) : []))
   const phase: Phase = clock < COUNTDOWN_MS ? "countdown" : clock < COUNTDOWN_MS + durationMs ? "play" : "done"
 
   useEffect(() => {
@@ -67,7 +80,12 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
   const elapsed = Math.min(durationMs, Math.max(0, clock - COUNTDOWN_MS))
   const left = durationMs - elapsed
   const tries = attempts(kind, elapsed, hits, misses)
-  const score = tries > 0 ? Math.min(1, Math.min(hits, kind === "FAULT_DRILL" ? DRILL_TARGET : hits) / tries) : 0
+  const score =
+    kind === "MONSTER_HUNT"
+      ? huntScore(hits, huntPresentedHp(hunt, elapsed), misses)
+      : tries > 0
+        ? Math.min(1, Math.min(hits, kind === "FAULT_DRILL" ? DRILL_TARGET : hits) / tries)
+        : 0
   const pct = Math.round(score * 100)
 
   const close = () => {
@@ -114,6 +132,11 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
           <span>
             남은 시간 <strong>{(left / 1000).toFixed(1)}s</strong>
           </span>
+          {kind === "MONSTER_HUNT" ? (
+            <span>
+              처치 <strong>{kills}</strong>
+            </span>
+          ) : null}
           <span>
             성공률 <strong>{pct}%</strong>
           </span>
@@ -124,6 +147,16 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
       </div>
 
       <div className="clicker-challenge-field">
+        {kind === "MONSTER_HUNT" ? (
+          <MonsterHunt
+            {...gameProps}
+            schedule={hunt}
+            onKill={() => {
+              setKills((n) => n + 1)
+              playChallengeCue(muted, "kill")
+            }}
+          />
+        ) : null}
         {kind === "ROD_STRIKE" ? <RodStrike {...gameProps} /> : null}
         {kind === "FAULT_DRILL" ? <FaultDrill {...gameProps} misses={misses} /> : null}
         {kind === "DRONE_RECALL" ? <DroneRecall {...gameProps} /> : null}
@@ -137,7 +170,7 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
             <p>도전 종료</p>
             <strong>{pct}%</strong>
             <span>
-              성공 {hits} · 실수 {misses}
+              {kind === "MONSTER_HUNT" ? `처치 ${kills} · 명중 ${hits} · 빗나감 ${misses}` : `성공 ${hits} · 실수 ${misses}`}
             </span>
             <button type="button" className="clicker-primary" autoFocus onClick={() => onFinish(score)}>
               보상 받기
@@ -164,6 +197,137 @@ function useSchedule<T>(make: () => T[]): T[] {
 /** Brief hit/miss flash keyed to the play clock. */
 type Flash = { key: number; ok: boolean; at: number }
 const FLASH_MS = 260
+
+/* ---------- Signal Relay: shoot monsters down before they slip away ---------- */
+
+const HUNT_FADE_MS = 360
+const SHOT_MS = 200
+
+type HuntMark = { damage: number; slainAt?: number }
+type Shot = { id: number; at: number; x1: number; y1: number; x2: number; y2: number; miss: boolean }
+
+function MonsterHunt({
+  elapsed,
+  playing,
+  schedule,
+  onHit,
+  onMiss,
+  onKill,
+}: GameProps & { schedule: readonly HuntSpawn[]; onKill: () => void }) {
+  const fieldRef = useRef<HTMLDivElement>(null)
+  /** Damage per monster id; the ref is read by taps landing in the same frame. */
+  const marksRef = useRef<Record<number, HuntMark>>({})
+  const [marks, setMarks] = useState<Record<number, HuntMark>>({})
+  const [shots, setShots] = useState<Shot[]>([])
+  const shotSeq = useRef(0)
+
+  // Warm the sprite cache during the countdown so the first monster never pops in blank.
+  useEffect(() => {
+    for (const src of Object.values(MONSTER_ART)) if (src) new Image().src = src
+  }, [])
+
+  const fire = (e: ReactPointerEvent, miss: boolean) => {
+    const rect = fieldRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const id = ++shotSeq.current
+    const side = id % 2 ? 1 : -1
+    const shot = {
+      id,
+      at: elapsed,
+      x1: rect.width / 2 + side * rect.width * 0.08,
+      y1: rect.height + 8,
+      x2: e.clientX - rect.left,
+      y2: e.clientY - rect.top,
+      miss,
+    }
+    setShots((prev) => [...prev.slice(-5), shot])
+  }
+
+  const strike = (s: HuntSpawn) => (e: ReactPointerEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!playing || e.button !== 0) return
+    const def = MONSTERS[s.kind]
+    const age = elapsed - s.spawnAt
+    const mark = marksRef.current[s.id]
+    if (age < 0 || age >= def.lifeMs || mark?.slainAt !== undefined) return
+    const damage = (mark?.damage ?? 0) + 1
+    const next = { damage, slainAt: damage >= def.hp ? elapsed : undefined }
+    marksRef.current = { ...marksRef.current, [s.id]: next }
+    setMarks(marksRef.current)
+    fire(e, false)
+    onHit()
+    if (next.slainAt !== undefined) onKill()
+  }
+
+  return (
+    <div
+      ref={fieldRef}
+      className="clicker-hunt-field"
+      onPointerDown={(e) => {
+        e.preventDefault()
+        if (!playing || e.button !== 0) return
+        fire(e, true)
+        onMiss()
+      }}
+    >
+      {schedule.map((s) => {
+        const def = MONSTERS[s.kind]
+        const age = elapsed - s.spawnAt
+        if (age < 0) return null
+        const mark = marks[s.id]
+        const slain = mark?.slainAt !== undefined
+        const fled = !slain && age >= def.lifeMs
+        const goneFor = slain ? elapsed - mark.slainAt! : age - def.lifeMs
+        if ((slain || fled) && goneFor > HUNT_FADE_MS) return null
+        const damage = mark?.damage ?? 0
+        const hp = def.hp - damage
+        const live = !slain && !fled
+        const x = huntX(s, slain ? mark.slainAt! - s.spawnAt : Math.min(age, def.lifeMs))
+        const state = slain
+          ? " is-slain"
+          : fled
+            ? " is-fled"
+            : `${age > def.lifeMs * (1 - HUNT_FLEE_SHARE) ? " is-fleeing" : ""}${damage > 0 && hp <= def.hp / 3 ? " is-low" : ""}`
+        const art = MONSTER_ART[s.kind]
+        return (
+          <button
+            key={s.id}
+            type="button"
+            className={`clicker-hunt-monster is-${s.kind}${state}`}
+            style={{ left: `${x * 100}%`, top: `${s.y * 100}%`, "--flip": s.dir } as CSSProperties}
+            aria-label={`${def.name} · 체력 ${hp}/${def.hp}`}
+            disabled={!live}
+            onPointerDown={strike(s)}
+          >
+            <span key={damage} className={`clicker-hunt-body${damage ? " is-hit" : ""}`}>
+              {art ? (
+                // Plain <img> keeps the SVG sprites' built-in animations running.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={art} alt="" draggable={false} />
+              ) : (
+                <i className="clicker-hunt-fallback" aria-hidden />
+              )}
+            </span>
+            <span className="clicker-hunt-hp" aria-hidden>
+              <i style={{ width: `${(hp / def.hp) * 100}%` }} />
+            </span>
+          </button>
+        )
+      })}
+      <svg className="clicker-hunt-lasers" aria-hidden>
+        {shots
+          .filter((shot) => playing && elapsed - shot.at < SHOT_MS)
+          .map((shot) => (
+            <g key={shot.id} className={`clicker-hunt-beam${shot.miss ? " is-miss" : ""}`}>
+              <line x1={shot.x1} y1={shot.y1} x2={shot.x2} y2={shot.y2} className="clicker-hunt-beam-glow" />
+              <line x1={shot.x1} y1={shot.y1} x2={shot.x2} y2={shot.y2} className="clicker-hunt-beam-core" />
+            </g>
+          ))}
+      </svg>
+    </div>
+  )
+}
 
 /* ---------- Storm Spire: catch the charged rod before lightning lands ---------- */
 

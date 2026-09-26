@@ -425,7 +425,21 @@ test("field challenge pays production by score and then cools down", () => {
   assert.equal(regionChallengeError(half.run, config, "storm_spire", now + spire.cooldownSec * 1000), undefined)
   const cheat = claimRegionChallenge(run, meta, config, "storm_spire", 7, now)
   assert.ok(Math.abs(cheat.reward - perSecond * spire.rewardSeconds) < 1e-6, "score is clamped to 1")
-  assert.ok(claimRegionChallenge(run, meta, config, "signal_relay", 1, now).error, "relay has no challenge")
+  assert.ok(claimRegionChallenge(run, meta, config, "phase_vault", 1, now).error, "the vault has no challenge")
+})
+
+test("Signal Relay's monster hunt is a field challenge played in the relay", () => {
+  const now = 12_000_000
+  const meta = createInitialMeta()
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), 1_000_000)
+  run = buyProducer(run, meta, config, "solar_node", 5).run
+  assert.equal(config.regions.find((r) => r.id === "signal_relay")?.challenge?.kind, "MONSTER_HUNT")
+  assert.ok(regionChallengeError(run, config, "signal_relay", now), "must stand in the relay")
+  run = travelToRegion(run, config, "signal_relay").run
+  assert.equal(regionChallengeError(run, config, "signal_relay", now), undefined)
+  const hunt = claimRegionChallenge(run, meta, config, "signal_relay", 0.8, now)
+  assert.equal(hunt.error, undefined)
+  assert.ok(hunt.reward > 0)
 })
 
 test("region visits are recorded once so the intro plays only on the first entry", () => {

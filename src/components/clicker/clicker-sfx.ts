@@ -437,8 +437,8 @@ export function playRebirthCue(name: string) {
   }
 }
 
-/** Region field challenge feedback: a clean hit, a miss, and the final whistle. */
-export function playChallengeCue(mutedArg: boolean, cue: "hit" | "miss" | "done") {
+/** Region field challenge feedback: a clean hit, a kill (hunt), a miss, and the final whistle. */
+export function playChallengeCue(mutedArg: boolean, cue: "hit" | "kill" | "miss" | "done") {
   if (mutedArg || muted) return
   const c = audio()
   if (!c) return
@@ -446,6 +446,11 @@ export function playChallengeCue(mutedArg: boolean, cue: "hit" | "miss" | "done"
   if (cue === "hit") {
     tone(c, "triangle", 880, 1320, 0.05, t, 0.12)
     noise(c, "bandpass", 3000, 1.5, 0.02, t, 0.08)
+  } else if (cue === "kill") {
+    // Burst: bright zap falling away over a short crackle.
+    tone(c, "square", 1400, 220, 0.05, t, 0.22)
+    tone(c, "sine", 660, 1320, 0.04, t + 0.03, 0.18)
+    noise(c, "bandpass", 1800, 0.8, 0.05, t, 0.25, { sweepTo: 400 })
   } else if (cue === "miss") {
     tone(c, "sawtooth", 180, 90, 0.04, t, 0.2)
   } else {
