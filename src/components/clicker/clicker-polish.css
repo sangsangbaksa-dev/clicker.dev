@@ -1256,3 +1256,16 @@
 [data-clicker] .clicker-skill-tree:has(> .clicker-skill-detail) {
   padding-bottom: 220px;
 }
+
+/* Title: at the desktop size "AURELIA CORE" overflowed the 28rem column and broke onto
+   two lines; give it room, and keep Korean words whole ("Mine으로" was split). */
+[data-clicker] .clicker-title-copy {
+  width: min(100%, 38rem);
+}
+
+/* Korean wraps at word boundaries everywhere in the game, not mid-syllable run;
+   long unbroken strings may still wrap so nothing overflows. */
+[data-clicker] {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
