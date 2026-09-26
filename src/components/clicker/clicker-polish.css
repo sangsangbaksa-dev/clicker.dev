@@ -1235,3 +1235,24 @@
     overflow-y: auto;
   }
 }
+
+/* Skill tree: the detail card sat below a 68vh board, so tapping a node showed nothing
+   until you scrolled the page. Dock it at the bottom of the screen instead; the tree gets
+   matching bottom room so the end of the board can scroll clear of it. */
+[data-clicker] .clicker-skill-detail {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  max-width: 720px;
+  margin-inline: auto;
+  max-height: 42vh;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--panel) 97%, black);
+  box-shadow: 0 -10px 30px rgb(0 0 0 / 0.5);
+}
+
+[data-clicker] .clicker-skill-tree:has(> .clicker-skill-detail) {
+  padding-bottom: 220px;
+}
