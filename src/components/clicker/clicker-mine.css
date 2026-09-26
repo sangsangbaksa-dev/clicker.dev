@@ -94,6 +94,9 @@
   35% {
     filter: brightness(1.9) saturate(1.4);
   }
+  100% {
+    filter: brightness(1) saturate(1);
+  }
 }
 
 .clicker-mine-crystal-glow {

@@ -194,7 +194,7 @@ export function clickerBuySkill(save: SaveData, id: string): UseCaseResult<SaveD
 export function clickerDrinkPotion(save: SaveData, potionId: string): UseCaseResult<SaveData> {
   const next = startFever(save.runState, save.metaState, config, "POTION", potionId)
   if (next.error) return { ok: false, status: 400, error: next.error }
-  return ok({ ...save, runState: next.run, metaState: { ...save.metaState, statistics: { ...save.metaState.statistics, feverStarts: save.metaState.statistics.feverStarts + 1 } } })
+  return ok({ ...save, runState: next.run })
 }
 
 export function clickerStartGaugeFever(save: SaveData): UseCaseResult<SaveData> {
