@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { MineArt, MINE_ORE_PLATE } from "@/data/clicker/mine-assets"
@@ -268,6 +269,19 @@ export function ClickerMine({
     [hitAt],
   )
 
+  /** Keyboard mining: Enter/Space strikes near the crystal's center; held-key repeats are ignored. */
+  const strikeKey = useCallback(
+    (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+      if (e.key !== "Enter" && e.key !== " ") return
+      e.preventDefault()
+      if (e.repeat) return
+      const b = live.current.box
+      if (!b) return
+      hitAt(b.left + b.width * (0.35 + Math.random() * 0.3), b.top + b.height * (0.35 + Math.random() * 0.3), false)
+    },
+    [hitAt],
+  )
+
   // Assist drill: auto strikes on random points of the crystal.
   useEffect(() => {
     if (autoRate <= 0) return
@@ -335,6 +349,7 @@ export function ClickerMine({
           aria-label={muted ? "코어 광석 채굴 · 음소거" : "코어 광석 채굴 · 레이저"}
           style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
           onPointerDown={strike}
+          onKeyDown={strikeKey}
         >
           {/* Same plate, cropped to the crystal, so hits can pulse just the ore. */}
           <span
