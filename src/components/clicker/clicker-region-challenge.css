@@ -409,3 +409,21 @@
   color: rgb(232 246 255 / 0.55);
   pointer-events: none;
 }
+
+.clicker-hunt-layer,
+.clicker-hunt-canvas {
+  position: absolute;
+  pointer-events: none;
+}
+
+.clicker-hunt-layer {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* The pointer layer sits above the 3D canvas and the back layer. */
+.clicker-hunt > .clicker-hunt-field {
+  position: relative;
+  z-index: 1;
+}

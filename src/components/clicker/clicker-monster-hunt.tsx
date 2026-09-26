@@ -16,11 +16,13 @@ import {
   nextPlateCrack,
   stepHunt,
   type Field,
+  type HuntEvent,
   type HuntState,
   type MonsterDef,
   type MonsterKind,
 } from "@/domain/services/clicker-monster"
 import { playMonsterCue, setLaserHum, stopLaserHum } from "@/components/clicker/clicker-sfx"
+import type { MonsterStage } from "@/components/clicker/monster-3d/stage"
 
 /* ---------- Art data (local coords, body centre = 0,0) ---------- */
 
@@ -180,20 +182,62 @@ export function MonsterHunt({ kind, playing, muted, onKill, onScore }: Props) {
   const [view, setView] = useState<View>(() => initialView(def, LANDSCAPE))
   const svgRef = useRef<SVGSVGElement | null>(null)
   const wrapRef = useRef<HTMLDivElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
   /** Upright phones get a tall field so the monster isn't a speck in a wide strip. */
   const fieldRef = useRef<Field>(LANDSCAPE)
+  /** Where the field sits inside the wrapper (the SVGs letterbox it; the canvas must match). */
+  const [box, setBox] = useState({ left: 0, top: 0, w: 0, h: 0 })
+  const stageRef = useRef<MonsterStage | null>(null)
+  const [stageReady, setStageReady] = useState(false)
   useEffect(() => {
     const el = wrapRef.current
     if (!el) return
     const pick = () => {
       const { width, height } = el.getBoundingClientRect()
-      fieldRef.current = height > 0 && width / height < 0.9 ? PORTRAIT : LANDSCAPE
+      const field = height > 0 && width / height < 0.9 ? PORTRAIT : LANDSCAPE
+      fieldRef.current = field
+      const scale = Math.min(width / field.w, height / field.h)
+      const next = { w: field.w * scale, h: field.h * scale, left: (width - field.w * scale) / 2, top: (height - field.h * scale) / 2 }
+      setBox(next)
+      stageRef.current?.resize(next.w, next.h, field)
     }
     pick()
     const ro = new ResizeObserver(pick)
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
+
+  // Real-time 3D monster (Blender model, three.js). Loaded lazily; the 2D art stays as the
+  // fallback if WebGL or the model is unavailable.
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    let stage: MonsterStage | null = null
+    let cancelled = false
+    import("@/components/clicker/monster-3d/stage")
+      .then(({ MonsterStage: Stage }) => {
+        if (cancelled) return
+        stage = new Stage(canvas, def.kind)
+        return stage.ready.then(() => {
+          if (cancelled || !stage) return
+          const el = wrapRef.current
+          const { width, height } = el?.getBoundingClientRect() ?? { width: 0, height: 0 }
+          const field = fieldRef.current
+          const scale = Math.min(width / field.w, height / field.h)
+          stage.resize(field.w * scale, field.h * scale, field)
+          stageRef.current = stage
+          setStageReady(true)
+        })
+      })
+      .catch(() => {
+        /* no WebGL / model failed to load — keep the 2D monster */
+      })
+    return () => {
+      cancelled = true
+      stageRef.current = null
+      stage?.dispose()
+    }
+  }, [def.kind])
   const input = useRef({ pointer: false, key: false, aim: null as { x: number; y: number } | null })
   const live = useRef({ playing, muted, onKill, onScore })
   useEffect(() => {
@@ -210,7 +254,9 @@ export function MonsterHunt({ kind, playing, muted, onKill, onScore }: Props) {
     let prevStep = 0
 
     const frame = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000)
+      // Real elapsed time (capped for tab switches); the sim substeps below so a slow device
+      // plays at full speed instead of slow motion against the real-time challenge clock.
+      const dt = Math.min(0.25, (now - last) / 1000)
       last = now
       const { playing: isPlaying, muted: isMuted } = live.current
       const t = v.t + dt
@@ -220,18 +266,27 @@ export function MonsterHunt({ kind, playing, muted, onKill, onScore }: Props) {
       let pos = monsterPosition(def.kind, hunt.pathT, field)
       // Space = auto-aim at the body, so the game is playable without a pointer.
       const aim = input.current.key ? { x: pos.x, y: pos.y } : input.current.aim
-      const burning = firing && !!aim && hitsMonster(def, hunt, aim, field)
+      const stage = stageRef.current
+      // With the 3D model the beam must actually touch the mesh; otherwise the hit ellipse.
+      const burning =
+        firing && !!aim && (stage ? hunt.phase === "alive" && stage.hits(aim) : hitsMonster(def, hunt, aim, field))
+      let killed = false
       let particles = v.particles
       let { shake, punch, flash } = v
       const born: Particle[] = []
 
       if (isPlaying) {
         const before = hunt
-        const result = stepHunt(def, hunt, dt, burning)
+        const result = { state: hunt, events: [] as HuntEvent[] }
+        for (let rest = dt; rest > 1e-9; rest -= 0.05) {
+          const r = stepHunt(def, result.state, Math.min(0.05, rest), burning && result.state.phase === "alive")
+          result.state = r.state
+          result.events.push(...r.events)
+        }
         hunt = result.state
         pos = monsterPosition(def.kind, hunt.pathT, field)
         // Every plate that broke this frame flies off from where it sat.
-        for (let i = before.platesBroken; i < hunt.platesBroken; i++) {
+        for (let i = before.platesBroken; i < hunt.platesBroken && !stage; i++) {
           const plate = PLATES[def.kind][i]
           const at = plate ? plateWorld({ ...v, pos }, plate) : pos
           const dir = Math.atan2(at.y - pos.y, at.x - pos.x || 0.01)
@@ -248,10 +303,17 @@ export function MonsterHunt({ kind, playing, muted, onKill, onScore }: Props) {
           flash = Math.max(flash, 0.7)
           shake = Math.max(shake, 6)
         }
-        if (hunt.platesBroken > before.platesBroken) playMonsterCue(isMuted, "plate")
+        if (hunt.platesBroken > before.platesBroken) {
+          // In 3D the plates themselves fly off; the recoil and flash still land here.
+          punch = 1
+          flash = Math.max(flash, 0.7)
+          shake = Math.max(shake, 6)
+          playMonsterCue(isMuted, "plate")
+        }
         for (const e of result.events) {
           if (e === "kill") {
-            for (let i = 0; i < 22; i++) {
+            killed = true
+            for (let i = 0; i < (stage ? 0 : 22); i++) {
               const a = rand(0, Math.PI * 2)
               const sp = rand(220, 620)
               born.push({ kind: "shard", x: pos.x + rand(-40, 40), y: pos.y + rand(-50, 50), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 200, life: rand(0.9, 1.4), max: 1.4, rot: rand(0, 360), vr: rand(-900, 900), size: rand(6, 16), color: i % 3 === 0 ? PALETTE[def.kind].oreLight : i % 3 === 1 ? PALETTE[def.kind].ore : PALETTE[def.kind].body })
@@ -334,6 +396,25 @@ export function MonsterHunt({ kind, playing, muted, onKill, onScore }: Props) {
         jitter,
       }
       setView(v)
+      stage?.frame({
+        t,
+        dt,
+        phase: hunt.phase,
+        phaseT: hunt.phaseT,
+        spawnS: SPAWN_S,
+        pos,
+        platesBroken: hunt.platesBroken,
+        aim: firing ? aim : null,
+        burning,
+        burnT: hunt.burnT,
+        enraged: isEnraged(def, hunt),
+        flash: v.flash,
+        punch: v.punch,
+        blink,
+        jitter: { x: jitter.bodyX, y: jitter.bodyY },
+        pathT: hunt.pathT,
+        killed,
+      })
       setLaserHum(isMuted, !firing ? 0 : burning ? 1 : 0.4)
       const score = Math.round(huntScore(def, hunt) * 100) / 100
       if (score !== lastScore) {
@@ -459,6 +540,43 @@ export function MonsterHunt({ kind, playing, muted, onKill, onScore }: Props) {
 
   return (
     <div ref={wrapRef} className={`clicker-hunt is-${kind}${enraged ? " is-enraged" : ""}`}>
+      {stageReady ? (
+        <svg className="clicker-hunt-layer" viewBox={`0 0 ${field.w} ${field.h}`} preserveAspectRatio="xMidYMid meet" aria-hidden>
+          <defs>
+            <radialGradient id={`hunt-halo3d-${kind}`}>
+              <stop offset="0%" stopColor={hot} stopOpacity={0.4} />
+              <stop offset="100%" stopColor={hot} stopOpacity={0} />
+            </radialGradient>
+            <linearGradient id="hunt-floor3d" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={palette.bodyEdge} stopOpacity={0.12} />
+              <stop offset="100%" stopColor="#000" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <g transform={`translate(${fieldShakeX} ${fieldShakeY})`}>
+            <rect x={-20} y={FLOOR_Y} width={field.w + 40} height={field.h - FLOOR_Y + 20} fill="url(#hunt-floor3d)" />
+            <line x1={0} y1={FLOOR_Y} x2={field.w} y2={FLOOR_Y} stroke={palette.bodyEdge} strokeOpacity={0.25} />
+            {!hidden ? (
+              <>
+                <circle cx={pos.x} cy={pos.y + bodyDy} r={kind === "golem" ? 230 : 180} fill={`url(#hunt-halo3d-${kind})`} opacity={(0.35 + heat * 0.4 + (enraged ? 0.2 : 0)) * bodyOpacity} />
+                <ellipse
+                  cx={pos.x}
+                  cy={FLOOR_Y + 4}
+                  rx={(kind === "golem" ? 120 : 85) * bodyScale * (kind === "specter" ? (380 / (380 + (FLOOR_Y - pos.y))) * 1.6 : 1)}
+                  ry={13}
+                  fill="#000"
+                  opacity={0.45 * bodyOpacity}
+                />
+              </>
+            ) : null}
+          </g>
+        </svg>
+      ) : null}
+      <canvas
+        ref={canvasRef}
+        className="clicker-hunt-canvas"
+        style={{ left: box.left, top: box.top, width: box.w, height: box.h, visibility: stageReady ? "visible" : "hidden" }}
+        aria-hidden
+      />
       <svg
         ref={svgRef}
         className="clicker-hunt-field"
@@ -500,11 +618,16 @@ export function MonsterHunt({ kind, playing, muted, onKill, onScore }: Props) {
         </defs>
 
         <g transform={`translate(${fieldShakeX} ${fieldShakeY})`}>
-          <rect x={-20} y={FLOOR_Y} width={field.w + 40} height={field.h - FLOOR_Y + 20} fill="url(#hunt-floor)" />
-          <line x1={0} y1={FLOOR_Y} x2={field.w} y2={FLOOR_Y} stroke={palette.bodyEdge} strokeOpacity={0.25} />
+          {!stageReady ? (
+            <>
+              <rect x={-20} y={FLOOR_Y} width={field.w + 40} height={field.h - FLOOR_Y + 20} fill="url(#hunt-floor)" />
+              <line x1={0} y1={FLOOR_Y} x2={field.w} y2={FLOOR_Y} stroke={palette.bodyEdge} strokeOpacity={0.25} />
+            </>
+          ) : null}
 
+          {/* 2D fallback monster (no WebGL / model still loading). */}
           {/* Ground shadow tracks the body; it shrinks as the specter floats higher. */}
-          {!hidden ? (
+          {!hidden && !stageReady ? (
             <ellipse
               cx={pos.x}
               cy={FLOOR_Y + 4}
@@ -515,7 +638,7 @@ export function MonsterHunt({ kind, playing, muted, onKill, onScore }: Props) {
             />
           ) : null}
 
-          {!hidden ? (
+          {!hidden && !stageReady ? (
             <g
               opacity={bodyOpacity}
               transform={`translate(${pos.x + jx} ${pos.y + bodyDy + jy}) scale(${pos.facing * sx} ${sy})`}
