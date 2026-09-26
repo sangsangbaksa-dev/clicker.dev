@@ -129,7 +129,10 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
         {kind === "DRONE_RECALL" ? <DroneRecall {...gameProps} /> : null}
         {phase === "countdown" ? (
           <div className="clicker-challenge-countdown" aria-live="assertive">
-            {Math.max(1, Math.ceil((COUNTDOWN_MS - clock) / 1000))}
+            {/* Keyed so each new number punches in. */}
+            <span key={Math.ceil((COUNTDOWN_MS - clock) / 1000)}>
+              {Math.max(1, Math.ceil((COUNTDOWN_MS - clock) / 1000))}
+            </span>
           </div>
         ) : null}
         {phase === "done" ? (
@@ -223,6 +226,8 @@ function RodStrike({ elapsed, playing, onHit, onMiss }: GameProps) {
           >
             <span className="clicker-rod-tip" />
             <span className="clicker-rod-mast" />
+            {/* Caught: the bolt lands on the rod instead of the ground. */}
+            {fx === " is-hit" && flash ? <span key={flash.at} className="clicker-rod-bolt" aria-hidden /> : null}
           </button>
         )
       })}
@@ -250,7 +255,8 @@ function FaultDrill({ elapsed, playing, hits, misses, onHit, onMiss }: GameProps
     } else {
       onMiss()
     }
-    setFlash({ key: 0, ok, at: elapsed })
+    // key = needle position (0..1000) so the hit spark lands where the needle was.
+    setFlash({ key: Math.round(needle * 1000), ok, at: elapsed })
   }
   const drillRef = useRef(drill)
   useEffect(() => {
@@ -273,13 +279,25 @@ function FaultDrill({ elapsed, playing, hits, misses, onHit, onMiss }: GameProps
       <div className="clicker-drill-gauge" aria-hidden>
         <i className="clicker-drill-band" style={{ left: `${(band - width / 2) * 100}%`, width: `${width * 100}%` }} />
         <b className="clicker-drill-needle" style={{ left: `${needle * 100}%` }} />
+        {fx && flash ? (
+          <i
+            key={flash.at}
+            className={`clicker-drill-spark${flash.ok ? "" : " is-miss"}`}
+            style={{ left: `${flash.key / 10}%` }}
+          />
+        ) : null}
       </div>
       <p className="clicker-drill-depth">
         깊이 <strong>{Math.min(hits, DRILL_TARGET)}</strong> / {DRILL_TARGET} · 균열 {misses}
       </p>
       <div className="clicker-drill-shaft" aria-hidden>
         {Array.from({ length: DRILL_TARGET }, (_, i) => (
-          <span key={i} className={i < hits ? "is-dug" : ""} />
+          <span
+            key={i}
+            className={
+              i < hits ? (i === hits - 1 && fx === " is-hit" ? "is-dug is-new" : "is-dug") : ""
+            }
+          />
         ))}
       </div>
       <button
@@ -302,6 +320,7 @@ function FaultDrill({ elapsed, playing, hits, misses, onHit, onMiss }: GameProps
 const DRONE_FIRST_MS = 200
 const DRONE_EVERY_MS = 650
 const DRONE_FLIGHT_MS = 2400
+const DRONE_POP_MS = 520
 
 type Drone = { lane: number; ltr: boolean }
 
@@ -310,9 +329,22 @@ function DroneRecall({ elapsed, playing, onHit }: GameProps) {
     Array.from({ length: 40 }, () => ({ lane: 0.1 + Math.random() * 0.72, ltr: Math.random() < 0.5 })),
   )
   const [caught, setCaught] = useState<ReadonlySet<number>>(() => new Set())
+  const [pops, setPops] = useState<{ id: number; x: number; y: number; at: number }[]>([])
 
   return (
     <div className="clicker-hangar">
+      {pops
+        .filter((pop) => elapsed - pop.at < DRONE_POP_MS)
+        .map((pop) => (
+          <span
+            key={pop.id}
+            className="clicker-drone-pop"
+            style={{ left: `${pop.x}%`, top: `${pop.y}%` }}
+            aria-hidden
+          >
+            <b>+1</b>
+          </span>
+        ))}
       {drones.map((d, i) => {
         const p = (elapsed - (DRONE_FIRST_MS + i * DRONE_EVERY_MS)) / DRONE_FLIGHT_MS
         if (p < 0 || p > 1 || caught.has(i)) return null
@@ -328,6 +360,7 @@ function DroneRecall({ elapsed, playing, onHit }: GameProps) {
               e.preventDefault()
               if (!playing) return
               setCaught(new Set(caught).add(i))
+              setPops((prev) => [...prev.slice(-5), { id: i, x: x * 92 + 4, y: d.lane * 100, at: elapsed }])
               onHit()
             }}
           >
