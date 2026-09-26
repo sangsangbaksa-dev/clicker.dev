@@ -471,12 +471,21 @@
   opacity: 1;
 }
 
-/* Phones: the hub menu fills the bottom edge, so tuck the launcher under the HUD instead. */
+/* Phones: the hub menu fills the bottom edge and the HUD the top, so dock the launcher
+   as a slim tab on the right edge where it covers the least. */
 @media (max-width: 720px) {
   [data-clicker] .clicker-admin-launch {
-    top: calc(118px + env(safe-area-inset-top, 0px));
+    top: 50%;
     bottom: auto;
-    left: 8px;
+    left: auto;
+    right: 0;
+    translate: 0 -50%;
+    min-height: 0;
+    padding: 8px 4px;
+    border-right: 0;
+    border-radius: 8px 0 0 8px;
+    writing-mode: vertical-rl;
+    letter-spacing: 0.1em;
   }
 }
 
