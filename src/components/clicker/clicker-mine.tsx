@@ -185,7 +185,7 @@ export function ClickerMine({
       dx: (Math.random() - 0.35) * 70 * away,
       dy: -(24 + Math.random() * (critical ? 52 : 36)),
       spin: (Math.random() - 0.5) * 540,
-      size: 3 + Math.random() * (critical ? 5 : 3.5),
+      size: 5 + Math.random() * (critical ? 6 : 4),
     }))
     setChips((prev) => [...prev.slice(-32), ...burst])
     later(() => setChips((prev) => prev.filter((s) => !burst.some((b) => b.id === s.id))), 640)
@@ -426,7 +426,7 @@ export function ClickerMine({
         {chips.map((chip) => (
           <span
             key={chip.id}
-            className={`clicker-mine-chip${chip.critical ? " is-crit" : ""}`}
+            className={`clicker-mine-debris${chip.critical ? " is-crit" : ""}`}
             style={
               {
                 left: `${chip.x}px`,

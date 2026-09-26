@@ -2378,6 +2378,8 @@ button.clicker-metric-action.is-fever-ready em {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  /* max-content: with left: 50% the shrink-to-fit width would cap at half the viewport. */
+  width: max-content;
   max-width: min(92vw, 420px);
   background: var(--panel-alt);
   border: 1px solid var(--line);
@@ -2398,6 +2400,13 @@ button.clicker-metric-action.is-fever-ready em {
   font-size: 11px;
   letter-spacing: 0.02em;
   color: var(--muted);
+}
+
+/* Touch screens have no Esc key. */
+@media (pointer: coarse) {
+  .clicker-toast-key {
+    display: none;
+  }
 }
 
 .clicker-toast:hover {

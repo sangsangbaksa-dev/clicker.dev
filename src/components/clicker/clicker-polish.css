@@ -471,6 +471,15 @@
   opacity: 1;
 }
 
+/* Phones: the hub menu fills the bottom edge, so tuck the launcher under the HUD instead. */
+@media (max-width: 720px) {
+  [data-clicker] .clicker-admin-launch {
+    top: calc(118px + env(safe-area-inset-top, 0px));
+    bottom: auto;
+    left: 8px;
+  }
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 720px) {
   [data-clicker] .clicker-top {
@@ -889,7 +898,9 @@
 
 [data-clicker] .clicker-mine-result-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* One equal column per stat, however many there are. */
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: 6px;
   margin: 14px 0 0;
 }

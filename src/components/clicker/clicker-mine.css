@@ -347,21 +347,22 @@
 
 /* Rock chips: thrown up and out, then pulled down by gravity while tumbling.
    Horizontal drift + spin run on `transform`, the vertical arc on `translate`, so each gets its own easing. */
-.clicker-mine-chip {
+.clicker-mine-debris {
   position: absolute;
   margin: calc(var(--chip-size, 5px) / -2) 0 0 calc(var(--chip-size, 5px) / -2);
-  background: linear-gradient(135deg, #e9fdff, #6fd8f0 55%, #2a6f86);
+  /* Light chips: dark ones read as black specks against the cyan crystal. */
+  background: linear-gradient(135deg, #ffffff, #b8f6ff 50%, #58cfe8);
   clip-path: polygon(20% 0, 100% 30%, 80% 100%, 0 70%);
   animation:
-    clicker-mine-chip-x 620ms linear forwards,
-    clicker-mine-chip-y 620ms forwards;
+    clicker-mine-debris-x 620ms linear forwards,
+    clicker-mine-debris-y 620ms forwards;
 }
 
-.clicker-mine-chip.is-crit {
-  background: linear-gradient(135deg, #fffbe8, #ffd27a 55%, #b8741a);
+.clicker-mine-debris.is-crit {
+  background: linear-gradient(135deg, #ffffff, #ffe7a8 50%, #ffbe4d);
 }
 
-@keyframes clicker-mine-chip-x {
+@keyframes clicker-mine-debris-x {
   0% {
     transform: translateX(0) rotate(0deg);
     opacity: 1;
@@ -375,7 +376,7 @@
   }
 }
 
-@keyframes clicker-mine-chip-y {
+@keyframes clicker-mine-debris-y {
   0% {
     translate: 0 0;
     animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
