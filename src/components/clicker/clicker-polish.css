@@ -1161,8 +1161,8 @@
     font-size: 13px;
   }
 
-  /* The manage header already has the back button. */
-  [data-clicker] .clicker-world-back {
+  /* The manage header already has the back button (and a full-width copy here overflowed the row). */
+  [data-clicker] :is(.clicker-world-back, .clicker-transcendence-back) {
     display: none;
   }
 
