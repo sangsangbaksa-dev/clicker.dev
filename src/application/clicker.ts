@@ -50,6 +50,7 @@ import {
   type MineSessionSummary,
 } from "@/domain/services/clicker-mine-session"
 import { decodeClickerSave, encodeClickerSave } from "@/domain/services/clicker-save-codec"
+import { encodeSaveCode, parseSaveCode, type ParsedSaveCode } from "@/domain/services/clicker-save-transfer"
 import { backupClickerRaw, readClickerRaw, writeClickerRaw } from "@/infrastructure/persistence/clicker-save"
 
 const config = clickerConfig
@@ -98,6 +99,28 @@ export function loadClickerGame(now: number): SaveData {
 export function persistClickerGame(save: SaveData): void {
   if (persistBlocked) return
   writeClickerRaw(encodeClickerSave({ ...save, savedAt: Date.now() }).json)
+}
+
+/** Save code for the settings sheet: the current save as the loader would store it. */
+export function clickerExportCode(save: SaveData): string {
+  return encodeSaveCode(encodeClickerSave({ ...save, savedAt: Date.now() }).json)
+}
+
+export function clickerParseSaveCode(code: string, now: number): ParsedSaveCode {
+  return parseSaveCode(code, config, now)
+}
+
+/**
+ * Replace the stored save with an imported one. The save being replaced goes to the
+ * backup list first; returns false (and writes nothing) when that backup can't be kept.
+ * The caller reloads from storage afterwards.
+ */
+export function clickerImportSave(json: string, now: number): boolean {
+  const current = readClickerRaw()
+  if (current && !backupClickerRaw(current, "import: 저장 코드를 불러오기 전", now)) return false
+  writeClickerRaw(json)
+  persistBlocked = false
+  return readClickerRaw() === json
 }
 
 /** Admin reset: the player chose to start over, so autosave may write again. */
