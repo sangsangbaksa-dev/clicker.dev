@@ -1104,3 +1104,25 @@
     min-height: 40px;
   }
 }
+
+/* Region stage: the travel chips sit over the stage's top-left corner; keep the goal card below them. */
+[data-clicker] .clicker-goal {
+  margin-top: 52px;
+}
+
+@media (max-width: 720px) {
+  [data-clicker] .clicker-goal-compact {
+    margin-top: 46px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Keep the region's activity/challenge buttons above the dock (2 rows, or 3 once TRANSCENDENCE joins). */
+  [data-clicker] .clicker-region-station {
+    bottom: calc(150px + env(safe-area-inset-bottom, 0px));
+  }
+
+  [data-clicker]:has(.clicker-hub-dock > :nth-child(7)) .clicker-region-station {
+    bottom: calc(212px + env(safe-area-inset-bottom, 0px));
+  }
+}
