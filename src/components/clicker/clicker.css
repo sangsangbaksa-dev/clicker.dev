@@ -2126,8 +2126,8 @@ button.clicker-metric-action.is-fever-ready em {
 .clicker-producer-title-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 10px;
 }
 
 .clicker-producer-status {
@@ -2213,6 +2213,12 @@ button.clicker-metric-action.is-fever-ready em {
 .clicker-buy {
   display: flex;
   gap: 6px;
+}
+
+/* Same-width buy buttons so the columns line up from card to card. */
+.clicker-producer-card .clicker-buy {
+  display: grid;
+  grid-template-columns: repeat(3, 78px);
 }
 
 .clicker-buy button,
@@ -4771,7 +4777,7 @@ button.clicker-metric-action.is-fever-ready em {
   }
 
   .clicker-buy-cost {
-    font-size: 8px;
+    font-size: 10px;
     overflow: hidden;
     text-overflow: ellipsis;
   }
