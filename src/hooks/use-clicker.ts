@@ -395,16 +395,17 @@ export function useClicker() {
     commit(result.value.save)
     persistNow(result.value.save)
     playSfx("travel")
-    const always = result.value.save.settings.regionIntroAlways
-    if (result.value.intro && (always || result.value.firstVisit)) setRegionIntro({
+    const { intro, firstVisit } = result.value
+    if (intro && (firstVisit || result.value.save.settings.regionIntroAlways)) {
+      setRegionIntro({
         regionId,
         name: label,
         description: region?.description ?? "",
-        kicker: result.value.firstVisit ? "NEW REGION · 첫 진입" : "REGION · 진입",
-        entry: result.value.firstVisit ? "첫 진입" : "진입",
-        ...result.value.intro,
+        kicker: firstVisit ? "NEW REGION · 첫 진입" : "REGION · 진입",
+        entry: firstVisit ? "첫 진입" : "진입",
+        ...intro,
       })
-    else flash(`${label}(으)로 이동`)
+    } else flash(`${label}(으)로 이동`)
   }, [commit, flash, refuse, persistNow])
 
   const dismissRegionIntro = useCallback(() => setRegionIntro(null), [])
