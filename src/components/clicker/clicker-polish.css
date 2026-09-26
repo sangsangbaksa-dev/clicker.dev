@@ -1092,7 +1092,7 @@
   }
 
   /* The manage header already has the back button. */
-  [data-clicker] .clicker-world-back {
+  [data-clicker] :is(.clicker-world-back, .clicker-transcendence-back) {
     display: none;
   }
 

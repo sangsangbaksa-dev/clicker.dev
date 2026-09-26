@@ -242,20 +242,26 @@ export function ClickerApp() {
         setDrawerHeight(drawerSnaps.half)
         persistDrawerHeight(drawerSnaps.half)
       }
-      // Scroll only the tab strip: scrollIntoView would also shift the overflow-hidden drawer sideways.
-      window.requestAnimationFrame(() => {
-        const tab = document.querySelector<HTMLElement>(`.clicker-tabs button[data-active="true"]`)
-        const strip = tab?.parentElement
-        if (!tab || !strip) return
-        const left = tab.offsetLeft - strip.offsetLeft
-        const right = left + tab.offsetWidth
-        if (left < strip.scrollLeft) strip.scrollTo({ left, behavior: "smooth" })
-        else if (right > strip.scrollLeft + strip.clientWidth)
-          strip.scrollTo({ left: right - strip.clientWidth, behavior: "smooth" })
-      })
     },
     [drawerHeight, drawerSnaps, persistDrawerHeight],
   )
+
+  // Keep the active tab visible in the strip, including tab changes the player didn't tap
+  // (after a rebirth). Scroll only the strip: scrollIntoView would also shift the
+  // overflow-hidden drawer sideways.
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const active = document.querySelector<HTMLElement>(`.clicker-tabs button[data-active="true"]`)
+      const strip = active?.parentElement
+      if (!active || !strip) return
+      const left = active.offsetLeft - strip.offsetLeft
+      const right = left + active.offsetWidth
+      if (left < strip.scrollLeft) strip.scrollTo({ left, behavior: "smooth" })
+      else if (right > strip.scrollLeft + strip.clientWidth)
+        strip.scrollTo({ left: right - strip.clientWidth, behavior: "smooth" })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [tab, hubView])
 
   const playSurface = game.save?.settings.playSurface ?? "hub"
   const prevSurface = useRef(playSurface)
