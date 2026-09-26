@@ -265,21 +265,33 @@ export function ClickerMine({
     return () => window.clearTimeout(t)
   }, [vein])
 
-  const claimVein = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    if (e.button !== 0 || !vein) return
-    e.preventDefault()
-    e.stopPropagation()
+  const claimVeinAt = (clientX: number, clientY: number) => {
     const el = mineRef.current
-    if (!el) return
+    if (!el || !vein) return
     const rect = el.getBoundingClientRect()
     playLaser(muted, true)
-    fireLaser(e.clientX - rect.left, e.clientY - rect.top, true)
+    fireLaser(clientX - rect.left, clientY - rect.top, true)
     setVein(null)
-    const label = onVein?.(e.clientX, e.clientY) ?? null
+    const label = onVein?.(clientX, clientY) ?? null
     if (label) {
       setVeinLabel(label)
       later(() => setVeinLabel(null), 1800)
     }
+  }
+
+  const claimVein = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    e.stopPropagation()
+    claimVeinAt(e.clientX, e.clientY)
+  }
+
+  const claimVeinKey = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== "Enter" && e.key !== " ") return
+    e.preventDefault()
+    if (e.repeat) return
+    const r = e.currentTarget.getBoundingClientRect()
+    claimVeinAt(r.left + r.width / 2, r.top + r.height / 2)
   }
 
   const plate = MineArt.orePlate
@@ -342,6 +354,7 @@ export function ClickerMine({
           aria-label="황금 광맥 — 탭하여 보상"
           style={{ left: box.left + box.width * vein.x, top: box.top + box.height * vein.y }}
           onPointerDown={claimVein}
+          onKeyDown={claimVeinKey}
         />
       ) : null}
       {veinLabel ? (
