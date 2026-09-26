@@ -131,6 +131,18 @@ export function ClickerApp() {
     }
   }, [])
 
+  // Every button press clicks. Mining targets have their own laser / vein sounds.
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const el = e.target instanceof Element ? e.target.closest("button") : null
+      if (!el || el.disabled || !el.closest("[data-clicker]")) return
+      if (el.closest(".clicker-mine-crystal, .clicker-mine-vein-gold, [data-sfx='off']")) return
+      playSfx("tap")
+    }
+    window.addEventListener("click", onClick, true)
+    return () => window.removeEventListener("click", onClick, true)
+  }, [])
+
   const [tab, setTab] = useState<TabId>("upgrades")
   // Hub splits into the mine entrance scene and a full-screen management screen.
   const [hubView, setHubView] = useState<"entrance" | "manage">("entrance")
@@ -220,7 +232,7 @@ export function ClickerApp() {
 
   const selectTab = useCallback(
     (id: TabId) => {
-      playSfx(id === "transcendence" ? "transcend" : "tick")
+      if (id === "transcendence") playSfx("transcend")
       setTab(id)
       setHubView("manage")
       if (drawerHeight <= drawerSnaps.peek + 16) {
@@ -589,9 +601,8 @@ export function ClickerApp() {
   const showTranscendenceTab = transcendenceUnlocked || rebirthRatio >= 0.25
   const transcendenceOwned = new Set(game.save.metaState.transcendenceIds).size
   const transcendenceTotal = game.config.transcendence.length
-  const visibleSkillNodes = game.skillNodes.filter(
-    (node) => transcendenceUnlocked || node.branch !== "TRANSCENDENCE",
-  )
+  // Every circuit (all 100, transcendence branch included) stays on the board.
+  const visibleSkillNodes = game.skillNodes
   const drawerTabs = (
     [
       ["producers", "PRODUCERS", "생산자"],

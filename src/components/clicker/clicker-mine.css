@@ -89,16 +89,10 @@
   animation: clicker-mine-crystal-hit 160ms ease-out;
 }
 
+/* Hits only flash the crystal; it never scales or warps, so the ore stays rock-solid. */
 @keyframes clicker-mine-crystal-hit {
-  0% {
-    transform: scale(1);
-  }
   35% {
-    transform: scale(1.045);
     filter: brightness(1.9) saturate(1.4);
-  }
-  100% {
-    transform: scale(1);
   }
 }
 
