@@ -339,7 +339,13 @@ export type RegionDef = {
   intro?: RegionIntroDef
 }
 
-export type RegionChallengeKind = "ROD_STRIKE" | "FAULT_DRILL" | "DRONE_RECALL" | "SIGNAL_DECODE" | "PHASE_LOCK"
+export type RegionChallengeKind =
+  | "MONSTER_HUNT"
+  | "ROD_STRIKE"
+  | "FAULT_DRILL"
+  | "DRONE_RECALL"
+  | "SIGNAL_DECODE"
+  | "PHASE_LOCK"
 
 /** Timed field mini-game: a perfect run pays `rewardSeconds` of current production. */
 export type RegionChallengeDef = {

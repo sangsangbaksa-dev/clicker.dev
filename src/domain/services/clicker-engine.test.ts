@@ -428,6 +428,20 @@ test("field challenge pays production by score and then cools down", () => {
   assert.ok(claimRegionChallenge(run, meta, config, "core_chamber", 1, now).error, "home has no challenge")
 })
 
+test("Signal Relay's monster hunt is a field challenge played in the relay", () => {
+  const now = 12_000_000
+  const meta = createInitialMeta()
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), 1_000_000)
+  run = buyProducer(run, meta, config, "solar_node", 5).run
+  assert.equal(config.regions.find((r) => r.id === "signal_relay")?.challenge?.kind, "MONSTER_HUNT")
+  assert.ok(regionChallengeError(run, config, "signal_relay", now), "must stand in the relay")
+  run = travelToRegion(run, config, "signal_relay").run
+  assert.equal(regionChallengeError(run, config, "signal_relay", now), undefined)
+  const hunt = claimRegionChallenge(run, meta, config, "signal_relay", 0.8, now)
+  assert.equal(hunt.error, undefined)
+  assert.ok(hunt.reward > 0)
+})
+
 test("region visits are recorded once so the intro plays only on the first entry", () => {
   const meta = createInitialMeta()
   const first = markRegionVisited(meta, "signal_relay")

@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <radialGradient id="halo" cx="50%" cy="55%" r="52%">
+      <stop offset="0" stop-color="#ff6a2a" stop-opacity="0.32"/>
+      <stop offset="0.6" stop-color="#ff6a2a" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#ff6a2a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a6774"/>
+      <stop offset="0.35" stop-color="#2e3842"/>
+      <stop offset="1" stop-color="#10151b"/>
+    </linearGradient>
+    <linearGradient id="plateSide" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#46525e"/>
+      <stop offset="1" stop-color="#0d1217"/>
+    </linearGradient>
+    <linearGradient id="dark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1f262e"/>
+      <stop offset="1" stop-color="#07090c"/>
+    </linearGradient>
+    <radialGradient id="core" cx="50%" cy="45%" r="55%">
+      <stop offset="0" stop-color="#fff6de"/>
+      <stop offset="0.25" stop-color="#ffd27a"/>
+      <stop offset="0.55" stop-color="#ff6a2a"/>
+      <stop offset="0.85" stop-color="#8a1e08"/>
+      <stop offset="1" stop-color="#2a0802"/>
+    </radialGradient>
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ff8a3a" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#ff5a2a" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <style>
+    .pulse { transform-origin: 100px 108px; animation: pulse 1.6s ease-in-out infinite; }
+    .beacon { animation: beacon 1.2s steps(1) infinite; }
+    .beacon.b { animation-delay: 0.6s; }
+    .visor { animation: visor 2.8s linear infinite; }
+    @keyframes pulse { 0%, 100% { transform: scale(0.85); opacity: 0.55; } 50% { transform: scale(1.15); opacity: 1; } }
+    @keyframes beacon { 50% { opacity: 0.2; } }
+    @keyframes visor { 0%, 100% { transform: translateX(-9px); } 50% { transform: translateX(9px); } }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+  </style>
+
+  <ellipse cx="100" cy="112" rx="96" ry="86" fill="url(#halo)"/>
+
+  <!-- relay masts -->
+  <g stroke="#4a5866" stroke-width="3" stroke-linecap="round">
+    <path d="M40 58 L32 18"/>
+    <path d="M160 58 L168 18"/>
+  </g>
+  <g fill="none" stroke="#7ff3ff" stroke-width="1.6" opacity="0.6">
+    <path d="M26 28 Q 32 22 38 28"/>
+    <path d="M22 22 Q 32 12 42 22"/>
+    <path d="M162 28 Q 168 22 174 28"/>
+    <path d="M158 22 Q 168 12 178 22"/>
+  </g>
+  <circle class="beacon" cx="32" cy="16" r="4" fill="#ff5a2a" filter="url(#glow)"/>
+  <circle class="beacon b" cx="168" cy="16" r="4" fill="#ff5a2a" filter="url(#glow)"/>
+
+  <!-- legs -->
+  <g stroke="#05070a" stroke-width="2" stroke-linejoin="round">
+    <path d="M70 150 L62 186 L88 186 L90 150 Z" fill="url(#dark)"/>
+    <path d="M130 150 L138 186 L112 186 L110 150 Z" fill="url(#dark)"/>
+    <path d="M56 184 L92 184 L94 194 L52 194 Z" fill="url(#plateSide)"/>
+    <path d="M144 184 L108 184 L106 194 L148 194 Z" fill="url(#plateSide)"/>
+  </g>
+
+  <!-- arms -->
+  <g stroke="#05070a" stroke-width="2" stroke-linejoin="round">
+    <path d="M34 82 L22 136 L40 140 L50 92 Z" fill="url(#dark)"/>
+    <path d="M166 82 L178 136 L160 140 L150 92 Z" fill="url(#dark)"/>
+    <path d="M14 132 L46 132 L48 162 L30 168 L12 158 Z" fill="url(#plate)"/>
+    <path d="M186 132 L154 132 L152 162 L170 168 L188 158 Z" fill="url(#plate)"/>
+  </g>
+  <g stroke="#19d9ff" stroke-width="1.6" opacity="0.7">
+    <path d="M18 146 L44 146"/>
+    <path d="M182 146 L156 146"/>
+  </g>
+
+  <!-- torso -->
+  <path d="M60 60 L140 60 L158 86 L150 146 L118 158 L82 158 L50 146 L42 86 Z"
+        fill="url(#plate)" stroke="#05070a" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M62 64 L138 64 L152 86" fill="none" stroke="#9fb0c0" stroke-width="1.5" opacity="0.45"/>
+  <path d="M56 142 L84 152 L116 152 L144 142" fill="none" stroke="#19d9ff" stroke-width="1.6" opacity="0.55"/>
+  <path d="M100 66 L100 84 M68 96 L78 128 M132 96 L122 128" stroke="#0a0e13" stroke-width="2"/>
+
+  <!-- pauldrons -->
+  <g stroke="#05070a" stroke-width="2.5" stroke-linejoin="round">
+    <path d="M26 64 L64 52 L72 74 L60 96 L28 92 Z" fill="url(#plateSide)"/>
+    <path d="M174 64 L136 52 L128 74 L140 96 L172 92 Z" fill="url(#plateSide)"/>
+  </g>
+  <g fill="#ffb347">
+    <circle cx="40" cy="76" r="2.4"/>
+    <circle cx="50" cy="74" r="2.4"/>
+    <circle cx="160" cy="76" r="2.4"/>
+    <circle cx="150" cy="74" r="2.4"/>
+  </g>
+
+  <!-- head + visor -->
+  <path d="M78 34 L122 34 L128 60 L72 60 Z" fill="url(#plate)" stroke="#05070a" stroke-width="2.5" stroke-linejoin="round"/>
+  <rect x="80" y="42" width="40" height="8" rx="2" fill="#02080c"/>
+  <g class="visor">
+    <rect x="94" y="43.5" width="12" height="5" rx="1.5" fill="#7ff3ff" filter="url(#glow)"/>
+  </g>
+
+  <!-- relay core -->
+  <circle class="pulse" cx="100" cy="108" r="34" fill="url(#coreGlow)"/>
+  <path d="M100 82 L122 95 L122 121 L100 134 L78 121 L78 95 Z" fill="#0a0d11" stroke="#3b4652" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="100" cy="108" r="16" fill="url(#core)" filter="url(#glow)"/>
+  <circle cx="100" cy="108" r="21" fill="none" stroke="#ff8a3a" stroke-width="1.2" stroke-dasharray="4 4" opacity="0.8"/>
+  <ellipse cx="95" cy="102" rx="4" ry="2.5" fill="#ffffff" opacity="0.7"/>
+</svg>

@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="14 12 172 180">
+  <defs>
+    <radialGradient id="halo" cx="50%" cy="52%" r="50%">
+      <stop offset="0" stop-color="#19d9ff" stop-opacity="0.42"/>
+      <stop offset="0.55" stop-color="#19d9ff" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#19d9ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shell" cx="38%" cy="30%" r="75%">
+      <stop offset="0" stop-color="#6f8499"/>
+      <stop offset="0.28" stop-color="#34424f"/>
+      <stop offset="0.7" stop-color="#151d26"/>
+      <stop offset="1" stop-color="#070b10"/>
+    </radialGradient>
+    <linearGradient id="fin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b4a5a"/>
+      <stop offset="1" stop-color="#0c1219"/>
+    </linearGradient>
+    <radialGradient id="lens" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.18" stop-color="#c8fbff"/>
+      <stop offset="0.45" stop-color="#19d9ff"/>
+      <stop offset="0.8" stop-color="#05607e"/>
+      <stop offset="1" stop-color="#021820"/>
+    </radialGradient>
+    <radialGradient id="thrust" cx="50%" cy="0%" r="100%">
+      <stop offset="0" stop-color="#bff8ff" stop-opacity="0.95"/>
+      <stop offset="0.4" stop-color="#19d9ff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#19d9ff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <style>
+    .rotor { animation: spin 0.9s linear infinite; }
+    .tip { animation: blink 1.4s steps(1) infinite; }
+    .iris { transform-origin: 100px 100px; animation: scan 3.2s ease-in-out infinite; }
+    .jet { transform-origin: 100px 150px; animation: jet 0.18s ease-in-out infinite alternate; }
+    @keyframes spin { to { stroke-dashoffset: -48; } }
+    @keyframes blink { 50% { opacity: 0.15; } }
+    @keyframes scan { 0%, 100% { transform: translateX(-3px); } 50% { transform: translateX(3px); } }
+    @keyframes jet { to { transform: scaleY(0.78); opacity: 0.8; } }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+  </style>
+
+  <circle cx="100" cy="102" r="96" fill="url(#halo)"/>
+
+  <!-- thruster wash -->
+  <ellipse class="jet" cx="100" cy="166" rx="20" ry="26" fill="url(#thrust)"/>
+
+  <!-- antenna -->
+  <path d="M100 56 L100 26" stroke="#56697c" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M92 40 L108 40" stroke="#3f4f5f" stroke-width="3" stroke-linecap="round"/>
+  <circle class="tip" cx="100" cy="23" r="5" fill="#7ff3ff" filter="url(#glow)"/>
+
+  <!-- side fins -->
+  <g stroke="#0a0f15" stroke-width="2" stroke-linejoin="round">
+    <path d="M58 92 L18 76 L24 108 L58 116 Z" fill="url(#fin)"/>
+    <path d="M142 92 L182 76 L176 108 L142 116 Z" fill="url(#fin)"/>
+  </g>
+  <g stroke="#19d9ff" stroke-width="2.5" stroke-linecap="round" filter="url(#glow)" opacity="0.9">
+    <path d="M24 84 L52 95"/>
+    <path d="M176 84 L148 95"/>
+  </g>
+
+  <!-- rotor ring -->
+  <ellipse cx="100" cy="148" rx="50" ry="10" fill="none" stroke="#0b1118" stroke-width="7"/>
+  <ellipse class="rotor" cx="100" cy="148" rx="50" ry="10" fill="none" stroke="#5ae8ff" stroke-width="2.5" stroke-dasharray="14 10" opacity="0.85" filter="url(#glow)"/>
+
+  <!-- hull -->
+  <circle cx="100" cy="100" r="50" fill="url(#shell)" stroke="#05080c" stroke-width="3"/>
+  <path d="M58 88 A44 44 0 0 1 142 88" fill="none" stroke="#9fb4c6" stroke-width="1.5" opacity="0.35"/>
+  <path d="M62 122 A44 44 0 0 0 138 122" fill="none" stroke="#5ae8ff" stroke-width="1.5" opacity="0.35"/>
+  <path d="M100 50 L100 70 M100 130 L100 150" stroke="#05080c" stroke-width="2"/>
+  <circle cx="68" cy="116" r="2.6" fill="#ffb347"/>
+  <circle cx="132" cy="116" r="2.6" fill="#7ff3ff"/>
+
+  <!-- lens -->
+  <circle cx="100" cy="100" r="27" fill="#04070a" stroke="#2d3b4a" stroke-width="4"/>
+  <circle cx="100" cy="100" r="19" fill="url(#lens)" filter="url(#glow)"/>
+  <g class="iris">
+    <circle cx="100" cy="100" r="9" fill="none" stroke="#04303e" stroke-width="2"/>
+    <circle cx="100" cy="100" r="4.5" fill="#f2ffff"/>
+  </g>
+  <ellipse cx="92" cy="91" rx="5" ry="3" fill="#ffffff" opacity="0.75" transform="rotate(-30 92 91)"/>
+</svg>

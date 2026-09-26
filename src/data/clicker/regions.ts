@@ -5,7 +5,7 @@ import type { RegionDef } from "../../domain/entities/clicker"
  * Bonuses apply only while the player is present in that region
  * (`run.currentRegionId`); rebirth returns home → Core Mine bias.
  * The timed mine exists only at home; every other region has one activity usable only
- * while standing there, and the later regions add a hands-on `challenge` mini-game.
+ * while standing there, and most add a hands-on `challenge` mini-game (Signal Relay's monster hunt and the late regions).
  * `intro` plays once, on the first visit.
  */
 export const CLICKER_REGIONS: RegionDef[] = [
@@ -27,11 +27,11 @@ export const CLICKER_REGIONS: RegionDef[] = [
     unlockAtLifetimeEnergy: 250_000,
     productionMultiplier: 1.12,
     challenge: {
-      kind: "SIGNAL_DECODE",
-      name: "신호 해독",
-      description: "중계 노드가 깜빡인 순서를 그대로 입력 · 5회 해독 · 22초",
-      durationSec: 22,
-      rewardSeconds: 90,
+      kind: "MONSTER_HUNT",
+      name: "잔향 사냥",
+      description: "복도에 떠오른 잔향 몬스터를 눌러 처치 · 도망치기 전에 · 15초",
+      durationSec: 15,
+      rewardSeconds: 60,
       cooldownSec: 180,
     },
     activity: {
