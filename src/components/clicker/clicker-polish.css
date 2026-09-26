@@ -1172,3 +1172,39 @@
     min-height: 40px;
   }
 }
+
+/* Region hub (desktop): the goal card sizes to its content and starts below the
+   region pills — stretched, it ran the full stage height and the pills hid its heading. */
+[data-clicker].is-region-hub .clicker-goal {
+  align-self: start;
+  margin-top: 52px;
+}
+
+/* Narrow screens: the region pills sit over the top of the stage, so push the compact
+   goal below them. */
+@media (max-width: 720px) {
+  [data-clicker].is-region-hub .clicker-goal-compact {
+    align-self: start;
+    margin-top: 46px;
+  }
+}
+
+/* Phones: the hub menu grid (2–3 rows) covered the bottom-anchored region activities,
+   hiding the second button. Hang them under the goal line instead and tighten them. */
+@media (max-width: 480px) {
+  [data-clicker].is-region-hub .clicker-region-station {
+    top: 104px;
+    bottom: auto;
+    gap: 4px;
+  }
+
+  [data-clicker].is-region-hub .clicker-region-station .clicker-region-activity {
+    min-height: 44px;
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+
+  [data-clicker].is-region-hub .clicker-region-station-note {
+    display: none;
+  }
+}
