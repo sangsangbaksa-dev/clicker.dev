@@ -281,7 +281,8 @@ export function useClicker() {
       ...prev.slice(-12),
       {
         id,
-        text: `+${result.energy.toFixed(result.energy >= 100 ? 0 : 1)}`,
+        // Suffixes from 1K up, so late-game hits don't print as "+12345678" or "+1e+21".
+        text: `+${result.energy >= 1000 ? formatNumber(result.energy) : result.energy.toFixed(result.energy >= 100 ? 0 : 1)}`,
         critical: result.critical,
         strike: result.quake ? "quake" : result.lightning ? "lightning" : result.echo ? "echo" : undefined,
         x: clientX ?? 0,
