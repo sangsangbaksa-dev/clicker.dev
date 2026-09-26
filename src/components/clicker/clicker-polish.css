@@ -1328,3 +1328,10 @@
     white-space: nowrap;
   }
 }
+
+/* Grid items default to min-width: auto, so the unwrapped tab strip (~600px) set the
+   shell's column width and pushed every manage screen past the viewport between ~480px
+   and ~620px. Let the shell's rows shrink; the tab strip scrolls on its own. */
+[data-clicker].clicker-shell > * {
+  min-width: 0;
+}
