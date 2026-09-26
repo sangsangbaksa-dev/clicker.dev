@@ -206,6 +206,23 @@ function RodStrike({ elapsed, playing, onHit, onMiss }: GameProps) {
     }
   }
 
+  // Keys 1–5 strike rods left to right.
+  const tapRef = useRef(tap)
+  useEffect(() => {
+    tapRef.current = tap
+  })
+  useEffect(() => {
+    if (!playing) return
+    const onKey = (e: KeyboardEvent) => {
+      const rod = Number(e.key) - 1
+      if (e.repeat || !Number.isInteger(rod) || rod < 0 || rod >= ROD_COUNT) return
+      e.preventDefault()
+      tapRef.current(rod)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [playing])
+
   return (
     <div className="clicker-rods">
       {Array.from({ length: ROD_COUNT }, (_, rod) => {
@@ -219,13 +236,22 @@ function RodStrike({ elapsed, playing, onHit, onMiss }: GameProps) {
             className={`clicker-rod${charged ? " is-charged" : ""}${fx}`}
             style={{ "--remain": remain } as CSSProperties}
             aria-label={`피뢰침 ${rod + 1}${charged ? " · 충전됨" : ""}`}
+            aria-keyshortcuts={String(rod + 1)}
             onPointerDown={(e) => {
               e.preventDefault()
               tap(rod)
             }}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" && e.key !== " ") return
+              e.preventDefault()
+              if (!e.repeat) tap(rod)
+            }}
           >
             <span className="clicker-rod-tip" />
             <span className="clicker-rod-mast" />
+            <span className="clicker-rod-key" aria-hidden>
+              {rod + 1}
+            </span>
             {/* Caught: the bolt lands on the rod instead of the ground. */}
             {fx === " is-hit" && flash ? <span key={flash.at} className="clicker-rod-bolt" aria-hidden /> : null}
           </button>
@@ -349,6 +375,12 @@ function DroneRecall({ elapsed, playing, onHit }: GameProps) {
         const p = (elapsed - (DRONE_FIRST_MS + i * DRONE_EVERY_MS)) / DRONE_FLIGHT_MS
         if (p < 0 || p > 1 || caught.has(i)) return null
         const x = d.ltr ? p : 1 - p
+        const recall = () => {
+          if (!playing) return
+          setCaught(new Set(caught).add(i))
+          setPops((prev) => [...prev.slice(-5), { id: i, x: x * 92 + 4, y: d.lane * 100, at: elapsed }])
+          onHit()
+        }
         return (
           <button
             key={i}
@@ -358,10 +390,12 @@ function DroneRecall({ elapsed, playing, onHit }: GameProps) {
             aria-label="드론 회수"
             onPointerDown={(e) => {
               e.preventDefault()
-              if (!playing) return
-              setCaught(new Set(caught).add(i))
-              setPops((prev) => [...prev.slice(-5), { id: i, x: x * 92 + 4, y: d.lane * 100, at: elapsed }])
-              onHit()
+              recall()
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" && e.key !== " ") return
+              e.preventDefault()
+              if (!e.repeat) recall()
             }}
           >
             <span className="clicker-drone-body" />

@@ -259,6 +259,23 @@
   pointer-events: none;
 }
 
+/* Keyboard hint under each rod; touch screens don't need it. */
+.clicker-rod-key {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgb(185 168 255 / 0.6);
+}
+
+@media (pointer: coarse) {
+  .clicker-rod-key {
+    display: none;
+  }
+}
+
+.clicker-rod {
+  grid-template-rows: auto 1fr auto;
+}
+
 .clicker-rod.is-hit { background: rgb(185 168 255 / 0.35); }
 .clicker-rod.is-miss {
   background: rgb(255 80 80 / 0.25);
