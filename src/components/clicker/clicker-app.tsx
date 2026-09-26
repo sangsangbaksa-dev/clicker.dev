@@ -49,7 +49,8 @@ function CountUpNumber({ value }: { value: number }) {
     const from = shownRef.current
     const to = value
     if (!Number.isFinite(to)) return
-    if (from === to) {
+    // Gains count up; drops (spending, a rebirth reset) snap so a fresh run never ticks down from the old total.
+    if (from === to || to < from) {
       shownRef.current = to
       setShown(to)
       return
