@@ -1280,3 +1280,13 @@
   word-break: keep-all;
   overflow-wrap: break-word;
 }
+
+/* Assist-drill numbers: smaller and quieter than the player's own hits. */
+[data-clicker] .clicker-float.is-drill {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+[data-clicker] .clicker-float.is-drill.is-crit {
+  font-size: 16px;
+}

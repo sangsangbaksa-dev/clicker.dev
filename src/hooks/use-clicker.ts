@@ -70,6 +70,8 @@ export type FloatNumber = {
   critical: boolean
   /** Extra strike label — lightning / shockwave / echo. */
   strike?: "lightning" | "quake" | "echo"
+  /** Assist-drill hit: drawn smaller so a fast drill doesn't bury the ore in numbers. */
+  drill?: boolean
   x: number
   y: number
 }
@@ -268,7 +270,7 @@ export function useClicker() {
     setToast(null)
   }, [])
 
-  const clickCore = useCallback((clientX?: number, clientY?: number): MineStrikeResult => {
+  const clickCore = useCallback((clientX?: number, clientY?: number, drill = false): MineStrikeResult => {
     const current = saveRef.current
     if (!current || current.metaState.gameCompleted) return { critical: false }
     const result = clickerClick(current, now())
@@ -277,6 +279,8 @@ export function useClicker() {
     else if (result.lightning) playSfx("lightning")
     else if (result.echo) playSfx("echoStrike")
     const strike = result.quake ? "quake" : result.lightning ? "lightning" : result.echo ? "echo" : undefined
+    // Ordinary drill hits land several times a second; only their crits and strikes get a number.
+    if (drill && !result.critical && !strike) return { critical: false }
     const id = ++floatId.current
     setFloats((prev) => [
       ...prev.slice(-12),
@@ -285,6 +289,7 @@ export function useClicker() {
         text: `+${result.energy.toFixed(result.energy >= 100 ? 0 : 1)}`,
         critical: result.critical,
         strike,
+        drill,
         // Jitter so rapid taps on one spot fan out instead of stacking into a smear.
         x: clientX == null ? 0 : clientX + (Math.random() - 0.5) * 36,
         y: clientY == null ? 0 : clientY + (Math.random() - 0.5) * 14,

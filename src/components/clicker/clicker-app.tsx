@@ -999,7 +999,7 @@ export function ClickerApp() {
                 muted={game.save.settings.muted}
                 pop={pop}
                 shake={shake}
-                onMine={(clientX, clientY) => game.clickCore(clientX, clientY)}
+                onMine={(clientX, clientY, drill) => game.clickCore(clientX, clientY, drill)}
                 onPop={() => {
                   setPop(true)
                   window.setTimeout(() => setPop(false), 100)
@@ -1431,7 +1431,7 @@ export function ClickerApp() {
       {game.floats.map((f) => (
         <div
           key={f.id}
-          className={`clicker-float ${f.critical ? "is-crit" : ""}${f.strike ? ` is-${f.strike}` : ""}`}
+          className={`clicker-float ${f.critical ? "is-crit" : ""}${f.strike ? ` is-${f.strike}` : ""}${f.drill ? " is-drill" : ""}`}
           style={{ left: f.x || "50%", top: f.y || "45%" }}
           aria-hidden
         >

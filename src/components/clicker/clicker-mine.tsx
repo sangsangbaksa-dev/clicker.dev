@@ -50,7 +50,7 @@ type Props = {
   muted: boolean
   pop: boolean
   shake: boolean
-  onMine: (clientX: number, clientY: number) => MineStrikeResult
+  onMine: (clientX: number, clientY: number, drill: boolean) => MineStrikeResult
   onPop: () => void
   playLaser: (muted: boolean, critical: boolean) => void
   /** Auto-drill strikes per second (0 = none). */
@@ -122,6 +122,8 @@ export function ClickerMine({
   const [vein, setVein] = useState<Vein | null>(null)
   const [veinLabel, setVeinLabel] = useState<string | null>(null)
   const seq = useRef(0)
+  /** Alternates barrels / drill walls; separate from `seq`, which chips also advance. */
+  const barrel = useRef(0)
   const mineRef = useRef<HTMLDivElement>(null)
   const reduceMotion = useRef(false)
   const timers = useRef<number[]>([])
@@ -161,7 +163,7 @@ export function ClickerMine({
     if (!el) return
     const { width, height } = el.getBoundingClientRect()
     const id = ++seq.current
-    const side = id % 2 === 0 ? -1 : 1
+    const side = ++barrel.current % 2 === 0 ? -1 : 1
     // Player rig sits below the frame (alternating barrels); the assist drill fires from the side walls.
     const origin = drill
       ? { x: side < 0 ? -8 : width + 8, y: height * 0.55 }
@@ -243,7 +245,7 @@ export function ClickerMine({
       const cur = live.current
       if (!el) return
       const rect = el.getBoundingClientRect()
-      const { critical, strike } = cur.onMine(rect.left + x, rect.top + y)
+      const { critical, strike } = cur.onMine(rect.left + x, rect.top + y, drill)
       if (!drill) {
         cur.playLaser(cur.muted, critical)
         cur.onPop()
