@@ -89,7 +89,7 @@ export function ClickerSettings({
           <li className="clicker-settings-row">
             <div className="clicker-settings-copy">
               <strong>배경음악</strong>
-              <p>허브·광산·환생 장면마다 곡이 바뀌며 부드럽게 전환됩니다.</p>
+              <p>월드마다 다른 테마곡이 흐르고, 광산·환생 장면에서는 곡이 부드럽게 바뀝니다.</p>
             </div>
             <button
               type="button"

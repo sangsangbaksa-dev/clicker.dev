@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Procedural BGM — one quiet, melancholy loop per region plus the timed mine.
+"""Procedural BGM — one quiet, melodic RPG-style loop per region plus the timed mine.
+
+Each track is a 16-bar tune (a repeated motif with clear cadences) on a soft flute or
+harp over harp arpeggios, string pads and a cello bass — town/field/dungeon music, kept
+gentle and melancholy.
 
 Everything is kept soft-edged and hazy: felt piano, strings and an "oo" choir are
 filtered low (nothing sings above ~1.7 kHz), note onsets are smeared through a short
@@ -283,6 +287,38 @@ def felt(tr: Track, bus: str, m: int, beat: float, amp: float, pan: float = 0.0,
     tr.add(bus, tr.beat(beat), out * amp)
 
 
+def flute(tr: Track, bus: str, m: int, beat: float, dur: float, amp: float, pan: float = -0.1):
+    """Soft flute/ocarina lead: few harmonics, a breath of air, vibrato that blooms late."""
+    f = hz(m)
+    hold = tr.beat(dur)
+    release = 0.35
+    n = hold + int(release * 3 * SR)
+    t = np.arange(n) / SR
+    vib = 1 + 0.0045 * np.sin(2 * np.pi * 5.2 * t) * np.clip((t - 0.25) / 0.5, 0, 1)
+    phase = 2 * np.pi * np.cumsum(f * vib) / SR
+    sig = np.sin(phase) + 0.32 * np.sin(2 * phase) + 0.12 * np.sin(3 * phase) + 0.04 * np.sin(4 * phase)
+    breath = lowpass(highpass(RNG.standard_normal(n), f * 1.5, 2), f * 3, 2) * 0.08
+    env = adsr(n, 0.07, release, hold)
+    # A touch more air at the start of each note, like a real attack.
+    chiff = np.exp(-t / 0.06) * 0.6 + 1
+    tr.add(bus, tr.beat(beat), (sig + breath * chiff) * env * amp, pan)
+
+
+def harp(tr: Track, bus: str, m: int, beat: float, amp: float, pan: float = 0.0):
+    """Concert-harp pluck: warm partials, upper ones fade first, a long ring."""
+    f = hz(m)
+    decay = float(np.clip(2.6 * (262 / f) ** 0.4, 1.0, 4.0))
+    n = int(decay * 2.2 * SR)
+    t = np.arange(n) / SR
+    sig = np.zeros(n)
+    for k in range(1, 8):
+        if k * f > 3200:
+            break
+        sig += np.sin(2 * np.pi * k * f * t + RNG.uniform(0, 6.28)) / k ** 1.5 * np.exp(-t * k ** 0.9 / decay)
+    sig *= np.clip(t / 0.005, 0, 1)
+    tr.add(bus, tr.beat(beat), sig * amp, pan)
+
+
 # ---------------------------------------------------------------------------
 # Mixdown
 # ---------------------------------------------------------------------------
@@ -314,6 +350,8 @@ BUS_FX = {
     "horn": (lambda x: smear(lowpass(highpass(x, 60), 900, 2)), 0.5, 0.8),
     "piano": (lambda x: smear(lowpass(x, 1250, 2)), 0.5, 1.1),
     "lead": (lambda x: smear(lowpass(highpass(x, 150), 1500, 3)), 0.5, 1.1),
+    "flute": (lambda x: lowpass(highpass(x, 180), 3000, 2), 0.95, 0.95),
+    "harp": (lambda x: lowpass(highpass(x, 80), 2400, 2), 0.55, 0.9),
     "perc": (lambda x: lowpass(highpass(x, 28), 700, 2), 0.6, 0.45),
     "sub": (lambda x: lowpass(x, 120, 2), 0.5, 0.0),
 }
@@ -401,6 +439,10 @@ def lead(tr: Track, line: str, amp: float, kind: str = "piano", octave: int = 0)
             strings(tr, "lead", m, b, d, amp, attack=0.8, release=2.2)
         elif kind == "horn":
             brass(tr, "horn", m, b, d * 0.95, amp, bright=0.45, attack=0.7, release=2.0, pan=-0.15)
+        elif kind == "flute":
+            flute(tr, "flute", m, b, d * 0.96, amp)
+        elif kind == "harp":
+            harp(tr, "harp", m, b, amp, pan=0.15)
 
 
 def broken(tr: Track, chords: list[str], beats_per: float, step: float, amp: float, lo: int,
@@ -414,6 +456,19 @@ def broken(tr: Track, chords: list[str], beats_per: float, step: float, amp: flo
             m = tones[order[s % len(order)] % len(tones)]
             accent = 1.0 if s == 0 else 0.75
             felt(tr, "piano", m, i * beats_per + s * step, amp * accent, pan=-0.25 + 0.5 * (s % 2))
+
+
+def harp_arp(tr: Track, chords: list[str], beats_per: float, step: float, amp: float, lo: int,
+             order: tuple[int, ...] = (0, 1, 2, 3, 2, 1, 2, 1)):
+    """Rolling harp arpeggio under the tune (root position, voiced from `lo`)."""
+    for i, sym in enumerate(chords):
+        root, q = parse_chord(sym)
+        tones = voice([(root + iv) % 12 for iv in q[:3]], lo, lo + 11)
+        tones = tones + [tones[0] + 12]
+        for s_ in range(int(beats_per / step)):
+            m = tones[order[s_ % len(order)] % len(tones)]
+            accent = 1.0 if s_ == 0 else 0.7
+            harp(tr, "harp", m, i * beats_per + s_ * step, amp * accent, pan=-0.3 + 0.6 * ((s_ * 0.37) % 1))
 
 
 def low_pulse(tr: Track, chords: list[str], beats_per: float, step: float, amp: float, octave: int = 2):
@@ -441,92 +496,113 @@ def new_track(chords: list[str], per: float, bpm: float) -> Track:
 # ---------------------------------------------------------------------------
 
 def score_core_chamber() -> Track:
-    """Home: a lonely D minor piano over a hush of strings."""
-    chords = ["Dm", "Bbmaj7", "Gm7", "A", "Dm", "F", "Gm", "A"]
-    tr = new_track(chords, 8, 60)
-    pad_chords(tr, chords, 8, strings_amp=0.09, low_amp=0.12, choir_amp=0.04)
-    broken(tr, chords, 8, 2, 0.05, lo=50)
-    lead(tr, "A4:3 F4:1 E4:2 D4:2  F4:3 D4:1 C4:2 D4:2  Bb4:4 A4:2 G4:2  E4:4 C#4:2 A3:2 "
-             "A4:3 F4:1 E4:2 D4:2  C5:4 A4:2 F4:2  G4:3 Bb4:1 A4:2 G4:2  E4:4 C#4:4", 0.13)
-    drone(tr, "sub", midi("D2"), 0.035)
+    """Home: a hopeful-but-wistful D minor village theme on flute over harp."""
+    chords = ["Dm", "Bb", "F", "C", "Dm", "Bb", "Gm", "A", "Bb", "C", "F", "Dm", "Gm", "A", "Dm", "A"]
+    tr = new_track(chords, 4, 76)
+    pad_chords(tr, chords, 4, strings_amp=0.07, low_amp=0.11, choir_amp=0.025)
+    harp_arp(tr, chords, 4, 0.5, 0.05, lo=50)
+    lead(tr, "A4:1.5 G4:0.5 F4:1 E4:1  D4:3 F4:1  C5:1.5 A4:0.5 F4:1 A4:1  G4:4 "
+             "A4:1.5 G4:0.5 F4:1 E4:1  D4:2 F4:1 Bb4:1  Bb4:1.5 A4:0.5 G4:1 F4:1  E4:4 "
+             "F4:1 G4:1 A4:1 Bb4:1  C5:3 Bb4:1  A4:3 C5:1  D5:4 "
+             "D5:1.5 C5:0.5 Bb4:1 A4:1  C#5:3 A4:1  A4:1.5 F4:0.5 D4:2  E4:3 r:1", 0.075, kind="flute")
+    drone(tr, "sub", midi("D2"), 0.03)
     return tr
 
 
 def score_signal_relay() -> Track:
-    """Echoing corridor: distant choir, a slow music-box memory on felt piano."""
-    chords = ["Em", "Cmaj7", "Am7", "Bsus4", "Em", "G", "Am", "B"]
-    tr = new_track(chords, 8, 56)
-    pad_chords(tr, chords, 8, choir_amp=0.08, hi_amp=0.022, low_amp=0.08)
-    broken(tr, chords, 8, 1, 0.04, lo=62, order=(0, 1, 2, 3, 2, 1, 0, 2))
-    lead(tr, "B4:6 G4:2  E4:8  C5:4 B4:2 A4:2  E4:4 F#4:4  G4:6 B4:2  D5:4 B4:4  C5:4 A4:4  F#4:4 D#4:4",
-         0.05, kind="lead")
-    drone(tr, "sub", midi("E2"), 0.03)
+    """Echoing corridor: a floating E minor air, choir and harp shimmering around it."""
+    chords = ["Em", "C", "G", "D", "Em", "C", "Am", "B", "C", "D", "Bm", "Em", "Am", "D", "Bsus4", "B"]
+    tr = new_track(chords, 4, 70)
+    pad_chords(tr, chords, 4, choir_amp=0.06, hi_amp=0.018, low_amp=0.08)
+    harp_arp(tr, chords, 4, 0.5, 0.045, lo=59, order=(0, 1, 2, 3, 2, 3, 2, 1))
+    lead(tr, "E4:1 G4:1 B4:2  C5:3 B4:1  D5:2 B4:2  A4:4 "
+             "E4:1 G4:1 B4:2  C5:2 E5:2  D5:1 C5:1 A4:2  B4:4 "
+             "E5:2 D5:1 C5:1  D5:2 A4:2  B4:2 F#4:2  G4:4 "
+             "A4:1 B4:1 C5:2  D5:1 C5:1 A4:2  B4:4  F#4:2 D#4:2", 0.07, kind="flute")
+    drone(tr, "sub", midi("E2"), 0.025)
     return tr
 
 
 def score_phase_vault() -> Track:
-    """Deep vault: low choir, cellos, a far-off horn remembering something."""
-    chords = ["F#m", "D", "Bm", "C#sus4", "F#m", "Bm", "D", "C#"]
-    tr = new_track(chords, 8, 52)
-    pad_chords(tr, chords, 8, choir_amp=0.09, low_amp=0.13, strings_amp=0.05,
+    """Deep vault: a solemn, ancient F# minor chant on flute over low choir and cellos."""
+    chords = ["F#m", "D", "E", "C#m", "F#m", "Bm", "C#sus4", "C#", "D", "E", "C#m", "F#m", "Bm", "E", "C#sus4", "C#"]
+    tr = new_track(chords, 4, 62)
+    pad_chords(tr, chords, 4, choir_amp=0.08, low_amp=0.12, strings_amp=0.04, horn_amp=0.018,
                choir_range=(50, 65), str_range=(45, 62))
-    lead(tr, "C#4:6 A3:2  F#3:8  D4:4 C#4:2 B3:2  F#3:8  A3:4 C#4:4  B3:6 D4:2  A3:4 F#3:4  G#3:4 F3:4",
-         0.08, kind="horn")
-    bass_notes(tr, chords, 8, 0.05, octave=1)
-    drone(tr, "sub", midi("F#1"), 0.045)
+    harp_arp(tr, chords, 4, 1, 0.05, lo=54, order=(0, 1, 2, 1))
+    lead(tr, "C#5:2 A4:1 F#4:1  A4:3 F#4:1  G#4:2 B4:2  G#4:4 "
+             "C#5:2 A4:1 F#4:1  D5:2 C#5:1 B4:1  F#4:4  F4:4 "
+             "F#4:1 A4:1 D5:2  E5:2 B4:2  C#5:2 G#4:2  A4:4 "
+             "B4:1.5 C#5:0.5 D5:2  E5:1 D5:1 B4:2  F#4:2 G#4:2  G#4:2 F4:2", 0.065, kind="flute")
+    drone(tr, "sub", midi("F#1"), 0.04)
     return tr
 
 
 def score_storm_spire() -> Track:
-    """After the storm: C minor, a restless low heartbeat under grieving strings."""
-    chords = ["Cm", "Ab", "Fm", "G", "Cm", "Eb", "Ab", "G"]
-    tr = new_track(chords, 8, 60)
-    pad_chords(tr, chords, 8, strings_amp=0.08, choir_amp=0.05, low_amp=0.1)
-    low_pulse(tr, chords, 8, 0.5, 0.035)
-    lead(tr, "G4:4 Eb4:2 D4:2  C4:6 Eb4:2  F4:4 Ab4:2 G4:2  D4:4 B3:4  Eb4:3 D4:1 C4:4  G4:4 Bb4:4  Ab4:3 G4:1 Eb4:4  D4:4 B3:4",
-         0.06, kind="lead")
-    for b in (0, 32):
-        roll(tr, "perc", midi("C2"), b + 26, 6, 0.18)
-    drone(tr, "sub", midi("C2"), 0.035)
+    """After the storm: a brave, bittersweet C minor march on flute, low heartbeat under it."""
+    chords = ["Cm", "Ab", "Eb", "Bb", "Cm", "Ab", "Fm", "G", "Ab", "Bb", "Gm", "Cm", "Fm", "G", "Cm", "G"]
+    tr = new_track(chords, 4, 80)
+    pad_chords(tr, chords, 4, strings_amp=0.07, choir_amp=0.04, low_amp=0.1)
+    low_pulse(tr, chords, 4, 0.5, 0.025)
+    harp_arp(tr, chords, 4, 1, 0.035, lo=55, order=(0, 2, 1, 2))
+    lead(tr, "C5:1.5 Bb4:0.5 G4:1 Eb4:1  Ab4:3 C5:1  Bb4:1.5 G4:0.5 Eb4:2  D5:2 Bb4:2 "
+             "C5:1.5 Bb4:0.5 G4:1 Eb4:1  Ab4:2 C5:2  Ab4:1 G4:1 F4:2  D5:2 B4:2 "
+             "C5:2 Eb5:2  D5:2 F5:1 D5:1  D5:1 C5:1 Bb4:2  C5:4 "
+             "C5:2 Ab4:2  B4:2 D5:2  Eb5:1.5 D5:0.5 C5:2  B4:2 G4:2", 0.07, kind="flute")
+    for bar in range(0, len(chords), 4):
+        timpani(tr, "perc", midi("C2"), bar * 4, 0.1, decay=1.8)
+    drone(tr, "sub", midi("C2"), 0.03)
     return tr
 
 
 def score_deep_fault() -> Track:
-    """The fault: very slow A minor, cellos and low voices, single piano notes falling."""
-    chords = ["Am", "F", "Dm", "E", "Am", "Dm", "F", "E"]
-    tr = new_track(chords, 8, 50)
-    pad_chords(tr, chords, 8, low_amp=0.14, choir_amp=0.07, horn_amp=0.025, bass_oct=1,
-               choir_range=(50, 65))
-    lead(tr, "E4:4 C4:4  A3:6 C4:2  D4:4 F4:2 E4:2  B3:4 G#3:4  A3:4 E4:4  F4:4 D4:4  C4:4 A3:4  G#3:6 B3:2", 0.12)
-    for i in range(0, len(chords), 2):
-        timpani(tr, "perc", midi("A1"), i * 8, 0.16, decay=2.4)
-    drone(tr, "sub", midi("A1"), 0.05)
+    """The fault: a slow A minor lament sung by cellos, flute answering an octave up."""
+    chords = ["Am", "F", "Dm", "E", "Am", "F", "G", "E", "F", "G", "Em", "Am", "Dm", "E", "Am", "E"]
+    tr = new_track(chords, 4, 58)
+    pad_chords(tr, chords, 4, low_amp=0.1, choir_amp=0.06, horn_amp=0.02, bass_oct=1, choir_range=(50, 65))
+    harp_arp(tr, chords, 4, 1, 0.04, lo=52, order=(0, 1, 2, 1))
+    tune = ("E4:2 A4:2  C5:3 A4:1  F4:2 D4:2  E4:3 G#4:1 "
+            "A4:2 C5:1 B4:1  A4:2 F4:2  G4:1 B4:1 D5:2  B4:4 "
+            "C5:2 A4:2  B4:2 D5:2  E5:2 B4:2  A4:4 "
+            "F4:1 A4:1 D5:2  E5:1 D5:1 B4:2  C5:1 B4:1 A4:2  G#4:2 E4:2")
+    lead(tr, tune, 0.06, kind="lead", octave=-1)
+    lead(tr, tune, 0.03, kind="flute")
+    for i in range(0, len(chords), 4):
+        timpani(tr, "perc", midi("A1"), i * 4, 0.12, decay=2.4)
+    drone(tr, "sub", midi("A1"), 0.045)
     return tr
 
 
 def score_drone_foundry() -> Track:
-    """Abandoned foundry: a small repeating piano figure, like a machine left running."""
-    chords = ["Gm", "Eb", "Cm", "D", "Gm", "Bb", "Eb", "D"]
-    tr = new_track(chords, 8, 58)
-    pad_chords(tr, chords, 8, strings_amp=0.07, low_amp=0.11, choir_amp=0.03)
-    broken(tr, chords, 8, 0.5, 0.03, lo=55, order=(0, 2, 1, 2))
-    lead(tr, "Bb4:6 A4:2  G4:8  Eb4:4 G4:2 F4:2  F#4:4 A4:4  Bb4:4 D5:4  F4:4 D4:4  Eb4:6 G4:2  F#4:4 D4:4",
-         0.05, kind="lead")
-    drone(tr, "sub", midi("G1"), 0.035)
+    """Abandoned foundry: a lonely G minor music-box tune on harp, flute shadowing an octave below."""
+    chords = ["Gm", "Eb", "Bb", "F", "Gm", "Eb", "Cm", "D", "Eb", "F", "Dm", "Gm", "Cm", "D", "Gm", "D"]
+    tr = new_track(chords, 4, 72)
+    pad_chords(tr, chords, 4, strings_amp=0.06, low_amp=0.1, choir_amp=0.02)
+    bass_notes(tr, chords, 4, 0.04, octave=2)
+    tune = ("D5:1 Bb4:1 G4:1 Bb4:1  G4:1 Bb4:1 Eb5:2  D5:1 C5:1 Bb4:2  A4:2 C5:2 "
+            "D5:1 Bb4:1 G4:1 Bb4:1  G4:1 Bb4:1 Eb5:1 D5:1  C5:2 Eb5:2  D5:2 F#4:2 "
+            "G4:1 Bb4:1 Eb5:2  F5:2 C5:2  D5:1 F5:1 A4:2  Bb4:4 "
+            "Eb5:1 D5:1 C5:2  A4:1 C5:1 F#4:2  G4:2 Bb4:1 D5:1  F#4:2 A4:2")
+    lead(tr, tune, 0.09, kind="harp")
+    lead(tr, tune, 0.03, kind="flute", octave=-1)
+    drone(tr, "sub", midi("G1"), 0.03)
     return tr
 
 
 def score_mine() -> Track:
-    """Timed mine run: still E minor and hushed, but with a steady low pulse to work to."""
-    chords = ["Em", "Em", "C", "C", "Am", "Am", "B", "B", "Em", "Em", "G", "G", "C", "C", "B", "B"]
-    tr = new_track(chords, 4, 76)
-    pad_chords(tr, chords, 4, strings_amp=0.07, choir_amp=0.04, low_amp=0.09)
-    low_pulse(tr, chords, 4, 0.5, 0.045)
-    lead(tr, "B4:3 G4:1 E4:4  G4:4 E4:4  C5:3 B4:1 A4:4  F#4:4 D#4:4  E4:3 F#4:1 G4:4  B4:4 D5:4  C5:4 G4:4  F#4:6 r:2",
-         0.05, kind="lead")
+    """Timed mine run: an adventurous E minor dungeon theme — still soft, with a pulse."""
+    chords = ["Em", "C", "D", "Bm", "Em", "C", "Am", "B", "C", "D", "Em", "Em", "Am", "B", "Em", "B"]
+    tr = new_track(chords, 4, 92)
+    pad_chords(tr, chords, 4, strings_amp=0.06, choir_amp=0.03, low_amp=0.08)
+    low_pulse(tr, chords, 4, 0.5, 0.035)
+    harp_arp(tr, chords, 4, 0.5, 0.035, lo=55)
+    lead(tr, "E4:0.5 G4:0.5 B4:1 E5:1 B4:1  C5:1.5 B4:0.5 G4:2  A4:1 F#4:1 D5:2  B4:3 r:1 "
+             "E4:0.5 G4:0.5 B4:1 E5:1 B4:1  E5:1.5 D5:0.5 C5:2  C5:1 B4:1 A4:2  F#4:4 "
+             "G4:1 C5:1 E5:2  D5:1 A4:1 F#4:2  G4:1 B4:1 E5:2  E5:2 D5:1 B4:1 "
+             "C5:1.5 B4:0.5 A4:2  D#5:2 B4:2  E5:1.5 B4:0.5 G4:1 E4:1  F#4:2 D#4:2", 0.065, kind="flute")
     for bar in range(0, len(chords), 2):
-        timpani(tr, "perc", midi("E2"), bar * 4, 0.12, decay=1.6)
-    drone(tr, "sub", midi("E2"), 0.03)
+        timpani(tr, "perc", midi("E2"), bar * 4, 0.09, decay=1.4)
+    drone(tr, "sub", midi("E2"), 0.025)
     return tr
 
 
