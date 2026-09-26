@@ -500,6 +500,18 @@
   }
 }
 
+/* Player crit: a short upward camera kick on the whole scene. */
+.clicker-mine-single.is-crit-kick .clicker-mine-plate,
+.clicker-mine-single.is-crit-kick .clicker-mine-crystal {
+  animation: clicker-mine-crit-kick 150ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes clicker-mine-crit-kick {
+  30% {
+    translate: 0 -3px;
+  }
+}
+
 /* Quake jolts the whole scene vertically, like the ground heaving. */
 .clicker-mine-single.is-quake .clicker-mine-plate,
 .clicker-mine-single.is-quake .clicker-mine-crystal {

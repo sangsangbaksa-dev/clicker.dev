@@ -113,6 +113,7 @@ export function ClickerMine({
   const [size, setSize] = useState({ width: 0, height: 0 })
   const [hitSeq, setHitSeq] = useState(0)
   const [lastCrit, setLastCrit] = useState(false)
+  const [critKick, setCritKick] = useState(0)
   const [chips, setChips] = useState<Chip[]>([])
   const [lasers, setLasers] = useState<Laser[]>([])
   const [impacts, setImpacts] = useState<Impact[]>([])
@@ -252,6 +253,12 @@ export function ClickerMine({
       }
       fireLaser(x, y, critical, drill)
       if (strike) playStrike(strike, x, y, drill)
+      if (critical && !drill && !reduceMotion.current) {
+        // The whole scene kicks up away from the rig; the ore never moves on its own.
+        const kick = Date.now()
+        setCritKick(kick)
+        later(() => setCritKick((cur) => (cur === kick ? 0 : cur)), 150)
+      }
       setLastCrit(critical)
       setHitSeq((n) => n + 1)
     },
@@ -340,7 +347,7 @@ export function ClickerMine({
       data-visual={visual}
       className={`clicker-mine clicker-mine-single${pop ? " is-pop" : ""}${shake ? " is-shake" : ""}${
         strikeFlash?.kind === "quake" ? " is-quake" : ""
-      }`}
+      }${critKick ? " is-crit-kick" : ""}`}
     >
       <div className="clicker-mine-plate" style={{ backgroundImage: `url(${plate})` }} aria-hidden />
 
