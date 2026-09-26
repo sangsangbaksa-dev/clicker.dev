@@ -3,7 +3,7 @@
 
 Each track is composed on a bar grid so the loop point lands on a downbeat, and the
 reverb tail is folded back onto the start so the seam is inaudible. Every track has
-a clear lead melody on top (mallet + flute / square lead / horn) over pads, bass and drums.
+a clear lead melody on top (felt piano / square lead / horn) over pads, bass and drums.
 
     pip install numpy soundfile
     python3 scripts/clicker-bgm.py            # all tracks
@@ -205,51 +205,33 @@ def chord(root: str, quality: str, octave: int = 3) -> list[float]:
     return [base * 2 ** (s / 12) for s in steps]
 
 
-def epiano(f: float, dur: float) -> np.ndarray:
-    """FM tine electric piano — warm body, glassy attack. Hub chord comping."""
+def felt_piano(f: float, dur: float) -> np.ndarray:
+    """Muted felt piano: soft hammer, dark body, long fade — the hub motif voice."""
     n = int(dur * SR)
     t = np.arange(n) / SR
-    body = np.sin(2 * np.pi * f * t + 1.1 * np.exp(-t * 2.5) * np.sin(2 * np.pi * f * t))
-    tine = 0.18 * np.sin(2 * np.pi * f * 14 * t) * np.exp(-t * 24)
-    return (body * np.exp(-t * 1.6) + tine) * env(n, 0.004, 0.12)
+    x = sum(np.sin(2 * np.pi * f * k * (1 + 0.0004 * k * k) * t) * np.exp(-t * (0.9 + k * 0.7)) / k**1.4
+            for k in range(1, 7))
+    return lowpass(x, 1300) * env(n, 0.008, 0.6)
 
 
-def mallet(f: float, dur: float) -> np.ndarray:
-    """Soft marimba/kalimba — the hub melody voice."""
+def drone(freqs: list[float], dur: float) -> np.ndarray:
+    """Low, slowly breathing saw drone — the hub's constant floor."""
     n = int(dur * SR)
     t = np.arange(n) / SR
-    x = np.sin(2 * np.pi * f * t) + 0.25 * np.sin(2 * np.pi * f * 4 * t) * np.exp(-t * 14)
-    x += 0.12 * np.sin(2 * np.pi * f * 9.2 * t) * np.exp(-t * 40)
-    return x * np.exp(-t * 3.2) * env(n, 0.002, 0.08)
+    x = np.zeros(n)
+    for f in freqs:
+        for det in (-0.003, 0.003):
+            x += np.sin(2 * np.pi * f * (1 + det) * t) + 0.3 * saw(f * (1 + det), t + RNG.random())
+    breathe = 0.8 + 0.2 * np.sin(2 * np.pi * t / (dur / 2))
+    return lowpass(x / (len(freqs) * 2), 260) * breathe * env(n, 2.0, 2.0)
 
 
-def flute(f: float, dur: float) -> np.ndarray:
-    """Breathy sine lead with delayed vibrato — the hub B-section voice."""
+def shimmer(f: float, dur: float = 4.0) -> np.ndarray:
+    """Faint detuned crystal ring, like the core resonating far away."""
     n = int(dur * SR)
     t = np.arange(n) / SR
-    vib = 1 + 0.004 * np.sin(2 * np.pi * 5 * t) * np.clip((t - 0.15) * 3, 0, 1)
-    phase = np.cumsum(f * vib) / SR
-    x = np.sin(2 * np.pi * phase) + 0.12 * np.sin(4 * np.pi * phase)
-    breath = RNG.standard_normal(n)
-    breath = lowpass(breath - lowpass(breath, 1200), 5000) * 0.08
-    return (x + breath) * env(n, 0.06, 0.15, 0.85)
-
-
-def shaker(dur: float = 0.08) -> np.ndarray:
-    n = int(dur * SR)
-    t = np.arange(n) / SR
-    x = RNG.standard_normal(n)
-    x = lowpass(x - lowpass(x, 4500), 11000)
-    return x * np.clip(t / 0.01, 0, 1) * np.exp(-t * 45)
-
-
-def rim(dur: float = 0.12) -> np.ndarray:
-    n = int(dur * SR)
-    t = np.arange(n) / SR
-    click = np.sin(2 * np.pi * 820 * t) + 0.5 * np.sin(2 * np.pi * 1650 * t)
-    noise = RNG.standard_normal(n)
-    noise = noise - lowpass(noise, 2500)
-    return (click * np.exp(-t * 60) + noise * 0.4 * np.exp(-t * 80))
+    x = np.sin(2 * np.pi * f * t) + np.sin(2 * np.pi * f * 1.003 * t) + 0.3 * np.sin(2 * np.pi * f * 2.76 * t)
+    return x * np.exp(-t * 1.1) * env(n, 0.3, 0.8) / 2.3
 
 
 def notes(spec: str) -> list[float]:
@@ -257,89 +239,45 @@ def notes(spec: str) -> list[float]:
 
 
 def hub() -> np.ndarray:
-    """D minor, 92 BPM, 16 bars — hazy lo-fi groove: e-piano comping and walking sub
-    bass up front; the mallet hook and flute answer are kept low and blurred."""
-    tr = Track(92, 16)
-    # (bass root, bass fifth, e-piano voicing, approach note into next bar)
+    """D minor, 66 BPM, 16 bars — dark, quiet ambience: a low D pedal drone, slow pads,
+    a sparse felt-piano motif, a distant heartbeat pulse and faint crystal rings."""
+    tr = Track(66, 16)
+    # Two-bar chords; the D pedal stays under all of them (dissonant against E♭).
     prog = [
-        ("D2", "A2", "A3 C4 E4 F4", "B1"),      # Dm9
-        ("A#1", "F2", "A3 A#3 D4 F4", "G#1"),   # Bbmaj7
-        ("G1", "D2", "F3 A3 A#3 D4", "G#1"),    # Gm9
-        ("A1", "E2", "G3 A3 D4 E4", "C#2"),     # A7sus
-        ("D2", "A2", "A3 C4 E4 F4", "E2"),      # Dm9
-        ("F2", "C2", "E3 A3 C4 F4", "G#1"),     # Fmaj7
-        ("G1", "D2", "F3 A3 A#3 D4", "G#1"),    # Gm9
-        ("A1", "E2", "G3 A#3 C#4 E4", "D#2"),   # A7b9
-        ("E2", "A#1", "G3 A#3 D4 E4", "E2"),    # Em7b5
-        ("F2", "C2", "E3 A3 C4 F4", "G#1"),     # Fmaj7
-        ("G1", "D2", "F3 A3 A#3 D4", "E2"),     # Gm9
-        ("F2", "A2", "A3 C4 D4 F4", "D#2"),     # Dm/F
-        ("E2", "A#1", "G3 A#3 D4 E4", "G#1"),   # Em7b5
-        ("A1", "E2", "G3 A3 C#4 E4", "C#2"),    # A7
-        ("D2", "A2", "A3 C4 E4 F4", "A#1"),     # Dm9
-        ("A1", "E2", "G3 A3 D4 E4", "C#2"),     # A7sus → loops to Dm9
+        ("D1", "D3 F3 A3"), ("A#0", "A#2 D3 F3"), ("G1", "G2 A#2 D3"), ("A1", "A2 C#3 E3"),
+        ("D1", "D3 F3 A3"), ("D#1", "D#3 G3 A#3"), ("A#0", "A#2 D3 F3"), ("A1", "A2 C#3 E3"),
     ]
-    for bar, (root, fifth, voicing, approach) in enumerate(prog):
-        b = bar * 4
-        chord_f = notes(voicing)
-        # E-piano comping: long chord on 1, push on the "and" of 2, ghost on 4.
-        for beat, length, gain in ((0, 2.4, 0.1), (2.5, 1.4, 0.075), (3.5, 0.5, 0.04)):
-            for i, f in enumerate(chord_f):
-                tr.add(b + beat + i * 0.012, epiano(f, length * tr.beat), gain, -0.25 + i * 0.15)
-        tr.add(b, pad(chord_f, 4 * tr.beat, 900, 0.8), 0.07, 0)
-        # Walking sub bass.
-        tr.add(b, bass(hz(root), 1.4 * tr.beat), 0.34)
-        tr.add(b + 1.5, bass(hz(root), 0.4 * tr.beat), 0.2)
-        tr.add(b + 2, bass(hz(fifth), 1.4 * tr.beat), 0.28)
-        tr.add(b + 3.5, bass(hz(approach), 0.45 * tr.beat), 0.22)
-        # Brushed drums.
-        tr.add(b, kick(0.3), 0.32)
-        tr.add(b + 2.5, kick(0.3), 0.22)
-        if bar % 2:
-            tr.add(b + 3.75, kick(0.25), 0.12)
-        tr.add(b + 1, rim(), 0.2, 0.15)
-        tr.add(b + 3, rim(), 0.2, 0.15)
-        for s in range(16):
-            tr.add(b + s * 0.25, shaker(), 0.1 if s % 2 else 0.05, -0.45)
-    # Turnaround fill so the loop point feels like a phrase start.
-    for beat in (62.5, 62.75, 63.25, 63.5, 63.75):
-        tr.add(beat, rim(), 0.08, 0.15)
-
-    hook = [  # A section, bars 1–8 — mallet
-        ("F5", 0, .5), ("A5", .5, .5), ("C6", 1, 1.5), ("A5", 2.5, .5), ("F5", 3, 1),
-        ("D5", 4, .5), ("F5", 4.5, .5), ("A#5", 5, 1.5), ("A5", 6.5, .5), ("F5", 7, 1),
-        ("G5", 8, .5), ("A#5", 8.5, .5), ("D6", 9, 1), ("C6", 10, .5), ("A#5", 10.5, .5), ("A5", 11, 1),
-        ("E5", 12, 1), ("G5", 13, .5), ("A5", 13.5, 2),
-        ("F5", 16, .5), ("A5", 16.5, .5), ("C6", 17, 1), ("E6", 18, 1), ("C6", 19, 1),
-        ("A5", 20, 1.5), ("E5", 21.5, .5), ("F5", 22, 1), ("C5", 23, 1),
-        ("D5", 24, .5), ("G5", 24.5, .5), ("A#5", 25, 1), ("A5", 26, .5), ("G5", 26.5, .5), ("F5", 27, 1),
-        ("E5", 28, 1), ("G5", 29, .5), ("C#6", 29.5, .5), ("E6", 30, 1.5),
+    tr.add(-0.0, drone(notes("D2 A2"), 32 * tr.beat + 2), 0.28)
+    tr.add(32, drone(notes("D2 A2"), 32 * tr.beat + 2), 0.28)
+    for i, (root, voicing) in enumerate(prog):
+        b = i * 8
+        tr.add(b, pad(notes(voicing), 8 * tr.beat + 1.5, 650, 1.8), 0.2)
+        tr.add(b, bass(hz(root) * 2, 7.6 * tr.beat), 0.14)
+        if i >= 4:  # second half: low choir swells in
+            tr.add(b, choir(notes(voicing), 8 * tr.beat + 1.5), 0.07)
+    # Distant heartbeat in the second half.
+    for bar in range(8, 16):
+        tr.add(bar * 4, lowpass(kick(0.5), 180), 0.16)
+        tr.add(bar * 4 + 0.45, lowpass(kick(0.4), 180), 0.08)
+    motif = [
+        ("D5", 0, 2), ("A4", 2, 2), ("F4", 4, 1), ("E4", 5, 3),
+        ("D4", 8, 2), ("F4", 10, 3), ("A4", 13, 3),
+        ("G4", 16, 2), ("A#4", 18, 2), ("A4", 21, 3),
+        ("C#5", 24, 2), ("E5", 26, 2), ("D5", 30, 2),
+        ("D5", 32, 1.5), ("F5", 33.5, .5), ("E5", 34, 2), ("A4", 36, 4),
+        ("G4", 40, 2), ("A#4", 42, 2), ("D5", 44, 1), ("D#5", 45, 3),
+        ("D5", 48, 2), ("F4", 50, 2), ("G4", 52, 2), ("A#4", 54, 2),
+        ("A4", 56, 2), ("C#5", 58, 2), ("E4", 60, 1), ("A4", 61, 3),
     ]
-    answer = [  # B section, bars 9–16 — flute, mallet doubling an octave down
-        ("A#5", 32, 1), ("G5", 33, .5), ("E5", 33.5, .5), ("D6", 34, 1.5), ("A#5", 35.5, .5),
-        ("C6", 36, 1), ("A5", 37, .5), ("F5", 37.5, .5), ("E6", 38, 1), ("C6", 39, 1),
-        ("D6", 40, .5), ("A#5", 40.5, .5), ("F6", 41, 1.5), ("E6", 42.5, .5), ("D6", 43, 1),
-        ("A5", 44, 2), ("F5", 46, .5), ("A5", 46.5, .5), ("A#5", 47, .5), ("C6", 47.5, .5),
-        ("D6", 48, 1), ("A#5", 49, 1), ("G5", 50, .5), ("A5", 50.5, .5), ("A#5", 51, 1),
-        ("C#6", 52, 1), ("E6", 53, .5), ("C#6", 53.5, .5), ("A5", 54, 1), ("G5", 55, 1),
-        ("F5", 56, 1.5), ("E5", 57.5, .5), ("D5", 58, 1), ("A4", 59, 1),
-        ("A4", 60, 1), ("D5", 61, .5), ("E5", 61.5, .5), ("E5", 62, 1.5),
-    ]
-    # The melody sits *inside* the mix: quiet, darkened and washed in reverb so it
-    # colours the groove instead of leading it.
-    mel = Track(92, 16)
-    for note, beat, length in hook:
-        mel.add(beat, mallet(hz(note), max(1.2, length * tr.beat + 0.6)), 0.16, 0.15)
-        mel.add(beat + 0.75, mallet(hz(note), 0.9), 0.04, -0.55)  # dotted-8th echo
-    for note, beat, length in answer:
-        mel.add(beat, flute(hz(note), length * tr.beat * 0.95), 0.09, 0.05)
-        mel.add(beat, mallet(hz(note) / 2, max(1.0, length * tr.beat + 0.4)), 0.08, -0.2)
-    for start in (30, 62):
-        for i, n in enumerate(("A6", "F6", "D6", "A5")):
-            mel.add(start + 1 + i * 0.25, mallet(hz(n), 1.0), 0.03, 0.5 - i * 0.3)
-    tr.l += lowpass(mel.l, 1400)
-    tr.r += lowpass(mel.r, 1400)
-    return tr.render(reverb=0.45, room=2.6)
+    for note, beat, length in motif:
+        tr.add(beat, felt_piano(hz(note), length * tr.beat + 1.8), 0.13, 0.1)
+        tr.add(beat, felt_piano(hz(note) / 2, length * tr.beat + 1.8), 0.05, -0.2)
+    for beat, note in ((14, "A6"), (30, "D7"), (46, "A#6"), (62, "E6")):
+        tr.add(beat, shimmer(hz(note)), 0.025, 0.6 if beat % 32 else -0.6)
+    out = tr.render(reverb=0.55, room=3.6)
+    # Quiet on purpose: sit well under the SFX and the other loops.
+    rms = np.sqrt(np.mean(out**2))
+    return out * min(1.0, 10 ** (-22 / 20) / rms)
 
 
 def mine() -> np.ndarray:
@@ -407,7 +345,7 @@ def chamber() -> np.ndarray:
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    tracks = {"hub": ("bgm_hub_v4", hub), "mine": ("bgm_mine_v2", mine), "chamber": ("bgm_chamber_v2", chamber)}
+    tracks = {"hub": ("bgm_hub_v5", hub), "mine": ("bgm_mine_v2", mine), "chamber": ("bgm_chamber_v2", chamber)}
     for key in sys.argv[1:] or tracks:
         name, fn = tracks[key]
         audio = fn()
