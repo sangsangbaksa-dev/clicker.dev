@@ -25,12 +25,18 @@ function supabaseErrorStatus(error: unknown): LayerStatus {
 }
 
 async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error("Supabase Storage request timed out")), ms)
-    ),
-  ])
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Supabase Storage request timed out")), ms)
+      }),
+    ])
+  } finally {
+    // 요청이 먼저 끝나면 타이머를 지워, 요청마다 남는 타이머가 쌓이지 않게 한다.
+    clearTimeout(timer)
+  }
 }
 
 export function supabaseDurableStorageActive(): boolean {

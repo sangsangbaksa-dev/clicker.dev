@@ -278,10 +278,14 @@ export async function loadUserDirectory(options?: {
       const rosterMissing = Object.values(dir.users).some((user) => !roster.users[user.id])
       const durableMissing = Object.values(dir.users).some((user) => !durable.users[user.id])
       if (rosterMissing) {
-        void syncMemberRosterFromUsers(dir.users, dir.updatedAt, dir.deletedIds)
+        syncMemberRosterFromUsers(dir.users, dir.updatedAt, dir.deletedIds).catch((error) =>
+          console.error("[user-directory] roster sync failed", error)
+        )
       }
       if (durableMissing) {
-        void persistDurableAccounts(dir.users, dir.deletedIds)
+        persistDurableAccounts(dir.users, dir.deletedIds).catch((error) =>
+          console.error("[user-directory] durable account backup failed", error)
+        )
       }
     }
     return dir
