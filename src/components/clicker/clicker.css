@@ -2402,9 +2402,9 @@ button.clicker-metric-action.is-fever-ready em {
   color: var(--muted);
 }
 
-/* Touch screens have no Esc key. */
+/* Touch screens have no Esc key: hide "· Esc" hints on buttons and toasts. */
 @media (pointer: coarse) {
-  .clicker-toast-key {
+  .clicker-key-hint {
     display: none;
   }
 }

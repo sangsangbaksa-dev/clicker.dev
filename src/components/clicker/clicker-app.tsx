@@ -572,7 +572,7 @@ export function ClickerApp() {
           >
             <span className="clicker-toast-msg">{game.toast}</span>
             <span className="clicker-toast-dismiss" aria-hidden>
-              탭<span className="clicker-toast-key"> · Esc</span>
+              탭<span className="clicker-key-hint"> · Esc</span>
             </span>
           </button>
         ) : null}
@@ -1470,7 +1470,7 @@ export function ClickerApp() {
         >
           <span className="clicker-toast-msg">{game.toast}</span>
           <span className="clicker-toast-dismiss" aria-hidden>
-            탭<span className="clicker-toast-key"> · Esc</span>
+            탭<span className="clicker-key-hint"> · Esc</span>
           </span>
         </button>
       ) : null}

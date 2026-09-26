@@ -102,7 +102,8 @@ export function ClickerEnding({ onComplete, onCancel, summary }: Props) {
         </div>
         <footer className="clicker-ending-foot">
           <button type="button" className="clicker-ghost" aria-keyshortcuts="Escape" onClick={last && confirmRun ? () => setConfirmRun(false) : goBack}>
-            {last && confirmRun ? "한 단계 뒤로 · Esc" : step <= 0 ? "계속 플레이 · Esc" : "이전"}
+            {last && confirmRun ? "한 단계 뒤로" : step <= 0 ? "계속 플레이" : "이전"}
+            {(last && confirmRun) || step <= 0 ? <span className="clicker-key-hint"> · Esc</span> : null}
           </button>
           {last ? (
             confirmRun ? (

@@ -94,7 +94,7 @@ export function ClickerComplete({ meta, worldlineTotal, onReset }: Props) {
             <p>현재 기록·세이브가 삭제됩니다. 되돌릴 수 없습니다. (8초 후 또는 Esc로 취소)</p>
             <div className="clicker-complete-actions">
               <button type="button" className="clicker-ghost" onClick={() => setConfirmReset(false)}>
-                취소 · Esc
+                취소<span className="clicker-key-hint"> · Esc</span>
               </button>
               <button
                 type="button"

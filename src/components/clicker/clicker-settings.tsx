@@ -57,7 +57,7 @@ export function ClickerSettings({
             <h2 id="clicker-settings-title">설정</h2>
           </div>
           <button type="button" className="clicker-ghost" onClick={onClose} aria-keyshortcuts="Escape">
-            닫기 · Esc
+            닫기<span className="clicker-key-hint"> · Esc</span>
           </button>
         </header>
 

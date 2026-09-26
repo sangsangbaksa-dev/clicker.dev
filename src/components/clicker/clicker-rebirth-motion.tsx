@@ -563,7 +563,8 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
         aria-keyshortcuts="Escape"
         onClick={finishEarly}
       >
-        {reducedMotion ? "계속 · Esc" : "연출 건너뛰기 · Esc"}
+        {reducedMotion ? "계속" : "연출 건너뛰기"}
+        <span className="clicker-key-hint"> · Esc</span>
       </button>
       <div className="clicker-rebirth-overlay" />
       {!stillOnly ? <div className="clicker-rebirth-ui-crumple" aria-hidden /> : null}

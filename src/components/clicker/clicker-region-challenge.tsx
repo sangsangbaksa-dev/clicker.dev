@@ -151,7 +151,8 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
 
       {phase !== "done" ? (
         <button type="button" className="clicker-challenge-quit" onClick={close}>
-          {phase === "countdown" ? "취소 · Esc" : "여기서 끝내기 · Esc"}
+          {phase === "countdown" ? "취소" : "여기서 끝내기"}
+          <span className="clicker-key-hint"> · Esc</span>
         </button>
       ) : null}
     </div>
