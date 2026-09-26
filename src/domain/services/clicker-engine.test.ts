@@ -510,3 +510,40 @@ test("upgrade purchase is rejected when CORE is short or already owned", () => {
   const again = buyUpgrade(rich.run, config, "reinforced_input")
   assert.equal(again.error, "이미 보유함")
 })
+
+test("every lifetime CORE gain also reaches the meta total", () => {
+  const now = 7_000_000
+  const meta = createInitialMeta()
+  const base = grantAdminEnergy(
+    { ...createInitialRun(now, meta, config), producerLevels: { solar_node: 20 } },
+    1_000_000,
+  )
+
+  // FEVER finisher fires inside a tick.
+  const finishing = {
+    ...base,
+    fever: { ...base.fever, phase: "FEVER" as const, remainingTime: 0.2, duration: 10, finisherReady: true },
+  }
+  const ticked = processTick(finishing, meta, config, now + 100)
+  const tickEarned = ticked.run.lifetimeCoreEnergy - finishing.lifetimeCoreEnergy
+  assert.ok(ticked.run.fever.finisherUsed)
+  assert.ok(tickEarned > 0)
+  assert.equal(ticked.meta.totalCoreEnergy - meta.totalCoreEnergy, tickEarned)
+
+  // Active skill energy burst.
+  const pulse = config.activeSkills.find((s) => s.energyBurstSeconds)!
+  const armed = { ...base, skillItems: { [pulse.id]: 1 } }
+  const used = activateSkill(armed, meta, config, pulse.id, now)
+  const burst = used.run.lifetimeCoreEnergy - armed.lifetimeCoreEnergy
+  assert.ok(burst > 0)
+  assert.equal(used.meta.totalCoreEnergy - meta.totalCoreEnergy, burst)
+
+  // Crisis rewards.
+  for (const choice of ["RISK_IT", "EMERGENCY_OVERCLOCK"] as const) {
+    const crisis = { ...base, crisisActive: true, instability: 100 }
+    const resolved = resolveCrisis(crisis, meta, config, choice, now, rng)
+    const reward = resolved.run.lifetimeCoreEnergy - crisis.lifetimeCoreEnergy
+    assert.ok(reward > 0, choice)
+    assert.equal(resolved.meta.totalCoreEnergy - meta.totalCoreEnergy, reward, choice)
+  }
+})

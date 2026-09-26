@@ -21,6 +21,7 @@ import {
   eventBoostMultiplier,
   pruneEventBoosts,
 } from "./clicker-bonus.ts"
+import { formatNumber } from "./clicker-format.ts"
 
 /** Base timed-mine length before skill-tree extensions. Balance PROVISIONAL. */
 export const MINE_SESSION_BASE_MS = 10_000
@@ -200,7 +201,7 @@ export function mineEntryCheck(save: SaveData, now: number): { cost: number; err
   if (cost > 0 && save.runState.coreEnergy < cost) {
     const hasProducers = Object.values(save.runState.producerLevels ?? {}).some((level) => level > 0)
     if (!hasProducers) return { cost: 0 }
-    return { cost, error: `재입장에 CORE ${cost}이 필요합니다.` }
+    return { cost, error: `재입장 비용: CORE ${formatNumber(cost)}` }
   }
   return { cost }
 }
@@ -914,9 +915,10 @@ export function processTick(
   if (next.instability >= 100 && !next.crisisActive) next.crisisActive = true
   next = refreshSkillPoints(next, config)
   next = refreshObjective(next, meta, config)
+  // Lifetime delta covers production, the vault's interest and a FEVER finisher burst.
   const nextMeta: MetaState = {
     ...meta,
-    totalCoreEnergy: meta.totalCoreEnergy + gained,
+    totalCoreEnergy: meta.totalCoreEnergy + (next.lifetimeCoreEnergy - run.lifetimeCoreEnergy),
   }
   return { run: next, meta: nextMeta }
 }
@@ -1045,12 +1047,12 @@ export function activateSkill(
   config: GameConfig,
   skillId: string,
   now: number
-): { run: RunState; error?: string } {
-  if (run.crisisActive) return { run, error: "위기 중에는 일부 스킬을 쓸 수 없습니다." }
+): { run: RunState; meta: MetaState; error?: string } {
+  if (run.crisisActive) return { run, meta, error: "위기 중에는 일부 스킬을 쓸 수 없습니다." }
   const skill = config.activeSkills.find((s) => s.id === skillId)
-  if (!skill) return { run, error: "스킬이 없습니다." }
-  if ((run.skillItems[skillId] ?? 0) <= 0) return { run, error: "스킬이 부족합니다." }
-  if ((run.skillCooldowns[skillId] ?? 0) > 0) return { run, error: "쿨다운 중입니다." }
+  if (!skill) return { run, meta, error: "스킬이 없습니다." }
+  if ((run.skillItems[skillId] ?? 0) <= 0) return { run, meta, error: "스킬이 부족합니다." }
+  if ((run.skillCooldowns[skillId] ?? 0) > 0) return { run, meta, error: "쿨다운 중입니다." }
   let next = {
     ...run,
     skillItems: { ...run.skillItems, [skillId]: Math.max(0, (run.skillItems[skillId] ?? 0) - 1) },
@@ -1063,16 +1065,17 @@ export function activateSkill(
       { id: skillId, expiresAt: now + skill.duration * 1000 },
     ]
   }
+  let burst = 0
   if (skill.energyBurstSeconds) {
     const snapshot = productionSnapshot(next, meta, config, now)
-    const burst = snapshot.perSecond * skill.energyBurstSeconds
+    burst = snapshot.perSecond * skill.energyBurstSeconds
     next = {
       ...next,
       coreEnergy: next.coreEnergy + burst,
       lifetimeCoreEnergy: next.lifetimeCoreEnergy + burst,
     }
   }
-  return { run: next }
+  return { run: next, meta: burst > 0 ? { ...meta, totalCoreEnergy: meta.totalCoreEnergy + burst } : meta }
 }
 
 export function resolveCrisis(
@@ -1105,7 +1108,8 @@ export function resolveCrisis(
     }
     next = applyInstabilityDelta(next, rng() < 0.5 ? -30 : -70)
   }
-  return { run: next, meta }
+  const earned = next.lifetimeCoreEnergy - run.lifetimeCoreEnergy
+  return { run: next, meta: earned > 0 ? { ...meta, totalCoreEnergy: meta.totalCoreEnergy + earned } : meta }
 }
 
 export function applyRebirth(

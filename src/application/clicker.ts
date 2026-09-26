@@ -192,9 +192,8 @@ export function clickerBuySkill(save: SaveData, id: string): UseCaseResult<SaveD
 }
 
 export function clickerDrinkPotion(save: SaveData, potionId: string): UseCaseResult<SaveData> {
-  const next = startFever(save.runState, save.metaState, config, "POTION", potionId)
-  if (next.error) return { ok: false, status: 400, error: next.error }
-  return ok({ ...save, runState: next.run, metaState: { ...save.metaState, statistics: { ...save.metaState.statistics, feverStarts: save.metaState.statistics.feverStarts + 1 } } })
+  // run.feverStarts counts it; meta folds that in at rebirth, so don't bump meta here too.
+  return withRun(save, startFever(save.runState, save.metaState, config, "POTION", potionId))
 }
 
 export function clickerStartGaugeFever(save: SaveData): UseCaseResult<SaveData> {
@@ -202,7 +201,9 @@ export function clickerStartGaugeFever(save: SaveData): UseCaseResult<SaveData> 
 }
 
 export function clickerUseSkill(save: SaveData, id: string, now: number): UseCaseResult<SaveData> {
-  return withRun(save, activateSkill(save.runState, save.metaState, config, id, now))
+  const next = activateSkill(save.runState, save.metaState, config, id, now)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ ...save, runState: next.run, metaState: next.meta })
 }
 
 export function clickerResolveCrisis(save: SaveData, choice: CrisisChoice, now: number): SaveData {
