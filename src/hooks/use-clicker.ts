@@ -22,7 +22,6 @@ import {
   clickerFinishMineSession,
   clickerGameConfig,
   clickerMineSessionStart,
-  clickerOreBroken,
   clickerRebirth,
   clickerResolveCrisis,
   clickerReturnHome,
@@ -577,12 +576,6 @@ export function useClicker() {
     [commit, flash],
   )
 
-  const oreBroken = useCallback(() => {
-    if (!saveRef.current) return
-    commit(clickerOreBroken(saveRef.current))
-    playSfx("oreBreak")
-  }, [commit])
-
   const drillOverdrive = useCallback(() => {
     if (!saveRef.current) return
     const result = clickerDrillOverdrive(saveRef.current, now())
@@ -706,7 +699,6 @@ export function useClicker() {
     enterMine,
     mineEntryError,
     claimVein,
-    oreBroken,
     achievements,
     drill,
     drillOverdrive,

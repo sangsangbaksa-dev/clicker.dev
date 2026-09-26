@@ -84,12 +84,6 @@ export function pruneEventBoosts(run: RunState, now: number): RunState {
   return { ...run, eventBoosts: run.eventBoosts.filter((b) => b.expiresAt > now) }
 }
 
-/* ---------- Mine ore ---------- */
-
-export function recordOreBroken(meta: MetaState): MetaState {
-  return { ...meta, statistics: { ...meta.statistics, oresBroken: meta.statistics.oresBroken + 1 } }
-}
-
 /* ---------- Achievements ---------- */
 
 /** Each unlocked achievement adds this much production (additive, then applied once). */

@@ -998,7 +998,6 @@ export function ClickerApp() {
                 playLaser={playLaser}
                 autoRate={game.drill?.rate ?? 0}
                 onVein={game.claimVein}
-                onOreBroken={game.oreBroken}
               />
             </div>
           ) : atHomeHub ? (

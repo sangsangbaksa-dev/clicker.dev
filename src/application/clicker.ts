@@ -38,7 +38,6 @@ import {
 import {
   awardAchievements,
   claimGoldenVein,
-  recordOreBroken,
   startDrillOverdrive,
   type VeinOutcome,
 } from "@/domain/services/clicker-bonus"
@@ -281,10 +280,6 @@ export function clickerClaimVein(save: SaveData, now: number): { save: SaveData;
   const perSecond = productionSnapshot(save.runState, save.metaState, config, now).perSecond
   const next = claimGoldenVein(save.runState, save.metaState, perSecond, now, rng)
   return { save: withAchievements({ ...save, runState: next.run, metaState: next.meta }), outcome: next.outcome }
-}
-
-export function clickerOreBroken(save: SaveData): SaveData {
-  return withAchievements({ ...save, metaState: recordOreBroken(save.metaState) })
 }
 
 export function clickerDrillOverdrive(save: SaveData, now: number): UseCaseResult<SaveData> {

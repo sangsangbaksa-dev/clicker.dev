@@ -81,7 +81,6 @@
   mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%);
   transform-origin: 50% 85%;
-  filter: brightness(calc(1 + var(--ore-crack, 0) * 0.35)) saturate(calc(1 + var(--ore-crack, 0) * 0.5));
   pointer-events: none;
 }
 
@@ -110,40 +109,6 @@
   }
 }
 
-/* Damage cracks: each new one draws itself out from the center. */
-.clicker-mine-cracks {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  pointer-events: none;
-  mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 55%, transparent 90%);
-  -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 55%, transparent 90%);
-  filter: drop-shadow(0 0 3px rgb(160 250 255 / 0.9));
-}
-
-.clicker-mine-cracks polyline {
-  fill: none;
-  stroke: rgb(236 255 255 / 0.85);
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-  stroke-dasharray: 1;
-  animation: clicker-mine-crack 220ms ease-out both;
-}
-
-@keyframes clicker-mine-crack {
-  from {
-    stroke-dashoffset: 1;
-    stroke: #fff;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
 .clicker-mine-crystal-glow {
   position: absolute;
   inset: 12% 8% 18%;
@@ -154,11 +119,6 @@
   animation: clicker-mine-crystal-breathe 2.6s ease-in-out infinite;
 }
 
-.clicker-mine-crystal.is-weak .clicker-mine-crystal-glow {
-  background: radial-gradient(closest-side, rgb(255 255 255 / 0.4), transparent);
-  animation-duration: 0.7s;
-}
-
 @keyframes clicker-mine-crystal-breathe {
   0%,
   100% {
@@ -166,59 +126,6 @@
   }
   50% {
     opacity: 1;
-  }
-}
-
-.clicker-mine-crystal.is-broken {
-  pointer-events: none;
-}
-
-.clicker-mine-crystal.is-broken .clicker-mine-crystal-art {
-  animation: clicker-mine-crystal-regrow 650ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
-}
-
-/* Gone for a beat after the shatter, then grows back from the base with a soft overshoot. */
-@keyframes clicker-mine-crystal-regrow {
-  0%,
-  30% {
-    transform: scale(0.15);
-    opacity: 0;
-    filter: brightness(3);
-  }
-  75% {
-    transform: scale(1.04);
-    opacity: 1;
-    filter: brightness(1.6);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* Crystal shards thrown out when the ore breaks. */
-.clicker-mine-shard {
-  position: absolute;
-  translate: -50% -50%;
-  background: linear-gradient(115deg, #ffffff 0 18%, #9ff3ff 34%, #37c6e6 62%, #0e5c78);
-  clip-path: polygon(50% 0, 88% 30%, 64% 100%, 22% 90%, 8% 34%);
-  animation: clicker-mine-shard 620ms cubic-bezier(0.15, 0.7, 0.35, 1) forwards;
-}
-
-@keyframes clicker-mine-shard {
-  0% {
-    transform: translate(0, 0) rotate(0deg) scale(0.6);
-    opacity: 1;
-  }
-  15% {
-    transform: translate(calc(var(--shard-dx) * 0.35), calc(var(--shard-dy) * 0.35)) rotate(calc(var(--shard-spin) * 0.2)) scale(1);
-  }
-  70% {
-    opacity: 1;
-  }
-  100% {
-    transform: translate(var(--shard-dx), calc(var(--shard-dy) + 40px)) rotate(var(--shard-spin)) scale(0.4);
-    opacity: 0;
   }
 }
 
@@ -238,39 +145,6 @@
   to {
     opacity: 0;
   }
-}
-
-/* ---------- Integrity bar ---------- */
-.clicker-mine-integrity {
-  position: absolute;
-  z-index: 5;
-  height: 6px;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 0.55);
-  box-shadow: inset 0 0 0 1px rgb(160 240 255 / 0.25);
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.clicker-mine-integrity > i,
-.clicker-mine-integrity > b {
-  position: absolute;
-  left: 0;
-  top: 0;
-  display: block;
-  height: 100%;
-}
-
-.clicker-mine-integrity > i {
-  background: linear-gradient(90deg, #5ce8ff, #e8fdff);
-  box-shadow: 0 0 10px #5ce8ff;
-  transition: width 90ms ease-out;
-}
-
-/* Damage ghost: holds for a moment, then drains to the real value. */
-.clicker-mine-integrity > b {
-  background: rgb(255 244 214 / 0.85);
-  transition: width 420ms cubic-bezier(0.5, 0, 0.3, 1) 160ms;
 }
 
 /* ---------- Laser ---------- */
@@ -656,17 +530,11 @@
   .clicker-mine-single[data-visual="fever"] .clicker-mine-plate,
   .clicker-mine-crystal-glow,
   .clicker-mine-crystal-art.is-hit,
-  .clicker-mine-crystal.is-broken .clicker-mine-crystal-art,
-  .clicker-mine-cracks polyline,
   .clicker-mine-single.is-quake .clicker-mine-plate,
   .clicker-mine-single.is-quake .clicker-mine-crystal,
   .clicker-mine-bolt,
   .clicker-mine-strike-flash.is-lightning {
     animation: none;
-  }
-
-  .clicker-mine-integrity > b {
-    transition: none;
   }
 }
 

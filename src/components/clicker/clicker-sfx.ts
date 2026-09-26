@@ -294,16 +294,6 @@ const CUES = {
     tone(c, "sine", 1318, 1318, 0.025, t, 0.08)
     tone(c, "sine", 1760, 1760, 0.022, t + 0.06, 0.14)
   },
-  /** Center ore shattered. */
-  oreBreak(c: AudioContext, t: number) {
-    noise(c, "highpass", 2500, 0.8, 0.07, t, 0.35)
-    noise(c, "lowpass", 400, 1, 0.08, t, 0.3)
-    for (let i = 0; i < 6; i++) {
-      const f = 2200 + Math.random() * 2600
-      tone(c, "sine", f, f * 0.9, 0.02, t + 0.02 + i * 0.03, 0.12)
-    }
-    tone(c, "sine", 90, 45, 0.08, t, 0.3)
-  },
   /** Golden vein claimed: jackpot chime. */
   vein(c: AudioContext, t: number) {
     const e = echo(c, 0.1, 0.35, 0.35)
