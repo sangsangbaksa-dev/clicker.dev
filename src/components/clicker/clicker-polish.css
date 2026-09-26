@@ -1160,8 +1160,13 @@
   }
 
   /* The manage header already has the back button. */
-  [data-clicker] .clicker-world-back {
+  [data-clicker] :is(.clicker-world-back, .clicker-transcendence-back) {
     display: none;
+  }
+
+  /* These panels had no side padding, so their copy touched the screen edge. */
+  [data-clicker] :is(.clicker-world, .clicker-transcendence) {
+    padding-inline: 8px;
   }
 
   [data-clicker] .clicker-manage-head {
