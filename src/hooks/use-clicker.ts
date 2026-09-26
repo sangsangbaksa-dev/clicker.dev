@@ -285,8 +285,9 @@ export function useClicker() {
         text: `+${result.energy.toFixed(result.energy >= 100 ? 0 : 1)}`,
         critical: result.critical,
         strike,
-        x: clientX ?? 0,
-        y: clientY ?? 0,
+        // Jitter so rapid taps on one spot fan out instead of stacking into a smear.
+        x: clientX == null ? 0 : clientX + (Math.random() - 0.5) * 36,
+        y: clientY == null ? 0 : clientY + (Math.random() - 0.5) * 14,
       },
     ])
     window.setTimeout(() => {
