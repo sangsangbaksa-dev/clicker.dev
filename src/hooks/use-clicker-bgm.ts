@@ -5,7 +5,7 @@ import type { CoreVisual } from "@/domain/services/clicker-view"
 
 /** Hub / mine loops plus the chamber cue for rebirth and ending. */
 const BGM_SRC = {
-  hub: "/clicker/audio/bgm_hub_v3.mp3",
+  hub: "/clicker/audio/bgm_hub_v4.mp3",
   mine: "/clicker/audio/bgm_mine_v2.mp3",
   chamber: "/clicker/audio/bgm_chamber_v2.mp3",
 } as const

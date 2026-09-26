@@ -257,27 +257,27 @@ def notes(spec: str) -> list[float]:
 
 
 def hub() -> np.ndarray:
-    """D major, 92 BPM, 16 bars — relaxed lo-fi groove: e-piano comping, mallet hook,
-    breathy flute answer in the B section, walking sub bass and brushed drums."""
+    """D minor, 92 BPM, 16 bars — hazy lo-fi groove: e-piano comping and walking sub
+    bass up front; the mallet hook and flute answer are kept low and blurred."""
     tr = Track(92, 16)
     # (bass root, bass fifth, e-piano voicing, approach note into next bar)
     prog = [
-        ("D2", "A2", "A3 C#4 E4 F#4", "A#2"),   # Dmaj7
-        ("B1", "F#2", "A3 B3 D4 F#4", "F#2"),   # Bm7
-        ("G1", "D2", "F#3 A3 B3 D4", "G#1"),    # Gmaj7
+        ("D2", "A2", "A3 C4 E4 F4", "B1"),      # Dm9
+        ("A#1", "F2", "A3 A#3 D4 F4", "G#1"),   # Bbmaj7
+        ("G1", "D2", "F3 A3 A#3 D4", "G#1"),    # Gm9
         ("A1", "E2", "G3 A3 D4 E4", "C#2"),     # A7sus
-        ("D2", "A2", "A3 C#4 E4 F#4", "E2"),    # Dmaj7
-        ("F#2", "C#2", "E3 A3 C#4 F#4", "F#2"), # F#m7
-        ("G1", "D2", "F#3 A3 B3 D4", "G#1"),    # Gmaj7
-        ("A1", "E2", "G3 A3 C#4 E4", "D#2"),    # A7
-        ("E2", "B1", "G3 B3 D4 E4", "E2"),      # Em7
-        ("F#2", "C#2", "E3 A3 C#4 F#4", "F#2"), # F#m7
-        ("G1", "D2", "F#3 A3 B3 D4", "E2"),     # Gmaj7
-        ("F#2", "A2", "A3 C#4 D4 F#4", "D#2"),  # D/F#
-        ("E2", "B1", "G3 B3 D4 E4", "G#1"),     # Em7
+        ("D2", "A2", "A3 C4 E4 F4", "E2"),      # Dm9
+        ("F2", "C2", "E3 A3 C4 F4", "G#1"),     # Fmaj7
+        ("G1", "D2", "F3 A3 A#3 D4", "G#1"),    # Gm9
+        ("A1", "E2", "G3 A#3 C#4 E4", "D#2"),   # A7b9
+        ("E2", "A#1", "G3 A#3 D4 E4", "E2"),    # Em7b5
+        ("F2", "C2", "E3 A3 C4 F4", "G#1"),     # Fmaj7
+        ("G1", "D2", "F3 A3 A#3 D4", "E2"),     # Gm9
+        ("F2", "A2", "A3 C4 D4 F4", "D#2"),     # Dm/F
+        ("E2", "A#1", "G3 A#3 D4 E4", "G#1"),   # Em7b5
         ("A1", "E2", "G3 A3 C#4 E4", "C#2"),    # A7
-        ("D2", "A2", "A3 C#4 E4 F#4", "B1"),    # Dmaj7
-        ("A1", "E2", "G3 A3 D4 E4", "C#2"),     # A7sus → loops to Dmaj7
+        ("D2", "A2", "A3 C4 E4 F4", "A#1"),     # Dm9
+        ("A1", "E2", "G3 A3 D4 E4", "C#2"),     # A7sus → loops to Dm9
     ]
     for bar, (root, fifth, voicing, approach) in enumerate(prog):
         b = bar * 4
@@ -306,36 +306,40 @@ def hub() -> np.ndarray:
         tr.add(beat, rim(), 0.08, 0.15)
 
     hook = [  # A section, bars 1–8 — mallet
-        ("F#5", 0, .5), ("A5", .5, .5), ("C#6", 1, 1.5), ("A5", 2.5, .5), ("F#5", 3, 1),
-        ("D5", 4, .5), ("F#5", 4.5, .5), ("B5", 5, 1.5), ("A5", 6.5, .5), ("F#5", 7, 1),
-        ("G5", 8, .5), ("B5", 8.5, .5), ("D6", 9, 1), ("C#6", 10, .5), ("B5", 10.5, .5), ("A5", 11, 1),
+        ("F5", 0, .5), ("A5", .5, .5), ("C6", 1, 1.5), ("A5", 2.5, .5), ("F5", 3, 1),
+        ("D5", 4, .5), ("F5", 4.5, .5), ("A#5", 5, 1.5), ("A5", 6.5, .5), ("F5", 7, 1),
+        ("G5", 8, .5), ("A#5", 8.5, .5), ("D6", 9, 1), ("C6", 10, .5), ("A#5", 10.5, .5), ("A5", 11, 1),
         ("E5", 12, 1), ("G5", 13, .5), ("A5", 13.5, 2),
-        ("F#5", 16, .5), ("A5", 16.5, .5), ("C#6", 17, 1), ("E6", 18, 1), ("C#6", 19, 1),
-        ("A5", 20, 1.5), ("E5", 21.5, .5), ("F#5", 22, 1), ("C#5", 23, 1),
-        ("D5", 24, .5), ("G5", 24.5, .5), ("B5", 25, 1), ("A5", 26, .5), ("G5", 26.5, .5), ("F#5", 27, 1),
+        ("F5", 16, .5), ("A5", 16.5, .5), ("C6", 17, 1), ("E6", 18, 1), ("C6", 19, 1),
+        ("A5", 20, 1.5), ("E5", 21.5, .5), ("F5", 22, 1), ("C5", 23, 1),
+        ("D5", 24, .5), ("G5", 24.5, .5), ("A#5", 25, 1), ("A5", 26, .5), ("G5", 26.5, .5), ("F5", 27, 1),
         ("E5", 28, 1), ("G5", 29, .5), ("C#6", 29.5, .5), ("E6", 30, 1.5),
     ]
     answer = [  # B section, bars 9–16 — flute, mallet doubling an octave down
-        ("B5", 32, 1), ("G5", 33, .5), ("E5", 33.5, .5), ("D6", 34, 1.5), ("B5", 35.5, .5),
-        ("C#6", 36, 1), ("A5", 37, .5), ("F#5", 37.5, .5), ("E6", 38, 1), ("C#6", 39, 1),
-        ("D6", 40, .5), ("B5", 40.5, .5), ("F#6", 41, 1.5), ("E6", 42.5, .5), ("D6", 43, 1),
-        ("A5", 44, 2), ("F#5", 46, .5), ("A5", 46.5, .5), ("B5", 47, .5), ("C#6", 47.5, .5),
-        ("D6", 48, 1), ("B5", 49, 1), ("G5", 50, .5), ("A5", 50.5, .5), ("B5", 51, 1),
+        ("A#5", 32, 1), ("G5", 33, .5), ("E5", 33.5, .5), ("D6", 34, 1.5), ("A#5", 35.5, .5),
+        ("C6", 36, 1), ("A5", 37, .5), ("F5", 37.5, .5), ("E6", 38, 1), ("C6", 39, 1),
+        ("D6", 40, .5), ("A#5", 40.5, .5), ("F6", 41, 1.5), ("E6", 42.5, .5), ("D6", 43, 1),
+        ("A5", 44, 2), ("F5", 46, .5), ("A5", 46.5, .5), ("A#5", 47, .5), ("C6", 47.5, .5),
+        ("D6", 48, 1), ("A#5", 49, 1), ("G5", 50, .5), ("A5", 50.5, .5), ("A#5", 51, 1),
         ("C#6", 52, 1), ("E6", 53, .5), ("C#6", 53.5, .5), ("A5", 54, 1), ("G5", 55, 1),
-        ("F#5", 56, 1.5), ("E5", 57.5, .5), ("D5", 58, 1), ("A4", 59, 1),
+        ("F5", 56, 1.5), ("E5", 57.5, .5), ("D5", 58, 1), ("A4", 59, 1),
         ("A4", 60, 1), ("D5", 61, .5), ("E5", 61.5, .5), ("E5", 62, 1.5),
     ]
+    # The melody sits *inside* the mix: quiet, darkened and washed in reverb so it
+    # colours the groove instead of leading it.
+    mel = Track(92, 16)
     for note, beat, length in hook:
-        tr.add(beat, mallet(hz(note), max(1.2, length * tr.beat + 0.6)), 0.34, 0.15)
-        tr.add(beat + 0.75, mallet(hz(note), 0.9), 0.06, -0.55)  # dotted-8th echo
+        mel.add(beat, mallet(hz(note), max(1.2, length * tr.beat + 0.6)), 0.16, 0.15)
+        mel.add(beat + 0.75, mallet(hz(note), 0.9), 0.04, -0.55)  # dotted-8th echo
     for note, beat, length in answer:
-        tr.add(beat, flute(hz(note), length * tr.beat * 0.95), 0.2, 0.05)
-        tr.add(beat, mallet(hz(note) / 2, max(1.0, length * tr.beat + 0.4)), 0.14, -0.2)
-    # Sparkle at the end of each 8-bar phrase.
+        mel.add(beat, flute(hz(note), length * tr.beat * 0.95), 0.09, 0.05)
+        mel.add(beat, mallet(hz(note) / 2, max(1.0, length * tr.beat + 0.4)), 0.08, -0.2)
     for start in (30, 62):
-        for i, n in enumerate(("A6", "F#6", "D6", "A5")):
-            tr.add(start + 1 + i * 0.25, mallet(hz(n), 1.0), 0.06, 0.5 - i * 0.3)
-    return tr.render(reverb=0.3, room=2.2)
+        for i, n in enumerate(("A6", "F6", "D6", "A5")):
+            mel.add(start + 1 + i * 0.25, mallet(hz(n), 1.0), 0.03, 0.5 - i * 0.3)
+    tr.l += lowpass(mel.l, 1400)
+    tr.r += lowpass(mel.r, 1400)
+    return tr.render(reverb=0.45, room=2.6)
 
 
 def mine() -> np.ndarray:
@@ -403,7 +407,7 @@ def chamber() -> np.ndarray:
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    tracks = {"hub": ("bgm_hub_v3", hub), "mine": ("bgm_mine_v2", mine), "chamber": ("bgm_chamber_v2", chamber)}
+    tracks = {"hub": ("bgm_hub_v4", hub), "mine": ("bgm_mine_v2", mine), "chamber": ("bgm_chamber_v2", chamber)}
     for key in sys.argv[1:] or tracks:
         name, fn = tracks[key]
         audio = fn()
