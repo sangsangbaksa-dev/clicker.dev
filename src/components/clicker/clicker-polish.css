@@ -1027,6 +1027,19 @@
   color: var(--text-2);
 }
 
+/* Phones: 31 short cards one per row made a very long scroll; two columns fit them. */
+@media (max-width: 520px) {
+  [data-clicker] .clicker-achievements-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  [data-clicker] .clicker-achievement {
+    gap: 6px;
+    padding: 8px 9px;
+  }
+}
+
 [data-clicker] .clicker-achievement-body .clicker-bar {
   height: 5px;
   margin-top: 3px;
