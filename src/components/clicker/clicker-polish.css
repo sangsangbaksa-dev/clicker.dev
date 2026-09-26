@@ -1303,3 +1303,28 @@
 [data-clicker] .clicker-float.is-drill.is-crit {
   font-size: 16px;
 }
+
+/* Region pills: one scrollable row up to tablet width. Between 430px and 900px they
+   squeezed into two-line pills that ran into the goal line below. */
+@media (max-width: 900px) {
+  [data-clicker] .clicker-stage-region {
+    right: 8px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  [data-clicker] .clicker-stage-region::-webkit-scrollbar {
+    display: none;
+  }
+
+  [data-clicker] :is(
+    .clicker-stage-region-name,
+    .clicker-stage-region-home,
+    .clicker-stage-region-jump,
+    .clicker-stage-region-explore
+  ) {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
