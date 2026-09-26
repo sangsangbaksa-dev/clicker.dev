@@ -1,6 +1,7 @@
 # Region entry intros
 
-Played every time the player travels into a region (`RegionDef.intro`), including the return to Core Mine.
+Played every time the player travels into a region (`RegionDef.intro`), including the return to Core Mine
+and the arrival in a new world line after rebirth (Core Mine video, `WORLD LINE #NNN · 진입`).
 The caption reads `NEW REGION · 첫 진입` on the first visit, `REGION · 진입` afterwards and `HOME · 귀환` for Core Mine.
 The BGM is baked into the video's audio track, so the game BGM goes silent while it plays.
 

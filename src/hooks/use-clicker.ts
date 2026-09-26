@@ -78,7 +78,14 @@ function now() {
   return Date.now()
 }
 
-export type RegionIntro = RegionIntroDef & { regionId: string; name: string; description: string; firstVisit: boolean; home: boolean }
+/** An entry cinematic queued for playback; `kicker` / `entry` word the caption and dialog label. */
+export type RegionIntro = RegionIntroDef & { regionId: string; name: string; description: string; kicker: string; entry: string }
+
+function homeIntro(kicker: string, entry: string): RegionIntro | null {
+  const home = clickerGameConfig.regions.find((r) => r.isHome)
+  if (!home?.intro) return null
+  return { regionId: home.id, name: home.name, description: home.description, kicker, entry, ...home.intro }
+}
 
 export function useClicker() {
   const [save, setSave] = useState<SaveData | null>(null)
@@ -392,8 +399,8 @@ export function useClicker() {
         regionId,
         name: label,
         description: region?.description ?? "",
-        firstVisit: result.value.firstVisit,
-        home: Boolean(region?.isHome),
+        kicker: result.value.firstVisit ? "NEW REGION · 첫 진입" : "REGION · 진입",
+        entry: result.value.firstVisit ? "첫 진입" : "진입",
         ...result.value.intro,
       })
     else flash(`${label}(으)로 이동`)
@@ -435,10 +442,9 @@ export function useClicker() {
     if (!result.ok) return refuse(result.error)
     commit(result.value)
     playSfx("travel")
-    const home = clickerGameConfig.regions.find((r) => r.isHome)
-    if (home?.intro) {
-      setRegionIntro({ regionId: home.id, name: home.name, description: home.description, firstVisit: false, home: true, ...home.intro })
-    } else flash("Core Mine으로 돌아왔습니다")
+    const intro = homeIntro("HOME · 귀환", "귀환")
+    if (intro) setRegionIntro(intro)
+    else flash("Core Mine으로 돌아왔습니다")
   }, [commit, flash, refuse])
 
   const rebirth = useCallback((buffId: string) => {
@@ -446,7 +452,11 @@ export function useClicker() {
     const result = clickerRebirth(saveRef.current, buffId, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    flash("WORLD LINE이 열렸습니다.")
+    // A new world line starts at home: play its entry cinematic after the rebirth motion.
+    const line = String(result.value.runState.currentWorldLine).padStart(3, "0")
+    const intro = homeIntro(`WORLD LINE #${line} · 진입`, "새 세계선 진입")
+    if (intro) setRegionIntro(intro)
+    else flash("WORLD LINE이 열렸습니다.")
   }, [commit, flash, refuse])
 
   const completeEnding = useCallback(() => {
