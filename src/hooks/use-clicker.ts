@@ -16,7 +16,6 @@ import {
   clickerDrillOverdrive,
   clickerDrinkPotion,
   clickerEnterMine,
-  clickerMineEntryError,
   clickerMineEntryCost,
   clickerExitMine,
   clickerFinishMineSession,
@@ -590,12 +589,6 @@ export function useClicker() {
     flash("드릴 과부하 · 30초간 자동 채굴 ×3")
   }, [commit, flash, refuse])
 
-  /** Checked before the entry cinematic so a refused entry fails fast instead of after 10s. */
-  const mineEntryError = useCallback(() => {
-    if (!saveRef.current) return undefined
-    return clickerMineEntryError(saveRef.current, now())
-  }, [])
-
   const exitMine = useCallback(() => {
     if (!saveRef.current) return
     const before = saveRef.current
@@ -702,7 +695,6 @@ export function useClicker() {
     setMusicVolume,
     startFromTitle,
     enterMine,
-    mineEntryError,
     claimVein,
     oreBroken,
     achievements,

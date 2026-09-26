@@ -17,7 +17,6 @@ import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine } from "@/components/clicker/clicker-mine"
 import { ClickerCinematic } from "@/components/clicker/clicker-cinematic"
 import { ClickerRegionChallenge } from "@/components/clicker/clicker-region-challenge"
-import { MineArt } from "@/data/clicker/mine-assets"
 import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
 import { ClickerOtherTab } from "@/components/clicker/clicker-other-tab"
 import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motion"
@@ -115,8 +114,6 @@ function readDrawerHeight() {
 
 export function ClickerApp() {
   const game = useClicker()
-  // Door-walk entry cinematic between Enter Mine and the timed session (carries its own SFX).
-  const [enteringMine, setEnteringMine] = useState(false)
   /** Region whose field challenge is open (mini-game overlay), or null. */
   const [challengeRegionId, setChallengeRegionId] = useState<string | null>(null)
 
@@ -174,7 +171,7 @@ export function ClickerApp() {
 
   useClickerBgm(game.hud?.coreVisual, {
     // Cinematics carry their own soundtrack.
-    scene: enteringMine || game.regionIntro
+    scene: game.regionIntro
       ? "silent"
       : pendingRebirth || endingOpen
         ? "chamber"
@@ -515,7 +512,6 @@ export function ClickerApp() {
     return (
       <ClickerOtherTab
         onResume={() => {
-          setEnteringMine(false)
           game.resumeHere()
         }}
       />
@@ -633,16 +629,10 @@ export function ClickerApp() {
   const regionIntroPlaying = Boolean(game.regionIntro)
   const managing = !inMine && hubView === "manage"
 
+  // No entry cinematic: the mine opens straight away (refusals still explain themselves).
   const beginEnterMine = () => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    // Refused entries (cooldown / cost) skip the cinematic; enterMine shows the reason.
-    if (reduced || game.mineEntryError()) {
-      setDrawerSnap("peek")
-      game.enterMine()
-      return
-    }
-    // Mining stays blocked and the timer unstarted until the cinematic ends.
-    setEnteringMine(true)
+    setDrawerSnap("peek")
+    game.enterMine()
   }
   const drawerClassMode = managing ? "full" : drawerMode
 
@@ -1012,7 +1002,6 @@ export function ClickerApp() {
                     ? `Enter Mine · 입장료 CORE ${mineEntryCost}`
                     : "Enter Mine"
               }
-              disabled={enteringMine}
               onClick={beginEnterMine}
             >
               Enter Mine
@@ -1362,25 +1351,11 @@ export function ClickerApp() {
         />
       ) : null}
 
-      {game.mineSummary && !inMine && !enteringMine ? (
+      {game.mineSummary && !inMine ? (
         <ClickerMineResult
           summary={game.mineSummary}
           cooldownSec={mineCooldownSec}
           onClose={game.dismissMineSummary}
-        />
-      ) : null}
-
-      {enteringMine ? (
-        <ClickerCinematic
-          src={MineArt.enterCinematic}
-          poster={MineArt.entranceGate}
-          label="광산 입장 중"
-          muted={game.save.settings.muted}
-          onDone={() => {
-            setEnteringMine(false)
-            setDrawerSnap("peek")
-            game.enterMine()
-          }}
         />
       ) : null}
 
