@@ -1111,7 +1111,9 @@
 }
 
 @media (max-width: 720px) {
+  /* A slim bar at the top; stretched to the grid row it hid the region art behind an opaque panel. */
   [data-clicker] .clicker-goal-compact {
+    align-self: start;
     margin-top: 46px;
   }
 }

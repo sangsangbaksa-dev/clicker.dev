@@ -185,6 +185,8 @@ function RodStrike({ elapsed, playing, onHit, onMiss }: GameProps) {
     return out
   })
   const [caught, setCaught] = useState<ReadonlySet<number>>(() => new Set())
+  // Taps land faster than renders: a ref stops a double tap scoring the same charge twice.
+  const caughtNow = useRef<Set<number>>(new Set())
   const [flash, setFlash] = useState<Flash | null>(null)
 
   const index = Math.floor((elapsed - ROD_FIRST_MS) / ROD_EVERY_MS)
@@ -193,8 +195,10 @@ function RodStrike({ elapsed, playing, onHit, onMiss }: GameProps) {
 
   const tap = (rod: number) => {
     if (!playing) return
+    if (live >= 0 && caughtNow.current.has(live)) return
     if (live >= 0 && charges[live] === rod) {
-      setCaught(new Set(caught).add(live))
+      caughtNow.current.add(live)
+      setCaught(new Set(caughtNow.current))
       onHit()
       setFlash({ key: rod, ok: true, at: elapsed })
     } else {
@@ -310,6 +314,8 @@ function DroneRecall({ elapsed, playing, onHit }: GameProps) {
     Array.from({ length: 40 }, () => ({ lane: 0.1 + Math.random() * 0.72, ltr: Math.random() < 0.5 })),
   )
   const [caught, setCaught] = useState<ReadonlySet<number>>(() => new Set())
+  // Taps land faster than renders: a ref stops two quick taps catching the same drone twice.
+  const caughtNow = useRef<Set<number>>(new Set())
 
   return (
     <div className="clicker-hangar">
@@ -326,8 +332,9 @@ function DroneRecall({ elapsed, playing, onHit }: GameProps) {
             aria-label="드론 회수"
             onPointerDown={(e) => {
               e.preventDefault()
-              if (!playing) return
-              setCaught(new Set(caught).add(i))
+              if (!playing || caughtNow.current.has(i)) return
+              caughtNow.current.add(i)
+              setCaught(new Set(caughtNow.current))
               onHit()
             }}
           >
