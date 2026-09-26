@@ -78,7 +78,7 @@ function now() {
   return Date.now()
 }
 
-export type RegionIntro = RegionIntroDef & { regionId: string; name: string; description: string; firstVisit: boolean }
+export type RegionIntro = RegionIntroDef & { regionId: string; name: string; description: string; firstVisit: boolean; home: boolean }
 
 export function useClicker() {
   const [save, setSave] = useState<SaveData | null>(null)
@@ -393,6 +393,7 @@ export function useClicker() {
         name: label,
         description: region?.description ?? "",
         firstVisit: result.value.firstVisit,
+        home: Boolean(region?.isHome),
         ...result.value.intro,
       })
     else flash(`${label}(으)로 이동`)
@@ -434,7 +435,10 @@ export function useClicker() {
     if (!result.ok) return refuse(result.error)
     commit(result.value)
     playSfx("travel")
-    flash("Core Mine으로 돌아왔습니다")
+    const home = clickerGameConfig.regions.find((r) => r.isHome)
+    if (home?.intro) {
+      setRegionIntro({ regionId: home.id, name: home.name, description: home.description, firstVisit: false, home: true, ...home.intro })
+    } else flash("Core Mine으로 돌아왔습니다")
   }, [commit, flash, refuse])
 
   const rebirth = useCallback((buffId: string) => {

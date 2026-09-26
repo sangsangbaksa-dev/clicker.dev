@@ -14,6 +14,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     name: "Core Mine",
     description: "코어 광맥이 드러난 AURELIA의 채굴 거점. 모든 세계선의 시작점입니다.",
     bgAssetId: "/clicker/bg/region_core_chamber.png",
+    intro: { video: "/clicker/region/core_chamber_intro.mp4", poster: "/clicker/bg/region_core_chamber.png" },
     unlockAtLifetimeEnergy: 0,
     isHome: true,
     clickMultiplier: 1.05,

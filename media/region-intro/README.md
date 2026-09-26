@@ -1,10 +1,12 @@
-# Region first-visit intros
+# Region entry intros
 
-Played once per save the first time the player enters a region (`RegionDef.intro`).
+Played every time the player travels into a region (`RegionDef.intro`), including the return to Core Mine.
+The caption reads `NEW REGION · 첫 진입` on the first visit, `REGION · 진입` afterwards and `HOME · 귀환` for Core Mine.
 The BGM is baked into the video's audio track, so the game BGM goes silent while it plays.
 
 | Region | Video | BGM source |
 |---|---|---|
+| Core Mine | `public/clicker/region/core_chamber_intro.mp4` | `core_chamber_intro_bgm.wav` — C-major pad, core heartbeat, rising chimes |
 | Signal Relay | `public/clicker/region/signal_relay_intro.mp4` | `signal_relay_intro_bgm.wav` — 120 BPM pulse, A-minor relay blips |
 | Phase Vault | `public/clicker/region/phase_vault_intro.mp4` | `phase_vault_intro_bgm.wav` — D-minor drone, FM bell chimes |
 | Storm Spire | `public/clicker/region/storm_spire_intro.mp4` | `storm_spire_intro_bgm.wav` — E-minor pad, rain, thunder on 5 flashes |
@@ -19,7 +21,7 @@ Storm flashes (1.4/3.2/4.9/6.1/7.3 s) and Fault tremors (1.2/3.4/5.0/6.4/7.4 s) 
 - 9 s · 1280×720 · 30 fps · H.264 crf 22–25 + AAC 160k
 - Picture: region background (`public/clicker/bg/region_*.png`) with a slow ease-in-out dolly,
   fade in/out, grain and vignette. Relay flickers on the 2 Hz signal beat; Vault breathes on a 4 s cycle.
-- BGM: `python3 generate_intro_bgm.py` (numpy) → the two WAVs.
+- BGM: `python3 generate_intro_bgm.py` (numpy) → the WAVs.
 
 Render (ffmpeg), Signal Relay:
 
@@ -56,4 +58,15 @@ fault:   mine_interior_mineral_ore_v2.png, zoompan to 1360×765 then crop 1280×
          30·sin(41t)/18·sin(53t+1) scaled by Σ exp(-3·(t−boom)), grade, crf 24
 foundry: mine_scene_core_chamber_v1.png, zoompan z=1.3→1.15 panning left→right, grade,
          drawbox scanner bar y=mod(340t, 900)−90 (14 px, #ffc266 @ 0.55), 2.13 Hz beat pulse, crf 24
+```
+
+Core Mine (home return) — pull back from the core with a heartbeat glow every 1.1 s, matching the BGM:
+
+```
+ffmpeg -loop 1 -framerate 30 -t 9 -i region_core_chamber.png -i core_chamber_intro_bgm.wav -filter_complex "
+[0]scale=3840:2160:flags=lanczos,zoompan=z='1.5-0.5*(1-cos(PI*on/270))/2':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=1280x720:fps=30,
+eq=eval=frame:brightness='0.06*exp(-9*abs(mod(t-1.2+1.1,1.1)))*gte(t,1.1)':contrast=1.06:saturation=1.15,
+colorbalance=rh=0.05:bh=-0.04,noise=alls=5:allf=t,vignette=PI/4.5,
+fade=t=in:st=0:d=1.4,fade=t=out:st=7.7:d=1.3,format=yuv420p[v]"
+-map "[v]" -map 1:a -c:v libx264 -preset slow -crf 23 -c:a aac -b:a 160k -movflags +faststart -t 9 core_chamber_intro.mp4
 ```

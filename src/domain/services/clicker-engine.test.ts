@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { existsSync } from "node:fs"
 import test from "node:test"
 import { clickerConfig } from "../../data/clicker/catalog.ts"
 import {
@@ -437,6 +438,15 @@ test("region visits are recorded once so only the first entry counts as new", ()
   assert.deepEqual(again.meta.visitedRegionIds, ["signal_relay"])
   const legacy = sanitizeSave({ ...createInitialSave(1, config), metaState: { ...meta, visitedRegionIds: undefined } }, config, 1)
   assert.deepEqual(legacy.metaState.visitedRegionIds, [])
+})
+
+test("every region has an entry cinematic whose files ship in public/", () => {
+  for (const region of config.regions) {
+    assert.ok(region.intro, `${region.id} has an intro`)
+    for (const asset of [region.intro.video, region.intro.poster]) {
+      assert.ok(existsSync(new URL(`../../../public${asset}`, import.meta.url)), `${asset} exists`)
+    }
+  }
 })
 
 test("broke re-entry is free without producers, charged once producers exist", () => {

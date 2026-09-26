@@ -1,4 +1,4 @@
-"""Procedural first-visit BGM for the non-home regions (9 s, stereo 44.1 kHz)."""
+"""Procedural region-entry BGM (9 s, stereo 44.1 kHz)."""
 import wave
 import numpy as np
 
@@ -176,6 +176,31 @@ def drone_foundry():
     return master(L, R, 0.3, 1.3)
 
 
+def core_chamber():
+    # Homecoming: warm C major pad, a slow core heartbeat and a rising chime line.
+    pad = np.zeros(N)
+    for m, g in ((36, 0.45), (43, 0.3), (48, 0.25), (52, 0.18), (55, 0.14)):  # C2 G2 C3 E3 G3
+        f = hz(m)
+        pad += g * (np.sin(2 * np.pi * f * t) + 0.6 * np.sin(2 * np.pi * f * 1.003 * t))
+    pad = lowpass(pad, 700) * np.clip(t / 2.2, 0, 1) * (0.85 + 0.15 * np.sin(2 * np.pi * 0.2 * t))
+    beat = np.zeros(N)
+    for s0 in np.arange(1.2, DUR - 0.8, 1.1):
+        for off, g in ((0.0, 1.0), (0.22, 0.6)):  # lub-dub
+            i = int((s0 + off) * SR); n = min(int(0.35 * SR), N - i); tt = np.arange(n) / SR
+            beat[i:i + n] += g * np.sin(2 * np.pi * (44 + 30 * np.exp(-tt * 25)) * tt) * np.exp(-tt * 9)
+    chimeL = np.zeros(N); chimeR = np.zeros(N)
+    for idx, (s0, m) in enumerate(((2.4, 72), (3.5, 76), (4.6, 79), (5.7, 84), (6.6, 88))):
+        i = int(s0 * SR); n = min(int(2.5 * SR), N - i); tt = np.arange(n) / SR
+        f = hz(m)
+        c = np.sin(2 * np.pi * f * tt + 0.9 * np.exp(-tt * 4) * np.sin(2 * np.pi * f * 2 * tt)) * np.exp(-tt * 1.8)
+        (chimeL if idx % 2 == 0 else chimeR)[i:i + n] += c * 0.35
+        (chimeR if idx % 2 == 0 else chimeL)[i:i + n] += c * 0.14
+    chimeL = delay(chimeL, 0.41, 0.5, 0.5); chimeR = delay(chimeR, 0.53, 0.5, 0.5)
+    L = pad + beat * 0.8 + chimeL
+    R = pad * 0.98 + beat * 0.8 + chimeR
+    return master(L, R, 0.8, 1.5)
+
+
 # Seconds (and stereo side) of the Storm Spire lightning flashes; the video flashes on the same beats.
 STORM_FLASHES = [(1.4, 0), (3.2, 1), (4.9, 0), (6.1, 1), (7.3, 0)]
 
@@ -184,4 +209,5 @@ write("phase_vault_intro_bgm.wav", phase_vault())
 write("storm_spire_intro_bgm.wav", storm_spire())
 write("deep_fault_intro_bgm.wav", deep_fault())
 write("drone_foundry_intro_bgm.wav", drone_foundry())
+write("core_chamber_intro_bgm.wav", core_chamber())
 print("ok")
