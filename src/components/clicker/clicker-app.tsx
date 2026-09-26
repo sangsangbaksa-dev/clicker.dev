@@ -916,7 +916,7 @@ export function ClickerApp() {
                   <strong>{formatNumber(mineHaul)}</strong>
                 </div>
                 <div
-                  className="clicker-mine-hud-stat"
+                  className={`clicker-mine-hud-stat${mineRemainSec > 0 && mineRemainSec <= 3 ? " is-urgent" : ""}`}
                   role="timer"
                   aria-label={`남은 시간 ${mineRemainSec.toFixed(1)}초`}
                 >

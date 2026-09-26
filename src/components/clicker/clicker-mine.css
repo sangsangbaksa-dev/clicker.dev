@@ -672,6 +672,30 @@
   pointer-events: none;
 }
 
+/* Last seconds of a session: the timer turns red and throbs once a second. */
+[data-clicker] .clicker-mine-hud-stat.is-urgent strong {
+  color: #ff8a7a;
+  transform-origin: left center;
+  animation: clicker-mine-urgent 1s ease-out infinite;
+}
+
+@keyframes clicker-mine-urgent {
+  0% {
+    transform: scale(1.18);
+    text-shadow: 0 0 14px rgb(255 90 70 / 0.9);
+  }
+  60%,
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-clicker] .clicker-mine-hud-stat.is-urgent strong {
+    animation: none;
+  }
+}
+
 /* FEVER inside the mine: the HUD runs hot and hangs a countdown pill off its bottom edge. */
 [data-clicker] .clicker-mine-hud.is-fever {
   border-color: rgb(255 150 80 / 0.7);
