@@ -20,6 +20,8 @@ type Spark = {
   x: number
   y: number
   critical: boolean
+  /** Grey host-rock chip instead of a teal crystal shard. */
+  rock: boolean
   dx: number
   dy: number
 }
@@ -148,11 +150,13 @@ export function ClickerMine({
       setImpacts((prev) => prev.filter((i) => i.id !== id))
     }, life)
 
-    const burst = Array.from({ length: critical ? 7 : 4 }, () => ({
+    // Debris takes the ore's colors (teal crystal + grey rock), not the beam's.
+    const burst = Array.from({ length: critical ? 7 : 4 }, (_, i) => ({
       id: ++seq.current,
       x: x + (Math.random() - 0.5) * 10,
       y: y + (Math.random() - 0.5) * 10,
       critical,
+      rock: i % 3 === 2,
       dx: (Math.random() - 0.5) * 60,
       dy: -12 - Math.random() * 30,
     }))
@@ -359,7 +363,7 @@ export function ClickerMine({
         {sparks.map((spark) => (
           <span
             key={spark.id}
-            className={`clicker-spark${spark.critical ? " is-crit" : ""}`}
+            className={`clicker-spark${spark.critical ? " is-crit" : ""}${spark.rock ? " is-rock" : ""}`}
             style={
               {
                 left: `${spark.x}px`,

@@ -269,6 +269,32 @@
   pointer-events: none;
 }
 
+/* Hit debris matches the ore art — teal crystal shards and grey rock chips. */
+.clicker-mine-sparks .clicker-spark {
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 1px;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  background: linear-gradient(135deg, #b6fbf6, #3fc1bd 55%, #1d6163);
+  box-shadow: none;
+  filter: drop-shadow(0 0 4px rgb(63 193 189 / 0.7));
+}
+
+.clicker-mine-sparks .clicker-spark.is-crit {
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  background: linear-gradient(135deg, #e4fffc, #5bcac8 50%, #2c8b8b);
+  filter: drop-shadow(0 0 7px rgb(91 202 200 / 0.9));
+}
+
+.clicker-mine-sparks .clicker-spark.is-rock {
+  clip-path: polygon(20% 0, 90% 15%, 100% 70%, 45% 100%, 0 60%);
+  background: linear-gradient(135deg, #8a949b, #4a545c 60%, #2a3239);
+  filter: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .clicker-mine-single[data-visual="fever"] .clicker-mine-plate,
   .clicker-mine-crystal-glow,
