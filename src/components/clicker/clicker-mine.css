@@ -769,9 +769,10 @@
   }
 }
 
-/* Phones: the mine HUD spans nearly the full width, so the potion column started on top
-   of it and hid the haul. Start the column under the HUD instead. */
-@media (max-width: 520px) {
+/* Narrow screens: the centered mine HUD (≥320px wide, wider with the overdrive chip)
+   reaches the left edge, so the potion column started on top of it and hid the haul.
+   Start the column under the HUD instead. */
+@media (max-width: 760px) {
   [data-clicker] .clicker-mine-potions {
     top: calc(118px + env(safe-area-inset-top, 0px));
     left: 8px;
