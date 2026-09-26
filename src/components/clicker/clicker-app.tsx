@@ -307,7 +307,7 @@ export function ClickerApp() {
   }, [])
 
   useEffect(() => {
-    // Defense in depth: build strip + host/?admin gate (never production).
+    // Defense in depth: build strip + runtime gate (never production).
     // Do not auto-open the panel — launch button keeps the mine playable.
     if (!CLICKER_ADMIN_UI) {
       setAdminAllowed(false)
@@ -1527,7 +1527,7 @@ export function ClickerApp() {
         >
           <h2>임시 관리자 · 플레이테스트</h2>
           <p style={{ margin: "0 0 8px", fontSize: 11, color: "var(--text-2)" }}>
-            개발 전용 · loopback 또는 ?admin=1 · production 빌드에서 UI·치트 모두 차단 · Esc로 닫기
+            개발 전용 · 배포 사이트(production 빌드)에서는 UI·치트 모두 차단 · Esc로 닫기
           </p>
           <div className="clicker-admin-grid">
             <button type="button" className="clicker-primary" aria-label="치트 · CORE 1천 지급" onClick={() => game.adminGrant(1_000)}>
