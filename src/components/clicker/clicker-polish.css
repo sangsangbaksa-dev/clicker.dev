@@ -258,6 +258,8 @@
 /* ---------- Tabs: segmented control ---------- */
 [data-clicker] .clicker-tabs {
   gap: 4px;
+  /* The strip has side margins; width: 100% would push it past the drawer. */
+  width: auto;
   margin: 4px 14px 6px;
   padding: 4px;
   border: 1px solid var(--edge);
@@ -1030,6 +1032,9 @@
 /* ── Phone (≤480px): compact HUD, full menu grid, touch-friendly play ── */
 [data-clicker] {
   -webkit-tap-highlight-color: transparent;
+  /* Korean wraps between words, not mid-word; long tokens can still break. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 /* Rapid taps on the ore must never zoom, select text or open the long-press menu. */

@@ -242,10 +242,16 @@ export function ClickerApp() {
         setDrawerHeight(drawerSnaps.half)
         persistDrawerHeight(drawerSnaps.half)
       }
+      // Scroll only the tab strip: scrollIntoView would also shift the overflow-hidden drawer sideways.
       window.requestAnimationFrame(() => {
-        document
-          .querySelector<HTMLElement>(`.clicker-tabs button[data-active="true"]`)
-          ?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" })
+        const tab = document.querySelector<HTMLElement>(`.clicker-tabs button[data-active="true"]`)
+        const strip = tab?.parentElement
+        if (!tab || !strip) return
+        const left = tab.offsetLeft - strip.offsetLeft
+        const right = left + tab.offsetWidth
+        if (left < strip.scrollLeft) strip.scrollTo({ left, behavior: "smooth" })
+        else if (right > strip.scrollLeft + strip.clientWidth)
+          strip.scrollTo({ left: right - strip.clientWidth, behavior: "smooth" })
       })
     },
     [drawerHeight, drawerSnaps, persistDrawerHeight],
