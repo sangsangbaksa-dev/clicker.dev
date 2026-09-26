@@ -123,6 +123,9 @@ export function useClickerBgm(
           levels[key] = 0
           tracks[key]?.pause()
         }
+      } else if (Object.keys(gains).length > 0) {
+        // Coming back on iOS leaves the context "interrupted"; wired tracks stay silent until resumed.
+        sharedAudioContext()
       }
       kick()
     }
