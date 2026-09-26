@@ -288,7 +288,7 @@
 }
 
 .clicker-rebirth-stamp-image {
-  width: min(220px, 42vw);
+  width: min(300px, 46vmin);
   height: auto;
   filter: drop-shadow(0 0 24px color-mix(in srgb, var(--stamp-primary) 55%, transparent));
   transform: scale(calc(0.85 + var(--stamp-intensity, 1) * 0.15));
@@ -568,4 +568,162 @@
   .clicker-rebirth-stamp-wrap {
     transition: none;
   }
+}
+
+/* ---------- Stamp impact: flash, double shockwave, title reveal ---------- */
+.clicker-rebirth-impact-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 46%,
+    rgb(255 255 255 / 0.95),
+    color-mix(in srgb, var(--stamp-primary) 55%, transparent) 30%,
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+  animation: rebirth-impact-flash 520ms ease-out forwards;
+}
+
+@keyframes rebirth-impact-flash {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.clicker-rebirth-impact-ring {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 6;
+  width: 40vmin;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 3px solid color-mix(in srgb, var(--stamp-primary) 80%, white);
+  box-shadow:
+    0 0 30px color-mix(in srgb, var(--stamp-primary) 70%, transparent),
+    inset 0 0 30px color-mix(in srgb, var(--stamp-accent) 50%, transparent);
+  transform: translate(-50%, -50%) scale(0.2);
+  opacity: 0;
+  animation: rebirth-impact-ring 760ms cubic-bezier(0.16, 0.8, 0.3, 1) forwards;
+}
+
+.clicker-rebirth-impact-ring.is-late {
+  border-width: 1.5px;
+  animation-delay: 140ms;
+  animation-duration: 900ms;
+}
+
+@keyframes rebirth-impact-ring {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(3.2);
+  }
+}
+
+.clicker-rebirth-stamp-label {
+  font-weight: 800;
+  font-size: clamp(16px, 3.4vw, 26px);
+  letter-spacing: 0.32em;
+}
+
+.clicker-rebirth-motion[data-phase="stamp"] .clicker-rebirth-stamp-label {
+  animation: rebirth-title-in 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes rebirth-title-in {
+  0% {
+    opacity: 0;
+    letter-spacing: 1.2em;
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    letter-spacing: 0.32em;
+    filter: blur(0);
+  }
+}
+
+/* Settle: the stamp glows out instead of sitting on an empty HUD frame. */
+.clicker-rebirth-motion[data-phase="settle"] .clicker-rebirth-stamp-glyph {
+  animation: rebirth-stamp-out 520ms ease-in forwards;
+}
+
+@keyframes rebirth-stamp-out {
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+    filter: brightness(2) blur(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-rebirth-impact-ring,
+  .clicker-rebirth-motion[data-phase="stamp"] .clicker-rebirth-stamp-label,
+  .clicker-rebirth-motion[data-phase="settle"] .clicker-rebirth-stamp-glyph {
+    animation: none;
+  }
+}
+
+/* After the sequence: the new run fades in from a burst of light. */
+.clicker-rebirth-arrive {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 46%,
+    rgb(255 255 255 / 0.85),
+    color-mix(in srgb, var(--core, #5ce8ff) 45%, #05070d) 35%,
+    #05070d 80%
+  );
+  animation: rebirth-arrive 900ms ease-out forwards;
+}
+
+@keyframes rebirth-arrive {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-rebirth-arrive {
+    animation-duration: 300ms;
+  }
+}
+
+/* The old run must not show through before the rebirth commits; the arrival flash reveals the new one. */
+.clicker-rebirth-motion:is([data-phase="stamp"], [data-phase="rebuild"], [data-phase="settle"]) .clicker-rebirth-overlay {
+  opacity: 1;
+}
+
+.clicker-rebirth-stamp-label {
+  text-align: center;
+  max-width: 90vw;
+}
+
+/* Stamp art sits on a black plate; screen blend drops the plate onto the starfield.
+   On the wrap: its transform isolates children, so blending the image alone does nothing. */
+.clicker-rebirth-stamp-wrap {
+  mix-blend-mode: screen;
+}
+
+/* The plate is near-black navy, so also feather it away around the emblem. */
+.clicker-rebirth-stamp-image {
+  mask-image: radial-gradient(circle at 50% 50%, #000 42%, transparent 62%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 42%, transparent 62%);
 }

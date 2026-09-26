@@ -578,7 +578,7 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
       {!stillOnly ? (
         <ParticleOverlayPlate variant={variant} phase={frame.phase} opacity={Math.max(frame.voidAlpha, frame.uiFade * 0.6)} />
       ) : null}
-      {!stillOnly && (frame.phase === "rebuild" || frame.phase === "settle") ? (
+      {!stillOnly && frame.phase === "rebuild" ? (
         <div className="clicker-rebirth-hud-plate" aria-hidden>
           <RebirthAssetImage
             src={RebirthPhaseArt.hudPlateFor(frame.phase, frame.phaseT)}
@@ -590,6 +590,14 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
       {!reducedMotion ? <canvas ref={canvasRef} className="clicker-rebirth-particles" aria-hidden /> : null}
       {!stillOnly && tearVisible ? <div className="clicker-rebirth-tear" aria-hidden /> : null}
       {!stillOnly ? <MotifFx variant={variant} phase={frame.phase} phaseT={frame.phaseT} /> : null}
+      {!stillOnly && frame.phase === "stamp" ? (
+        <>
+          {/* Mounted when the stamp lands, so each plays exactly once. */}
+          <div className="clicker-rebirth-impact-flash" aria-hidden />
+          <div className="clicker-rebirth-impact-ring" aria-hidden />
+          <div className="clicker-rebirth-impact-ring is-late" aria-hidden />
+        </>
+      ) : null}
       <div className="clicker-rebirth-phase" aria-live="polite">
         <span className="clicker-rebirth-phase-kicker">WORLD LINE PROTOCOL</span>
         <strong>{phaseCaption}</strong>

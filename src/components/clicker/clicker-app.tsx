@@ -155,6 +155,8 @@ export function ClickerApp() {
   const [confirmPotion, setConfirmPotion] = useState<string | null>(null)
   const [endingOpen, setEndingOpen] = useState(false)
   const [pendingRebirth, setPendingRebirth] = useState<{ id: string; label: string } | null>(null)
+  /** Bumped when a rebirth lands; keys the one-shot arrival flash over the new run. */
+  const [rebornSeq, setRebornSeq] = useState(0)
   const [storyBeat, setStoryBeat] = useState<string | null>(null)
   const [adminResetArmed, setAdminResetArmed] = useState(false)
   const prevVisual = useRef<string | null>(null)
@@ -1515,7 +1517,16 @@ export function ClickerApp() {
             game.rebirth(chosen.id)
             setPendingRebirth((cur) => (cur?.id === chosen.id ? null : cur))
             setTab("producers")
+            setRebornSeq((n) => n + 1)
           }}
+        />
+      ) : null}
+      {rebornSeq > 0 ? (
+        <div
+          key={rebornSeq}
+          className="clicker-rebirth-arrive"
+          aria-hidden
+          onAnimationEnd={() => setRebornSeq(0)}
         />
       ) : null}
 

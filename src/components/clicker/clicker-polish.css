@@ -484,14 +484,18 @@
 }
 
 /* Dev-only admin launcher: keep it out of the HUD. */
+/* A small tab on the right edge: clear of the HUD, the hub dock and the drawer. */
 [data-clicker] .clicker-admin-launch {
-  top: auto;
-  bottom: 12px;
-  left: 12px;
-  right: auto;
+  top: 50%;
+  bottom: auto;
+  left: auto;
+  right: 0;
+  transform: translateY(-50%);
   min-height: 30px;
-  padding: 4px 10px;
+  padding: 10px 6px;
+  border-radius: 10px 0 0 10px;
   font-size: 11px;
+  writing-mode: vertical-rl;
   opacity: 0.55;
 }
 
