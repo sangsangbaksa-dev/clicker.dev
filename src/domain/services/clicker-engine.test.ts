@@ -425,7 +425,7 @@ test("field challenge pays production by score and then cools down", () => {
   assert.equal(regionChallengeError(half.run, config, "storm_spire", now + spire.cooldownSec * 1000), undefined)
   const cheat = claimRegionChallenge(run, meta, config, "storm_spire", 7, now)
   assert.ok(Math.abs(cheat.reward - perSecond * spire.rewardSeconds) < 1e-6, "score is clamped to 1")
-  assert.ok(claimRegionChallenge(run, meta, config, "signal_relay", 1, now).error, "relay has no challenge")
+  assert.ok(claimRegionChallenge(run, meta, config, "core_chamber", 1, now).error, "home has no challenge")
 })
 
 test("region visits are recorded once so the intro plays only on the first entry", () => {

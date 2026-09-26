@@ -23,6 +23,8 @@ const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   lightning: 220,
   quake: 380,
   echoStrike: 120,
+  monsterHit: 70,
+  monsterRoar: 900,
 }
 const lastPlayed = new Map<string, number>()
 
@@ -350,6 +352,24 @@ const CUES = {
     tone(c, "sine", 220, 220, 0.05, t, 0.9, { attack: 0.2, dest: e })
     tone(c, "sine", 330, 330, 0.035, t + 0.1, 0.8, { attack: 0.2, dest: e })
     tone(c, "sine", 495, 495, 0.02, t + 0.2, 0.7, { attack: 0.2, dest: e })
+  },
+  /** Guardian struck: meaty thud with a crystalline chip on top. */
+  monsterHit(c: AudioContext, t: number) {
+    tone(c, "sine", 150 + Math.random() * 30, 48, 0.2, t, 0.22, { attack: 0.002 })
+    noise(c, "lowpass", 1400, 0.9, 0.16, t, 0.14, { sweepTo: 200 })
+    noise(c, "bandpass", 3200 + Math.random() * 1600, 4, 0.05, t + 0.005, 0.06)
+  },
+  /** Guardian roar: growling detuned saws under a rising noise throat and a sub hit. */
+  monsterRoar(c: AudioContext, t: number) {
+    const lp = c.createBiquadFilter()
+    lp.type = "lowpass"
+    lp.frequency.setValueAtTime(380, t)
+    lp.frequency.exponentialRampToValueAtTime(1400, t + 0.35)
+    lp.frequency.exponentialRampToValueAtTime(240, t + 1.3)
+    lp.connect(out(c))
+    for (const detune of [-24, 0, 19]) tone(c, "sawtooth", 92, 58, 0.1, t, 1.3, { attack: 0.08, detune, dest: lp })
+    noise(c, "bandpass", 420, 1.2, 0.2, t, 1.2, { sweepTo: 180, attack: 0.1 })
+    tone(c, "sine", 58, 26, 0.3, t, 1.1, { attack: 0.01 })
   },
 } satisfies Record<string, (c: AudioContext, t: number) => void>
 

@@ -4959,6 +4959,23 @@ button.clicker-metric-action.is-fever-ready em {
   pointer-events: auto;
 }
 
+/* With the station lifted out of the grid, the compact goal strip is the stage's only
+   grid item — keep it a strip at the top instead of stretching over the guardian. */
+.clicker-shell.is-region-hub .clicker-goal-compact {
+  align-self: start;
+}
+
+@media (max-width: 480px) {
+  .clicker-shell.is-region-hub .clicker-goal-compact {
+    margin-top: 44px;
+  }
+
+  /* Clear the three-row hub dock (~190px + inset). */
+  .clicker-shell.is-region-hub .clicker-region-station {
+    bottom: calc(212px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 .clicker-region-station {
   position: absolute;
   left: 50%;
