@@ -761,6 +761,29 @@
   color: var(--core);
 }
 
+[data-clicker] .clicker-welcome-amount-value {
+  display: inline-block;
+  font-weight: inherit;
+}
+
+/* Mine haul: a small punch when the count-up lands. */
+[data-clicker] .clicker-welcome-amount.is-landed .clicker-welcome-amount-value {
+  animation: clicker-haul-land 320ms cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+
+@keyframes clicker-haul-land {
+  40% {
+    transform: scale(1.16);
+    text-shadow: 0 0 28px color-mix(in srgb, var(--core) 85%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-clicker] .clicker-welcome-amount.is-landed .clicker-welcome-amount-value {
+    animation: none;
+  }
+}
+
 [data-clicker] .clicker-welcome-note,
 [data-clicker] .clicker-welcome-hint {
   margin: 4px 0 0;

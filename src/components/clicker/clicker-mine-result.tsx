@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { formatNumber } from "@/domain/services/clicker-format"
 import type { MineSessionSummary } from "@/domain/services/clicker-mine-session"
 import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
@@ -12,11 +12,35 @@ type Props = {
   onClose: () => void
 }
 
+const TALLY_MS = 750
+
+/** Counts the haul up from 0 so the payout lands; reduced motion shows it at once. */
+function useTally(target: number): { value: number; done: boolean } {
+  const [value, setValue] = useState(0)
+  const [done, setDone] = useState(false)
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const duration = reduce || target <= 0 ? 0 : TALLY_MS
+    const start = performance.now()
+    let raf = 0
+    const tick = (now: number) => {
+      const p = duration > 0 ? Math.min(1, (now - start) / duration) : 1
+      setValue(target * (1 - (1 - p) ** 3))
+      if (p < 1) raf = window.requestAnimationFrame(tick)
+      else setDone(true)
+    }
+    raf = window.requestAnimationFrame(tick)
+    return () => window.cancelAnimationFrame(raf)
+  }, [target])
+  return { value, done }
+}
+
 /** Timed mine session result card: haul, strikes, ores, veins and the best-haul record. */
 export function ClickerMineResult({ summary, cooldownSec, onClose }: Props) {
   const ref = useRef<HTMLDivElement | null>(null)
   useClickerDialogFocus(ref, true)
   useClickerEscape(true, onClose)
+  const tally = useTally(summary.haul)
   const critRate = summary.strikes > 0 ? Math.round((summary.crits / summary.strikes) * 100) : 0
   return (
     <div className="clicker-welcome-scrim" onClick={onClose}>
@@ -30,8 +54,12 @@ export function ClickerMineResult({ summary, cooldownSec, onClose }: Props) {
       >
         <p className="clicker-welcome-kicker">MINE SESSION · {summary.seconds}s</p>
         <h2 id="clicker-mine-result-title">{summary.best ? "최고 기록 갱신!" : "채굴 종료"}</h2>
-        <p className="clicker-welcome-amount">
-          +{formatNumber(summary.haul)} <span>CORE</span>
+        <p
+          className={`clicker-welcome-amount${tally.done ? " is-landed" : ""}`}
+          aria-label={`+${formatNumber(summary.haul)} CORE`}
+        >
+          <b className="clicker-welcome-amount-value" aria-hidden>+{formatNumber(tally.value)}</b>{" "}
+          <span aria-hidden>CORE</span>
         </p>
         {summary.best && summary.previousBest > 0 ? (
           <p className="clicker-welcome-note">이전 최고 {formatNumber(summary.previousBest)}</p>
