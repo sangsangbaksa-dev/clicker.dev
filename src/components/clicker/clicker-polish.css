@@ -1123,3 +1123,227 @@
     animation: none;
   }
 }
+
+/* ---------- Game account (ClickerAccountPanel / HUD badge) ---------- */
+[data-clicker] .clicker-top > .clicker-account-launch {
+  flex: none;
+  align-self: center;
+  margin: 0;
+  min-height: 36px;
+  max-width: 11em;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--edge-hi);
+  background: color-mix(in srgb, var(--core) 12%, transparent);
+  color: var(--core);
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-clicker] .clicker-top > .clicker-account-launch.is-signed-in {
+  border-color: var(--edge);
+  background: rgb(255 255 255 / 0.04);
+  color: var(--text);
+}
+
+[data-clicker] .clicker-top > .clicker-account-launch.is-signed-in::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: 1px;
+  background: #7be38f;
+}
+
+[data-clicker] .clicker-top > .clicker-account-launch.is-syncing::before {
+  background: #f0c46a;
+}
+
+[data-clicker] .clicker-top > .clicker-account-launch.is-offline::before {
+  background: #e0736a;
+}
+
+.clicker-settings-account {
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--core) 30%, var(--line));
+  background: color-mix(in srgb, var(--core) 6%, var(--panel));
+}
+
+.clicker-account-note {
+  margin: 0 0 10px;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.clicker-account-form {
+  display: grid;
+  gap: 8px;
+}
+
+.clicker-account-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.3);
+}
+
+.clicker-account-tabs button {
+  min-height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-2);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.clicker-account-tabs button.is-active {
+  background: color-mix(in srgb, var(--core) 22%, transparent);
+  color: var(--text);
+}
+
+.clicker-account-field {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.clicker-account-field input {
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: rgb(0 0 0 / 0.35);
+  color: var(--text);
+  font-size: 15px;
+}
+
+.clicker-account-field input:focus-visible {
+  outline: 2px solid var(--core);
+  outline-offset: 1px;
+}
+
+.clicker-account-error {
+  margin: 0;
+  color: #ff9b8f;
+  font-size: 12px;
+}
+
+.clicker-account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.clicker-account-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.clicker-account-who strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.clicker-account-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--core) 25%, var(--void));
+  color: var(--text);
+  font-weight: 800;
+}
+
+.clicker-account-status {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.clicker-account-status.is-synced {
+  color: #7be38f;
+}
+
+.clicker-account-status.is-offline {
+  color: #ff9b8f;
+}
+
+.clicker-account-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.clicker-cloud-conflict h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.clicker-cloud-choice {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 85%, transparent);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.clicker-cloud-choice:hover,
+.clicker-cloud-choice:focus-visible {
+  border-color: var(--core);
+}
+
+.clicker-cloud-choice span {
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.clicker-title-account-link {
+  margin-top: 14px;
+  padding: 6px 2px;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.clicker-title-account-link:hover,
+.clicker-title-account-link:focus-visible {
+  color: var(--core);
+}
+
+.clicker-title-account {
+  width: min(360px, 100%);
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--core) 30%, var(--line));
+  background: rgb(8 14 22 / 0.82);
+  backdrop-filter: blur(6px);
+  text-align: left;
+}

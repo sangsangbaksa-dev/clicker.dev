@@ -1,15 +1,18 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
 
 type Props = {
   muted: boolean
   onToggleMute: () => void
   onStart: () => void
+  /** Returning players sign in here to pull their progress before starting fresh. */
+  account?: ReactNode
 }
 
 /** Title gate: start lands on upgrades hub; timed mine opens from hub Enter Mine. */
-export function ClickerTitle({ muted, onToggleMute, onStart }: Props) {
+export function ClickerTitle({ muted, onToggleMute, onStart, account }: Props) {
   return (
     <div
       className="clicker-title"
@@ -56,6 +59,7 @@ export function ClickerTitle({ muted, onToggleMute, onStart }: Props) {
             {muted ? "허브 → Enter Mine · muted" : "허브 → Enter Mine"}
           </span>
         </div>
+        {account}
       </div>
     </div>
   )

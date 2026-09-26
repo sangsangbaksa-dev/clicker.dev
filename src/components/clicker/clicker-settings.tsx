@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
 
 type Props = {
@@ -11,6 +11,8 @@ type Props = {
   onToggleMusic: () => void
   onMusicVolume: (volume: number) => void
   onClose: () => void
+  /** Game account block (sign-in form or signed-in status), shown first. */
+  account?: ReactNode
 }
 
 function useReducedMotion(): boolean {
@@ -34,6 +36,7 @@ export function ClickerSettings({
   onToggleMusic,
   onMusicVolume,
   onClose,
+  account,
 }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null)
   const reducedMotion = useReducedMotion()
@@ -60,6 +63,12 @@ export function ClickerSettings({
             닫기 · Esc
           </button>
         </header>
+
+        {account ? (
+          <section className="clicker-settings-account" aria-label="게임 계정">
+            {account}
+          </section>
+        ) : null}
 
         <ul className="clicker-settings-list">
           <li className="clicker-settings-row">

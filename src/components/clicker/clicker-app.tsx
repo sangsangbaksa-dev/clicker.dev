@@ -12,6 +12,8 @@ import { CLICKER_ASSETS } from "@/data/clicker/catalog"
 import { formatNumber } from "@/domain/services/clicker-format"
 import { useClicker } from "@/hooks/use-clicker"
 import { regionBgm, useClickerBgm } from "@/hooks/use-clicker-bgm"
+import { useClickerCloud } from "@/hooks/use-clicker-cloud"
+import { ClickerAccountPanel, ClickerCloudConflict, ClickerTitleAccount } from "@/components/clicker/clicker-account"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine } from "@/components/clicker/clicker-mine"
@@ -115,6 +117,7 @@ function readDrawerHeight() {
 
 export function ClickerApp() {
   const game = useClicker()
+  const cloud = useClickerCloud({ exportSaveRaw: game.exportSaveRaw, importSaveRaw: game.importSaveRaw })
   // Door-walk entry cinematic between Enter Mine and the timed session (carries its own SFX).
   const [enteringMine, setEnteringMine] = useState(false)
   /** Region whose field challenge is open (mini-game overlay), or null. */
@@ -547,6 +550,18 @@ export function ClickerApp() {
             setDrawerSnap("half")
             game.startFromTitle()
           }}
+          account={
+            <ClickerTitleAccount>
+              <ClickerAccountPanel
+                account={cloud.account}
+                ready={cloud.ready}
+                status={cloud.status}
+                onSignIn={cloud.signIn}
+                onSignOut={() => void cloud.signOut()}
+                onSyncNow={() => void cloud.syncNow()}
+              />
+            </ClickerTitleAccount>
+          }
         />
         {game.toast ? (
           <button
@@ -775,6 +790,15 @@ export function ClickerApp() {
           disabled={game.savePulse === "saving"}
         >
           {game.savePulse === "saving" ? "저장 중…" : game.savePulse === "saved" ? "저장됨" : "자동 저장"}
+        </button>
+        <button
+          type="button"
+          className={`clicker-account-launch${cloud.account ? " is-signed-in" : ""} is-${cloud.status}`}
+          aria-haspopup="dialog"
+          aria-label={cloud.account ? `${cloud.account.nickname} 계정 — 설정에서 관리` : "로그인하여 진행을 서버에 저장"}
+          onClick={() => setSettingsOpen(true)}
+        >
+          {cloud.account ? cloud.account.nickname : "로그인"}
         </button>
         <button
           type="button"
@@ -1348,7 +1372,21 @@ export function ClickerApp() {
           onToggleMusic={game.toggleMusic}
           onMusicVolume={game.setMusicVolume}
           onClose={() => setSettingsOpen(false)}
+          account={
+            <ClickerAccountPanel
+              account={cloud.account}
+              ready={cloud.ready}
+              status={cloud.status}
+              onSignIn={cloud.signIn}
+              onSignOut={() => void cloud.signOut()}
+              onSyncNow={() => void cloud.syncNow()}
+            />
+          }
         />
+      ) : null}
+
+      {cloud.conflict ? (
+        <ClickerCloudConflict conflict={cloud.conflict} onResolve={(keep) => void cloud.resolveConflict(keep)} />
       ) : null}
 
       {game.mineSummary && !inMine && !enteringMine ? (

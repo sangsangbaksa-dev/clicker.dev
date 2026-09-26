@@ -40,7 +40,12 @@ import {
 } from "@/application/clicker"
 import { createInitialSave } from "@/domain/services/clicker-engine"
 import { playSfx, setSfxMuted } from "@/components/clicker/clicker-sfx"
-import { clearClickerRaw } from "@/infrastructure/persistence/clicker-save"
+import {
+  backupClickerRaw,
+  clearClickerRaw,
+  readClickerRaw,
+  writeClickerRaw,
+} from "@/infrastructure/persistence/clicker-save"
 import {
   browserLeaseStorage,
   canWriteClickerSave,
@@ -162,6 +167,24 @@ export function useClicker() {
   useEffect(() => {
     saveRef.current = save
   }, [save])
+
+  /** Stored bytes of the current save (flushed first) — what the cloud keeps. */
+  const exportSaveRaw = useCallback((): string | null => {
+    persistNow()
+    return readClickerRaw()
+  }, [persistNow])
+
+  /** Replace this device's progress with a cloud save. The old one goes to the local backups. */
+  const importSaveRaw = useCallback(
+    (raw: string) => {
+      const current = readClickerRaw()
+      if (current && current !== raw) backupClickerRaw(current, "cloud: 계정의 진행으로 교체", now())
+      writeClickerRaw(raw)
+      loadAsOwner()
+      setMineSummary(null)
+    },
+    [loadAsOwner],
+  )
 
   const sfxMuted = save?.settings.muted ?? false
   useEffect(() => {
@@ -713,5 +736,7 @@ export function useClicker() {
     canStartChallenge,
     claimChallenge,
     mineGate,
+    exportSaveRaw,
+    importSaveRaw,
   }
 }
