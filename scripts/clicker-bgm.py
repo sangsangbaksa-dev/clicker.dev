@@ -42,7 +42,7 @@ RNG = np.random.default_rng(7)
 NOTE = {"C": 0, "C#": 1, "Db": 1, "D": 2, "D#": 3, "Eb": 3, "E": 4, "F": 5, "F#": 6, "Gb": 6,
         "G": 7, "G#": 8, "Ab": 8, "A": 9, "A#": 10, "Bb": 10, "B": 11}
 QUALITY = {"": (0, 4, 7), "m": (0, 3, 7), "maj7": (0, 4, 7, 11), "m7": (0, 3, 7, 10), "sus4": (0, 5, 7),
-           "sus2": (0, 2, 7), "madd9": (0, 3, 7, 14), "add9": (0, 4, 7, 14)}
+           "sus2": (0, 2, 7), "madd9": (0, 3, 7, 14), "add9": (0, 4, 7, 14), "dim": (0, 3, 6)}
 
 
 def midi(name: str) -> int:
@@ -302,6 +302,23 @@ def flute(tr: Track, bus: str, m: int, beat: float, dur: float, amp: float, pan:
     # A touch more air at the start of each note, like a real attack.
     chiff = np.exp(-t / 0.06) * 0.6 + 1
     tr.add(bus, tr.beat(beat), (sig + breath * chiff) * env * amp, pan)
+
+
+def tremolo_strings(tr: Track, chords: list[str], beats_per: float, amp: float, rate_hz: float = 6.5,
+                    lo: int = 62, hi: int = 76):
+    """Bowed tremolo pad — the tension layer. The flutter is locked to whole cycles per loop
+    and to absolute time, so it stays seamless when note tails fold back onto the start."""
+    rate = round(rate_hz * tr.loop_s) / tr.loop_s
+    for i, sym in enumerate(chords):
+        root, q = parse_chord(sym)
+        start = tr.beat(i * beats_per)
+        hold = tr.beat(beats_per)
+        for m in voice([(root + iv) % 12 for iv in q], lo, hi):
+            n = hold + int(1.2 * SR * 1.5)
+            sig = ensemble(hz(m), n, hold, 0.4, 1.2, voices=4, spread_cents=10, vib=0.0015)
+            t = (start + np.arange(n)) / SR
+            flutter = 0.55 + 0.45 * np.sin(2 * np.pi * rate * t) ** 2
+            tr.add("hi_strings", start, sig * flutter[:, None] * amp)
 
 
 def harp(tr: Track, bus: str, m: int, beat: float, amp: float, pan: float = 0.0):
@@ -606,6 +623,25 @@ def score_mine() -> Track:
     return tr
 
 
+def score_battle() -> Track:
+    """Monster hunt: tense, not triumphant — a slow B minor heartbeat, trembling strings and
+    a heavy low horn line. Deliberately unhurried so it reads as dread, not excitement."""
+    chords = ["Bm", "Bm", "G", "G", "Em", "Em", "F#", "F#", "Bm", "Bm", "G", "G", "Em", "C#dim", "F#", "F#"]
+    tr = new_track(chords, 4, 84)
+    pad_chords(tr, chords, 4, low_amp=0.12, choir_amp=0.05, bass_oct=1, choir_range=(50, 64))
+    tremolo_strings(tr, chords, 4, 0.045)
+    low_pulse(tr, chords, 4, 1, 0.04, octave=1)
+    line = "B3:6 C#4:2  D4:4 B3:4  E4:4 G4:2 F#4:2  F#4:4 C#4:4  B3:6 D4:2  G4:4 F#4:2 D4:2  E4:4  G4:2 E4:2  F#4:4 A#3:4"
+    lead(tr, line, 0.075, kind="horn")
+    lead(tr, line, 0.035, kind="lead", octave=-1)
+    for bar in range(len(chords)):
+        timpani(tr, "perc", midi("B1"), bar * 4, 0.13 if bar % 4 == 0 else 0.07, decay=1.6)
+    for bar in (6, 14):
+        roll(tr, "perc", midi("F#2"), bar * 4 + 4, 4, 0.22)
+    drone(tr, "sub", midi("B1"), 0.04)
+    return tr
+
+
 SCORES = {
     "core_chamber": score_core_chamber,
     "signal_relay": score_signal_relay,
@@ -614,6 +650,7 @@ SCORES = {
     "deep_fault": score_deep_fault,
     "drone_foundry": score_drone_foundry,
     "mine": score_mine,
+    "battle": score_battle,
 }
 
 

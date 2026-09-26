@@ -17,3 +17,7 @@ test("every BGM loop has its file and a usable length", () => {
     assert.ok(seconds > 20 && seconds < 180, `${key} loop length ${seconds}s looks wrong`)
   }
 })
+
+test("monster hunts have their own battle track", () => {
+  assert.ok("battle" in BGM_LOOP_SECONDS)
+})

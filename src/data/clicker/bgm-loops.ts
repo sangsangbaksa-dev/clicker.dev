@@ -8,4 +8,5 @@ export const BGM_LOOP_SECONDS = {
   deep_fault: 66.20689342403628,
   drone_foundry: 53.333333333333336,
   mine: 41.73913832199546,
+  battle: 45.714285714285715,
 } as const

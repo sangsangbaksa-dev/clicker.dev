@@ -22,6 +22,8 @@ const BGM_TRACKS = {
   deep_fault: regionLoop("deep_fault"),
   drone_foundry: regionLoop("drone_foundry"),
   mine: regionLoop("mine"),
+  /** Monster hunts: tense and heavy, deliberately not upbeat. */
+  battle: regionLoop("battle"),
   /** Rebirth / ending cue — loops whole. */
   chamber: { src: "/clicker/audio/bgm_chamber.ogg", loop: 0 },
 }
@@ -29,11 +31,12 @@ const BGM_TRACKS = {
 export type BgmTrack = keyof typeof BGM_TRACKS
 export type BgmScene = BgmTrack | "silent"
 
+/** Tracks tied to a scene, never to a region id. */
+const SCENE_TRACKS: ReadonlySet<string> = new Set(["mine", "battle", "chamber"])
+
 /** Each world has its own theme; unknown regions fall back to home. */
 export function regionBgm(regionId: string | undefined): BgmTrack {
-  return regionId && regionId in BGM_TRACKS && regionId !== "mine" && regionId !== "chamber"
-    ? (regionId as BgmTrack)
-    : "core_chamber"
+  return regionId && regionId in BGM_TRACKS && !SCENE_TRACKS.has(regionId) ? (regionId as BgmTrack) : "core_chamber"
 }
 
 /** Scene changes crossfade over roughly this long instead of cutting. */

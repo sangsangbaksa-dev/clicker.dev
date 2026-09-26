@@ -163,6 +163,10 @@ export function ClickerApp() {
   const adminRef = useRef<HTMLElement | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
+  // Monster hunts swap in the battle track; the other field challenges keep the region's.
+  const huntOpen =
+    challengeRegionId != null &&
+    game.regions.find((r) => r.id === challengeRegionId)?.challenge?.kind === "MONSTER_HUNT"
   useClickerBgm(game.hud?.coreVisual, {
     // Cinematics carry their own soundtrack.
     scene: enteringMine || game.regionIntro
@@ -171,7 +175,9 @@ export function ClickerApp() {
         ? "chamber"
         : game.save?.settings.playSurface === "mine"
           ? "mine"
-          : regionBgm(game.currentRegion?.id),
+          : huntOpen
+            ? "battle"
+            : regionBgm(game.currentRegion?.id),
     muted: game.otherTabActive || (game.save?.settings.musicMuted ?? false),
     volume: game.save?.settings.musicVolume ?? 0,
   })
