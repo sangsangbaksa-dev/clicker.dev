@@ -455,38 +455,26 @@
   background: rgb(0 0 0 / 0.35);
 }
 
-/* Dev-only admin launcher: keep it out of the HUD. */
+/* Dev-only admin launcher: a slim tab docked on the right edge, clear of the HUD, the
+   hub menu and the bottom-left of list cards. */
 [data-clicker] .clicker-admin-launch {
-  top: auto;
-  bottom: 12px;
-  left: 12px;
-  right: auto;
-  min-height: 30px;
-  padding: 4px 10px;
+  top: 50%;
+  bottom: auto;
+  left: auto;
+  right: 0;
+  translate: 0 -50%;
+  min-height: 0;
+  padding: 8px 4px;
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
   font-size: 11px;
+  letter-spacing: 0.1em;
+  writing-mode: vertical-rl;
   opacity: 0.55;
 }
 
 [data-clicker] .clicker-admin-launch:hover {
   opacity: 1;
-}
-
-/* Phones: the hub menu fills the bottom edge and the HUD the top, so dock the launcher
-   as a slim tab on the right edge where it covers the least. */
-@media (max-width: 720px) {
-  [data-clicker] .clicker-admin-launch {
-    top: 50%;
-    bottom: auto;
-    left: auto;
-    right: 0;
-    translate: 0 -50%;
-    min-height: 0;
-    padding: 8px 4px;
-    border-right: 0;
-    border-radius: 8px 0 0 8px;
-    writing-mode: vertical-rl;
-    letter-spacing: 0.1em;
-  }
 }
 
 /* ---------- Responsive ---------- */
