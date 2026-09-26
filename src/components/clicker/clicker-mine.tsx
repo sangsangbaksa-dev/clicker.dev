@@ -13,15 +13,19 @@ import { VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/domain/services/clicker-b
 import { playSfx } from "@/components/clicker/clicker-sfx"
 import "./clicker-mine.css"
 
-export type MineStrikeResult = { critical: boolean }
+export type MineStrikeKind = "lightning" | "quake" | "echo"
+export type MineStrikeResult = { critical: boolean; strike?: MineStrikeKind }
 
-type Spark = {
+/** Rock chip thrown from a hit: arcs up, then falls under gravity while spinning. */
+type Chip = {
   id: number
   x: number
   y: number
   critical: boolean
   dx: number
   dy: number
+  spin: number
+  size: number
 }
 
 type Laser = {
@@ -31,9 +35,16 @@ type Laser = {
   x2: number
   y2: number
   critical: boolean
+  echo: boolean
 }
 
-type Impact = { id: number; x: number; y: number; critical: boolean }
+type Impact = { id: number; x: number; y: number; critical: boolean; echo: boolean }
+
+/** Crystal shard flung outward when the ore shatters. */
+type Shard = { id: number; angle: number; dist: number; spin: number; size: number }
+
+type Bolt = { id: number; main: string; branches: string[] }
+type Quake = { id: number; x: number; y: number; width: number }
 
 type Props = {
   visual?: "idle" | "fever" | "crisis"
@@ -57,6 +68,41 @@ type Vein = { x: number; y: number; expiresAt: number }
 const ORE_HP = 24
 const BREAK_BONUS = 3
 const REGROW_MS = 650
+const CRACK_COUNT = 6
+/** The echo proc rings back a beat after the strike (matches the echoStrike SFX). */
+const ECHO_DELAY_MS = 130
+
+/** Crack paths in crystal-local 0..100 units, radiating from near the center. */
+function makeCracks(): string[] {
+  return Array.from({ length: CRACK_COUNT }, (_, i) => {
+    let angle = (i / CRACK_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.6
+    let x = 50 + (Math.random() - 0.5) * 16
+    let y = 48 + (Math.random() - 0.5) * 18
+    const pts = [`${x.toFixed(1)},${y.toFixed(1)}`]
+    for (let seg = 0; seg < 4; seg++) {
+      angle += (Math.random() - 0.5) * 0.9
+      const len = 6 + Math.random() * 6
+      x += Math.cos(angle) * len
+      y += Math.sin(angle) * len
+      pts.push(`${x.toFixed(1)},${y.toFixed(1)}`)
+    }
+    return pts.join(" ")
+  })
+}
+
+/** Jagged polyline from (x1,y1) to (x2,y2); jitter tapers off toward the target. */
+function jagged(x1: number, y1: number, x2: number, y2: number, steps: number, jitter: number): string {
+  const len = Math.hypot(x2 - x1, y2 - y1) || 1
+  const nx = -(y2 - y1) / len
+  const ny = (x2 - x1) / len
+  const pts: string[] = []
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps
+    const off = i === 0 || i === steps ? 0 : (Math.random() - 0.5) * 2 * jitter * (1 - t * 0.6)
+    pts.push(`${(x1 + (x2 - x1) * t + nx * off).toFixed(1)},${(y1 + (y2 - y1) * t + ny * off).toFixed(1)}`)
+  }
+  return pts.join(" ")
+}
 
 type Box = { left: number; top: number; width: number; height: number }
 
@@ -95,9 +141,15 @@ export function ClickerMine({
   const [hp, setHp] = useState(ORE_HP)
   const [hitSeq, setHitSeq] = useState(0)
   const [broken, setBroken] = useState(false)
-  const [sparks, setSparks] = useState<Spark[]>([])
+  const [lastCrit, setLastCrit] = useState(false)
+  const [chips, setChips] = useState<Chip[]>([])
   const [lasers, setLasers] = useState<Laser[]>([])
   const [impacts, setImpacts] = useState<Impact[]>([])
+  const [cracks, setCracks] = useState(makeCracks)
+  const [shards, setShards] = useState<Shard[]>([])
+  const [bolts, setBolts] = useState<Bolt[]>([])
+  const [quakes, setQuakes] = useState<Quake[]>([])
+  const [strikeFlash, setStrikeFlash] = useState<{ id: number; kind: MineStrikeKind } | null>(null)
   const [vein, setVein] = useState<Vein | null>(null)
   const [veinLabel, setVeinLabel] = useState<string | null>(null)
   const seq = useRef(0)
@@ -129,7 +181,13 @@ export function ClickerMine({
     }
   }, [])
 
-  const fireLaser = useCallback((x: number, y: number, critical: boolean, drill = false) => {
+  // Latest values for the drill interval without re-arming it every render.
+  const live = useRef({ hp, broken, box, muted, onMine, onPop, onOreBroken, playLaser })
+  useEffect(() => {
+    live.current = { hp, broken, box, muted, onMine, onPop, onOreBroken, playLaser }
+  })
+
+  const fireLaser = useCallback((x: number, y: number, critical: boolean, drill = false, echo = false) => {
     const el = mineRef.current
     if (!el) return
     const { width, height } = el.getBoundingClientRect()
@@ -139,32 +197,75 @@ export function ClickerMine({
     const origin = drill
       ? { x: side < 0 ? -8 : width + 8, y: height * 0.55 }
       : { x: width / 2 + side * width * 0.06, y: height + 8 }
-    const beam: Laser = { id, x1: origin.x, y1: origin.y, x2: x, y2: y, critical }
-    setLasers((prev) => [...prev.slice(-5), beam])
-    setImpacts((prev) => [...prev.slice(-5), { id, x, y, critical }])
-    const life = reduceMotion.current ? 80 : 220
+    const beam: Laser = { id, x1: origin.x, y1: origin.y, x2: x, y2: y, critical, echo }
+    setLasers((prev) => [...prev.slice(-7), beam])
+    setImpacts((prev) => [...prev.slice(-7), { id, x, y, critical, echo }])
+    const life = reduceMotion.current ? 80 : echo ? 340 : critical ? 300 : 240
     later(() => {
       setLasers((prev) => prev.filter((l) => l.id !== id))
       setImpacts((prev) => prev.filter((i) => i.id !== id))
     }, life)
 
-    const burst = Array.from({ length: critical ? 7 : 4 }, () => ({
+    if (reduceMotion.current) return
+    // Chips fly away from the rig: bias the throw along the beam direction.
+    const away = Math.sign(x - origin.x) || 1
+    const burst: Chip[] = Array.from({ length: echo ? 2 : critical ? 8 : 5 }, () => ({
       id: ++seq.current,
-      x: x + (Math.random() - 0.5) * 10,
-      y: y + (Math.random() - 0.5) * 10,
+      x: x + (Math.random() - 0.5) * 12,
+      y: y + (Math.random() - 0.5) * 12,
       critical,
-      dx: (Math.random() - 0.5) * 60,
-      dy: -12 - Math.random() * 30,
+      dx: (Math.random() - 0.35) * 70 * away,
+      dy: -(24 + Math.random() * (critical ? 52 : 36)),
+      spin: (Math.random() - 0.5) * 540,
+      size: 3 + Math.random() * (critical ? 5 : 3.5),
     }))
-    setSparks((prev) => [...prev.slice(-24), ...burst])
-    later(() => setSparks((prev) => prev.filter((s) => !burst.some((b) => b.id === s.id))), 480)
+    setChips((prev) => [...prev.slice(-32), ...burst])
+    later(() => setChips((prev) => prev.filter((s) => !burst.some((b) => b.id === s.id))), 640)
   }, [])
 
-  // Latest values for the drill interval without re-arming it every render.
-  const live = useRef({ hp, broken, box, muted, onMine, onPop, onOreBroken, playLaser })
-  useEffect(() => {
-    live.current = { hp, broken, box, muted, onMine, onPop, onOreBroken, playLaser }
-  })
+  /** Strike procs from the engine get their own motion on top of the laser. */
+  const playStrike = useCallback(
+    (kind: MineStrikeKind, x: number, y: number, drill: boolean) => {
+      const el = mineRef.current
+      if (!el) return
+      const id = ++seq.current
+      setStrikeFlash({ id, kind })
+      later(() => setStrikeFlash((cur) => (cur?.id === id ? null : cur)), kind === "quake" ? 420 : 300)
+
+      if (kind === "echo") {
+        // The same strike rings back a beat later as a violet ghost beam.
+        later(() => fireLaser(x + (Math.random() - 0.5) * 8, y + (Math.random() - 0.5) * 8, false, drill, true), ECHO_DELAY_MS)
+        return
+      }
+
+      const { width } = el.getBoundingClientRect()
+      if (kind === "lightning") {
+        const top = { x: x + (Math.random() - 0.5) * width * 0.3, y: -12 }
+        const main = jagged(top.x, top.y, x, y, 10, 26)
+        // Chain arcs jump from the landing point to other spots on the crystal.
+        const b = live.current.box
+        const branches = Array.from({ length: 1 + Math.floor(Math.random() * 2) }, () => {
+          const tx = b ? b.left + b.width * (0.2 + Math.random() * 0.6) : x + (Math.random() - 0.5) * 120
+          const ty = b ? b.top + b.height * (0.2 + Math.random() * 0.6) : y + (Math.random() - 0.5) * 120
+          return jagged(x, y, tx, ty, 5, 12)
+        })
+        setBolts((prev) => [...prev.slice(-2), { id, main, branches }])
+        later(() => setBolts((prev) => prev.filter((bolt) => bolt.id !== id)), reduceMotion.current ? 120 : 320)
+        return
+      }
+
+      // Quake: shockwave rings roll out along the ground under the crystal.
+      const b = live.current.box
+      const ring: Quake = b
+        ? { id, x: b.left + b.width / 2, y: b.top + b.height * 0.9, width: b.width * 1.5 }
+        : { id, x: width / 2, y: y + 40, width: width * 0.6 }
+      if (!reduceMotion.current) {
+        setQuakes((prev) => [...prev.slice(-1), ring])
+        later(() => setQuakes((prev) => prev.filter((q) => q.id !== id)), 700)
+      }
+    },
+    [fireLaser],
+  )
 
   /** One strike at a point in mine-local px — shared by taps and the assist drill. */
   const hitAt = useCallback(
@@ -173,12 +274,14 @@ export function ClickerMine({
       const cur = live.current
       if (!el || cur.broken) return
       const rect = el.getBoundingClientRect()
-      const { critical } = cur.onMine(rect.left + x, rect.top + y)
+      const { critical, strike } = cur.onMine(rect.left + x, rect.top + y)
       if (!drill) {
         cur.playLaser(cur.muted, critical)
         cur.onPop()
       }
       fireLaser(x, y, critical, drill)
+      if (strike) playStrike(strike, x, y, drill)
+      setLastCrit(critical)
       setHitSeq((n) => n + 1)
 
       const next = cur.hp - (critical ? 2 : 1)
@@ -192,6 +295,18 @@ export function ClickerMine({
       setBroken(true)
       live.current = { ...live.current, broken: true }
       cur.onOreBroken?.()
+      if (!reduceMotion.current) {
+        setShards(
+          Array.from({ length: 12 }, (_, i) => ({
+            id: ++seq.current,
+            angle: (i / 12) * 360 + (Math.random() - 0.5) * 24,
+            dist: 0.55 + Math.random() * 0.55,
+            spin: (Math.random() - 0.5) * 720,
+            size: 0.035 + Math.random() * 0.045,
+          })),
+        )
+        later(() => setShards([]), 700)
+      }
       const b = cur.box
       for (let i = 0; i < BREAK_BONUS; i++) {
         later(() => {
@@ -204,9 +319,10 @@ export function ClickerMine({
       later(() => {
         setHp(ORE_HP)
         setBroken(false)
+        setCracks(makeCracks())
       }, reduceMotion.current ? 120 : REGROW_MS)
     },
-    [fireLaser],
+    [fireLaser, playStrike],
   )
 
   const strike = useCallback(
@@ -272,12 +388,16 @@ export function ClickerMine({
   const { width: iw, height: ih, ore } = MINE_ORE_PLATE
   const scale = size.width ? Math.max(size.width / iw, size.height / ih) : 0
   const integrity = hp / ORE_HP
+  // First crack shows after a few hits; the last lands just before the shatter.
+  const visibleCracks = broken ? 0 : Math.min(CRACK_COUNT, Math.floor((1 - integrity) * CRACK_COUNT * 1.15))
 
   return (
     <div
       ref={mineRef}
       data-visual={visual}
-      className={`clicker-mine clicker-mine-single${pop ? " is-pop" : ""}${shake ? " is-shake" : ""}`}
+      className={`clicker-mine clicker-mine-single${pop ? " is-pop" : ""}${shake ? " is-shake" : ""}${
+        strikeFlash?.kind === "quake" ? " is-quake" : ""
+      }`}
     >
       <div className="clicker-mine-plate" style={{ backgroundImage: `url(${plate})` }} aria-hidden />
 
@@ -296,7 +416,7 @@ export function ClickerMine({
           {/* Same plate, cropped to the crystal, so hits can pulse just the ore. */}
           <span
             key={hitSeq}
-            className={`clicker-mine-crystal-art${hitSeq > 0 ? " is-hit" : ""}`}
+            className={`clicker-mine-crystal-art${hitSeq > 0 ? (lastCrit ? " is-hit is-crit-hit" : " is-hit") : ""}`}
             style={
               {
                 backgroundImage: `url(${plate})`,
@@ -306,6 +426,11 @@ export function ClickerMine({
               } as CSSProperties
             }
           />
+          <svg className="clicker-mine-cracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+            {cracks.slice(0, visibleCracks).map((points, i) => (
+              <polyline key={`${points}-${i}`} points={points} pathLength={1} />
+            ))}
+          </svg>
           <span className="clicker-mine-crystal-glow" />
         </button>
       ) : null}
@@ -316,6 +441,8 @@ export function ClickerMine({
           style={{ left: box.left + box.width * 0.15, top: box.top + box.height + 10, width: box.width * 0.7 }}
           aria-hidden
         >
+          {/* Ghost bar lags behind so each hit reads as a chunk of damage. */}
+          <b style={{ width: `${Math.round(integrity * 100)}%` }} />
           <i style={{ width: `${Math.round(integrity * 100)}%` }} />
         </div>
       ) : null}
@@ -338,9 +465,32 @@ export function ClickerMine({
 
       <svg className="clicker-mine-lasers" aria-hidden>
         {lasers.map((laser) => (
-          <g key={laser.id} className={`clicker-mine-beam${laser.critical ? " is-crit" : ""}`}>
+          <g
+            key={laser.id}
+            className={`clicker-mine-beam${laser.critical ? " is-crit" : ""}${laser.echo ? " is-echo" : ""}`}
+          >
             <line x1={laser.x1} y1={laser.y1} x2={laser.x2} y2={laser.y2} className="clicker-mine-beam-glow" />
-            <line x1={laser.x1} y1={laser.y1} x2={laser.x2} y2={laser.y2} className="clicker-mine-beam-core" />
+            <line
+              x1={laser.x1}
+              y1={laser.y1}
+              x2={laser.x2}
+              y2={laser.y2}
+              pathLength={1}
+              className="clicker-mine-beam-core"
+            />
+            <circle cx={laser.x1} cy={laser.y1} r={laser.critical ? 20 : 14} className="clicker-mine-muzzle" />
+          </g>
+        ))}
+        {bolts.map((bolt) => (
+          <g key={bolt.id} className="clicker-mine-bolt">
+            <polyline points={bolt.main} className="clicker-mine-bolt-glow" />
+            {bolt.branches.map((points, i) => (
+              <polyline key={i} points={points} className="clicker-mine-bolt-glow is-branch" />
+            ))}
+            <polyline points={bolt.main} className="clicker-mine-bolt-core" />
+            {bolt.branches.map((points, i) => (
+              <polyline key={`c${i}`} points={points} className="clicker-mine-bolt-core is-branch" />
+            ))}
           </g>
         ))}
       </svg>
@@ -349,29 +499,71 @@ export function ClickerMine({
         {impacts.map((hit) => (
           <span
             key={hit.id}
-            className={`clicker-mine-impact${hit.critical ? " is-crit" : ""}`}
+            className={`clicker-mine-impact${hit.critical ? " is-crit" : ""}${hit.echo ? " is-echo" : ""}`}
             style={{ left: hit.x, top: hit.y }}
-          />
+          >
+            <i />
+          </span>
+        ))}
+        {quakes.map((q) => (
+          <span
+            key={q.id}
+            className="clicker-mine-quake"
+            style={{ left: q.x, top: q.y, width: q.width, height: q.width * 0.26 }}
+          >
+            <i />
+            <i />
+          </span>
         ))}
       </div>
 
-      <div className="clicker-sparks clicker-mine-sparks" aria-hidden>
-        {sparks.map((spark) => (
+      <div className="clicker-mine-sparks" aria-hidden>
+        {chips.map((chip) => (
           <span
-            key={spark.id}
-            className={`clicker-spark${spark.critical ? " is-crit" : ""}`}
+            key={chip.id}
+            className={`clicker-mine-chip${chip.critical ? " is-crit" : ""}`}
             style={
               {
-                left: `${spark.x}px`,
-                top: `${spark.y}px`,
-                "--spark-dx": `${spark.dx}px`,
-                "--spark-dy": `${spark.dy}px`,
+                left: `${chip.x}px`,
+                top: `${chip.y}px`,
+                width: `${chip.size}px`,
+                height: `${chip.size}px`,
+                "--chip-size": `${chip.size}px`,
+                "--chip-dx": `${chip.dx}px`,
+                "--chip-dy": `${chip.dy}px`,
+                "--chip-spin": `${chip.spin}deg`,
               } as CSSProperties
             }
           />
         ))}
+        {box
+          ? shards.map((shard) => {
+              const rad = (shard.angle * Math.PI) / 180
+              const reach = box.width * shard.dist
+              return (
+                <span
+                  key={shard.id}
+                  className="clicker-mine-shard"
+                  style={
+                    {
+                      left: box.left + box.width / 2,
+                      top: box.top + box.height / 2,
+                      width: box.width * shard.size,
+                      height: box.width * shard.size * 1.6,
+                      "--shard-dx": `${Math.cos(rad) * reach}px`,
+                      "--shard-dy": `${Math.sin(rad) * reach}px`,
+                      "--shard-spin": `${shard.spin}deg`,
+                    } as CSSProperties
+                  }
+                />
+              )
+            })
+          : null}
       </div>
 
+      {strikeFlash ? (
+        <div key={strikeFlash.id} className={`clicker-mine-strike-flash is-${strikeFlash.kind}`} aria-hidden />
+      ) : null}
       {broken ? <div className="clicker-mine-shatter" aria-hidden /> : null}
     </div>
   )

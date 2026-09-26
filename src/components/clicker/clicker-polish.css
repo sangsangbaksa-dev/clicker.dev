@@ -1027,6 +1027,59 @@
     0 2px 2px rgb(0 0 0 / 0.6);
 }
 
+/* Strike procs keep their own colors over the dark rim above. */
+[data-clicker] .clicker-float.is-lightning {
+  color: #fff6a8;
+  font-size: 24px;
+  text-shadow:
+    0 0 8px #fff,
+    0 0 18px rgb(255 228 92 / 0.8),
+    0 2px 2px rgb(0 0 0 / 0.6);
+}
+
+[data-clicker] .clicker-float.is-quake {
+  color: #ffb36b;
+  font-size: 26px;
+  text-shadow:
+    0 0 16px rgb(255 138 61 / 0.7),
+    0 2px 2px rgb(0 0 0 / 0.6);
+}
+
+[data-clicker] .clicker-float.is-echo {
+  color: #d6c8ff;
+  text-shadow:
+    0 0 14px rgb(169 140 255 / 0.7),
+    0 2px 2px rgb(0 0 0 / 0.6);
+}
+
+/* Big hits punch in before drifting up; plain yields keep the quiet float. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-clicker] .clicker-float:is(.is-crit, .is-lightning, .is-quake, .is-echo) {
+    animation: clicker-float-pop 700ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+  }
+}
+
+@keyframes clicker-float-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 4px) scale(0.55);
+  }
+  14% {
+    opacity: 1;
+    transform: translate(-50%, -6px) scale(1.22);
+  }
+  28% {
+    transform: translate(-50%, -10px) scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -54px) scale(0.92);
+  }
+}
+
 /* ── Phone (≤480px): compact HUD, full menu grid, touch-friendly play ── */
 [data-clicker] {
   -webkit-tap-highlight-color: transparent;

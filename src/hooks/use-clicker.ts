@@ -40,6 +40,7 @@ import {
 } from "@/application/clicker"
 import { createInitialSave } from "@/domain/services/clicker-engine"
 import { playSfx, setSfxMuted } from "@/components/clicker/clicker-sfx"
+import type { MineStrikeResult } from "@/components/clicker/clicker-mine"
 import { clearClickerRaw } from "@/infrastructure/persistence/clicker-save"
 import {
   browserLeaseStorage,
@@ -268,7 +269,7 @@ export function useClicker() {
     setToast(null)
   }, [])
 
-  const clickCore = useCallback((clientX?: number, clientY?: number) => {
+  const clickCore = useCallback((clientX?: number, clientY?: number): MineStrikeResult => {
     const current = saveRef.current
     if (!current || current.metaState.gameCompleted) return { critical: false }
     const result = clickerClick(current, now())
@@ -276,6 +277,7 @@ export function useClicker() {
     if (result.quake) playSfx("quake")
     else if (result.lightning) playSfx("lightning")
     else if (result.echo) playSfx("echoStrike")
+    const strike = result.quake ? "quake" : result.lightning ? "lightning" : result.echo ? "echo" : undefined
     const id = ++floatId.current
     setFloats((prev) => [
       ...prev.slice(-12),
@@ -283,7 +285,7 @@ export function useClicker() {
         id,
         text: `+${result.energy.toFixed(result.energy >= 100 ? 0 : 1)}`,
         critical: result.critical,
-        strike: result.quake ? "quake" : result.lightning ? "lightning" : result.echo ? "echo" : undefined,
+        strike,
         x: clientX ?? 0,
         y: clientY ?? 0,
       },
@@ -291,7 +293,7 @@ export function useClicker() {
     window.setTimeout(() => {
       setFloats((prev) => prev.filter((f) => f.id !== id))
     }, 700)
-    return { critical: result.critical }
+    return { critical: result.critical, strike }
   }, [commit])
 
   const buyPotion = useCallback((id: string) => {

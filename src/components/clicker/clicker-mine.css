@@ -86,13 +86,61 @@
 }
 
 .clicker-mine-crystal-art.is-hit {
-  animation: clicker-mine-crystal-hit 160ms ease-out;
+  animation: clicker-mine-crystal-hit 170ms cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
-/* Hits only flash the crystal; it never scales or warps, so the ore stays rock-solid. */
+.clicker-mine-crystal-art.is-crit-hit {
+  animation: clicker-mine-crystal-crit 260ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* Hits only flash the crystal; it never scales or warps, so the ore stays rock-solid.
+   Sharp attack on the first frames, then a soft decay back to the resting glow. */
 @keyframes clicker-mine-crystal-hit {
-  35% {
-    filter: brightness(1.9) saturate(1.4);
+  12% {
+    filter: brightness(2.1) saturate(1.5);
+  }
+}
+
+@keyframes clicker-mine-crystal-crit {
+  10% {
+    filter: brightness(2.8) saturate(1.2) sepia(0.35);
+  }
+  45% {
+    filter: brightness(1.6) saturate(1.4) sepia(0.15);
+  }
+}
+
+/* Damage cracks: each new one draws itself out from the center. */
+.clicker-mine-cracks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 55%, transparent 90%);
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 55%, transparent 90%);
+  filter: drop-shadow(0 0 3px rgb(160 250 255 / 0.9));
+}
+
+.clicker-mine-cracks polyline {
+  fill: none;
+  stroke: rgb(236 255 255 / 0.85);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  animation: clicker-mine-crack 220ms ease-out both;
+}
+
+@keyframes clicker-mine-crack {
+  from {
+    stroke-dashoffset: 1;
+    stroke: #fff;
+  }
+  to {
+    stroke-dashoffset: 0;
   }
 }
 
@@ -129,15 +177,48 @@
   animation: clicker-mine-crystal-regrow 650ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }
 
+/* Gone for a beat after the shatter, then grows back from the base with a soft overshoot. */
 @keyframes clicker-mine-crystal-regrow {
-  0% {
-    transform: scale(0.2);
+  0%,
+  30% {
+    transform: scale(0.15);
     opacity: 0;
     filter: brightness(3);
+  }
+  75% {
+    transform: scale(1.04);
+    opacity: 1;
+    filter: brightness(1.6);
   }
   100% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+/* Crystal shards thrown out when the ore breaks. */
+.clicker-mine-shard {
+  position: absolute;
+  translate: -50% -50%;
+  background: linear-gradient(115deg, #ffffff 0 18%, #9ff3ff 34%, #37c6e6 62%, #0e5c78);
+  clip-path: polygon(50% 0, 88% 30%, 64% 100%, 22% 90%, 8% 34%);
+  animation: clicker-mine-shard 620ms cubic-bezier(0.15, 0.7, 0.35, 1) forwards;
+}
+
+@keyframes clicker-mine-shard {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(0.6);
+    opacity: 1;
+  }
+  15% {
+    transform: translate(calc(var(--shard-dx) * 0.35), calc(var(--shard-dy) * 0.35)) rotate(calc(var(--shard-spin) * 0.2)) scale(1);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--shard-dx), calc(var(--shard-dy) + 40px)) rotate(var(--shard-spin)) scale(0.4);
+    opacity: 0;
   }
 }
 
@@ -171,12 +252,25 @@
   pointer-events: none;
 }
 
-.clicker-mine-integrity > i {
+.clicker-mine-integrity > i,
+.clicker-mine-integrity > b {
+  position: absolute;
+  left: 0;
+  top: 0;
   display: block;
   height: 100%;
+}
+
+.clicker-mine-integrity > i {
   background: linear-gradient(90deg, #5ce8ff, #e8fdff);
   box-shadow: 0 0 10px #5ce8ff;
-  transition: width 120ms ease;
+  transition: width 90ms ease-out;
+}
+
+/* Damage ghost: holds for a moment, then drains to the real value. */
+.clicker-mine-integrity > b {
+  background: rgb(255 244 214 / 0.85);
+  transition: width 420ms cubic-bezier(0.5, 0, 0.3, 1) 160ms;
 }
 
 /* ---------- Laser ---------- */
@@ -190,8 +284,17 @@
   overflow: visible;
 }
 
+/* Beam: the core shoots out from the barrel, then thins and fades while the glow lingers. */
 .clicker-mine-beam {
-  animation: clicker-mine-beam-fade 220ms ease-out forwards;
+  animation: clicker-mine-beam-fade 240ms ease-out forwards;
+}
+
+.clicker-mine-beam.is-crit {
+  animation-duration: 300ms;
+}
+
+.clicker-mine-beam.is-echo {
+  animation-duration: 340ms;
 }
 
 .clicker-mine-beam-glow {
@@ -199,29 +302,91 @@
   stroke-width: 12;
   stroke-linecap: round;
   filter: blur(4px);
+  animation: clicker-mine-beam-glow 240ms ease-out forwards;
 }
 
 .clicker-mine-beam-core {
   stroke: #eaffff;
   stroke-width: 3;
   stroke-linecap: round;
+  stroke-dasharray: 1;
+  animation: clicker-mine-beam-core 240ms cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+.clicker-mine-muzzle {
+  fill: rgb(200 250 255 / 0.9);
+  filter: blur(3px);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: clicker-mine-muzzle 140ms ease-out forwards;
 }
 
 .clicker-mine-beam.is-crit .clicker-mine-beam-glow {
   stroke: rgb(255 190 80 / 0.55);
-  stroke-width: 16;
+  stroke-width: 18;
 }
 
 .clicker-mine-beam.is-crit .clicker-mine-beam-core {
   stroke: #fff4d0;
-  stroke-width: 4;
+  stroke-width: 5;
+}
+
+.clicker-mine-beam.is-crit .clicker-mine-muzzle {
+  fill: rgb(255 226 160 / 0.95);
+}
+
+.clicker-mine-beam.is-echo .clicker-mine-beam-glow {
+  stroke: rgb(170 140 255 / 0.5);
+}
+
+.clicker-mine-beam.is-echo .clicker-mine-beam-core {
+  stroke: #e6dcff;
+  stroke-width: 2;
+}
+
+.clicker-mine-beam.is-echo .clicker-mine-muzzle {
+  fill: rgb(200 180 255 / 0.8);
 }
 
 @keyframes clicker-mine-beam-fade {
-  0% {
+  0%,
+  45% {
     opacity: 1;
   }
   100% {
+    opacity: 0;
+  }
+}
+
+@keyframes clicker-mine-beam-core {
+  0% {
+    stroke-dashoffset: 1;
+  }
+  20% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    stroke-width: 0.5;
+  }
+}
+
+@keyframes clicker-mine-beam-glow {
+  0% {
+    opacity: 0.4;
+  }
+  20% {
+    opacity: 1;
+  }
+}
+
+@keyframes clicker-mine-muzzle {
+  from {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.2);
     opacity: 0;
   }
 }
@@ -233,6 +398,7 @@
   pointer-events: none;
 }
 
+/* Impact: hot core flash plus a thin shock ring that outruns it. */
 .clicker-mine-impact {
   position: absolute;
   width: 46px;
@@ -241,7 +407,15 @@
   border-radius: 50%;
   background: radial-gradient(circle, #fff 0 18%, rgb(120 245 255 / 0.8) 30%, transparent 70%);
   mix-blend-mode: screen;
-  animation: clicker-mine-impact 220ms ease-out forwards;
+  animation: clicker-mine-impact 240ms cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+}
+
+.clicker-mine-impact > i {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgb(190 250 255 / 0.9);
+  animation: clicker-mine-impact-ring 240ms ease-out forwards;
 }
 
 .clicker-mine-impact.is-crit {
@@ -249,15 +423,43 @@
   height: 70px;
   margin: -35px 0 0 -35px;
   background: radial-gradient(circle, #fff 0 18%, rgb(255 200 110 / 0.85) 32%, transparent 70%);
+  animation-duration: 300ms;
+}
+
+.clicker-mine-impact.is-crit > i {
+  border-width: 3px;
+  border-color: rgb(255 226 150 / 0.95);
+  animation-duration: 300ms;
+}
+
+.clicker-mine-impact.is-echo {
+  background: radial-gradient(circle, #f4efff 0 14%, rgb(170 140 255 / 0.7) 30%, transparent 70%);
+  animation-duration: 340ms;
+}
+
+.clicker-mine-impact.is-echo > i {
+  border-color: rgb(200 180 255 / 0.9);
+  animation-duration: 340ms;
 }
 
 @keyframes clicker-mine-impact {
   from {
-    transform: scale(0.4);
+    transform: scale(0.35);
     opacity: 1;
   }
   to {
-    transform: scale(1.4);
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+@keyframes clicker-mine-impact-ring {
+  from {
+    transform: scale(0.5);
+    opacity: 1;
+  }
+  to {
+    transform: scale(2.2);
     opacity: 0;
   }
 }
@@ -269,12 +471,202 @@
   pointer-events: none;
 }
 
+/* Rock chips: thrown up and out, then pulled down by gravity while tumbling.
+   Horizontal drift + spin run on `transform`, the vertical arc on `translate`, so each gets its own easing. */
+.clicker-mine-chip {
+  position: absolute;
+  margin: calc(var(--chip-size, 5px) / -2) 0 0 calc(var(--chip-size, 5px) / -2);
+  background: linear-gradient(135deg, #e9fdff, #6fd8f0 55%, #2a6f86);
+  clip-path: polygon(20% 0, 100% 30%, 80% 100%, 0 70%);
+  animation:
+    clicker-mine-chip-x 620ms linear forwards,
+    clicker-mine-chip-y 620ms forwards;
+}
+
+.clicker-mine-chip.is-crit {
+  background: linear-gradient(135deg, #fffbe8, #ffd27a 55%, #b8741a);
+}
+
+@keyframes clicker-mine-chip-x {
+  0% {
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(var(--chip-dx)) rotate(var(--chip-spin));
+    opacity: 0;
+  }
+}
+
+@keyframes clicker-mine-chip-y {
+  0% {
+    translate: 0 0;
+    animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
+  }
+  35% {
+    translate: 0 var(--chip-dy);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.6);
+  }
+  100% {
+    translate: 0 34px;
+  }
+}
+
+/* ---------- Strike procs ---------- */
+.clicker-mine-bolt {
+  animation: clicker-mine-bolt 320ms steps(1, end) forwards;
+}
+
+.clicker-mine-bolt polyline {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.clicker-mine-bolt-glow {
+  stroke: rgb(255 236 120 / 0.7);
+  stroke-width: 20;
+  filter: blur(6px);
+}
+
+.clicker-mine-bolt-core {
+  stroke: #fffef2;
+  stroke-width: 4.5;
+}
+
+.clicker-mine-bolt-core.is-branch {
+  stroke-width: 2.2;
+}
+
+.clicker-mine-bolt-glow.is-branch {
+  stroke-width: 10;
+}
+
+/* Lightning flickers: on, dip, on again, gone. */
+@keyframes clicker-mine-bolt {
+  0% {
+    opacity: 1;
+  }
+  18% {
+    opacity: 0.25;
+  }
+  30% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 0.6;
+  }
+  80%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.clicker-mine-quake {
+  position: absolute;
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+.clicker-mine-quake > i {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid rgb(255 170 90 / 0.85);
+  box-shadow:
+    0 0 18px rgb(255 140 60 / 0.6),
+    inset 0 0 12px rgb(255 140 60 / 0.45);
+  animation: clicker-mine-quake-ring 620ms cubic-bezier(0.15, 0.6, 0.3, 1) forwards;
+}
+
+.clicker-mine-quake > i + i {
+  border-width: 2px;
+  animation-delay: 110ms;
+  opacity: 0;
+}
+
+@keyframes clicker-mine-quake-ring {
+  from {
+    transform: scale(0.15);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Quake jolts the whole scene vertically, like the ground heaving. */
+.clicker-mine-single.is-quake .clicker-mine-plate,
+.clicker-mine-single.is-quake .clicker-mine-crystal {
+  animation: clicker-mine-quake 360ms cubic-bezier(0.3, 0.6, 0.4, 1);
+}
+
+@keyframes clicker-mine-quake {
+  15% {
+    translate: 0 7px;
+  }
+  35% {
+    translate: -3px -4px;
+  }
+  55% {
+    translate: 2px 3px;
+  }
+  75% {
+    translate: -1px -1px;
+  }
+}
+
+.clicker-mine-strike-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.clicker-mine-strike-flash.is-lightning {
+  background: radial-gradient(ellipse at 50% 30%, rgb(255 250 220 / 0.55), rgb(255 230 120 / 0.15) 55%, transparent);
+  animation: clicker-mine-bolt 300ms steps(1, end) forwards;
+}
+
+.clicker-mine-strike-flash.is-quake {
+  background: radial-gradient(ellipse at 50% 90%, rgb(255 150 70 / 0.4), transparent 65%);
+  animation: clicker-mine-flash-fade 420ms ease-out forwards;
+}
+
+.clicker-mine-strike-flash.is-echo {
+  box-shadow: inset 0 0 80px rgb(170 140 255 / 0.4);
+  animation: clicker-mine-flash-fade 300ms ease-out 130ms both;
+}
+
+@keyframes clicker-mine-flash-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .clicker-mine-single[data-visual="fever"] .clicker-mine-plate,
   .clicker-mine-crystal-glow,
   .clicker-mine-crystal-art.is-hit,
-  .clicker-mine-crystal.is-broken .clicker-mine-crystal-art {
+  .clicker-mine-crystal.is-broken .clicker-mine-crystal-art,
+  .clicker-mine-cracks polyline,
+  .clicker-mine-single.is-quake .clicker-mine-plate,
+  .clicker-mine-single.is-quake .clicker-mine-crystal,
+  .clicker-mine-bolt,
+  .clicker-mine-strike-flash.is-lightning {
     animation: none;
+  }
+
+  .clicker-mine-integrity > b {
+    transition: none;
   }
 }
 
