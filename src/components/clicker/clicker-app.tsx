@@ -889,7 +889,16 @@ export function ClickerApp() {
         <div className="clicker-core-wrap">
           {inMine ? (
             <div className="clicker-mine-dig">
-              <div className="clicker-mine-hud" role="status" aria-live="polite">
+              <div
+                className={`clicker-mine-hud${hud.fever.active ? " is-fever" : ""}`}
+                role="status"
+                aria-live="polite"
+              >
+                {hud.fever.active ? (
+                  <b className="clicker-mine-hud-fever">
+                    {hud.fever.phaseLabel} · {hud.fever.remainingSeconds.toFixed(1)}s
+                  </b>
+                ) : null}
                 <div className="clicker-mine-hud-stat" aria-label={`채굴량 ${formatNumber(mineHaul)}`}>
                   <span>채굴량</span>
                   <strong>{formatNumber(mineHaul)}</strong>

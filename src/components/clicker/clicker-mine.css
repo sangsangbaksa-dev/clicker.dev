@@ -35,6 +35,50 @@
   }
 }
 
+/* FEVER: the whole strike kit runs hot — orange beams, impacts and chips, plus a
+   breathing heat rim — so the mode reads without looking at the HUD. */
+.clicker-mine-single[data-visual="fever"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  box-shadow: inset 0 0 90px rgb(255 120 50 / 0.35);
+  animation: clicker-mine-fever-rim 1.2s ease-in-out infinite;
+}
+
+@keyframes clicker-mine-fever-rim {
+  50% {
+    box-shadow: inset 0 0 130px rgb(255 140 60 / 0.5);
+  }
+}
+
+.clicker-mine-single[data-visual="fever"] .clicker-mine-beam:not(.is-crit, .is-echo) .clicker-mine-beam-glow {
+  stroke: rgb(255 130 60 / 0.6);
+  stroke-width: 15;
+}
+
+.clicker-mine-single[data-visual="fever"] .clicker-mine-beam:not(.is-crit, .is-echo) .clicker-mine-beam-core {
+  stroke: #fff1e0;
+  stroke-width: 3.5;
+}
+
+.clicker-mine-single[data-visual="fever"] .clicker-mine-beam:not(.is-crit, .is-echo) .clicker-mine-muzzle {
+  fill: rgb(255 200 150 / 0.95);
+}
+
+.clicker-mine-single[data-visual="fever"] .clicker-mine-impact:not(.is-crit, .is-echo) {
+  background: radial-gradient(circle, #fff 0 18%, rgb(255 150 80 / 0.85) 32%, transparent 70%);
+}
+
+.clicker-mine-single[data-visual="fever"] .clicker-mine-impact:not(.is-crit, .is-echo) > i {
+  border-color: rgb(255 190 130 / 0.95);
+}
+
+.clicker-mine-single[data-visual="fever"] .clicker-mine-debris:not(.is-crit) {
+  background: linear-gradient(135deg, #ffffff, #ffd2a8 50%, #ff8a4c);
+}
+
 .clicker-mine-single[data-visual="crisis"] .clicker-mine-plate {
   filter: saturate(0.8) sepia(0.25) hue-rotate(-30deg);
 }
@@ -511,6 +555,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .clicker-mine-single[data-visual="fever"] .clicker-mine-plate,
+  .clicker-mine-single[data-visual="fever"]::after,
   .clicker-mine-crystal-glow,
   .clicker-mine-crystal-art.is-hit,
   .clicker-mine-single.is-quake .clicker-mine-plate,
@@ -613,6 +658,30 @@
   font-size: 11px;
   font-weight: 700;
   pointer-events: none;
+}
+
+/* FEVER inside the mine: the HUD runs hot and hangs a countdown pill off its bottom edge. */
+[data-clicker] .clicker-mine-hud.is-fever {
+  border-color: rgb(255 150 80 / 0.7);
+  box-shadow: 0 0 22px rgb(255 120 50 / 0.35);
+}
+
+.clicker-mine-hud-fever {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  translate: -50% 55%;
+  padding: 2px 10px;
+  border: 1px solid rgb(255 170 100 / 0.8);
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7a2a0c, #b4481a);
+  color: #fff1e0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  box-shadow: 0 0 12px rgb(255 120 50 / 0.6);
 }
 
 [data-clicker] .clicker-mine-hud:has(.clicker-mine-overdrive) {
