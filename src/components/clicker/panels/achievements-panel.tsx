@@ -36,7 +36,14 @@ export function ClickerAchievementsPanel({ game, meta }: { game: ClickerGame; me
               <strong>{a.name}</strong>
               <span>{a.description}</span>
               {!a.unlocked ? (
-                <div className="clicker-bar" aria-label={`진행 ${Math.round(a.ratio * 100)}%`}>
+                <div
+                  className="clicker-bar"
+                  role="progressbar"
+                  aria-label={`${a.name} 진행`}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(a.ratio * 100)}
+                >
                   <i style={{ width: `${Math.round(a.ratio * 100)}%` }} />
                 </div>
               ) : null}
