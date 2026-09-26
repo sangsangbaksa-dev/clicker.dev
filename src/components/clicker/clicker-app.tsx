@@ -186,17 +186,19 @@ export function ClickerApp() {
   })
 
   useClickerDialogFocus(crisisRef, Boolean(game.hud?.crisisActive))
-  useClickerDialogFocus(storyBeatRef, Boolean(storyBeat))
+  // LUMA's hint waits out a crisis: it would cover the crisis choices and take their focus.
+  const showStoryBeat = Boolean(storyBeat) && !game.hud?.crisisActive
+  useClickerDialogFocus(storyBeatRef, showStoryBeat)
   useClickerDialogFocus(adminRef, CLICKER_ADMIN_UI && adminAllowed && adminOpen)
 
   // One auto-dismiss for every LUMA beat. The triggers below used to own their timers,
   // but their effects re-run on every tick and the cleanup kept cancelling them.
   useEffect(() => {
-    if (!storyBeat) return
+    if (!showStoryBeat) return
     playSfx("notify")
     const timer = window.setTimeout(() => setStoryBeat(null), 5200)
     return () => window.clearTimeout(timer)
-  }, [storyBeat])
+  }, [storyBeat, showStoryBeat])
 
   useEffect(() => {
     if (!confirmPotion) return
@@ -339,7 +341,7 @@ export function ClickerApp() {
         setConfirmPotion(null)
         return
       }
-      if (storyBeat) {
+      if (showStoryBeat) {
         e.preventDefault()
         setStoryBeat(null)
         return
@@ -374,7 +376,7 @@ export function ClickerApp() {
     game.toast,
     game.dismissToast,
     confirmPotion,
-    storyBeat,
+    showStoryBeat,
     drawerMode,
     setDrawerSnap,
     tab,
@@ -1433,7 +1435,7 @@ export function ClickerApp() {
         </div>
       ))}
 
-      {storyBeat ? (
+      {storyBeat && showStoryBeat ? (
         <div
           ref={storyBeatRef}
           className="clicker-story-beat"
