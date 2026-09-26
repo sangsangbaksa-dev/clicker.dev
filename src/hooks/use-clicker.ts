@@ -555,26 +555,21 @@ export function useClicker() {
   }, [commit, persistNow, flash, refuse])
 
   /** Golden vein hit in the mine; returns a short label for the in-scene burst. */
-  const claimVein = useCallback(
-    (clientX: number, clientY: number) => {
-      if (!saveRef.current) return null
-      const { save: next, outcome } = clickerClaimVein(saveRef.current, now())
-      commit(next)
-      const label =
-        outcome.kind === "surge"
-          ? `과부하 · 생산 ×${outcome.multiplier} ${outcome.seconds}초`
-          : outcome.kind === "laser_rush"
-            ? `레이저 폭주 · 채굴 ×${outcome.multiplier} ${outcome.seconds}초`
-            : `대박 · +${formatNumber(outcome.energy)} CORE`
-      playSfx("vein")
-      flash(`황금 광맥! ${label}`)
-      const id = ++floatId.current
-      setFloats((prev) => [...prev.slice(-12), { id, text: label, critical: true, x: clientX, y: clientY }])
-      window.setTimeout(() => setFloats((prev) => prev.filter((f) => f.id !== id)), 1200)
-      return label
-    },
-    [commit, flash],
-  )
+  /** The mine shows the returned label in-scene; the toast carries it too. */
+  const claimVein = useCallback(() => {
+    if (!saveRef.current) return null
+    const { save: next, outcome } = clickerClaimVein(saveRef.current, now())
+    commit(next)
+    const label =
+      outcome.kind === "surge"
+        ? `과부하 · 생산 ×${outcome.multiplier} ${outcome.seconds}초`
+        : outcome.kind === "laser_rush"
+          ? `레이저 폭주 · 채굴 ×${outcome.multiplier} ${outcome.seconds}초`
+          : `대박 · +${formatNumber(outcome.energy)} CORE`
+    playSfx("vein")
+    flash(`황금 광맥! ${label}`)
+    return label
+  }, [commit, flash])
 
   const drillOverdrive = useCallback(() => {
     if (!saveRef.current) return
