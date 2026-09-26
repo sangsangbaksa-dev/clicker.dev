@@ -1536,7 +1536,7 @@ export const clickerConfig: GameConfig = {
     },
     {
       id: "skill_spark",
-      title: "회로 각성",
+      title: "스킬 각성",
       lumaLine: "SKILLS 탭의 별자리 — 잃어버린 능력의 조각입니다. 첫 노드를 밝히세요.",
       kind: "SKILL",
       target: 1,

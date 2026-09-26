@@ -111,7 +111,7 @@ export const CLICKER_TUTORIAL_STEPS: TutorialStep[] = [
     id: "drawer",
     title: "하단 패널",
     focus: "drawer",
-    body: "생산·강화·회로·상점·지역 탭이 여기에 있습니다. 손잡이를 위로 끌어 넓힐 수 있습니다.",
+    body: "생산·강화·스킬·상점·지역 탭이 여기에 있습니다. 손잡이를 위로 끌어 넓힐 수 있습니다.",
   },
   {
     id: "goal",

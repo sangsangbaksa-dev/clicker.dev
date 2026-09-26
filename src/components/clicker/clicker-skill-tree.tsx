@@ -100,9 +100,9 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
   const head = (
     <div className="clicker-skill-tree-head">
       <div>
-        <div className="clicker-skill-tree-title">CIRCUITS · 회로</div>
+        <div className="clicker-skill-tree-title">SKILLS · 스킬</div>
         <div className="clicker-skill-tree-sub">
-          회로 {treeNodes.length}개 · 활성 {ownedCount} — 선행 회로를 해금하면 다음 노드가 열립니다
+          스킬 {treeNodes.length}개 · 활성 {ownedCount} — 선행 스킬을 해금하면 다음 노드가 열립니다
         </div>
       </div>
       <div className="clicker-skill-tree-sp" aria-live="polite">
@@ -116,7 +116,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
       <div className="clicker-skill-tree">
         {head}
         <p className="clicker-skill-tree-empty" role="status">
-          회로가 아직 열리지 않았습니다. CORE를 모아 노드를 해금하세요.
+          스킬이 아직 열리지 않았습니다. CORE를 모아 노드를 해금하세요.
         </p>
       </div>
     )
@@ -134,7 +134,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
       </ul>
       {ownedCount === treeNodes.length ? (
         <p className="clicker-skill-tree-empty" role="status">
-          모든 회로를 활성화했습니다.
+          모든 스킬을 활성화했습니다.
         </p>
       ) : null}
 
@@ -202,7 +202,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
           <p className="clicker-skill-detail-effect">{selected.description}</p>
           {selected.status === "LOCKED" ? (
             <p className="clicker-skill-detail-requires">
-              선행 회로 ·{" "}
+              선행 스킬 ·{" "}
               {selected.requires
                 .filter((id) => byId.get(id)?.status !== "OWNED")
                 .map((id) => byId.get(id)?.name ?? id)
@@ -240,7 +240,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
             {selected.status === "OWNED"
               ? "활성화됨"
               : selected.status === "LOCKED"
-                ? "선행 회로 필요"
+                ? "선행 스킬 필요"
                 : selected.status === "POOR"
                 ? `CORE 부족 · ${formatNumber(selected.cost)} 필요`
                 : `${formatNumber(selected.cost)} CORE로 해금`}
@@ -248,7 +248,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
         </aside>
       ) : (
         <p className="clicker-skill-tree-empty" role="status">
-          회로 노드를 선택하면 비용과 효과가 여기에 표시됩니다.
+          스킬을 선택하면 비용과 효과가 여기에 표시됩니다.
         </p>
       )}
     </div>

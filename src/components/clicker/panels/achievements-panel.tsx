@@ -16,7 +16,6 @@ export function ClickerAchievementsPanel({ game, meta }: { game: ClickerGame; me
           [
             ["광산 최고", formatNumber(meta.statistics.bestMineHaul)],
             ["광산 입장", formatNumber(meta.statistics.mineSessions)],
-            ["광석 파괴", formatNumber(meta.statistics.oresBroken)],
             ["황금 광맥", formatNumber(meta.statistics.veins)],
           ] as const
         ).map(([label, value]) => (

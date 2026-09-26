@@ -22,7 +22,6 @@ import {
   clickerFinishMineSession,
   clickerGameConfig,
   clickerMineSessionStart,
-  clickerOreBroken,
   clickerRebirth,
   clickerResolveCrisis,
   clickerReturnHome,
@@ -339,7 +338,7 @@ export function useClicker() {
     commit(result.value)
     playSfx("skillUnlock")
     const name = clickerGameConfig.skillNodes.find((s) => s.id === id)?.name ?? id
-    flash(`회로 해금 · ${name}`)
+    flash(`스킬 해금 · ${name}`)
   }, [commit, flash, refuse])
 
   const drinkPotion = useCallback((id: string) => {
@@ -517,16 +516,6 @@ export function useClicker() {
     flash(muted ? "효과음 끔" : "효과음 켬")
   }, [updateSettings, flash])
 
-  const toggleMusic = useCallback(() => {
-    updateSettings({ musicMuted: !saveRef.current?.settings.musicMuted })
-    playSfx("toggle")
-  }, [updateSettings])
-
-  const setMusicVolume = useCallback(
-    (musicVolume: number) => updateSettings({ musicVolume: Math.min(1, Math.max(0, musicVolume)) }),
-    [updateSettings],
-  )
-
   /** Title CTA: always land on upgrades/skills hub. Mine opens only via hub CTA. */
   const startFromTitle = useCallback(() => {
     if (!saveRef.current) return
@@ -574,12 +563,6 @@ export function useClicker() {
     },
     [commit, flash],
   )
-
-  const oreBroken = useCallback(() => {
-    if (!saveRef.current) return
-    commit(clickerOreBroken(saveRef.current))
-    playSfx("oreBreak")
-  }, [commit])
 
   const drillOverdrive = useCallback(() => {
     if (!saveRef.current) return
@@ -698,13 +681,10 @@ export function useClicker() {
     adminPotions,
     adminUnlock,
     toggleMute,
-    toggleMusic,
-    setMusicVolume,
     startFromTitle,
     enterMine,
     mineEntryError,
     claimVein,
-    oreBroken,
     achievements,
     drill,
     drillOverdrive,

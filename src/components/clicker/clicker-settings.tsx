@@ -5,11 +5,9 @@ import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/cl
 
 type Props = {
   muted: boolean
-  musicMuted: boolean
-  musicVolume: number
   onToggleMute: () => void
-  onToggleMusic: () => void
-  onMusicVolume: (volume: number) => void
+  adminEnabled: boolean
+  onToggleAdmin: () => void
   onClose: () => void
 }
 
@@ -25,21 +23,18 @@ function useReducedMotion(): boolean {
   return reduced
 }
 
-/** Settings sheet — SFX, music and volume persist in the save; motion mirrors the OS. */
+/** Settings sheet — SFX persists in the save; motion mirrors the OS. */
 export function ClickerSettings({
   muted,
-  musicMuted,
-  musicVolume,
   onToggleMute,
-  onToggleMusic,
-  onMusicVolume,
+  adminEnabled,
+  onToggleAdmin,
   onClose,
 }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null)
   const reducedMotion = useReducedMotion()
   useClickerDialogFocus(rootRef)
   useClickerEscape(true, onClose)
-  const volumePct = Math.round(musicVolume * 100)
 
   return (
     <div className="clicker-settings-backdrop" onClick={onClose}>
@@ -79,35 +74,18 @@ export function ClickerSettings({
           </li>
           <li className="clicker-settings-row">
             <div className="clicker-settings-copy">
-              <strong>배경음악</strong>
-              <p>허브·광산·환생 장면마다 곡이 바뀌며 부드럽게 전환됩니다.</p>
+              <strong>관리자 모드</strong>
+              <p>화면 구석에 관리자 버튼이 생깁니다. CORE 지급·해금 등 치트는 이 브라우저 세이브에만 적용됩니다.</p>
             </div>
             <button
               type="button"
-              className={`clicker-settings-toggle${musicMuted ? "" : " is-on"}`}
-              aria-pressed={!musicMuted}
-              aria-label={musicMuted ? "배경음악 꺼짐 — 켜려면 탭" : "배경음악 켜짐 — 끄려면 탭"}
-              onClick={onToggleMusic}
+              className={`clicker-settings-toggle${adminEnabled ? " is-on" : ""}`}
+              aria-pressed={adminEnabled}
+              aria-label={adminEnabled ? "관리자 모드 켜짐 — 끄려면 탭" : "관리자 모드 꺼짐 — 켜려면 탭"}
+              onClick={onToggleAdmin}
             >
-              {musicMuted ? "꺼짐" : "켜짐"}
+              {adminEnabled ? "켜짐" : "꺼짐"}
             </button>
-          </li>
-          <li className="clicker-settings-row">
-            <label className="clicker-settings-copy" htmlFor="clicker-music-volume">
-              <strong>음악 볼륨</strong>
-              <p>{musicMuted ? "배경음악이 꺼져 있습니다." : `${volumePct}%`}</p>
-            </label>
-            <input
-              id="clicker-music-volume"
-              className="clicker-settings-range"
-              type="range"
-              min={0}
-              max={100}
-              step={5}
-              value={volumePct}
-              disabled={musicMuted}
-              onChange={(e) => onMusicVolume(Number(e.target.value) / 100)}
-            />
           </li>
           <li className="clicker-settings-row">
             <div className="clicker-settings-copy">

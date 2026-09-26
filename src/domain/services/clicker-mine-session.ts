@@ -5,7 +5,6 @@ export type MineSessionStart = {
   lifetimeCore: number
   clicks: number
   crits: number
-  oresBroken: number
   veins: number
   startedAt: number
 }
@@ -15,7 +14,6 @@ export type MineSessionSummary = {
   haul: number
   strikes: number
   crits: number
-  oresBroken: number
   veins: number
   seconds: number
   /** This haul beat the previous best. */
@@ -29,7 +27,6 @@ export function mineSessionStart(save: SaveData, now: number): MineSessionStart 
     lifetimeCore: save.runState.lifetimeCoreEnergy,
     clicks: stats.clicks,
     crits: stats.crits,
-    oresBroken: stats.oresBroken,
     veins: stats.veins,
     startedAt: now,
   }
@@ -52,7 +49,6 @@ export function summarizeMineSession(
       haul: Math.max(0, run.coreEnergy - enterMark),
       strikes: 0,
       crits: 0,
-      oresBroken: 0,
       veins: 0,
       seconds: Math.round((run.mineSessionDurationMs || 0) / 1000),
     }
@@ -61,7 +57,6 @@ export function summarizeMineSession(
     haul: Math.max(0, run.lifetimeCoreEnergy - start.lifetimeCore),
     strikes: Math.max(0, stats.clicks - start.clicks),
     crits: Math.max(0, stats.crits - start.crits),
-    oresBroken: Math.max(0, stats.oresBroken - start.oresBroken),
     veins: Math.max(0, stats.veins - start.veins),
     seconds: Math.max(0, Math.round((now - start.startedAt) / 1000)),
   }

@@ -11,7 +11,6 @@ import {
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
 import { formatNumber } from "@/domain/services/clicker-format"
 import { useClicker } from "@/hooks/use-clicker"
-import { useClickerBgm } from "@/hooks/use-clicker-bgm"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine } from "@/components/clicker/clicker-mine"
@@ -24,7 +23,7 @@ import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motio
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
-import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
+import { isClickerAdminAllowed, setClickerAdminEnabled } from "@/domain/services/clicker-admin-gate"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import { playLaser, playSfx, unlockSfx } from "@/components/clicker/clicker-sfx"
 import { ClickerAchievementsPanel } from "@/components/clicker/panels/achievements-panel"
@@ -37,7 +36,6 @@ import "./clicker.css"
 import "./clicker-polish.css"
 
 /** Next inlines NODE_ENV — production builds dead-code-eliminate admin JSX. */
-const CLICKER_ADMIN_UI = process.env.NODE_ENV !== "production"
 
 type TabId = "producers" | "upgrades" | "skills" | "shop" | "world" | "achievements" | "transcendence"
 
@@ -76,7 +74,7 @@ function CountUpNumber({ value }: { value: number }) {
 const DRAWER_FOOT_HINT: Record<TabId, string> = {
   producers: "생산자 구매",
   upgrades: "영구 강화",
-  skills: "회로 해금",
+  skills: "스킬 해금",
   shop: "LUMA 상점",
   world: "지역 이동 · Esc",
   achievements: "업적 1개당 생산 +1%",
@@ -172,22 +170,9 @@ export function ClickerApp() {
   const adminRef = useRef<HTMLElement | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
-  useClickerBgm(game.hud?.coreVisual, {
-    // Cinematics carry their own soundtrack.
-    scene: enteringMine || game.regionIntro
-      ? "silent"
-      : pendingRebirth || endingOpen
-        ? "chamber"
-        : game.save?.settings.playSurface === "mine"
-          ? "mine"
-          : "hub",
-    muted: game.otherTabActive || (game.save?.settings.musicMuted ?? false),
-    volume: game.save?.settings.musicVolume ?? 0,
-  })
-
   useClickerDialogFocus(crisisRef, Boolean(game.hud?.crisisActive))
   useClickerDialogFocus(storyBeatRef, Boolean(storyBeat))
-  useClickerDialogFocus(adminRef, CLICKER_ADMIN_UI && adminAllowed && adminOpen)
+  useClickerDialogFocus(adminRef, adminAllowed && adminOpen)
 
   // One auto-dismiss for every LUMA beat. The triggers below used to own their timers,
   // but their effects re-run on every tick and the cleanup kept cancelling them.
@@ -307,13 +292,7 @@ export function ClickerApp() {
   }, [])
 
   useEffect(() => {
-    // Defense in depth: build strip + host/?admin gate (never production).
-    // Do not auto-open the panel — launch button keeps the mine playable.
-    if (!CLICKER_ADMIN_UI) {
-      setAdminAllowed(false)
-      setAdminOpen(false)
-      return
-    }
+    // Read after mount (localStorage / URL). Don't auto-open the panel — the launch button keeps the mine playable.
     setAdminAllowed(isClickerAdminAllowed())
   }, [])
 
@@ -328,7 +307,7 @@ export function ClickerApp() {
         // Ending owns Esc (confirm cancel vs close) via ClickerEnding.
         return
       }
-      if (CLICKER_ADMIN_UI && adminOpen) {
+      if (adminOpen) {
         e.preventDefault()
         setAdminResetArmed(false)
         setAdminOpen(false)
@@ -607,7 +586,7 @@ export function ClickerApp() {
     [
       ["producers", "PRODUCERS", "생산자"],
       ["upgrades", "UPGRADES", "업그레이드"],
-      ["skills", "SKILLS", "스킬 회로"],
+      ["skills", "SKILLS", "스킬"],
       ["shop", "SHOP", "상점"],
       ["world", "WORLD", "지역"],
       ["achievements", "RECORDS", "업적"],
@@ -998,7 +977,6 @@ export function ClickerApp() {
                 playLaser={playLaser}
                 autoRate={game.drill?.rate ?? 0}
                 onVein={game.claimVein}
-                onOreBroken={game.oreBroken}
               />
             </div>
           ) : atHomeHub ? (
@@ -1339,7 +1317,7 @@ export function ClickerApp() {
             CORE <strong>{formatNumber(run.coreEnergy)}</strong>
             {game.snapshot ? ` · +${formatNumber(game.snapshot.perSecond)}/s` : ""}
             {tab === "skills"
-              ? ` · 회로 ${visibleSkillNodes.filter((n) => n.status === "OWNED").length}/${visibleSkillNodes.length}`
+              ? ` · 스킬 ${visibleSkillNodes.filter((n) => n.status === "OWNED").length}/${visibleSkillNodes.length}`
               : tab === "world"
                 ? ` · 해금 ${game.regions.filter((r) => r.unlocked).length}/${game.regions.length}`
                 : tab === "transcendence"
@@ -1353,11 +1331,14 @@ export function ClickerApp() {
       {settingsOpen ? (
         <ClickerSettings
           muted={game.save.settings.muted}
-          musicMuted={game.save.settings.musicMuted}
-          musicVolume={game.save.settings.musicVolume}
           onToggleMute={game.toggleMute}
-          onToggleMusic={game.toggleMusic}
-          onMusicVolume={game.setMusicVolume}
+          adminEnabled={adminAllowed}
+          onToggleAdmin={() => {
+            const next = !adminAllowed
+            setClickerAdminEnabled(next)
+            setAdminAllowed(isClickerAdminAllowed())
+            if (!next) setAdminOpen(false)
+          }}
           onClose={() => setSettingsOpen(false)}
         />
       ) : null}
@@ -1415,7 +1396,7 @@ export function ClickerApp() {
             title: game.regionIntro.name,
             body: game.regionIntro.description,
           }}
-          muted={game.save.settings.musicMuted}
+          muted={game.save.settings.muted}
           onDone={game.dismissRegionIntro}
         />
       ) : null}
@@ -1475,12 +1456,12 @@ export function ClickerApp() {
           </span>
         </button>
       ) : null}
-      {CLICKER_ADMIN_UI && adminAllowed && !adminOpen ? (
+      {adminAllowed && !adminOpen ? (
         <button
           type="button"
           className="clicker-admin-launch"
-          aria-label="임시 관리자 패널 열기"
-          title="개발 전용 · Esc로 닫기"
+          aria-label="관리자 패널 열기"
+          title="관리자 패널 · Esc로 닫기"
           onClick={() => setAdminOpen(true)}
         >
           관리자
@@ -1517,17 +1498,17 @@ export function ClickerApp() {
         />
       ) : null}
 
-      {CLICKER_ADMIN_UI && adminAllowed && adminOpen ? (
+      {adminAllowed && adminOpen ? (
         <aside
           ref={adminRef}
           className="clicker-admin"
           role="dialog"
           aria-modal="true"
-          aria-label="임시 관리자"
+          aria-label="관리자"
         >
-          <h2>임시 관리자 · 플레이테스트</h2>
+          <h2>관리자</h2>
           <p style={{ margin: "0 0 8px", fontSize: 11, color: "var(--text-2)" }}>
-            개발 전용 · loopback 또는 ?admin=1 · production 빌드에서 UI·치트 모두 차단 · Esc로 닫기
+            이 브라우저의 세이브에만 적용됩니다 · 설정에서 관리자 모드를 끌 수 있습니다 · Esc로 닫기
           </p>
           <div className="clicker-admin-grid">
             <button type="button" className="clicker-primary" aria-label="치트 · CORE 1천 지급" onClick={() => game.adminGrant(1_000)}>
@@ -1570,7 +1551,7 @@ export function ClickerApp() {
           </div>
           {adminResetArmed ? (
             <p style={{ margin: "8px 0 0", fontSize: 11, color: "color-mix(in srgb, #9ec4d0 75%, white)" }}>
-              플레이테스트 전용 · 로컬 세이브가 즉시 삭제됩니다. Esc/패널 닫기 또는 8초 후 취소.
+              로컬 세이브가 즉시 삭제됩니다. Esc/패널 닫기 또는 8초 후 취소.
             </p>
           ) : null}
           <button

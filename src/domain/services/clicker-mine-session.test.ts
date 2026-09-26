@@ -18,7 +18,7 @@ test("session summary diffs lifetime CORE and counters", () => {
     },
   }
   const summary = summarizeMineSession(start, after, NOW + 12_400)
-  assert.deepEqual(summary, { haul: 500, strikes: 40, crits: 6, oresBroken: 1, veins: 1, seconds: 12 })
+  assert.deepEqual(summary, { haul: 500, strikes: 40, crits: 6, veins: 1, seconds: 12 })
 })
 
 test("session summary without a start falls back to the CORE-at-enter mark", () => {
