@@ -280,6 +280,12 @@ button.clicker-metric-action.is-active {
   box-shadow: 0 8px 20px color-mix(in srgb, var(--void) 55%, transparent);
 }
 
+/* The first chip sits on the screen edge: open its tip rightward instead of centred. */
+.clicker-stage-region-slot:first-child .clicker-stage-region-tip {
+  left: 0;
+  transform: none;
+}
+
 .clicker-stage-region-tip strong {
   display: block;
   margin-bottom: 3px;
@@ -399,6 +405,8 @@ button.clicker-metric-action.is-active {
 
 .clicker-goal {
   background: color-mix(in srgb, #0b0f1a 80%, transparent);
+  /* A compact card, not a full-height column over the region art. */
+  align-self: start;
   max-width: min(36vw, 280px);
 }
 

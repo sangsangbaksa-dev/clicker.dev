@@ -727,3 +727,9 @@
   mask-image: radial-gradient(circle at 50% 50%, #000 42%, transparent 62%);
   -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 42%, transparent 62%);
 }
+
+/* left: 50% would cap the shrink-to-fit width at half the screen and wrap the phase name. */
+.clicker-rebirth-phase {
+  width: max-content;
+  max-width: 92vw;
+}
