@@ -6,7 +6,8 @@ import type { RegionDef } from "../../domain/entities/clicker"
  * (`run.currentRegionId`); rebirth returns home → Core Mine bias.
  * The timed mine exists only at home; every other region has one activity usable only
  * while standing there, and the later regions add a hands-on `challenge` mini-game.
- * `intro` plays once, on the first visit.
+ * `intro` plays once, on the first visit. Every region away from home also has a monster `hunt`
+ * (monsters live in `monsters.ts`).
  */
 export const CLICKER_REGIONS: RegionDef[] = [
   {
@@ -26,6 +27,22 @@ export const CLICKER_REGIONS: RegionDef[] = [
     intro: { video: "/clicker/region/signal_relay_intro.mp4", poster: "/clicker/bg/region_signal_relay.png" },
     unlockAtLifetimeEnergy: 250_000,
     productionMultiplier: 1.12,
+    hunt: {
+      name: "잔향 사냥",
+      description: "중계 복도의 잔향체 3파 + 보스 공명 파수꾼 · 45초",
+      waves: [
+        ["relay_mite", "relay_mite", "relay_mite"],
+        ["relay_mite", "static_wisp", "relay_mite", "relay_mite"],
+        ["relay_golem", "static_wisp", "relay_mite"],
+      ],
+      boss: "relay_warden",
+      bossAdd: "relay_mite",
+      timeLimitSec: 45,
+      rewardSeconds: 120,
+      cooldownSec: 300,
+      hue: 188,
+      look: "relay",
+    },
     activity: {
       kind: "PRODUCTION_BOOST",
       name: "주파수 증폭",
@@ -44,6 +61,22 @@ export const CLICKER_REGIONS: RegionDef[] = [
     unlockAtLifetimeEnergy: 2_000_000,
     clickMultiplier: 1.08,
     productionMultiplier: 1.1,
+    hunt: {
+      name: "보관소 소탕",
+      description: "위상 나방·먼지 망령·금고 수호체 3파 + 보스 위상 모체 · 50초",
+      waves: [
+        ["phase_moth", "phase_moth", "phase_moth", "phase_moth"],
+        ["dust_wraith", "phase_moth", "dust_wraith"],
+        ["vault_keeper", "phase_moth", "phase_moth", "dust_wraith"],
+      ],
+      boss: "phase_matriarch",
+      bossAdd: "phase_moth",
+      timeLimitSec: 50,
+      rewardSeconds: 120,
+      cooldownSec: 300,
+      hue: 272,
+      look: "phase",
+    },
     activity: {
       kind: "PHASE_DEPOSIT",
       name: "위상 예치",
@@ -71,6 +104,22 @@ export const CLICKER_REGIONS: RegionDef[] = [
       rewardSeconds: 90,
       cooldownSec: 180,
     },
+    hunt: {
+      name: "첨탑 토벌",
+      description: "스파크 임프·폭풍의 눈·뇌운 거인 3파 + 보스 천둥 군주 · 55초",
+      waves: [
+        ["spark_imp", "spark_imp", "storm_eye", "spark_imp"],
+        ["storm_eye", "storm_eye", "spark_imp", "spark_imp"],
+        ["thunder_giant", "storm_eye", "spark_imp", "spark_imp"],
+      ],
+      boss: "storm_lord",
+      bossAdd: "spark_imp",
+      timeLimitSec: 55,
+      rewardSeconds: 120,
+      cooldownSec: 300,
+      hue: 48,
+      look: "storm",
+    },
     activity: {
       kind: "LIGHTNING_STORM",
       name: "낙뢰 소환",
@@ -96,6 +145,22 @@ export const CLICKER_REGIONS: RegionDef[] = [
       rewardSeconds: 120,
       cooldownSec: 180,
     },
+    hunt: {
+      name: "단층 정화",
+      description: "암석 진드기·마그마 분사체·지각 거수 3파 + 보스 단층 포식자 · 60초",
+      waves: [
+        ["rock_tick", "rock_tick", "magma_spitter", "rock_tick"],
+        ["crust_behemoth", "rock_tick", "rock_tick"],
+        ["crust_behemoth", "magma_spitter", "magma_spitter", "rock_tick"],
+      ],
+      boss: "fault_devourer",
+      bossAdd: "rock_tick",
+      timeLimitSec: 60,
+      rewardSeconds: 120,
+      cooldownSec: 300,
+      hue: 16,
+      look: "fault",
+    },
     activity: {
       kind: "PRODUCTION_BURST",
       name: "지각 붕괴",
@@ -120,6 +185,22 @@ export const CLICKER_REGIONS: RegionDef[] = [
       durationSec: 15,
       rewardSeconds: 90,
       cooldownSec: 180,
+    },
+    hunt: {
+      name: "공장 진압",
+      description: "폭주 드론·레이저 포탑·조립 기계 3파 + 보스 파운드리 코어 · 60초",
+      waves: [
+        ["rogue_drone", "rogue_drone", "rogue_drone", "laser_turret", "rogue_drone"],
+        ["assembler", "laser_turret", "rogue_drone", "rogue_drone"],
+        ["assembler", "assembler", "laser_turret", "rogue_drone"],
+      ],
+      boss: "foundry_core",
+      bossAdd: "rogue_drone",
+      timeLimitSec: 60,
+      rewardSeconds: 120,
+      cooldownSec: 300,
+      hue: 340,
+      look: "foundry",
     },
     activity: {
       kind: "DRONE_SWARM",

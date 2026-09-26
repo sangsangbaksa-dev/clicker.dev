@@ -4,7 +4,8 @@
  *
  * Player model: mine sessions back-to-back at CLICKS_PER_SEC (+ assist drill strikes),
  * golden veins claimed when they spawn, region activities used when ready (then back home,
- * where the mine is), field challenges at 80% success, and a
+ * where the mine is), field challenges at 80% success, monster hunts played by a scripted
+ * hunter (HUNTER_TAPS taps/s, 85% accuracy), and a
  * payback-greedy shopper (producer level / upgrade / skill node with the best
  * cost ÷ income gain, cheap utility nodes bought outright). Potions and crisis are ignored,
  * so a real player lands a little faster than this.
@@ -43,7 +44,10 @@ import {
   activateRegion,
   claimRegionChallenge,
   regionChallengeError,
+  claimRegionHunt,
+  regionHuntError,
 } from "../src/domain/services/clicker-engine.ts"
+import { autoplayHunt, huntCritChance, huntPower, summarizeHunt } from "../src/domain/services/clicker-hunt.ts"
 import { autoDrillRate, awardAchievements, claimGoldenVein, VEIN_SPAWN_CHANCE } from "../src/domain/services/clicker-bonus.ts"
 
 const CLICKS_PER_SEC = Number(process.argv[2] ?? 6)
@@ -107,7 +111,7 @@ function income(s: SaveData): number {
     st.lightningChance * st.lightningMultiplier * (1 + 0.5 * st.lightningChains) +
     (st.quakeMultiplier > 0 ? st.quakeMultiplier / st.quakeInterval : 0)
   const sessionSec = 10 + config.skillNodes.filter((n) => run.ownedSkillNodeIds.includes(n.id)).reduce((a, n) => a + (n.mineSessionSecondsAdd ?? 0), 0)
-  const duty = sessionSec / (sessionSec + 30)
+  const duty = sessionSec / (sessionSec + 20)
   const drill = config.skillNodes.filter((n) => run.ownedSkillNodeIds.includes(n.id)).reduce((a, n) => a + (n.autoDrillPerSecond ?? 0), 0)
   return prod + droneEnergyPerSecond(run, meta, config) + perClick * (CLICKS_PER_SEC + drill) * duty
 }
@@ -180,7 +184,10 @@ const credit = (key: string, before: number) => {
 }
 /** Share of targets a decent player hits in a region field challenge. */
 const CHALLENGE_SCORE = 0.8
+/** Scripted hunter speed; NO_HUNT=1 skips hunts to compare against the pre-hunt pacing. */
+const HUNTER_TAPS = knob("HUNTER_TAPS", 5)
 let runStart = 0
+let milestone = 3
 let mineCycles = 0
 
 function bestRegion(): void {
@@ -212,6 +219,44 @@ function bestRegion(): void {
     if (played.error) continue
     save = { ...save, runState: played.run, metaState: played.meta }
     sources[`challenge:${region.id}`] = (sources[`challenge:${region.id}`] ?? 0) + save.runState.lifetimeCoreEnergy - before
+    shop()
+  }
+  // Monster hunts: played out by the scripted hunter; the fight clock runs the ticks.
+  for (const region of process.env.NO_HUNT ? [] : config.regions) {
+    if (!region.hunt || !isRegionUnlocked(save.runState, config, region.id)) continue
+    if (save.runState.currentRegionId !== region.id) {
+      const moved = travelToRegion(save.runState, config, region.id)
+      if (moved.error) continue
+      save = { ...save, runState: moved.run }
+    }
+    if (regionHuntError(save.runState, config, region.id, now)) continue
+    const played = autoplayHunt(
+      region.hunt,
+      config.monsters,
+      {
+        power: huntPower(save.metaState.rebirthCount),
+        critChance: huntCritChance(derivedClick(save.runState, save.metaState, config).critChance),
+        tapsPerSec: HUNTER_TAPS,
+        accuracy: 0.85,
+        reactionMs: 600,
+      },
+      rng,
+    )
+    const summary = summarizeHunt(played)
+    for (let sec = 0; sec < Math.ceil(played.endedAt / 1000) + 3; sec++) step(1)
+    const before = save.runState.lifetimeCoreEnergy
+    const claimed = claimRegionHunt(save.runState, save.metaState, config, region.id, {
+      score: summary.score,
+      kills: summary.kills,
+      bossDown: summary.bossDown,
+      flawless: summary.flawless,
+      cleared: summary.outcome === "won",
+    }, now)
+    if (claimed.error) continue
+    save = { ...save, runState: claimed.run, metaState: claimed.meta }
+    sources[`hunt:${region.id}`] = (sources[`hunt:${region.id}`] ?? 0) + save.runState.lifetimeCoreEnergy - before
+    // A hunt takes a while; a real player spends the payout before heading to the next one.
+    shop()
   }
   // The mine only exists at home: walk back before the next session.
   if (save.runState.currentRegionId !== homeRegionId(config)) {
@@ -254,6 +299,13 @@ while (elapsed() < MAX_HOURS * 3600) {
   }
   save = { ...save, metaState: awardAchievements(save.runState, save.metaState, config.achievements).meta }
   shop()
+  if (process.env.MILESTONES && save.metaState.rebirthCount === 0) {
+    const life = save.runState.lifetimeCoreEnergy
+    while (life >= 10 ** milestone) {
+      console.log(`  WL1 1e${milestone} at ${fmt(elapsed())} · prod/s ${productionSnapshot(save.runState, save.metaState, config, now).perSecond.toExponential(1)} · lv ${Object.values(save.runState.producerLevels).reduce((a, b) => a + b, 0)}`)
+      milestone++
+    }
+  }
 
   if (process.env.TRACE && (process.env.TRACE === "all" || Math.floor(elapsed()) % 60 < 12)) {
     const r = save.runState

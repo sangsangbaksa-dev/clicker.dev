@@ -7,6 +7,7 @@ import type {
   SkillBranch,
   UpgradeCategory,
   RegionChallengeKind,
+  MonsterLook,
 } from "../entities/clicker"
 import {
   canRebirth,
@@ -385,6 +386,19 @@ export type RegionView = {
   isCurrent: boolean
   activity: RegionActivityView | null
   challenge: RegionChallengeView | null
+  hunt: RegionHuntView | null
+}
+
+export type RegionHuntView = {
+  name: string
+  description: string
+  bossName: string
+  timeLimitSec: number
+  rewardSeconds: number
+  hue: number
+  look: MonsterLook
+  /** ms until it can be played again (0 = ready). */
+  readyInMs: number
 }
 
 export type RegionChallengeView = {
@@ -475,6 +489,18 @@ export function buildRegionViews(run: RunState, config: GameConfig, now = Date.n
             readyInMs: Math.max(0, (run.regionCooldowns[region.id] ?? 0) - now),
             activeMs: regionActivityActiveMs(run, region.activity.kind, now),
             deposit: region.activity.kind === "PHASE_DEPOSIT" ? run.vaultDeposit : 0,
+          }
+        : null,
+      hunt: region.hunt
+        ? {
+            name: region.hunt.name,
+            description: region.hunt.description,
+            bossName: config.monsters.find((m) => m.id === region.hunt!.boss)?.name ?? region.hunt.boss,
+            timeLimitSec: region.hunt.timeLimitSec,
+            rewardSeconds: region.hunt.rewardSeconds,
+            hue: region.hunt.hue,
+            look: region.hunt.look,
+            readyInMs: Math.max(0, (run.huntCooldowns[region.id] ?? 0) - now),
           }
         : null,
       challenge: region.challenge

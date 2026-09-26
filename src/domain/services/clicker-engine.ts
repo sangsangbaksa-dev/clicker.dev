@@ -24,7 +24,8 @@ import {
 
 /** Base timed-mine length before skill-tree extensions. Balance PROVISIONAL. */
 export const MINE_SESSION_BASE_MS = 10_000
-export const MINE_REENTER_COOLDOWN_MS = 30_000
+/** 20s (was 30s): early on the mine is the only income, and 10s on / 30s off dragged the first hour. */
+export const MINE_REENTER_COOLDOWN_MS = 20_000
 export const MINE_REENTER_CORE_COST = 25
 
 export type Rng = () => number
@@ -81,12 +82,14 @@ export function createInitialRun(now: number, meta: MetaState, config: GameConfi
     mineSessionEndsAt: 0,
     mineCooldownUntil: 0,
     mineSessionCoreAtEnter: 0,
+    mineSessionLifetimeAtEnter: 0,
     mineSessionDurationMs: 0,
     eventBoosts: [],
     drillOverdriveUntil: 0,
     drillOverdriveReadyAt: 0,
     regionCooldowns: {},
     challengeCooldowns: {},
+    huntCooldowns: {},
     vaultDeposit: 0,
     vaultReadyAt: 0,
     lightningStormUntil: 0,
@@ -109,6 +112,10 @@ export function createInitialMeta(): MetaState {
       oresBroken: 0,
       mineSessions: 0,
       bestMineHaul: 0,
+      monstersSlain: 0,
+      bossesSlain: 0,
+      huntsCleared: 0,
+      flawlessHunts: 0,
     },
     achievementIds: [],
     visitedRegionIds: [],
@@ -231,6 +238,7 @@ export function enterClickerMine(
         coreEnergy: coreAfterCost,
         mineSessionEndsAt: now + durationMs,
         mineSessionCoreAtEnter: coreAfterCost,
+        mineSessionLifetimeAtEnter: save.runState.lifetimeCoreEnergy,
         mineSessionDurationMs: durationMs,
       },
     },
@@ -253,6 +261,7 @@ export function exitClickerMine(save: SaveData, now: number): SaveData {
       mineSessionEndsAt: 0,
       mineCooldownUntil: now + MINE_REENTER_COOLDOWN_MS,
       mineSessionCoreAtEnter: 0,
+      mineSessionLifetimeAtEnter: 0,
       mineSessionDurationMs: 0,
     },
   }
@@ -1251,6 +1260,74 @@ export function claimRegionChallenge(
   }
 }
 
+/** Why the region's monster hunt can't start right now, or undefined when it can. */
+export function regionHuntError(run: RunState, config: GameConfig, regionId: string, now: number): string | undefined {
+  const region = config.regions.find((r) => r.id === regionId)
+  const hunt = region?.hunt
+  if (!region || !hunt) return "이 지역에는 사냥할 몬스터가 없습니다."
+  if (run.currentRegionId !== regionId) return `${region.name}에 있어야 합니다.`
+  if (run.crisisActive) return "위기 중에는 사냥할 수 없습니다."
+  const readyAt = run.huntCooldowns[regionId] ?? 0
+  if (readyAt > now) return `${hunt.name} 재출격 대기 ${Math.ceil((readyAt - now) / 1000)}초`
+  return undefined
+}
+
+export type HuntClaim = {
+  /** 0..1 — see `huntScore`. */
+  score: number
+  kills: number
+  bossDown: boolean
+  flawless: boolean
+  cleared: boolean
+}
+
+/**
+ * Settle a finished hunt: a flawless full clear pays `rewardSeconds` of current production, less
+ * by score. Kills and boss kills go to the permanent statistics. Starts the cooldown whatever the score.
+ */
+export function claimRegionHunt(
+  run: RunState,
+  meta: MetaState,
+  config: GameConfig,
+  regionId: string,
+  claim: HuntClaim,
+  now: number
+): { run: RunState; meta: MetaState; reward: number; error?: string } {
+  const error = regionHuntError(run, config, regionId, now)
+  if (error) return { run, meta, reward: 0, error }
+  const hunt = config.regions.find((r) => r.id === regionId)!.hunt!
+  const ratio = Number.isFinite(claim.score) ? clamp(claim.score, 0, 1) : 0
+  const reward = productionSnapshot(run, meta, config, now).perSecond * hunt.rewardSeconds * ratio
+  // Kills are capped at what one hunt can hold so a tampered claim can't farm the bestiary.
+  const maxKills = hunt.waves.flat().length + 1 + 4
+  const kills = Math.min(maxKills, Math.max(0, Math.floor(claim.kills) || 0))
+  const stats = meta.statistics
+  return {
+    run: refreshObjective(
+      {
+        ...run,
+        coreEnergy: run.coreEnergy + reward,
+        lifetimeCoreEnergy: run.lifetimeCoreEnergy + reward,
+        huntCooldowns: { ...run.huntCooldowns, [regionId]: now + hunt.cooldownSec * 1000 },
+      },
+      meta,
+      config
+    ),
+    meta: {
+      ...meta,
+      totalCoreEnergy: meta.totalCoreEnergy + reward,
+      statistics: {
+        ...stats,
+        monstersSlain: (stats.monstersSlain ?? 0) + kills,
+        bossesSlain: (stats.bossesSlain ?? 0) + (claim.bossDown ? 1 : 0),
+        huntsCleared: (stats.huntsCleared ?? 0) + (claim.cleared ? 1 : 0),
+        flawlessHunts: (stats.flawlessHunts ?? 0) + (claim.cleared && claim.flawless ? 1 : 0),
+      },
+    },
+    reward,
+  }
+}
+
 export function isRegionUnlocked(run: RunState, config: GameConfig, regionId: string): boolean {
   const region = config.regions.find((r) => r.id === regionId)
   if (!region) return false
@@ -1262,6 +1339,8 @@ export function homeRegionId(config: GameConfig): string {
 }
 
 export const MINE_HOME_ONLY_ERROR = "광산은 Core Mine에서만 입장할 수 있습니다."
+/** Travelling mid-session would carry the mine (and its strikes) into another region's bonuses. */
+export const MINE_TRAVEL_ERROR = "광산 세션 중에는 이동할 수 없습니다."
 
 /** The timed mine exists only in the home region; other regions run their own activity. */
 export function regionHasMine(run: RunState, config: GameConfig): boolean {
@@ -1277,6 +1356,7 @@ export function travelToRegion(
   if (!region) return { run, error: "지역을 찾을 수 없습니다." }
   if (!isRegionUnlocked(run, config, regionId)) return { run, error: "아직 잠겨 있습니다." }
   if (run.currentRegionId === regionId) return { run, error: "이미 이 지역입니다." }
+  if (run.mineSessionEndsAt > 0) return { run, error: MINE_TRAVEL_ERROR }
   return { run: { ...run, currentRegionId: regionId } }
 }
 
@@ -1289,6 +1369,7 @@ export function markRegionVisited(meta: MetaState, regionId: string): { meta: Me
 export function returnHomeRegion(run: RunState, config: GameConfig): { run: RunState; error?: string } {
   const homeId = homeRegionId(config)
   if (run.currentRegionId === homeId) return { run, error: "이미 Core Mine에 있습니다." }
+  if (run.mineSessionEndsAt > 0) return { run, error: MINE_TRAVEL_ERROR }
   return { run: { ...run, currentRegionId: homeId } }
 }
 
@@ -1387,6 +1468,7 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
           run.regionCooldowns && typeof run.regionCooldowns === "object" ? { ...run.regionCooldowns } : {},
         challengeCooldowns:
           run.challengeCooldowns && typeof run.challengeCooldowns === "object" ? { ...run.challengeCooldowns } : {},
+        huntCooldowns: run.huntCooldowns && typeof run.huntCooldowns === "object" ? { ...run.huntCooldowns } : {},
         costScale:
           typeof run.costScale === "number" && run.costScale > 0
             ? run.costScale

@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
@@ -17,6 +18,7 @@ import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine } from "@/components/clicker/clicker-mine"
 import { ClickerCinematic } from "@/components/clicker/clicker-cinematic"
 import { ClickerRegionChallenge } from "@/components/clicker/clicker-region-challenge"
+import { ClickerHunt } from "@/components/clicker/clicker-hunt"
 import { MineArt } from "@/data/clicker/mine-assets"
 import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
 import { ClickerOtherTab } from "@/components/clicker/clicker-other-tab"
@@ -119,6 +121,12 @@ export function ClickerApp() {
   const [enteringMine, setEnteringMine] = useState(false)
   /** Region whose field challenge is open (mini-game overlay), or null. */
   const [challengeRegionId, setChallengeRegionId] = useState<string | null>(null)
+  /** Region whose monster hunt is open, with the loadout and reward rate fixed at the start. */
+  const [huntSession, setHuntSession] = useState<{
+    regionId: string
+    loadout: { power: number; critChance: number }
+    rewardAtFull: number
+  } | null>(null)
 
   // Prime Web Audio on first gesture so click/laser SFX are not stuck suspended.
   useEffect(() => {
@@ -178,9 +186,11 @@ export function ClickerApp() {
       ? "silent"
       : pendingRebirth || endingOpen
         ? "chamber"
-        : game.save?.settings.playSurface === "mine"
-          ? "mine"
-          : "hub",
+        : huntSession
+          ? "hunt"
+          : game.save?.settings.playSurface === "mine"
+            ? "mine"
+            : "hub",
     muted: game.otherTabActive || (game.save?.settings.musicMuted ?? false),
     volume: game.save?.settings.musicVolume ?? 0,
   })
@@ -321,8 +331,8 @@ export function ClickerApp() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented) return
-      // Rebirth and settings own Esc themselves.
-      if (pendingRebirth || settingsOpen) return
+      // Rebirth, settings and the full-screen hunt / challenge overlays own Esc themselves.
+      if (pendingRebirth || settingsOpen || huntSession || challengeRegionId) return
 
       if (endingOpen) {
         // Ending owns Esc (confirm cancel vs close) via ClickerEnding.
@@ -369,6 +379,8 @@ export function ClickerApp() {
   }, [
     pendingRebirth,
     settingsOpen,
+    huntSession,
+    challengeRegionId,
     endingOpen,
     adminOpen,
     game.toast,
@@ -588,7 +600,9 @@ export function ClickerApp() {
   const mineRemainMs = Math.max(0, run.mineSessionEndsAt - tickNow)
   const mineRemainSec = mineRemainMs / 1000
   const mineDurationMs = Math.max(1, run.mineSessionDurationMs || 10_000)
-  const mineHaul = Math.max(0, run.coreEnergy - (run.mineSessionCoreAtEnter || 0))
+  const mineHaul = run.mineSessionLifetimeAtEnter
+    ? Math.max(0, run.lifetimeCoreEnergy - run.mineSessionLifetimeAtEnter)
+    : Math.max(0, run.coreEnergy - (run.mineSessionCoreAtEnter || 0))
   const mineCooldownSec = Math.ceil((game.mineGate?.cooldownLeftMs ?? 0) / 1000)
   const mineEntryCost = game.mineGate?.cost ?? 0
   const stageBg = inMine
@@ -1022,16 +1036,43 @@ export function ClickerApp() {
                 <span className="clicker-hub-enter-sub">입장료 {formatNumber(mineEntryCost)} CORE</span>
               ) : null}
             </button>
-          ) : game.currentRegion?.activity || game.currentRegion?.challenge ? (() => {
-            // Away from home there is no mine: the region's own activity and challenge take the stage.
+          ) : game.currentRegion?.activity || game.currentRegion?.challenge || game.currentRegion?.hunt ? (() => {
+            // Away from home there is no mine: the region's hunt, activity and challenge take the stage.
             const region = game.currentRegion
             const act = region.activity
             const challenge = region.challenge
+            const hunt = region.hunt
             const busy = (act?.activeMs ?? 0) > 0
             const cooling = (act?.readyInMs ?? 0) > 0
             return (
               <div className="clicker-region-station" aria-label={`${region.name} · 지역 활동`}>
                 <p className="clicker-region-station-kicker">{region.name} · 지역 활동</p>
+                {hunt ? (
+                  <button
+                    type="button"
+                    className="clicker-region-activity is-hunt"
+                    style={{ "--m-h": String(hunt.hue) } as CSSProperties}
+                    disabled={hunt.readyInMs > 0 || regionIntroPlaying}
+                    title={hunt.description}
+                    aria-label={`몬스터 사냥 · ${hunt.name} · ${hunt.description}`}
+                    onClick={() => {
+                      if (!game.canStartHunt(region.id)) return
+                      setHuntSession({
+                        regionId: region.id,
+                        loadout: game.huntLoadout(),
+                        rewardAtFull: (game.snapshot?.perSecond ?? 0) * hunt.rewardSeconds,
+                      })
+                    }}
+                  >
+                    <em>MONSTER HUNT · 보스 {hunt.bossName}</em>
+                    <strong>⚔ {hunt.name}</strong>
+                    <span>
+                      {hunt.readyInMs > 0
+                        ? `재출격 ${Math.ceil(hunt.readyInMs / 1000)}초`
+                        : `${hunt.description} · 보상 최대 생산 ${hunt.rewardSeconds}초분`}
+                    </span>
+                  </button>
+                ) : null}
                 {challenge ? (
                   <button
                     type="button"
@@ -1400,6 +1441,28 @@ export function ClickerApp() {
               game.claimChallenge(region.id, score)
             }}
             onCancel={() => setChallengeRegionId(null)}
+          />
+        )
+      })()}
+
+      {(() => {
+        if (!huntSession) return null
+        const region = game.config.regions.find((r) => r.id === huntSession.regionId)
+        if (!region?.hunt) return null
+        return (
+          <ClickerHunt
+            key={region.id}
+            def={region.hunt}
+            monsters={game.config.monsters}
+            regionName={region.name}
+            background={region.bgAssetId}
+            loadout={huntSession.loadout}
+            rewardAtFull={huntSession.rewardAtFull}
+            onFinish={(claim) => {
+              setHuntSession(null)
+              game.claimHunt(region.id, claim)
+            }}
+            onCancel={() => setHuntSession(null)}
           />
         )
       })()}

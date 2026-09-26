@@ -37,7 +37,7 @@ export function mineSessionStart(save: SaveData, now: number): MineSessionStart 
 
 /**
  * Diff the session. `start` may be missing after a reload mid-session — the haul then
- * falls back to the CORE-at-enter mark and the counters read as 0.
+ * falls back to the lifetime-at-enter mark and the counters read as 0.
  */
 export function summarizeMineSession(
   start: MineSessionStart | null,
@@ -47,9 +47,11 @@ export function summarizeMineSession(
   const stats = before.metaState.statistics
   const run = before.runState
   if (!start) {
-    const enterMark = run.mineSessionCoreAtEnter || run.coreEnergy
+    const haul = run.mineSessionLifetimeAtEnter
+      ? run.lifetimeCoreEnergy - run.mineSessionLifetimeAtEnter
+      : run.coreEnergy - (run.mineSessionCoreAtEnter || run.coreEnergy)
     return {
-      haul: Math.max(0, run.coreEnergy - enterMark),
+      haul: Math.max(0, haul),
       strikes: 0,
       crits: 0,
       oresBroken: 0,

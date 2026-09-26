@@ -48,6 +48,12 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
   const durationMs = durationSec * 1000
   const phase: Phase = clock < COUNTDOWN_MS ? "countdown" : clock < COUNTDOWN_MS + durationMs ? "play" : "done"
 
+  // Read through a ref: restarting the clock on a mute toggle would replay the countdown.
+  const mutedRef = useRef(muted)
+  useEffect(() => {
+    mutedRef.current = muted
+  }, [muted])
+
   useEffect(() => {
     const t0 = performance.now()
     let raf = 0
@@ -55,14 +61,14 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
       const t = performance.now() - t0
       setClock(t)
       if (t >= COUNTDOWN_MS + durationMs) {
-        playChallengeCue(muted, "done")
+        playChallengeCue(mutedRef.current, "done")
         return
       }
       raf = window.requestAnimationFrame(loop)
     }
     raf = window.requestAnimationFrame(loop)
     return () => window.cancelAnimationFrame(raf)
-  }, [durationMs, muted])
+  }, [durationMs])
 
   const elapsed = Math.min(durationMs, Math.max(0, clock - COUNTDOWN_MS))
   const left = durationMs - elapsed

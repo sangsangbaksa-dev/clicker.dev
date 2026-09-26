@@ -2,6 +2,7 @@ import type { GameConfig } from "../../domain/entities/clicker"
 import { CLICKER_REGIONS } from "./regions.ts"
 import { MineArt } from "./mine-assets.ts"
 import { CLICKER_ACHIEVEMENTS } from "./achievements.ts"
+import { CLICKER_MONSTERS } from "./monsters.ts"
 
 export const CLICKER_ASSETS = {
   bgLoading: "/clicker/bg/loading_core_awakening.png",
@@ -36,8 +37,9 @@ export const clickerConfig: GameConfig = {
   feverComboCap: 10,
   feverCoolDown: 2,
   rebirthEnergy: 10_000_000,
-  // Worldline goals: 10M → 100M → 1B → 10B → 100B, so later producers and apex circuits matter.
-  rebirthGrowth: 10,
+  // Worldline goals: 10M → 110M → 1.2B → 13B → 146B, so later producers and apex circuits matter.
+  // ×11 (not ×10) keeps the later worldlines from collapsing now that hunts add income.
+  rebirthGrowth: 11,
   // Prices double per worldline while goals grow ×10, so each worldline climbs further.
   priceGrowth: 2,
   // ×1.8 permanent click & production per rebirth: each worldline runs ~30% faster than the last.
@@ -1629,6 +1631,7 @@ export const clickerConfig: GameConfig = {
     },
   ],
   regions: CLICKER_REGIONS,
+  monsters: CLICKER_MONSTERS,
   achievements: CLICKER_ACHIEVEMENTS,
   synergies: [
     { producerId: "solar_node", minLevel: 30, productionTargetId: "pulse_relay", productionBonus: 0.08 },

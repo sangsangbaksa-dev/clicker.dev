@@ -30,6 +30,10 @@ import {
   activateRegion,
   claimRegionChallenge,
   regionChallengeError,
+  claimRegionHunt,
+  regionHuntError,
+  derivedClick,
+  type HuntClaim,
   travelToRegion,
   markRegionVisited,
   activateSkill,
@@ -49,6 +53,7 @@ import {
   type MineSessionStart,
   type MineSessionSummary,
 } from "@/domain/services/clicker-mine-session"
+import { huntCritChance, huntPower } from "@/domain/services/clicker-hunt"
 import { decodeClickerSave, encodeClickerSave } from "@/domain/services/clicker-save-codec"
 import { backupClickerRaw, readClickerRaw, writeClickerRaw } from "@/infrastructure/persistence/clicker-save"
 
@@ -192,9 +197,9 @@ export function clickerBuySkill(save: SaveData, id: string): UseCaseResult<SaveD
 }
 
 export function clickerDrinkPotion(save: SaveData, potionId: string): UseCaseResult<SaveData> {
-  const next = startFever(save.runState, save.metaState, config, "POTION", potionId)
-  if (next.error) return { ok: false, status: 400, error: next.error }
-  return ok({ ...save, runState: next.run, metaState: { ...save.metaState, statistics: { ...save.metaState.statistics, feverStarts: save.metaState.statistics.feverStarts + 1 } } })
+  // startFever counts the run's fever; meta folds run.feverStarts in at rebirth, so adding it
+  // here too counted every potion fever twice toward the FEVER achievements.
+  return withRun(save, startFever(save.runState, save.metaState, config, "POTION", potionId))
 }
 
 export function clickerStartGaugeFever(save: SaveData): UseCaseResult<SaveData> {
@@ -239,6 +244,29 @@ export function clickerClaimChallenge(
   now: number,
 ): UseCaseResult<{ save: SaveData; reward: number }> {
   const next = claimRegionChallenge(save.runState, save.metaState, config, regionId, score, now)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ save: withAchievements({ ...save, runState: next.run, metaState: next.meta }), reward: next.reward })
+}
+
+export function clickerRegionHuntError(save: SaveData, regionId: string, now: number): string | undefined {
+  return regionHuntError(save.runState, config, regionId, now)
+}
+
+/** Hunter strength for a new hunt: worldlines walked and the run's crit chance. */
+export function clickerHuntLoadout(save: SaveData): { power: number; critChance: number } {
+  return {
+    power: huntPower(save.metaState.rebirthCount),
+    critChance: huntCritChance(derivedClick(save.runState, save.metaState, config).critChance),
+  }
+}
+
+export function clickerClaimHunt(
+  save: SaveData,
+  regionId: string,
+  claim: HuntClaim,
+  now: number,
+): UseCaseResult<{ save: SaveData; reward: number }> {
+  const next = claimRegionHunt(save.runState, save.metaState, config, regionId, claim, now)
   if (next.error) return { ok: false, status: 400, error: next.error }
   return ok({ save: withAchievements({ ...save, runState: next.run, metaState: next.meta }), reward: next.reward })
 }

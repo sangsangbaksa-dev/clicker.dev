@@ -36,4 +36,12 @@ export const CLICKER_ACHIEVEMENTS: AchievementDef[] = [
   { id: "mine_100", name: "갱도의 주인", description: "광산 세션 100회 완료", kind: "MINE_SESSIONS", target: 100 },
   { id: "haul_10k", name: "한탕", description: "한 세션 채굴량 10K", kind: "MINE_HAUL", target: 1e4 },
   { id: "haul_1m", name: "노다지", description: "한 세션 채굴량 1M", kind: "MINE_HAUL", target: 1e6 },
+  { id: "hunt_kill_1", name: "첫 사냥", description: "몬스터 1마리 처치", kind: "MONSTERS", target: 1 },
+  { id: "hunt_kill_100", name: "사냥꾼", description: "몬스터 100마리 처치", kind: "MONSTERS", target: 100 },
+  { id: "hunt_kill_500", name: "괴수 학살자", description: "몬스터 500마리 처치", kind: "MONSTERS", target: 500 },
+  { id: "hunt_boss_1", name: "첫 토벌", description: "보스 1회 처치", kind: "BOSSES", target: 1 },
+  { id: "hunt_boss_5", name: "지역 수호자", description: "보스 5회 처치", kind: "BOSSES", target: 5 },
+  { id: "hunt_boss_25", name: "군주 사냥꾼", description: "보스 25회 처치", kind: "BOSSES", target: 25 },
+  { id: "hunt_flawless_1", name: "무결점", description: "보호막을 하나도 잃지 않고 사냥 완료", kind: "FLAWLESS_HUNTS", target: 1 },
+  { id: "hunt_flawless_10", name: "완벽한 사냥꾼", description: "무결점 사냥 10회", kind: "FLAWLESS_HUNTS", target: 10 },
 ]

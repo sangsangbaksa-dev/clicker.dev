@@ -24,7 +24,8 @@ export const VEIN_SPAWN_CHANCE = 0.45
 export const VEIN_LIFETIME_MS = 3_500
 
 export const VEIN_SURGE = { multiplier: 5, seconds: 60 } as const
-export const VEIN_LASER_RUSH = { multiplier: 50, seconds: 8 } as const
+/** ×8 (was ×50): one early rush used to be worth dozens of mine sessions and skipped the opening. */
+export const VEIN_LASER_RUSH = { multiplier: 8, seconds: 8 } as const
 /** Jackpot pays min(bank share, minutes of production) + a floor. */
 export const VEIN_JACKPOT = { bankShare: 0.1, productionSeconds: 600, floor: 25 } as const
 
@@ -127,6 +128,12 @@ export function achievementProgress(kind: AchievementKind, run: RunState, meta: 
       return s.mineSessions
     case "MINE_HAUL":
       return s.bestMineHaul
+    case "MONSTERS":
+      return s.monstersSlain ?? 0
+    case "BOSSES":
+      return s.bossesSlain ?? 0
+    case "FLAWLESS_HUNTS":
+      return s.flawlessHunts ?? 0
   }
 }
 

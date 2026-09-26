@@ -74,8 +74,10 @@ export type RunState = {
   mineSessionEndsAt: number
   /** Absolute ms until Enter Mine is allowed again. */
   mineCooldownUntil: number
-  /** CORE at session start — haul = coreEnergy - this while in mine. */
+  /** CORE at session start (after the entry fee). */
   mineSessionCoreAtEnter: number
+  /** Lifetime CORE at session start — the live haul is the lifetime delta, so spending doesn't hide it. */
+  mineSessionLifetimeAtEnter: number
   /** Session length in ms for the active run (base + skill bonuses). */
   mineSessionDurationMs: number
   /** Active golden-vein boosts (production surge / laser rush). */
@@ -88,6 +90,8 @@ export type RunState = {
   regionCooldowns: Record<string, number>
   /** Region id → absolute ms when its field challenge can be played again. */
   challengeCooldowns: Record<string, number>
+  /** Region id → absolute ms when its monster hunt can be played again. */
+  huntCooldowns: Record<string, number>
   /** Phase Vault deposit waiting to pay out (0 when empty). */
   vaultDeposit: number
   vaultReadyAt: number
@@ -112,6 +116,14 @@ export type ClickerStatistics = {
   mineSessions: number
   /** Largest CORE gained in a single mine session. */
   bestMineHaul: number
+  /** Monsters defeated in hunts (bosses included). */
+  monstersSlain: number
+  /** Hunt bosses defeated. */
+  bossesSlain: number
+  /** Hunts cleared without losing every shield. */
+  huntsCleared: number
+  /** Hunts cleared without losing a single shield. */
+  flawlessHunts: number
 }
 
 export type MetaState = {
@@ -271,6 +283,9 @@ export type AchievementKind =
   | "ORES"
   | "MINE_SESSIONS"
   | "MINE_HAUL"
+  | "MONSTERS"
+  | "BOSSES"
+  | "FLAWLESS_HUNTS"
 
 export type AchievementDef = {
   id: string
@@ -335,6 +350,8 @@ export type RegionDef = {
   activity?: RegionActivityDef
   /** Hands-on mini-game played in the region; pays CORE by score. */
   challenge?: RegionChallengeDef
+  /** Monster hunt played in the region; pays CORE by score. */
+  hunt?: RegionHuntDef
   /** First-visit cinematic (video with its own soundtrack), played once per save. */
   intro?: RegionIntroDef
 }
@@ -350,6 +367,46 @@ export type RegionChallengeDef = {
   rewardSeconds: number
   cooldownSec: number
 }
+
+/**
+ * Monster roles in a hunt:
+ * - SWARMER: small and quick, darts away when hit, never attacks.
+ * - CASTER: charges a ranged attack; enough hits during the charge interrupt it.
+ * - BRUTE: armored and slow; its weak point opens on a rhythm and it slams now and then.
+ * - BOSS: the last wave — patrols, charges often, calls swarmers in, enrages at low HP.
+ */
+export type MonsterArchetype = "SWARMER" | "CASTER" | "BRUTE" | "BOSS"
+
+export type MonsterDef = {
+  id: string
+  name: string
+  archetype: MonsterArchetype
+  /** HP in hunter strikes at power 1. */
+  hp: number
+  /** Short bestiary line shown on the hunt card and result. */
+  lore: string
+}
+
+/** A region's monster hunt: waves of its monsters, then its boss. */
+export type RegionHuntDef = {
+  name: string
+  description: string
+  /** Monster ids per wave; the boss wave follows the last one. */
+  waves: string[][]
+  boss: string
+  /** Swarmer the boss calls in at 2/3 and 1/3 HP. */
+  bossAdd: string
+  timeLimitSec: number
+  /** A flawless full clear pays this many seconds of current production. */
+  rewardSeconds: number
+  cooldownSec: number
+  /** Base hue of the region's monsters (CSS hsl). */
+  hue: number
+  /** Sprite family for this region's monsters. */
+  look: MonsterLook
+}
+
+export type MonsterLook = "relay" | "phase" | "storm" | "fault" | "foundry"
 
 export type RegionIntroDef = {
   video: string
@@ -418,6 +475,7 @@ export type GameConfig = {
   activeSkills: ActiveSkillDef[]
   objectives: ObjectiveDef[]
   regions: RegionDef[]
+  monsters: MonsterDef[]
   transcendence: TranscendenceDef[]
   achievements: AchievementDef[]
   synergies: Array<{

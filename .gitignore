@@ -66,3 +66,6 @@ next-env.d.ts
 # per-user agent settings
 .claude/settings.local.json
 
+
+# python
+__pycache__/

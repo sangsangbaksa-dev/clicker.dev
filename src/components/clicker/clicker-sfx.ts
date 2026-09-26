@@ -453,3 +453,149 @@ export function playChallengeCue(mutedArg: boolean, cue: "hit" | "miss" | "done"
     tone(c, "sine", 990, 990, 0.04, t + 0.12, 0.45)
   }
 }
+
+export type HuntCue =
+  | "shot"
+  | "hit"
+  | "crit"
+  | "weak"
+  | "kill"
+  | "bossKill"
+  | "charge"
+  | "interrupt"
+  | "shield"
+  | "miss"
+  | "wave"
+  | "boss"
+  | "adds"
+  | "enrage"
+  | "won"
+  | "lost"
+  | "timeout"
+
+const HUNT_GAP_MS: Partial<Record<HuntCue, number>> = { shot: 35, hit: 30, crit: 40, weak: 40, miss: 60, charge: 120 }
+const huntLast = new Map<HuntCue, number>()
+
+/**
+ * Monster hunt cues. The blaster is lighter than the mining laser so rapid fire stays readable;
+ * weak points crack like glass, bosses roar through a lowpassed saw stack.
+ */
+export function playHuntCue(cue: HuntCue) {
+  if (muted) return
+  const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now()
+  if (nowMs - (huntLast.get(cue) ?? -Infinity) < (HUNT_GAP_MS[cue] ?? 0)) return
+  huntLast.set(cue, nowMs)
+  const c = audio()
+  if (!c) return
+  const t = c.currentTime + 0.003
+  const j = 1 + (Math.random() - 0.5) * 0.1
+  try {
+    switch (cue) {
+      case "shot":
+        tone(c, "sawtooth", 1900 * j, 380, 0.035, t, 0.09, { attack: 0.001, detune: -8 })
+        tone(c, "sawtooth", 1900 * j, 380, 0.035, t, 0.09, { attack: 0.001, detune: 8 })
+        noise(c, "bandpass", 3200, 1, 0.03, t, 0.06, { sweepTo: 900 })
+        break
+      case "hit":
+        tone(c, "sine", 190 * j, 70, 0.14, t, 0.14)
+        noise(c, "lowpass", 1400, 1, 0.07, t, 0.09)
+        tone(c, "square", 420 * j, 300, 0.02, t, 0.05)
+        break
+      case "crit":
+        tone(c, "sine", 210 * j, 60, 0.2, t, 0.2)
+        noise(c, "bandpass", 2400, 1.2, 0.08, t, 0.12)
+        tone(c, "triangle", 1568, 1568, 0.05, t + 0.02, 0.22, { dest: echo(c, 0.07, 0.25, 0.3) })
+        break
+      case "weak": {
+        const e = echo(c, 0.09, 0.3, 0.35)
+        noise(c, "highpass", 5200, 0.8, 0.09, t, 0.12)
+        ;[2637, 3520].forEach((f, i) => tone(c, "triangle", f * j, f * j, 0.045, t + i * 0.025, 0.25, { dest: e }))
+        tone(c, "sine", 160, 50, 0.22, t, 0.22)
+        break
+      }
+      case "kill": {
+        const e = echo(c, 0.1, 0.3, 0.3)
+        noise(c, "lowpass", 2200, 0.9, 0.14, t, 0.3, { sweepTo: 200 })
+        tone(c, "sine", 140, 40, 0.24, t, 0.35)
+        ;[880, 1320].forEach((f, i) => tone(c, "triangle", f * j, f * j * 1.02, 0.035, t + 0.05 + i * 0.05, 0.25, { dest: e }))
+        break
+      }
+      case "bossKill": {
+        const e = echo(c, 0.16, 0.4, 0.45)
+        tone(c, "sine", 90, 24, 0.4, t, 1.6)
+        noise(c, "lowpass", 900, 0.8, 0.3, t, 1.8, { sweepTo: 80 })
+        for (let i = 0; i < 10; i++) noise(c, "bandpass", 1500 + Math.random() * 3000, 3, 0.06, t + 0.05 + Math.random() * 0.8, 0.08)
+        ;[523, 659, 784, 1046].forEach((f, i) => tone(c, "triangle", f, f, 0.05, t + 0.5 + i * 0.09, 0.9, { dest: e }))
+        break
+      }
+      case "charge":
+        tone(c, "sawtooth", 180, 720, 0.03, t, 0.5, { attack: 0.3 })
+        tone(c, "sine", 360, 1440, 0.025, t, 0.5, { attack: 0.3 })
+        break
+      case "interrupt": {
+        const e = echo(c, 0.08, 0.3, 0.3)
+        tone(c, "square", 1200, 300, 0.05, t, 0.18, { attack: 0.001 })
+        noise(c, "bandpass", 4000, 2, 0.08, t, 0.15, { sweepTo: 800 })
+        tone(c, "triangle", 988, 988, 0.05, t + 0.08, 0.3, { dest: e })
+        tone(c, "triangle", 1318, 1318, 0.045, t + 0.14, 0.35, { dest: e })
+        break
+      }
+      case "shield":
+        tone(c, "sawtooth", 320, 60, 0.09, t, 0.5, { attack: 0.002 })
+        tone(c, "square", 240, 50, 0.05, t, 0.5, { attack: 0.002, detune: 20 })
+        noise(c, "highpass", 3000, 0.7, 0.12, t, 0.35)
+        tone(c, "sine", 70, 30, 0.3, t, 0.5)
+        break
+      case "miss":
+        noise(c, "bandpass", 700, 1.5, 0.03, t, 0.07)
+        break
+      case "wave": {
+        const e = echo(c, 0.15, 0.35, 0.35)
+        tone(c, "sawtooth", 147, 147, 0.035, t, 0.7, { attack: 0.02, dest: e, detune: -6 })
+        tone(c, "sawtooth", 220, 220, 0.03, t, 0.7, { attack: 0.02, dest: e, detune: 6 })
+        noise(c, "lowpass", 300, 1, 0.1, t, 0.3)
+        tone(c, "sine", 60, 40, 0.2, t, 0.4)
+        break
+      }
+      case "boss": {
+        // Horn blast, then the roar: detuned low saws through a sweeping lowpass.
+        const e = echo(c, 0.2, 0.4, 0.4)
+        ;[73.4, 110, 146.8].forEach((f, i) => tone(c, "sawtooth", f, f, 0.05, t, 1.1, { attack: 0.08, detune: i * 5 - 5, dest: e }))
+        const roar = t + 0.9
+        for (const det of [-25, 0, 25]) tone(c, "sawtooth", 95, 55, 0.07, roar, 1.1, { attack: 0.05, detune: det })
+        noise(c, "bandpass", 500, 0.8, 0.2, roar, 1.2, { sweepTo: 180, attack: 0.05 })
+        tone(c, "sine", 55, 28, 0.35, roar, 1.2)
+        break
+      }
+      case "adds":
+        for (let i = 0; i < 4; i++) tone(c, "square", 880 + i * 120, 440, 0.02, t + i * 0.06, 0.08)
+        noise(c, "bandpass", 1800, 2, 0.05, t, 0.3, { sweepTo: 600 })
+        break
+      case "enrage":
+        for (const det of [-30, 0, 30]) tone(c, "sawtooth", 130, 70, 0.07, t, 0.9, { attack: 0.03, detune: det })
+        noise(c, "lowpass", 700, 1, 0.18, t, 0.9, { sweepTo: 150 })
+        break
+      case "won": {
+        const e = echo(c, 0.14, 0.35, 0.4)
+        const notes = [523.3, 659.3, 784, 1046.5, 784, 1046.5]
+        notes.forEach((f, i) => tone(c, "triangle", f, f, 0.055, t + i * 0.1, i === notes.length - 1 ? 1.1 : 0.22, { dest: e }))
+        ;[261.6, 329.6, 392].forEach((f) => tone(c, "sawtooth", f, f, 0.018, t + 0.5, 1.2, { attack: 0.05, dest: e }))
+        break
+      }
+      case "lost": {
+        const e = echo(c, 0.2, 0.35, 0.35)
+        ;[392, 349.2, 311.1, 293.7].forEach((f, i) => tone(c, "triangle", f, f, 0.05, t + i * 0.22, 0.5, { dest: e }))
+        tone(c, "sine", 73, 36, 0.2, t + 0.66, 1.2)
+        break
+      }
+      case "timeout": {
+        const e = echo(c, 0.15, 0.3, 0.3)
+        tone(c, "sine", 880, 880, 0.05, t, 0.2, { dest: e })
+        tone(c, "sine", 660, 660, 0.05, t + 0.18, 0.5, { dest: e })
+        break
+      }
+    }
+  } catch {
+    /* audio graph refused — never break gameplay for SFX */
+  }
+}

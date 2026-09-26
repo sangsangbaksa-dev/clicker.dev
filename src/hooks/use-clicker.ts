@@ -32,6 +32,9 @@ import {
   clickerRegionActivity,
   clickerClaimChallenge,
   clickerRegionChallengeError,
+  clickerClaimHunt,
+  clickerHuntLoadout,
+  clickerRegionHuntError,
   clickerTick,
   clickerUseSkill,
   loadClickerGame,
@@ -54,6 +57,7 @@ import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { achievementProgress, autoDrillRate, baseDrillRate } from "@/domain/services/clicker-bonus"
 import { formatNumber } from "@/domain/services/clicker-format"
 import type { MineSessionStart, MineSessionSummary } from "@/domain/services/clicker-mine-session"
+import type { HuntClaim } from "@/domain/services/clicker-engine"
 import {
   buildActiveSkillShopViews,
   buildHud,
@@ -281,7 +285,7 @@ export function useClicker() {
       ...prev.slice(-12),
       {
         id,
-        text: `+${result.energy.toFixed(result.energy >= 100 ? 0 : 1)}`,
+        text: `+${result.energy >= 1000 ? formatNumber(result.energy) : result.energy.toFixed(result.energy >= 100 ? 0 : 1)}`,
         critical: result.critical,
         strike: result.quake ? "quake" : result.lightning ? "lightning" : result.echo ? "echo" : undefined,
         x: clientX ?? 0,
@@ -410,6 +414,35 @@ export function useClicker() {
     persistNow(result.value.save)
     playSfx("achievement")
     flash(`도전 완료 · 성공률 ${Math.round(score * 100)}% · +${formatNumber(result.value.reward)} CORE`)
+  }, [commit, flash, refuse, persistNow])
+
+  /** Checked before the hunt opens so a refused start fails fast. Returns true when it may start. */
+  const canStartHunt = useCallback((regionId: string) => {
+    if (!saveRef.current) return false
+    const error = clickerRegionHuntError(saveRef.current, regionId, now())
+    if (error) refuse(error)
+    return !error
+  }, [refuse])
+
+  const huntLoadout = useCallback(
+    () => (saveRef.current ? clickerHuntLoadout(saveRef.current) : { power: 1, critChance: 0 }),
+    [],
+  )
+
+  const claimHunt = useCallback((regionId: string, claim: HuntClaim) => {
+    if (!saveRef.current) return 0
+    const result = clickerClaimHunt(saveRef.current, regionId, claim, now())
+    if (!result.ok) {
+      refuse(result.error)
+      return 0
+    }
+    commit(result.value.save)
+    persistNow(result.value.save)
+    const hunt = clickerGameConfig.regions.find((r) => r.id === regionId)?.hunt
+    flash(
+      `${hunt?.name ?? "사냥"} ${claim.cleared ? "완료" : "종료"} · 처치 ${claim.kills} · +${formatNumber(result.value.reward)} CORE`,
+    )
+    return result.value.reward
   }, [commit, flash, refuse, persistNow])
 
   const regionActivity = useCallback((regionId: string) => {
@@ -715,6 +748,9 @@ export function useClicker() {
     dismissRegionIntro,
     canStartChallenge,
     claimChallenge,
+    canStartHunt,
+    huntLoadout,
+    claimHunt,
     mineGate,
   }
 }

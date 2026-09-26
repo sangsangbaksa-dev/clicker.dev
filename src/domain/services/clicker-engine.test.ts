@@ -37,6 +37,7 @@ import {
   claimRegionChallenge,
   regionChallengeError,
   MINE_HOME_ONLY_ERROR,
+  MINE_TRAVEL_ERROR,
 } from "./clicker-engine.ts"
 import { MINE_SESSION_BASE_MS as MINE_SESSION_MS, mineSessionDurationMs } from "./clicker-engine.ts"
 import { formatNumber } from "./clicker-format.ts"
@@ -405,6 +406,25 @@ test("the mine opens only in the home region", () => {
   assert.equal(refused.save.settings.playSurface, "hub")
   const home = { ...traveled, runState: returnHomeRegion(traveled.runState, config).run }
   assert.equal(enterClickerMine(home, now, config).save.settings.playSurface, "mine")
+})
+
+test("travel is refused mid-mine-session so the mine can't borrow another region's bonuses", () => {
+  const now = 11_250_000
+  const base = startClickerGame(createInitialSave(now, config))
+  const rich = { ...base, runState: grantAdminEnergy(base.runState, 300_000) }
+  const inMine = enterClickerMine(rich, now, config).save
+  assert.equal(travelToRegion(inMine.runState, config, "signal_relay").error, MINE_TRAVEL_ERROR)
+  const after = syncClickerMineSession(inMine, now + 60_000)
+  assert.equal(travelToRegion(after.runState, config, "signal_relay").error, undefined)
+})
+
+test("the live mine haul counts CORE earned, not CORE banked", () => {
+  const now = 11_260_000
+  const base = startClickerGame(createInitialSave(now, config))
+  const inMine = enterClickerMine({ ...base, runState: grantAdminEnergy(base.runState, 5_000) }, now, config).save
+  assert.equal(inMine.runState.mineSessionLifetimeAtEnter, inMine.runState.lifetimeCoreEnergy)
+  const exited = syncClickerMineSession(inMine, now + 60_000)
+  assert.equal(exited.runState.mineSessionLifetimeAtEnter, 0)
 })
 
 test("field challenge pays production by score and then cools down", () => {
