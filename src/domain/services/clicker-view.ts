@@ -21,7 +21,7 @@ import {
   scaledCost,
   worldlineMultiplier,
 } from "./clicker-engine"
-import { formatNumber } from "./clicker-format"
+import { formatNumber, formatWait, secondsUntilAffordable } from "./clicker-format"
 
 export type CoreVisual = "idle" | "fever" | "crisis"
 
@@ -155,6 +155,8 @@ export type ProducerView = {
   unlocked: boolean
   canBuy: boolean
   lockReason: string
+  /** "생산만으로 약 3분" while short of CORE and producing; empty otherwise. */
+  waitText: string
 }
 
 export function buildProducerViews(
@@ -180,8 +182,14 @@ export function buildProducerViews(
       unlocked,
       canBuy,
       lockReason: unlocked ? (canBuy ? "" : "CORE 부족") : `${formatNumber(scaledCost(run, p.unlockAt))} CORE 해금`,
+      waitText: unlocked ? waitText(cost, run.coreEnergy, snapshot.perSecond) : "",
     }
   })
+}
+
+function waitText(cost: number, have: number, perSecond: number): string {
+  const seconds = secondsUntilAffordable(cost, have, perSecond)
+  return seconds == null ? "" : `생산만으로 약 ${formatWait(seconds)}`
 }
 
 export function bulkCostText(run: RunState, config: GameConfig, producerId: string, mode: 1 | 10 | "MAX"): string {
