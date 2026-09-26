@@ -1210,8 +1210,8 @@
 }
 
 /* Narrow screens: the region pills sit over the top of the stage, so push the compact
-   goal below them. */
-@media (max-width: 720px) {
+   goal below them. (The compact goal replaces the card up to 900px.) */
+@media (max-width: 900px) {
   [data-clicker].is-region-hub .clicker-goal-compact {
     align-self: start;
     margin-top: 46px;
