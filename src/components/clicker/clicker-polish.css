@@ -625,9 +625,35 @@
   box-shadow: var(--glow-soft);
 }
 
-/* Room for the dock under the Enter Mine CTA. */
+/*
+ * Entrance hub: the door and the Enter Mine CTA share one focal point — the centre
+ * of the stage area above the dock. The plate is sized like `cover`, zoomed just
+ * enough that the door (51.3% / 51.4% of the 16:9 art) can sit there with no gaps.
+ */
+[data-clicker].is-view-entrance .clicker-stage {
+  --hub-dock-reserve: 94px;
+  container-type: size;
+}
+
+[data-clicker].is-view-entrance.is-entrance-hub .clicker-stage-bg {
+  --plate-h: max(100cqh, 57.8cqw, calc((100cqh + var(--hub-dock-reserve)) * 1.03));
+  --plate-w: calc(var(--plate-h) * 16 / 9);
+  --focus-y: calc((100cqh - var(--hub-dock-reserve)) / 2);
+  background-size: var(--plate-w) var(--plate-h);
+  background-position:
+    calc(50cqw - var(--plate-w) * 0.513)
+    clamp(calc(100cqh - var(--plate-h)), calc(var(--focus-y) - var(--plate-h) * 0.514), 0px);
+}
+
 [data-clicker].is-view-entrance .clicker-hub-enter-only {
-  top: 44%;
+  top: calc(50% - var(--hub-dock-reserve) / 2);
+}
+
+@media (max-width: 480px) {
+  /* The dock wraps to two rows on phones. */
+  [data-clicker].is-view-entrance .clicker-stage {
+    --hub-dock-reserve: 140px;
+  }
 }
 
 /* Manage: panel owns the screen; the entrance scene steps aside. */
