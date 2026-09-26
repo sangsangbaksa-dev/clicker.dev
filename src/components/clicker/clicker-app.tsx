@@ -242,14 +242,26 @@ export function ClickerApp() {
         setDrawerHeight(drawerSnaps.half)
         persistDrawerHeight(drawerSnaps.half)
       }
-      window.requestAnimationFrame(() => {
-        document
-          .querySelector<HTMLElement>(`.clicker-tabs button[data-active="true"]`)
-          ?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" })
-      })
     },
     [drawerHeight, drawerSnaps, persistDrawerHeight],
   )
+
+  // Keep the active tab visible in the tab strip, whoever changed the tab (tab taps, hub
+  // menu, rebirth). Scrolls only the strip: scrollIntoView also shoved the overflow-hidden
+  // drawer sideways on phones, clipping the left edge of the whole manage screen.
+  useEffect(() => {
+    if (hubView !== "manage") return
+    const raf = window.requestAnimationFrame(() => {
+      const strip = document.querySelector<HTMLElement>(".clicker-tabs")
+      const active = strip?.querySelector<HTMLElement>('button[data-active="true"]')
+      if (!strip || !active) return
+      const s = strip.getBoundingClientRect()
+      const b = active.getBoundingClientRect()
+      if (b.left < s.left) strip.scrollBy({ left: b.left - s.left - 8, behavior: "smooth" })
+      else if (b.right > s.right) strip.scrollBy({ left: b.right - s.right + 8, behavior: "smooth" })
+    })
+    return () => window.cancelAnimationFrame(raf)
+  }, [tab, hubView])
 
   const playSurface = game.save?.settings.playSurface ?? "hub"
   const prevSurface = useRef(playSurface)
