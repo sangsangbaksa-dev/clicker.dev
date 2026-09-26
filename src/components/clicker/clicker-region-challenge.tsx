@@ -31,9 +31,11 @@ type GameProps = {
 }
 
 /** Targets presented so far for each game; misses (wrong taps / cracks) cost half an attempt. */
-function attempts(kind: RegionChallengeKind, elapsed: number, hits: number, misses: number): number {
+function attempts(kind: RegionChallengeKind, elapsed: number, hits: number, misses: number, phase: PhaseSpawn[]): number {
   if (kind === "ROD_STRIKE") return Math.max(0, Math.floor((elapsed - ROD_FIRST_MS) / ROD_EVERY_MS) + 1) + misses * 0.5
   if (kind === "FAULT_DRILL") return Math.max(DRILL_TARGET, hits) + misses * 0.5
+  if (kind === "SIGNAL_DECODE") return Math.max(DECODE_TARGET, hits) + misses * 0.5
+  if (kind === "PHASE_LOCK") return phase.filter((s) => s.solid && s.at <= elapsed).length + misses * 0.5
   return Math.max(0, Math.floor((elapsed - DRONE_FIRST_MS) / DRONE_EVERY_MS) + 1)
 }
 
@@ -45,6 +47,7 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
   const [clock, setClock] = useState(0)
   const [hits, setHits] = useState(0)
   const [misses, setMisses] = useState(0)
+  const phaseSpawns = useSchedule(makePhaseSchedule)
   const durationMs = durationSec * 1000
   const phase: Phase = clock < COUNTDOWN_MS ? "countdown" : clock < COUNTDOWN_MS + durationMs ? "play" : "done"
 
@@ -66,8 +69,9 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
 
   const elapsed = Math.min(durationMs, Math.max(0, clock - COUNTDOWN_MS))
   const left = durationMs - elapsed
-  const tries = attempts(kind, elapsed, hits, misses)
-  const score = tries > 0 ? Math.min(1, Math.min(hits, kind === "FAULT_DRILL" ? DRILL_TARGET : hits) / tries) : 0
+  const tries = attempts(kind, elapsed, hits, misses, phaseSpawns)
+  const capped = kind === "FAULT_DRILL" ? Math.min(hits, DRILL_TARGET) : kind === "SIGNAL_DECODE" ? Math.min(hits, DECODE_TARGET) : hits
+  const score = tries > 0 ? Math.min(1, capped / tries) : 0
   const pct = Math.round(score * 100)
 
   const close = () => {
@@ -127,6 +131,8 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
         {kind === "ROD_STRIKE" ? <RodStrike {...gameProps} /> : null}
         {kind === "FAULT_DRILL" ? <FaultDrill {...gameProps} misses={misses} /> : null}
         {kind === "DRONE_RECALL" ? <DroneRecall {...gameProps} /> : null}
+        {kind === "SIGNAL_DECODE" ? <SignalDecode {...gameProps} /> : null}
+        {kind === "PHASE_LOCK" ? <PhaseLock {...gameProps} spawns={phaseSpawns} /> : null}
         {phase === "countdown" ? (
           <div className="clicker-challenge-countdown" aria-live="assertive">
             {Math.max(1, Math.ceil((COUNTDOWN_MS - clock) / 1000))}
@@ -332,6 +338,166 @@ function DroneRecall({ elapsed, playing, onHit }: GameProps) {
             }}
           >
             <span className="clicker-drone-body" />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ---------- Signal Relay: repeat the order the relay nodes flashed in ---------- */
+
+const DECODE_TARGET = 5
+const DECODE_NODES = 4
+const DECODE_STEP_MS = 520
+const DECODE_LIT_MS = 380
+const DECODE_PAUSE_MS = 550
+
+type DecodeRound = { seq: number[]; shownAt: number; typed: number }
+
+function decodeSequence(length: number): number[] {
+  const out: number[] = []
+  for (let i = 0; i < length; i++) {
+    let node = Math.floor(Math.random() * DECODE_NODES)
+    if (node === out[i - 1]) node = (node + 1 + Math.floor(Math.random() * (DECODE_NODES - 1))) % DECODE_NODES
+    out.push(node)
+  }
+  return out
+}
+
+/** 3, 3, 4, 4, 5… — each solved pair adds one more flash. */
+const decodeLength = (solved: number) => Math.min(7, 3 + Math.floor(solved / 2))
+
+function SignalDecode({ elapsed, playing, hits, onHit, onMiss }: GameProps) {
+  const [round, setRound] = useState<DecodeRound>(() => ({ seq: decodeSequence(3), shownAt: 300, typed: 0 }))
+  const [flash, setFlash] = useState<Flash | null>(null)
+  const since = elapsed - round.shownAt
+  const showing = since < round.seq.length * DECODE_STEP_MS
+  const step = Math.floor(since / DECODE_STEP_MS)
+  const lit = showing && step >= 0 && since - step * DECODE_STEP_MS < DECODE_LIT_MS ? round.seq[step] : -1
+  const waiting = since < 0
+
+  const tap = (node: number) => {
+    if (!playing || showing || waiting) return
+    if (round.seq[round.typed] === node) {
+      setFlash({ key: node, ok: true, at: elapsed })
+      if (round.typed + 1 === round.seq.length) {
+        onHit()
+        setRound({ seq: decodeSequence(decodeLength(hits + 1)), shownAt: elapsed + DECODE_PAUSE_MS, typed: 0 })
+      } else {
+        setRound({ ...round, typed: round.typed + 1 })
+      }
+    } else {
+      onMiss()
+      setFlash({ key: node, ok: false, at: elapsed })
+      setRound({ seq: decodeSequence(round.seq.length), shownAt: elapsed + DECODE_PAUSE_MS + 250, typed: 0 })
+    }
+  }
+
+  const status = waiting ? "다음 신호 수신 중…" : showing ? "신호 수신 중 · 순서를 기억하세요" : "입력하세요"
+  return (
+    <div className={`clicker-decode${showing || waiting ? " is-listening" : " is-input"}`}>
+      <p className="clicker-decode-status" aria-live="polite">
+        {status}
+      </p>
+      <div className="clicker-decode-nodes">
+        {Array.from({ length: DECODE_NODES }, (_, node) => {
+          const fx = flash && flash.key === node && elapsed - flash.at < FLASH_MS ? (flash.ok ? " is-hit" : " is-miss") : ""
+          return (
+            <button
+              key={node}
+              type="button"
+              className={`clicker-decode-node is-n${node}${lit === node ? " is-lit" : ""}${fx}`}
+              aria-label={`중계 노드 ${node + 1}${lit === node ? " · 점등" : ""}`}
+              onPointerDown={(e) => {
+                e.preventDefault()
+                tap(node)
+              }}
+            >
+              <span className="clicker-decode-core" />
+            </button>
+          )
+        })}
+        <span className="clicker-decode-hub" aria-hidden />
+      </div>
+      <div className="clicker-decode-progress" aria-hidden>
+        {round.seq.map((_, i) => (
+          <i key={i} className={i < round.typed ? "is-done" : ""} />
+        ))}
+      </div>
+      <p className="clicker-decode-count">
+        해독 <strong>{Math.min(hits, DECODE_TARGET)}</strong> / {DECODE_TARGET}
+      </p>
+    </div>
+  )
+}
+
+/* ---------- Phase Vault: lock the solid fragments, leave the echoes ---------- */
+
+const PHASE_CELLS = 9
+const PHASE_FIRST_MS = 250
+const PHASE_EVERY_MS = 480
+const PHASE_WINDOW_MS = 1050
+const PHASE_SOLID_SHARE = 0.68
+
+type PhaseSpawn = { cell: number; solid: boolean; at: number }
+
+function makePhaseSchedule(): PhaseSpawn[] {
+  const out: PhaseSpawn[] = []
+  for (let i = 0; i < 40; i++) {
+    const recent = new Set(out.slice(-2).map((s) => s.cell))
+    let cell = Math.floor(Math.random() * PHASE_CELLS)
+    while (recent.has(cell)) cell = (cell + 1) % PHASE_CELLS
+    out.push({ cell, solid: i === 0 || Math.random() < PHASE_SOLID_SHARE, at: PHASE_FIRST_MS + i * PHASE_EVERY_MS })
+  }
+  return out
+}
+
+/** `spawns` is owned by the parent so its score counts the same solids shown here. */
+function PhaseLock({ elapsed, playing, onHit, onMiss, spawns }: GameProps & { spawns: PhaseSpawn[] }) {
+  const [taken, setTaken] = useState<ReadonlySet<number>>(() => new Set())
+  const [flash, setFlash] = useState<Flash | null>(null)
+
+  const live = new Map<number, { index: number; spawn: PhaseSpawn; life: number }>()
+  spawns.forEach((spawn, index) => {
+    const age = elapsed - spawn.at
+    if (age < 0 || age > PHASE_WINDOW_MS || taken.has(index)) return
+    live.set(spawn.cell, { index, spawn, life: 1 - age / PHASE_WINDOW_MS })
+  })
+
+  const tap = (cell: number) => {
+    if (!playing) return
+    const hit = live.get(cell)
+    if (!hit) return
+    setTaken(new Set(taken).add(hit.index))
+    if (hit.spawn.solid) onHit()
+    else onMiss()
+    setFlash({ key: cell, ok: hit.spawn.solid, at: elapsed })
+  }
+
+  return (
+    <div className="clicker-phase">
+      {Array.from({ length: PHASE_CELLS }, (_, cell) => {
+        const item = live.get(cell)
+        const fx = flash && flash.key === cell && elapsed - flash.at < FLASH_MS ? (flash.ok ? " is-hit" : " is-miss") : ""
+        return (
+          <button
+            key={cell}
+            type="button"
+            className={`clicker-phase-cell${fx}`}
+            aria-label={item ? (item.spawn.solid ? "실체 파편 · 고정" : "위상 잔상") : "빈 슬롯"}
+            onPointerDown={(e) => {
+              e.preventDefault()
+              tap(cell)
+            }}
+          >
+            {item ? (
+              <span
+                key={item.index}
+                className={`clicker-phase-shard${item.spawn.solid ? " is-solid" : " is-echo"}`}
+                style={{ "--life": item.life } as CSSProperties}
+              />
+            ) : null}
           </button>
         )
       })}

@@ -26,6 +26,14 @@ export const CLICKER_REGIONS: RegionDef[] = [
     intro: { video: "/clicker/region/signal_relay_intro.mp4", poster: "/clicker/bg/region_signal_relay.png" },
     unlockAtLifetimeEnergy: 250_000,
     productionMultiplier: 1.12,
+    challenge: {
+      kind: "SIGNAL_DECODE",
+      name: "신호 해독",
+      description: "중계 노드가 깜빡인 순서를 그대로 입력 · 5회 해독 · 22초",
+      durationSec: 22,
+      rewardSeconds: 90,
+      cooldownSec: 180,
+    },
     activity: {
       kind: "PRODUCTION_BOOST",
       name: "주파수 증폭",
@@ -44,6 +52,14 @@ export const CLICKER_REGIONS: RegionDef[] = [
     unlockAtLifetimeEnergy: 2_000_000,
     clickMultiplier: 1.08,
     productionMultiplier: 1.1,
+    challenge: {
+      kind: "PHASE_LOCK",
+      name: "위상 고정",
+      description: "실체화된 파편만 눌러 고정 · 흐릿한 잔상은 누르면 실수 · 15초",
+      durationSec: 15,
+      rewardSeconds: 90,
+      cooldownSec: 180,
+    },
     activity: {
       kind: "PHASE_DEPOSIT",
       name: "위상 예치",

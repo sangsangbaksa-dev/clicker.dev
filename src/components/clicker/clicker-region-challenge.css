@@ -1,4 +1,4 @@
-/* Region field challenges (Storm Spire / Deep Fault / Drone Foundry). */
+/* Region field challenges (Signal Relay / Phase Vault / Storm Spire / Deep Fault / Drone Foundry). */
 .clicker-challenge {
   --accent: #9fe8ff;
   --accent-soft: rgb(159 232 255 / 0.25);
@@ -17,6 +17,8 @@
 .clicker-challenge.is-rod_strike { --accent: #b9a8ff; --accent-soft: rgb(185 168 255 / 0.28); }
 .clicker-challenge.is-fault_drill { --accent: #ff8a4c; --accent-soft: rgb(255 138 76 / 0.28); }
 .clicker-challenge.is-drone_recall { --accent: #ffc266; --accent-soft: rgb(255 194 102 / 0.28); }
+.clicker-challenge.is-signal_decode { --accent: #6dffb0; --accent-soft: rgb(109 255 176 / 0.26); }
+.clicker-challenge.is-phase_lock { --accent: #d18bff; --accent-soft: rgb(209 139 255 / 0.28); }
 
 .clicker-challenge-head {
   display: flex;
@@ -327,8 +329,190 @@
   to { transform: scaleX(0.3); }
 }
 
+/* Signal Relay — decode */
+.clicker-decode {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 14px;
+  height: 100%;
+  padding: 16px;
+  background: radial-gradient(circle at 50% 50%, rgb(109 255 176 / 0.07), transparent 60%);
+}
+
+.clicker-decode-status {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: rgb(232 246 255 / 0.8);
+}
+
+.clicker-decode.is-input .clicker-decode-status { color: var(--accent); }
+
+/* Four relay nodes in a diamond around the hub; each node is a square turned 45°. */
+.clicker-decode-nodes {
+  position: relative;
+  width: min(300px, 68vw, 52vh);
+  aspect-ratio: 1;
+}
+
+.clicker-decode-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid rgb(109 255 176 / 0.4);
+  box-shadow: 0 0 18px rgb(109 255 176 / 0.25);
+  pointer-events: none;
+}
+
+.clicker-decode-node {
+  --node: #6dffb0;
+  position: absolute;
+  width: 31%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 2px solid color-mix(in srgb, var(--node) 35%, transparent);
+  border-radius: 22%;
+  background: color-mix(in srgb, var(--node) 7%, rgb(4 10 8 / 0.9));
+  transform: translate(-50%, -50%) rotate(45deg);
+  cursor: pointer;
+  transition: background 90ms, box-shadow 90ms, transform 90ms;
+}
+
+.clicker-decode-node.is-n0 { left: 50%; top: 17%; }
+.clicker-decode-node.is-n1 { left: 83%; top: 50%; }
+.clicker-decode-node.is-n2 { left: 50%; top: 83%; }
+.clicker-decode-node.is-n3 { left: 17%; top: 50%; }
+
+.clicker-decode-node.is-n1 { --node: #5fd8ff; }
+.clicker-decode-node.is-n2 { --node: #c6ff5f; }
+.clicker-decode-node.is-n3 { --node: #5fffe0; }
+
+.clicker-decode-core {
+  width: 34%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--node) 30%, #0a1410);
+  transition: background 90ms, box-shadow 90ms;
+}
+
+.clicker-decode-node.is-lit,
+.clicker-decode-node.is-hit {
+  background: color-mix(in srgb, var(--node) 40%, rgb(4 10 8 / 0.8));
+  border-color: var(--node);
+  box-shadow: 0 0 34px color-mix(in srgb, var(--node) 70%, transparent);
+  transform: translate(-50%, -50%) rotate(45deg) scale(1.08);
+}
+
+.clicker-decode-node.is-lit .clicker-decode-core,
+.clicker-decode-node.is-hit .clicker-decode-core {
+  background: radial-gradient(circle, #fff 0 30%, var(--node));
+  box-shadow: 0 0 20px var(--node);
+}
+
+.clicker-decode-node.is-miss {
+  background: rgb(255 60 60 / 0.3);
+  border-color: #ff6060;
+}
+
+.clicker-decode.is-listening .clicker-decode-node { cursor: default; }
+
+.clicker-decode-progress {
+  display: flex;
+  gap: 6px;
+  min-height: 10px;
+}
+
+.clicker-decode-progress i {
+  width: 22px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.12);
+}
+
+.clicker-decode-progress i.is-done { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+.clicker-decode-count {
+  margin: 0;
+  font-size: 14px;
+}
+
+.clicker-decode-count strong {
+  font-size: 24px;
+  color: var(--accent);
+}
+
+/* Phase Vault — lock */
+.clicker-phase {
+  position: relative;
+  top: 50%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: clamp(8px, 2.4vw, 16px);
+  height: min(100%, 460px, 92vw);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  transform: translateY(-50%);
+  padding: clamp(10px, 3vw, 22px);
+  box-sizing: border-box;
+  background: radial-gradient(circle, rgb(209 139 255 / 0.08), transparent 70%);
+}
+
+.clicker-phase-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgb(209 139 255 / 0.22);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, transparent 55%, rgb(209 139 255 / 0.08) 56% 60%, transparent 61%),
+    rgb(12 6 20 / 0.8);
+  cursor: pointer;
+}
+
+.clicker-phase-cell.is-hit { background: rgb(209 139 255 / 0.35); box-shadow: 0 0 26px rgb(209 139 255 / 0.6); }
+.clicker-phase-cell.is-miss { background: rgb(255 60 60 / 0.3); }
+
+.clicker-phase-shard {
+  width: 52%;
+  aspect-ratio: 1;
+  clip-path: polygon(50% 0, 88% 30%, 76% 100%, 24% 100%, 12% 30%);
+  animation: clicker-phase-in 160ms ease-out;
+}
+
+.clicker-phase-shard.is-solid {
+  background: linear-gradient(160deg, #fff 0%, #e2b6ff 25%, #9d4dff 70%, #4a1a8a);
+  filter: drop-shadow(0 0 calc(4px + 12px * var(--life)) #d18bff);
+  opacity: calc(0.35 + 0.65 * var(--life));
+}
+
+.clicker-phase-shard.is-echo {
+  background: linear-gradient(160deg, rgb(255 255 255 / 0.35), rgb(157 77 255 / 0.18));
+  opacity: 0.45;
+  animation: clicker-phase-in 160ms ease-out, clicker-phase-flicker 140ms steps(2) infinite;
+}
+
+@keyframes clicker-phase-in {
+  from { transform: scale(0.4) rotate(-20deg); }
+}
+
+@keyframes clicker-phase-flicker {
+  50% { opacity: 0.18; transform: translateX(2px); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .clicker-drill.is-miss { animation: none; }
   .clicker-drone-body::before,
   .clicker-drone-body::after { animation: none; }
+  .clicker-phase-shard,
+  .clicker-phase-shard.is-echo { animation: none; }
+  .clicker-decode-node { transition: none; }
 }

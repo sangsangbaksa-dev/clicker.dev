@@ -1,6 +1,7 @@
 "use client"
 
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
+import { monsterForRegion } from "@/data/clicker/monsters"
 import { formatNumber } from "@/domain/services/clicker-format"
 import type { RunState } from "@/domain/entities/clicker"
 import type { ClickerGame } from "./types"
@@ -57,6 +58,7 @@ export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; ru
       <div className="clicker-world-list">
         {game.regions.map((region) => {
           const regionTip = `${region.name} — ${region.description} (${region.unlockText} · ${region.unlockRequirement})`
+          const guardian = monsterForRegion(region.id)
           return (
             <span key={region.id} className="clicker-world-slot">
               <article
@@ -65,7 +67,9 @@ export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; ru
                 aria-current={region.isCurrent ? "location" : undefined}
               >
                 <img
-                  src={region.bgAssetId || CLICKER_ASSETS.bgChamber}
+                  className={guardian ? "is-guardian" : undefined}
+                  src={guardian?.src ?? (region.bgAssetId || CLICKER_ASSETS.bgChamber)}
+                  style={guardian ? { objectPosition: `${guardian.head.x}% ${guardian.head.y}%` } : undefined}
                   alt=""
                   onError={(e) => {
                     e.currentTarget.src = CLICKER_ASSETS.bgChamber
@@ -73,6 +77,11 @@ export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; ru
                 />
                 <div className="clicker-world-card-body">
                   <strong className="clicker-world-dest-name">{region.name}</strong>
+                  {guardian ? (
+                    <p className="clicker-world-dest-guardian" style={{ color: guardian.accent }}>
+                      수호자 · {region.unlocked ? guardian.name : "???"}
+                    </p>
+                  ) : null}
                   <p className="clicker-world-dest-desc">{region.description}</p>
                   <p className="clicker-world-dest-bonus">{region.bonusText}</p>
                   <p className="clicker-world-dest-unlock">

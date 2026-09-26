@@ -17,6 +17,8 @@ import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine } from "@/components/clicker/clicker-mine"
 import { ClickerCinematic } from "@/components/clicker/clicker-cinematic"
 import { ClickerRegionChallenge } from "@/components/clicker/clicker-region-challenge"
+import { ClickerMonsterEncounter, ClickerMonsterStage } from "@/components/clicker/clicker-monster"
+import { monsterForRegion } from "@/data/clicker/monsters"
 import { MineArt } from "@/data/clicker/mine-assets"
 import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
 import { ClickerOtherTab } from "@/components/clicker/clicker-other-tab"
@@ -165,6 +167,10 @@ export function ClickerApp() {
   const prevRegionId = useRef<string | null>(null)
   const prevUnlockedRegionIds = useRef<Set<string> | null>(null)
   const [regionTransition, setRegionTransition] = useState(false)
+  /** Bumped to make the region guardian roar (activity used, challenge cleared). */
+  const [monsterRoar, setMonsterRoar] = useState(0)
+  /** Guardian arrival card, queued on travel; waits for a first-visit intro video to finish. */
+  const [encounterRegionId, setEncounterRegionId] = useState<string | null>(null)
   const drawerSnaps = useMemo(() => drawerSnapPoints(), [])
   const [drawerHeight, setDrawerHeight] = useState(readDrawerHeight)
   const [drawerDragging, setDrawerDragging] = useState(false)
@@ -447,6 +453,7 @@ export function ClickerApp() {
     const regionId = game.currentRegion?.id
     if (!regionId) return
     if (prevRegionId.current && prevRegionId.current !== regionId) {
+      setEncounterRegionId(monsterForRegion(regionId) ? regionId : null)
       setRegionTransition(true)
       const timer = window.setTimeout(() => setRegionTransition(false), 280)
       prevRegionId.current = regionId
@@ -633,6 +640,7 @@ export function ClickerApp() {
   const panelProps = { game, run, popIcons, bumpIcon }
 
   const atHomeHub = !inMine && Boolean(game.currentRegion?.isHome)
+  const regionMonster = !inMine && !atHomeHub ? monsterForRegion(game.currentRegion?.id) : undefined
   const regionIntroPlaying = Boolean(game.regionIntro)
   const managing = !inMine && hubView === "manage"
 
@@ -802,11 +810,21 @@ export function ClickerApp() {
       </header>
 
       <div className="clicker-stage">
-        <div
-          className={`clicker-stage-bg ${stageEvent ? "is-event" : ""}${regionTransition ? " is-region-transition" : ""}${inMine && hud.fever.active ? " is-fever" : ""}`}
-          style={{ backgroundImage: `url(${stageBg})` }}
-          aria-hidden
-        />
+        {regionMonster ? (
+          <ClickerMonsterStage
+            key={regionMonster.regionId}
+            monster={regionMonster}
+            roarKey={monsterRoar}
+            muted={game.save.settings.muted}
+            className={regionTransition ? "is-region-transition" : ""}
+          />
+        ) : (
+          <div
+            className={`clicker-stage-bg ${stageEvent ? "is-event" : ""}${regionTransition ? " is-region-transition" : ""}${inMine && hud.fever.active ? " is-fever" : ""}`}
+            style={{ backgroundImage: `url(${stageBg})` }}
+            aria-hidden
+          />
+        )}
         <div className="clicker-vignette" />
         <nav className="clicker-stage-region" aria-label="현재 지역">
           {game.currentRegion ? (
@@ -1061,7 +1079,10 @@ export function ClickerApp() {
                     disabled={cooling || regionIntroPlaying}
                     title={act.description}
                     aria-label={`${act.name} · ${act.description}`}
-                    onClick={() => game.regionActivity(region.id)}
+                    onClick={() => {
+                      game.regionActivity(region.id)
+                      setMonsterRoar((n) => n + 1)
+                    }}
                   >
                     <strong>{act.name}</strong>
                     <span>
@@ -1401,10 +1422,25 @@ export function ClickerApp() {
             onFinish={(score) => {
               setChallengeRegionId(null)
               game.claimChallenge(region.id, score)
+              if (score > 0) setMonsterRoar((n) => n + 1)
             }}
             onCancel={() => setChallengeRegionId(null)}
           />
         )
+      })()}
+
+      {(() => {
+        const encounter = encounterRegionId && !game.regionIntro && !inMine ? monsterForRegion(encounterRegionId) : undefined
+        const region = encounter ? game.regions.find((r) => r.id === encounter.regionId) : undefined
+        return encounter && region?.isCurrent && !region.isHome ? (
+          <ClickerMonsterEncounter
+            key={encounter.regionId}
+            monster={encounter}
+            regionName={region.name}
+            muted={game.save.settings.muted}
+            onDone={() => setEncounterRegionId(null)}
+          />
+        ) : null
       })()}
 
       {game.regionIntro ? (
