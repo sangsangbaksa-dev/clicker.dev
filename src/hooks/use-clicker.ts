@@ -78,7 +78,7 @@ function now() {
   return Date.now()
 }
 
-export type RegionIntro = RegionIntroDef & { regionId: string; name: string; description: string }
+export type RegionIntro = RegionIntroDef & { regionId: string; name: string; description: string; firstVisit: boolean }
 
 export function useClicker() {
   const [save, setSave] = useState<SaveData | null>(null)
@@ -388,7 +388,13 @@ export function useClicker() {
     commit(result.value.save)
     persistNow(result.value.save)
     playSfx("travel")
-    if (result.value.intro) setRegionIntro({ regionId, name: label, description: region?.description ?? "", ...result.value.intro })
+    if (result.value.intro) setRegionIntro({
+        regionId,
+        name: label,
+        description: region?.description ?? "",
+        firstVisit: result.value.firstVisit,
+        ...result.value.intro,
+      })
     else flash(`${label}(으)로 이동`)
   }, [commit, flash, refuse, persistNow])
 

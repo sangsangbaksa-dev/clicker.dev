@@ -1409,9 +1409,9 @@ export function ClickerApp() {
           key={game.regionIntro.regionId}
           src={game.regionIntro.video}
           poster={game.regionIntro.poster}
-          label={`${game.regionIntro.name} 첫 진입`}
+          label={`${game.regionIntro.name} ${game.regionIntro.firstVisit ? "첫 진입" : "진입"}`}
           caption={{
-            kicker: "NEW REGION · 첫 진입",
+            kicker: game.regionIntro.firstVisit ? "NEW REGION · 첫 진입" : "REGION · 진입",
             title: game.regionIntro.name,
             body: game.regionIntro.description,
           }}

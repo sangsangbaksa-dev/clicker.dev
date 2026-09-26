@@ -121,7 +121,7 @@ export type MetaState = {
   statistics: ClickerStatistics
   /** Unlocked achievement ids — permanent across rebirths; each adds production. */
   achievementIds: string[]
-  /** Regions entered at least once — their intro cinematic plays only on the first visit. */
+  /** Regions entered at least once — the first entry gets the "NEW REGION" intro caption. */
   visitedRegionIds: string[]
   /** True when the player finished the true ending; run is frozen. */
   gameCompleted: boolean

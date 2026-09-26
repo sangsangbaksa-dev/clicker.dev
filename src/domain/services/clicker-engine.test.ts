@@ -428,7 +428,7 @@ test("field challenge pays production by score and then cools down", () => {
   assert.ok(claimRegionChallenge(run, meta, config, "signal_relay", 1, now).error, "relay has no challenge")
 })
 
-test("region visits are recorded once so the intro plays only on the first entry", () => {
+test("region visits are recorded once so only the first entry counts as new", () => {
   const meta = createInitialMeta()
   const first = markRegionVisited(meta, "signal_relay")
   assert.equal(first.firstVisit, true)

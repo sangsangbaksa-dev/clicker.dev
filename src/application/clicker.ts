@@ -210,16 +210,16 @@ export function clickerResolveCrisis(save: SaveData, choice: CrisisChoice, now: 
   return { ...save, runState: next.run, metaState: next.meta }
 }
 
-/** Travel; `intro` is the region's cinematic when this is its first visit. */
+/** Travel; `intro` is the region's cinematic, played on every entry; `firstVisit` marks the first one. */
 export function clickerTravelRegion(
   save: SaveData,
   regionId: string,
-): UseCaseResult<{ save: SaveData; intro: RegionIntroDef | null }> {
+): UseCaseResult<{ save: SaveData; intro: RegionIntroDef | null; firstVisit: boolean }> {
   const next = travelToRegion(save.runState, config, regionId)
   if (next.error) return { ok: false, status: 400, error: next.error }
   const visit = markRegionVisited(save.metaState, regionId)
-  const intro = visit.firstVisit ? (config.regions.find((r) => r.id === regionId)?.intro ?? null) : null
-  return ok({ save: { ...save, runState: next.run, metaState: visit.meta }, intro })
+  const intro = config.regions.find((r) => r.id === regionId)?.intro ?? null
+  return ok({ save: { ...save, runState: next.run, metaState: visit.meta }, intro, firstVisit: visit.firstVisit })
 }
 
 export function clickerRegionActivity(save: SaveData, regionId: string, now: number): UseCaseResult<SaveData> {

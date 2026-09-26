@@ -6,7 +6,7 @@ import type { RegionDef } from "../../domain/entities/clicker"
  * (`run.currentRegionId`); rebirth returns home → Core Mine bias.
  * The timed mine exists only at home; every other region has one activity usable only
  * while standing there, and the later regions add a hands-on `challenge` mini-game.
- * `intro` plays once, on the first visit.
+ * `intro` plays on every entry into the region.
  */
 export const CLICKER_REGIONS: RegionDef[] = [
   {

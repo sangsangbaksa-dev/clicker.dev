@@ -18,7 +18,7 @@ type Props = {
 const SAFETY_TIMEOUT_MS = 15_000
 
 /**
- * Full-screen video with its own soundtrack (mine entry, first-visit region intros).
+ * Full-screen video with its own soundtrack (mine entry, region intros).
  * Always completes: ended, skip, Esc/Enter/Space, load error, or the safety timeout.
  */
 export function ClickerCinematic({ src, poster, label, caption, muted, onDone }: Props) {
