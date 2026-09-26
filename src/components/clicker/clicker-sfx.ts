@@ -52,6 +52,14 @@ export function unlockSfx() {
   audio()
 }
 
+/**
+ * The shared context, created/resumed on demand (BGM plays through it too). Call first from
+ * a gesture handler so iOS lets it start.
+ */
+export function sharedAudioContext(): AudioContext | null {
+  return audio()
+}
+
 /** Global SFX mute (settings). Callers no longer need to thread `muted` through. */
 export function setSfxMuted(value: boolean) {
   muted = value
