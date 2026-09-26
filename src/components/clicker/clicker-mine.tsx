@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { MineArt, MINE_ORE_PLATE } from "@/data/clicker/mine-assets"
@@ -14,6 +15,17 @@ import { playSfx } from "@/components/clicker/clicker-sfx"
 import "./clicker-mine.css"
 
 export type MineStrikeResult = { critical: boolean }
+
+/**
+ * Enter/Space on a mine button. The buttons act on pointerdown, so they have no click
+ * handler for the keyboard to trigger; held keys don't auto-repeat strikes.
+ */
+function takeActivateKey(e: ReactKeyboardEvent<HTMLButtonElement>): boolean {
+  if (e.key !== "Enter" && e.key !== " ") return false
+  e.preventDefault()
+  e.stopPropagation()
+  return !e.repeat
+}
 
 type Spark = {
   id: number
@@ -102,6 +114,8 @@ export function ClickerMine({
   const [veinLabel, setVeinLabel] = useState<string | null>(null)
   const seq = useRef(0)
   const mineRef = useRef<HTMLDivElement>(null)
+  const oreRef = useRef<HTMLButtonElement>(null)
+  const oreFocused = useRef(false)
   const reduceMotion = useRef(false)
   const timers = useRef<number[]>([])
 
@@ -222,6 +236,23 @@ export function ClickerMine({
     [hitAt],
   )
 
+  // Put focus on the ore once it's laid out, so Enter/Space mine right after Enter Mine.
+  const hasBox = box !== null
+  useEffect(() => {
+    if (!hasBox || oreFocused.current) return
+    oreFocused.current = true
+    oreRef.current?.focus({ preventScroll: true })
+  }, [hasBox])
+
+  const strikeByKey = useCallback(
+    (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+      if (!takeActivateKey(e)) return
+      const b = live.current.box
+      if (b) hitAt(b.left + b.width / 2, b.top + b.height / 2, false)
+    },
+    [hitAt],
+  )
+
   // Assist drill: auto strikes on random points of the crystal.
   useEffect(() => {
     if (autoRate <= 0) return
@@ -251,21 +282,31 @@ export function ClickerMine({
     return () => window.clearTimeout(t)
   }, [vein])
 
-  const claimVein = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    if (e.button !== 0 || !vein) return
-    e.preventDefault()
-    e.stopPropagation()
+  const claimVeinAt = (clientX: number, clientY: number) => {
     const el = mineRef.current
-    if (!el) return
+    if (!el || !vein) return
     const rect = el.getBoundingClientRect()
     playLaser(muted, true)
-    fireLaser(e.clientX - rect.left, e.clientY - rect.top, true)
+    fireLaser(clientX - rect.left, clientY - rect.top, true)
     setVein(null)
-    const label = onVein?.(e.clientX, e.clientY) ?? null
+    const label = onVein?.(clientX, clientY) ?? null
     if (label) {
       setVeinLabel(label)
       later(() => setVeinLabel(null), 1800)
     }
+  }
+
+  const claimVein = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (e.button !== 0 || !vein) return
+    e.preventDefault()
+    e.stopPropagation()
+    claimVeinAt(e.clientX, e.clientY)
+  }
+
+  const claimVeinByKey = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+    if (!takeActivateKey(e)) return
+    const r = e.currentTarget.getBoundingClientRect()
+    claimVeinAt(r.left + r.width / 2, r.top + r.height / 2)
   }
 
   const plate = MineArt.orePlate
@@ -283,6 +324,7 @@ export function ClickerMine({
 
       {box ? (
         <button
+          ref={oreRef}
           type="button"
           className={`clicker-mine-crystal${broken ? " is-broken" : ""}${integrity <= 0.34 ? " is-weak" : ""}`}
           aria-label={
@@ -292,6 +334,7 @@ export function ClickerMine({
           }
           style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
           onPointerDown={strike}
+          onKeyDown={strikeByKey}
         >
           {/* Same plate, cropped to the crystal, so hits can pulse just the ore. */}
           <span
@@ -327,6 +370,7 @@ export function ClickerMine({
           aria-label="황금 광맥 — 탭하여 보상"
           style={{ left: box.left + box.width * vein.x, top: box.top + box.height * vein.y }}
           onPointerDown={claimVein}
+          onKeyDown={claimVeinByKey}
         />
       ) : null}
       {veinLabel ? (
