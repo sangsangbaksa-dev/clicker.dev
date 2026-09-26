@@ -10,7 +10,7 @@ import {
   validateUserRemoval,
 } from "@/domain/services/access-level"
 import { hashPassword } from "@/infrastructure/auth/password"
-import { classFromCode, isClassNumber } from "@/shared/classes"
+import { isClassNumber } from "@/shared/classes"
 import type {
   AccessLevel,
   ClassNumber,
@@ -28,7 +28,6 @@ import {
 } from "@/infrastructure/persistence/removed-accounts"
 import { createId } from "@/shared/ids"
 import { removeMemberFromOrder } from "@/infrastructure/persistence/member-order"
-import { findUserClassCode } from "@/infrastructure/persistence/room-repository"
 import { mergePendingUsers } from "@/infrastructure/persistence/shared-merge"
 import {
   invalidateUserDirectory,
@@ -206,18 +205,6 @@ export function userSchoolLevelValidationError(
 ): string | null {
   if (validateSchoolLevel(level)) return null
   return `${subject} 반을 선택해 주세요. (S반, A, B, C, D, E반 중 하나)`
-}
-
-/** Infer classN from BAN1–BAN4 room membership and persist when found. */
-async function backfillClassN(user: StoredUser): Promise<StoredUser> {
-  if (user.classN) return user
-  const code = await findUserClassCode(user.id)
-  if (!code) return user
-  const cls = classFromCode(code)
-  if (!cls || cls.kind !== "homeroom" || !isClassNumber(cls.n)) return user
-  const updated = normalizeStoredUser({ ...user, classN: cls.n })
-  await writeUser(updated)
-  return updated
 }
 
 export async function findUserByLoginId(loginId: string): Promise<StoredUser | null> {

@@ -551,7 +551,7 @@ export function useClicker() {
     commit(next)
     persistNow(next)
     if (result.error) refuse(result.error)
-  }, [commit, persistNow, flash, refuse])
+  }, [commit, persistNow, refuse])
 
   /** Golden vein hit in the mine; returns a short label for the in-scene burst. */
   const claimVein = useCallback(
