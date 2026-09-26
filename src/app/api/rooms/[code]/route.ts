@@ -5,6 +5,7 @@ import { requireApprovedUser, requireEditorUser } from "@/infrastructure/auth/gu
 import { toPublicUser } from "@/infrastructure/persistence/user-repository"
 import { normalizeRoomCode } from "@/shared/ids"
 import { NextResponse } from "next/server"
+import { readJsonBody } from "@/infrastructure/http/read-json-body"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -42,7 +43,7 @@ export async function PUT(
 
   const { code } = await params
   try {
-    const body = (await request.json()) as { room?: unknown; revision?: number }
+    const body = (await readJsonBody(request)) as { room?: unknown; revision?: number }
     const incoming = body.room as Room | null
     if (!incoming || typeof incoming !== "object" || typeof body.revision !== "number") {
       return NextResponse.json(
@@ -76,7 +77,7 @@ export async function PATCH(
   if (auth instanceof Response) return auth
 
   const code = normalizeRoomCode((await params).code)
-  const body = (await request.json()) as { type?: string; text?: string; updateId?: string }
+  const body = (await readJsonBody(request)) as { type?: string; text?: string; updateId?: string }
   const actor = toPublicUser(auth.user)
 
   if (body.type === "post-update") {

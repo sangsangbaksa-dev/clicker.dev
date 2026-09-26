@@ -3,6 +3,7 @@ import { toJson } from "@/application/result"
 import { requireApprovedUser } from "@/infrastructure/auth/guard"
 import { toPublicUser } from "@/infrastructure/persistence/user-repository"
 import { NextResponse } from "next/server"
+import { readJsonBody } from "@/infrastructure/http/read-json-body"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
   const auth = await requireApprovedUser(request)
   if (auth instanceof Response) return auth
 
-  const body = (await request.json()) as { texts?: unknown }
+  const body = (await readJsonBody(request)) as { texts?: unknown }
   const texts = Array.isArray(body.texts)
     ? body.texts.map((item) => String(item ?? ""))
     : []

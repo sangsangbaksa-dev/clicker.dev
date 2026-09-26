@@ -11,6 +11,15 @@ const staticCache = [
   { key: "CDN-Cache-Control", value: "public, max-age=31536000, immutable" },
 ]
 
+// Clickjacking, MIME sniffing, and referrer leaks. No full CSP yet: Next inline scripts need nonces.
+const securityHeaders = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+]
+
 const nextConfig: NextConfig = {
   devIndicators: false,
   // HMR WebSocket failures in proxied/cloud dev must not block React hydration.
@@ -21,6 +30,10 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "localhost", "0.0.0.0"],
   async headers() {
     return [
+      {
+        source: "/:path*",
+        headers: securityHeaders,
+      },
       {
         source: "/_next/static/:path*",
         headers: staticCache,

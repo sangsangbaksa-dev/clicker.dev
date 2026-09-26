@@ -3,13 +3,14 @@ import { toJson } from "@/application/result"
 import type { SchoolLevel } from "@/domain/entities/user"
 import { sessionCookieOptions, signSession } from "@/infrastructure/auth/session"
 import { NextResponse } from "next/server"
+import { readJsonBody } from "@/infrastructure/http/read-json-body"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as {
+    const body = (await readJsonBody(request)) as {
       loginId?: string
       name?: string
       password?: string

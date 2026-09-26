@@ -4,6 +4,7 @@ import type { AccessLevel } from "@/domain/entities/user"
 import { requireMemberManager } from "@/infrastructure/auth/guard"
 import { sessionCookieOptions, signSession } from "@/infrastructure/auth/session"
 import { NextResponse } from "next/server"
+import { readJsonBody } from "@/infrastructure/http/read-json-body"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -12,7 +13,7 @@ export async function PATCH(request: Request) {
   const auth = await requireMemberManager(request)
   if (auth instanceof Response) return auth
 
-  const body = (await request.json()) as {
+  const body = (await readJsonBody(request)) as {
     userId?: string
     accessLevel?: AccessLevel
   }

@@ -47,3 +47,10 @@ test("public route allowlist has no stale entries", () => {
     assert.ok(routes.has(route), `${route} no longer exists`)
   }
 })
+
+test("API routes read JSON bodies through readJsonBody", () => {
+  const raw = routeFiles(API_DIR)
+    .filter((file) => /request\.json\(\)/.test(readFileSync(file, "utf8")))
+    .map((file) => relative(API_DIR, file).split("\\").join("/"))
+  assert.deepEqual(raw, [], "request.json()은 잘못된 본문에서 500을 냅니다. readJsonBody(request)를 쓰세요.")
+})

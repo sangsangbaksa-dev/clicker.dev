@@ -3,6 +3,7 @@ import { toJson } from "@/application/result"
 import { requireMemberManager } from "@/infrastructure/auth/guard"
 import { toPublicUser } from "@/infrastructure/persistence/user-repository"
 import { NextResponse } from "next/server"
+import { readJsonBody } from "@/infrastructure/http/read-json-body"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
   if (auth instanceof Response) return auth
 
   try {
-    const body = (await request.json()) as { userId?: string }
+    const body = (await readJsonBody(request)) as { userId?: string }
     return toJson(
       await clearMemberRecords({
         actor: toPublicUser(auth.user),

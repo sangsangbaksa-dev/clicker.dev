@@ -4,6 +4,7 @@ import type { SchoolNotesDocument } from "@/domain/entities/board"
 import { requireApprovedUser, requireEditorUser } from "@/infrastructure/auth/guard"
 import { toPublicUser } from "@/infrastructure/persistence/user-repository"
 import { NextResponse } from "next/server"
+import { readJsonBody } from "@/infrastructure/http/read-json-body"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -24,7 +25,7 @@ export async function PUT(request: Request) {
   if (auth instanceof Response) return auth
 
   try {
-    const body = (await request.json()) as {
+    const body = (await readJsonBody(request)) as {
       schoolNotes?: Partial<SchoolNotesDocument>
       revision?: number
     }

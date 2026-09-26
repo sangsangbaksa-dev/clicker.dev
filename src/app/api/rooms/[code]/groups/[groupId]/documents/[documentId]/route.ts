@@ -4,6 +4,7 @@ import { requireEditorUser } from "@/infrastructure/auth/guard"
 import { toPublicUser } from "@/infrastructure/persistence/user-repository"
 import { normalizeRoomCode } from "@/shared/ids"
 import { NextResponse } from "next/server"
+import { readJsonBody } from "@/infrastructure/http/read-json-body"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -17,7 +18,7 @@ export async function PUT(
 
   const { code, groupId, documentId } = await params
   try {
-    const body = (await request.json()) as {
+    const body = (await readJsonBody(request)) as {
       title?: string
       body?: string
       revision?: number
