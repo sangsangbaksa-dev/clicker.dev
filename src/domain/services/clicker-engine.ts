@@ -202,6 +202,8 @@ export function mineEntryCheck(save: SaveData, now: number): { cost: number; err
     if (!hasProducers) return { cost: 0 }
     return { cost, error: `재입장에 CORE ${cost}이 필요합니다.` }
   }
+  // Ore strikes yield nothing during a crisis, so entering would burn the fee and cooldown.
+  if (save.runState.crisisActive) return { cost, error: "위기를 먼저 해소하세요." }
   return { cost }
 }
 

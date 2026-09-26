@@ -407,6 +407,18 @@ test("the mine opens only in the home region", () => {
   assert.equal(enterClickerMine(home, now, config).save.settings.playSurface, "mine")
 })
 
+test("Enter Mine waits until a crisis is resolved", () => {
+  const now = 11_300_000
+  const save = startClickerGame(createInitialSave(now, config))
+  const inCrisis = { ...save, runState: { ...save.runState, crisisActive: true } }
+  const refused = enterClickerMine(inCrisis, now, config)
+  assert.ok(refused.error)
+  assert.equal(refused.save.settings.playSurface, "hub")
+  assert.equal(refused.save.runState.mineCooldownUntil, save.runState.mineCooldownUntil)
+  const calm = { ...inCrisis, runState: { ...inCrisis.runState, crisisActive: false } }
+  assert.equal(enterClickerMine(calm, now, config).save.settings.playSurface, "mine")
+})
+
 test("field challenge pays production by score and then cools down", () => {
   const now = 12_000_000
   const meta = createInitialMeta()

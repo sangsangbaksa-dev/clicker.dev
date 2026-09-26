@@ -1358,6 +1358,9 @@ export function ClickerApp() {
           onToggleMute={game.toggleMute}
           onToggleMusic={game.toggleMusic}
           onMusicVolume={game.setMusicVolume}
+          onExportCode={game.exportSaveCode}
+          onParseCode={game.parseSaveCode}
+          onImportJson={game.importSaveJson}
           onClose={() => setSettingsOpen(false)}
         />
       ) : null}

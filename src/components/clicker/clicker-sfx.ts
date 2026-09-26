@@ -43,13 +43,19 @@ function audio(): AudioContext | null {
     bus.connect(comp)
     comp.connect(ctx.destination)
   }
-  if (ctx.state === "suspended") void ctx.resume()
+  // iOS parks the context in "interrupted" after a call or backgrounding, not "suspended".
+  if (ctx.state !== "running" && ctx.state !== "closed") void ctx.resume().catch(() => {})
   return ctx
 }
 
 /** Call from a capture-phase gesture listener so later SFX aren't stuck suspended. */
 export function unlockSfx() {
   audio()
+}
+
+/** The shared context, for BGM gain routing. Only call after a user gesture. */
+export function sharedAudioContext(): AudioContext | null {
+  return audio()
 }
 
 /** Global SFX mute (settings). Callers no longer need to thread `muted` through. */

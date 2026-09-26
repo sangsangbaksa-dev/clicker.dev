@@ -4,18 +4,18 @@ import { MineArt } from "./mine-assets.ts"
 import { CLICKER_ACHIEVEMENTS } from "./achievements.ts"
 
 export const CLICKER_ASSETS = {
-  bgLoading: "/clicker/bg/loading_core_awakening.png",
-  bgChamber: "/clicker/bg/region_core_chamber.png",
+  bgLoading: "/clicker/bg/loading_core_awakening.webp",
+  bgChamber: "/clicker/bg/region_core_chamber.webp",
   /** Hub pre-enter — exterior gate only. */
   bgMineEntrance: MineArt.entranceGate,
   /** Timed mine session — hi-tech interior chamber. */
   bgMine: MineArt.chamberBg,
   mineCoreOre: MineArt.coreOre,
-  bgTranscendence: "/clicker/bg/transcendence_room_base.png",
-  coreIdle: "/clicker/core/core_idle.png",
-  coreFever: "/clicker/core/core_fever.png",
-  coreCrisis: "/clicker/core/core_crisis.png",
-  luma: "/clicker/char/char_luma_default.png",
+  bgTranscendence: "/clicker/bg/transcendence_room_base.webp",
+  coreIdle: "/clicker/core/core_idle.webp",
+  coreFever: "/clicker/core/core_fever.webp",
+  coreCrisis: "/clicker/core/core_crisis.webp",
+  luma: "/clicker/char/char_luma_default.webp",
   icon: "/clicker/icon/icon_core.png",
 } as const
 
