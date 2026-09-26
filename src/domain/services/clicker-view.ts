@@ -394,6 +394,7 @@ export type RegionChallengeView = {
   durationSec: number
   /** ms until it can be played again (0 = ready). */
   readyInMs: number
+  monster?: "specter" | "golem"
 }
 
 export type RegionActivityView = {
@@ -484,6 +485,7 @@ export function buildRegionViews(run: RunState, config: GameConfig, now = Date.n
             description: region.challenge.description,
             durationSec: region.challenge.durationSec,
             readyInMs: Math.max(0, (run.challengeCooldowns[region.id] ?? 0) - now),
+            monster: region.challenge.monster,
           }
         : null,
     }

@@ -339,7 +339,7 @@ export type RegionDef = {
   intro?: RegionIntroDef
 }
 
-export type RegionChallengeKind = "ROD_STRIKE" | "FAULT_DRILL" | "DRONE_RECALL"
+export type RegionChallengeKind = "ROD_STRIKE" | "FAULT_DRILL" | "DRONE_RECALL" | "MONSTER_HUNT"
 
 /** Timed field mini-game: a perfect run pays `rewardSeconds` of current production. */
 export type RegionChallengeDef = {
@@ -349,6 +349,8 @@ export type RegionChallengeDef = {
   durationSec: number
   rewardSeconds: number
   cooldownSec: number
+  /** MONSTER_HUNT only: which ore-armored monster lives here. */
+  monster?: "specter" | "golem"
 }
 
 export type RegionIntroDef = {

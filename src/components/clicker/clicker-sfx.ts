@@ -402,3 +402,83 @@ export function playChallengeCue(mutedArg: boolean, cue: "hit" | "miss" | "done"
     tone(c, "sine", 990, 990, 0.04, t + 0.12, 0.45)
   }
 }
+
+/* ---------- Monster Hunt ---------- */
+
+let hum: { osc: OscillatorNode; sub: OscillatorNode; filter: BiquadFilterNode; gain: GainNode } | null = null
+
+/**
+ * Held-laser hum: silent at 0, a low buzz while firing (0.4), brighter and louder while it
+ * burns the monster (1). Call every frame; it ramps, so jumps never click.
+ */
+export function setLaserHum(mutedArg: boolean, level: number) {
+  const target = mutedArg || muted ? 0 : Math.max(0, Math.min(1, level))
+  if (!hum && target === 0) return
+  const c = audio()
+  if (!c) return
+  if (!hum) {
+    const osc = c.createOscillator()
+    const sub = c.createOscillator()
+    const filter = c.createBiquadFilter()
+    const gain = c.createGain()
+    osc.type = "sawtooth"
+    osc.frequency.value = 110
+    sub.type = "sine"
+    sub.frequency.value = 55
+    filter.type = "lowpass"
+    filter.frequency.value = 500
+    filter.Q.value = 6
+    gain.gain.value = 0
+    osc.connect(filter)
+    sub.connect(filter)
+    filter.connect(gain)
+    gain.connect(out(c))
+    osc.start()
+    sub.start()
+    hum = { osc, sub, filter, gain }
+  }
+  const t = c.currentTime
+  hum.gain.gain.setTargetAtTime(target * 0.05, t, 0.04)
+  hum.filter.frequency.setTargetAtTime(400 + target * 1600, t, 0.05)
+  hum.osc.frequency.setTargetAtTime(100 + target * 30 + Math.random() * 4, t, 0.03)
+}
+
+export function stopLaserHum() {
+  if (!hum) return
+  const h = hum
+  hum = null
+  const c = h.gain.context
+  h.gain.gain.setTargetAtTime(0, c.currentTime, 0.03)
+  h.osc.stop(c.currentTime + 0.2)
+  h.sub.stop(c.currentTime + 0.2)
+}
+
+export type MonsterCue = "plate" | "kill" | "spawn" | "enrage" | "stomp"
+
+export function playMonsterCue(mutedArg: boolean, cue: MonsterCue) {
+  if (mutedArg || muted) return
+  const c = audio()
+  if (!c) return
+  const t = c.currentTime
+  if (cue === "plate") {
+    // Ore shell cracking off: a hard crack plus a glassy ring.
+    noise(c, "bandpass", 2600, 1.2, 0.07, t, 0.12)
+    noise(c, "lowpass", 400, 1, 0.08, t, 0.18)
+    const e = echo(c, 0.09, 0.25, 0.3)
+    tone(c, "triangle", 1560 + Math.random() * 300, 1200, 0.035, t + 0.01, 0.35, { dest: e })
+  } else if (cue === "kill") {
+    tone(c, "sine", 180, 40, 0.1, t, 0.6)
+    noise(c, "lowpass", 900, 0.8, 0.1, t, 0.5, { sweepTo: 120 })
+    const e = echo(c, 0.14, 0.35, 0.4)
+    ;[659, 880, 1175].forEach((f, i) => tone(c, "triangle", f, f, 0.035, t + 0.08 + i * 0.07, 0.5, { dest: e }))
+  } else if (cue === "spawn") {
+    tone(c, "sine", 70, 140, 0.06, t, 0.5, { attack: 0.15 })
+    noise(c, "lowpass", 300, 1, 0.05, t, 0.45, { attack: 0.1 })
+  } else if (cue === "enrage") {
+    tone(c, "sawtooth", 90, 70, 0.05, t, 0.7, { attack: 0.05 })
+    tone(c, "sawtooth", 134, 100, 0.03, t, 0.7, { attack: 0.05, detune: 12 })
+  } else {
+    tone(c, "sine", 75, 38, 0.07, t, 0.22)
+    noise(c, "lowpass", 220, 1, 0.05, t, 0.16)
+  }
+}

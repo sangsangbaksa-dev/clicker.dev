@@ -3,10 +3,14 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react"
 import type { RegionChallengeKind } from "@/domain/entities/clicker"
 import { playChallengeCue } from "@/components/clicker/clicker-sfx"
+import { MonsterHunt } from "@/components/clicker/clicker-monster-hunt"
+import { MONSTERS } from "@/domain/services/clicker-monster"
 import "./clicker-region-challenge.css"
 
 type Props = {
   kind: RegionChallengeKind
+  /** MONSTER_HUNT: which monster to hunt. */
+  monster?: "specter" | "golem"
   name: string
   description: string
   durationSec: number
@@ -31,7 +35,8 @@ type GameProps = {
 }
 
 /** Targets presented so far for each game; misses (wrong taps / cracks) cost half an attempt. */
-function attempts(kind: RegionChallengeKind, elapsed: number, hits: number, misses: number): number {
+function attempts(kind: RegionChallengeKind, elapsed: number, hits: number, misses: number, monster: "specter" | "golem"): number {
+  if (kind === "MONSTER_HUNT") return MONSTERS[monster].killTarget
   if (kind === "ROD_STRIKE") return Math.max(0, Math.floor((elapsed - ROD_FIRST_MS) / ROD_EVERY_MS) + 1) + misses * 0.5
   if (kind === "FAULT_DRILL") return Math.max(DRILL_TARGET, hits) + misses * 0.5
   return Math.max(0, Math.floor((elapsed - DRONE_FIRST_MS) / DRONE_EVERY_MS) + 1)
@@ -41,10 +46,12 @@ function attempts(kind: RegionChallengeKind, elapsed: number, hits: number, miss
  * Full-screen timed mini-game for a region's field challenge: 3 s countdown, play, result.
  * Leaving mid-play settles with the score so far, so a bad run can't be dodged for free.
  */
-export function ClickerRegionChallenge({ kind, name, description, durationSec, muted, onFinish, onCancel }: Props) {
+export function ClickerRegionChallenge({ kind, monster = "specter", name, description, durationSec, muted, onFinish, onCancel }: Props) {
   const [clock, setClock] = useState(0)
   const [hits, setHits] = useState(0)
   const [misses, setMisses] = useState(0)
+  /** MONSTER_HUNT reports its own score (kills + damage on the current monster). */
+  const [huntScore, setHuntScore] = useState(0)
   const durationMs = durationSec * 1000
   const phase: Phase = clock < COUNTDOWN_MS ? "countdown" : clock < COUNTDOWN_MS + durationMs ? "play" : "done"
 
@@ -66,8 +73,13 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
 
   const elapsed = Math.min(durationMs, Math.max(0, clock - COUNTDOWN_MS))
   const left = durationMs - elapsed
-  const tries = attempts(kind, elapsed, hits, misses)
-  const score = tries > 0 ? Math.min(1, Math.min(hits, kind === "FAULT_DRILL" ? DRILL_TARGET : hits) / tries) : 0
+  const tries = attempts(kind, elapsed, hits, misses, monster)
+  const score =
+    kind === "MONSTER_HUNT"
+      ? huntScore
+      : tries > 0
+        ? Math.min(1, Math.min(hits, kind === "FAULT_DRILL" ? DRILL_TARGET : hits) / tries)
+        : 0
   const pct = Math.round(score * 100)
 
   const close = () => {
@@ -127,6 +139,17 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
         {kind === "ROD_STRIKE" ? <RodStrike {...gameProps} /> : null}
         {kind === "FAULT_DRILL" ? <FaultDrill {...gameProps} misses={misses} /> : null}
         {kind === "DRONE_RECALL" ? <DroneRecall {...gameProps} /> : null}
+        {kind === "MONSTER_HUNT" ? (
+          <MonsterHunt
+            kind={monster}
+            playing={phase === "play"}
+            muted={muted}
+            onKill={() => setHits((n) => n + 1)}
+            onScore={(value) => {
+              if (phase !== "done") setHuntScore(value)
+            }}
+          />
+        ) : null}
         {phase === "countdown" ? (
           <div className="clicker-challenge-countdown" aria-live="assertive">
             {Math.max(1, Math.ceil((COUNTDOWN_MS - clock) / 1000))}
@@ -136,9 +159,7 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
           <div className="clicker-challenge-result">
             <p>도전 종료</p>
             <strong>{pct}%</strong>
-            <span>
-              성공 {hits} · 실수 {misses}
-            </span>
+            <span>{kind === "MONSTER_HUNT" ? `처치 ${hits}마리` : `성공 ${hits} · 실수 ${misses}`}</span>
             <button type="button" className="clicker-primary" autoFocus onClick={() => onFinish(score)}>
               보상 받기
             </button>

@@ -1418,6 +1418,7 @@ export function ClickerApp() {
           <ClickerRegionChallenge
             key={region.id}
             kind={region.challenge.kind}
+            monster={region.challenge.monster}
             name={region.challenge.name}
             description={region.challenge.description}
             durationSec={region.challenge.durationSec}

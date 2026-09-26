@@ -5,7 +5,8 @@ import type { RegionDef } from "../../domain/entities/clicker"
  * Bonuses apply only while the player is present in that region
  * (`run.currentRegionId`); rebirth returns home → Core Mine bias.
  * The timed mine exists only at home; every other region has one activity usable only
- * while standing there, and the later regions add a hands-on `challenge` mini-game.
+ * while standing there plus a hands-on `challenge` mini-game (the first two hunt an
+ * ore-armored monster with a held laser).
  * `intro` plays once, on the first visit.
  */
 export const CLICKER_REGIONS: RegionDef[] = [
@@ -26,6 +27,15 @@ export const CLICKER_REGIONS: RegionDef[] = [
     intro: { video: "/clicker/region/signal_relay_intro.mp4", poster: "/clicker/bg/region_signal_relay.png" },
     unlockAtLifetimeEnergy: 250_000,
     productionMultiplier: 1.12,
+    challenge: {
+      kind: "MONSTER_HUNT",
+      monster: "specter",
+      name: "잔향 해파리 사냥",
+      description: "광석 껍질을 두른 해파리를 레이저로 꾹 눌러 녹이기 · 20초",
+      durationSec: 20,
+      rewardSeconds: 90,
+      cooldownSec: 180,
+    },
     activity: {
       kind: "PRODUCTION_BOOST",
       name: "주파수 증폭",
@@ -44,6 +54,15 @@ export const CLICKER_REGIONS: RegionDef[] = [
     unlockAtLifetimeEnergy: 2_000_000,
     clickMultiplier: 1.08,
     productionMultiplier: 1.1,
+    challenge: {
+      kind: "MONSTER_HUNT",
+      monster: "golem",
+      name: "위상 골렘 사냥",
+      description: "광석 갑옷을 두른 골렘을 레이저로 꾹 눌러 부수기 · 20초",
+      durationSec: 20,
+      rewardSeconds: 100,
+      cooldownSec: 180,
+    },
     activity: {
       kind: "PHASE_DEPOSIT",
       name: "위상 예치",
