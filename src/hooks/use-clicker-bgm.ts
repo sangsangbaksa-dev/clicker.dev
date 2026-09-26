@@ -3,11 +3,12 @@
 import { useEffect, useRef } from "react"
 import type { CoreVisual } from "@/domain/services/clicker-view"
 
-/** Hub / mine loops plus the chamber cue for rebirth and ending. */
+/** Hub / mine / hunt loops plus the chamber cue for rebirth and ending. */
 const BGM_SRC = {
-  hub: "/clicker/audio/bgm_hub_v2.mp3",
-  mine: "/clicker/audio/bgm_mine_v2.mp3",
-  chamber: "/clicker/audio/bgm_chamber_v2.mp3",
+  hub: "/clicker/audio/bgm_hub_v3.mp3",
+  mine: "/clicker/audio/bgm_mine_v3.mp3",
+  hunt: "/clicker/audio/bgm_hunt_v3.mp3",
+  chamber: "/clicker/audio/bgm_chamber_v3.mp3",
 } as const
 
 type Track = keyof typeof BGM_SRC
@@ -31,7 +32,7 @@ export function useClickerBgm(
 
   useEffect(() => {
     const tracks: Partial<Record<Track, HTMLAudioElement>> = {}
-    const levels: Record<Track, number> = { hub: 0, mine: 0, chamber: 0 }
+    const levels: Record<Track, number> = { hub: 0, mine: 0, hunt: 0, chamber: 0 }
     let unlocked = false
     let hidden = document.visibilityState === "hidden"
     let raf = 0
