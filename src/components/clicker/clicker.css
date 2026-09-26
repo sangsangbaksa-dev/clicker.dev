@@ -2384,6 +2384,8 @@ button.clicker-metric-action.is-fever-ready em {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  /* left: 50% would otherwise cap the shrink-to-fit width at half the screen. */
+  width: max-content;
   max-width: min(92vw, 420px);
   background: var(--panel-alt);
   border: 1px solid var(--line);
@@ -2396,7 +2398,15 @@ button.clicker-metric-action.is-fever-ready em {
 
 .clicker-toast-msg {
   min-width: 0;
+  word-break: keep-all;
   overflow-wrap: anywhere;
+}
+
+/* "탭 · Esc" only helps with a keyboard; touch players just tap the toast. */
+@media (hover: none) {
+  .clicker-toast-dismiss {
+    display: none;
+  }
 }
 
 .clicker-toast-dismiss {
