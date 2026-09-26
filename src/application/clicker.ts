@@ -202,7 +202,9 @@ export function clickerStartGaugeFever(save: SaveData): UseCaseResult<SaveData> 
 }
 
 export function clickerUseSkill(save: SaveData, id: string, now: number): UseCaseResult<SaveData> {
-  return withRun(save, activateSkill(save.runState, save.metaState, config, id, now))
+  const next = activateSkill(save.runState, save.metaState, config, id, now)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ ...save, runState: next.run, metaState: next.meta })
 }
 
 export function clickerResolveCrisis(save: SaveData, choice: CrisisChoice, now: number): SaveData {

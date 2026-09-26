@@ -2378,6 +2378,8 @@ button.clicker-metric-action.is-fever-ready em {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  /* left: 50% leaves only half the viewport for shrink-to-fit; size to the text instead. */
+  width: max-content;
   max-width: min(92vw, 420px);
   background: var(--panel-alt);
   border: 1px solid var(--line);

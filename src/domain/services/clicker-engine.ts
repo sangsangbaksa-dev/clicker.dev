@@ -873,13 +873,6 @@ export function processTick(
     if (potion && potion.instabilityPerSecond) {
       next = applyInstabilityDelta(next, potion.instabilityPerSecond * dt)
     }
-    const overclock = next.activeBuffs.find((b) => b.id === "overclock")
-    if (overclock) {
-      const skill = config.activeSkills.find((s) => s.id === "overclock")
-      if (skill?.instabilityPerSecond) {
-        next = applyInstabilityDelta(next, skill.instabilityPerSecond * dt)
-      }
-    }
     if (next.fever.remainingTime <= 0.35) next = tryFinisher(next, meta, config, now)
     if (next.fever.remainingTime <= 0) {
       next.fever = {
@@ -895,6 +888,12 @@ export function processTick(
       left <= 0
         ? { ...next.fever, phase: "IDLE", remainingTime: 0 }
         : { ...next.fever, remainingTime: left }
+  }
+
+  // Active skills with a running buff (OVERCLOCK) raise instability whether or not FEVER is on.
+  for (const buff of next.activeBuffs) {
+    const skill = config.activeSkills.find((s) => s.id === buff.id)
+    if (skill?.instabilityPerSecond) next = applyInstabilityDelta(next, skill.instabilityPerSecond * dt)
   }
 
   const snapshot = productionSnapshot(next, meta, config, now)
@@ -914,9 +913,11 @@ export function processTick(
   if (next.instability >= 100 && !next.crisisActive) next.crisisActive = true
   next = refreshSkillPoints(next, config)
   next = refreshObjective(next, meta, config)
+  // Everything this tick earned (production, vault interest, the FEVER finisher burst).
+  const earned = next.lifetimeCoreEnergy - run.lifetimeCoreEnergy
   const nextMeta: MetaState = {
     ...meta,
-    totalCoreEnergy: meta.totalCoreEnergy + gained,
+    totalCoreEnergy: meta.totalCoreEnergy + earned,
   }
   return { run: next, meta: nextMeta }
 }
@@ -1045,12 +1046,12 @@ export function activateSkill(
   config: GameConfig,
   skillId: string,
   now: number
-): { run: RunState; error?: string } {
-  if (run.crisisActive) return { run, error: "위기 중에는 일부 스킬을 쓸 수 없습니다." }
+): { run: RunState; meta: MetaState; error?: string } {
+  if (run.crisisActive) return { run, meta, error: "위기 중에는 일부 스킬을 쓸 수 없습니다." }
   const skill = config.activeSkills.find((s) => s.id === skillId)
-  if (!skill) return { run, error: "스킬이 없습니다." }
-  if ((run.skillItems[skillId] ?? 0) <= 0) return { run, error: "스킬이 부족합니다." }
-  if ((run.skillCooldowns[skillId] ?? 0) > 0) return { run, error: "쿨다운 중입니다." }
+  if (!skill) return { run, meta, error: "스킬이 없습니다." }
+  if ((run.skillItems[skillId] ?? 0) <= 0) return { run, meta, error: "스킬이 부족합니다." }
+  if ((run.skillCooldowns[skillId] ?? 0) > 0) return { run, meta, error: "쿨다운 중입니다." }
   let next = {
     ...run,
     skillItems: { ...run.skillItems, [skillId]: Math.max(0, (run.skillItems[skillId] ?? 0) - 1) },
@@ -1063,6 +1064,7 @@ export function activateSkill(
       { id: skillId, expiresAt: now + skill.duration * 1000 },
     ]
   }
+  let nextMeta = meta
   if (skill.energyBurstSeconds) {
     const snapshot = productionSnapshot(next, meta, config, now)
     const burst = snapshot.perSecond * skill.energyBurstSeconds
@@ -1071,8 +1073,9 @@ export function activateSkill(
       coreEnergy: next.coreEnergy + burst,
       lifetimeCoreEnergy: next.lifetimeCoreEnergy + burst,
     }
+    nextMeta = { ...meta, totalCoreEnergy: meta.totalCoreEnergy + burst }
   }
-  return { run: next }
+  return { run: next, meta: nextMeta }
 }
 
 export function resolveCrisis(
@@ -1105,7 +1108,8 @@ export function resolveCrisis(
     }
     next = applyInstabilityDelta(next, rng() < 0.5 ? -30 : -70)
   }
-  return { run: next, meta }
+  const earned = next.lifetimeCoreEnergy - run.lifetimeCoreEnergy
+  return { run: next, meta: earned > 0 ? { ...meta, totalCoreEnergy: meta.totalCoreEnergy + earned } : meta }
 }
 
 export function applyRebirth(

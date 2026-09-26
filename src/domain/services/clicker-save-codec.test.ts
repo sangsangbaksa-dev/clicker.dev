@@ -142,3 +142,33 @@ test("a save from a newer build loads best-effort and is backed up", () => {
   assert.equal(decoded.backup, true)
   assert.equal(decoded.save.runState.coreEnergy, 12_345)
 })
+
+test("bad counts in id-keyed maps are dropped instead of breaking arithmetic", () => {
+  const save = progressedSave()
+  const raw = JSON.parse(encodeClickerSave(save).json)
+  raw.runState.potions = { blue: "3", red: 2, green: -1 }
+  raw.runState.skillItems = { overclock: null }
+  raw.runState.producerLevels = { ...raw.runState.producerLevels, solar_node: "7" }
+  raw.runState.regionCooldowns = "soon"
+  const decoded = decodeClickerSave(JSON.stringify(raw), config, NOW)
+  assert.equal(decoded.status, "repaired")
+  assert.equal(decoded.backup, true)
+  const run = decoded.save.runState
+  assert.deepEqual(run.potions, { red: 2 })
+  assert.deepEqual(run.skillItems, {})
+  assert.equal(run.producerLevels.solar_node, 0)
+  assert.deepEqual(run.regionCooldowns, {})
+  assert.equal(run.coreEnergy, 12_345)
+})
+
+test("clean id-keyed maps load untouched", () => {
+  const save = progressedSave()
+  save.runState.potions = { blue: 2 }
+  save.runState.producerLevels.solar_node = 4
+  save.runState.regionCooldowns = { signal_relay: NOW + 5_000 }
+  const decoded = decodeClickerSave(encodeClickerSave(save).json, config, NOW)
+  assert.equal(decoded.status, "ok")
+  assert.deepEqual(decoded.save.runState.potions, { blue: 2 })
+  assert.equal(decoded.save.runState.producerLevels.solar_node, 4)
+  assert.deepEqual(decoded.save.runState.regionCooldowns, { signal_relay: NOW + 5_000 })
+})

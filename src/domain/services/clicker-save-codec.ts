@@ -83,6 +83,42 @@ function repairNumbers(value: SaveRecord, template: SaveRecord): { value: SaveRe
   return { value: next, repaired }
 }
 
+/** runState maps keyed by catalog id whose values must be non-negative counts or timestamps. */
+const NUMBER_MAP_KEYS = [
+  "producerLevels",
+  "potions",
+  "skillItems",
+  "skillCooldowns",
+  "regionCooldowns",
+  "challengeCooldowns",
+] as const
+
+/**
+ * Drop map entries that aren't finite, non-negative numbers. The template has no keys
+ * for these maps, so repairNumbers can't see them; a string here would turn `+ 1` into
+ * string concatenation ("3" + 1 = "31") and a negative count would never reach zero.
+ */
+function repairNumberMaps(run: SaveRecord): { value: SaveRecord; repaired: number } {
+  let repaired = 0
+  const next: SaveRecord = { ...run }
+  for (const key of NUMBER_MAP_KEYS) {
+    const map = run[key]
+    if (map === undefined) continue
+    if (!isRecord(map)) {
+      delete next[key]
+      repaired++
+      continue
+    }
+    const clean: Record<string, number> = {}
+    for (const [id, value] of Object.entries(map)) {
+      if (typeof value === "number" && Number.isFinite(value) && value >= 0) clean[id] = value
+      else repaired++
+    }
+    next[key] = clean
+  }
+  return { value: next, repaired }
+}
+
 /** Parse + validate + migrate a stored save. Never throws. */
 export function decodeClickerSave(raw: string | null, config: GameConfig, now: number): DecodedSave {
   const fresh = () => createInitialSave(now, config)
@@ -118,9 +154,10 @@ export function decodeClickerSave(raw: string | null, config: GameConfig, now: n
   if (!isRecord(data.runState) || !isRecord(data.metaState)) return corrupt("runState/metaState가 없습니다.")
 
   const initialMeta = createInitialMeta()
-  const run = repairNumbers(data.runState, createInitialRun(now, initialMeta, config) as unknown as SaveRecord)
+  const maps = repairNumberMaps(data.runState)
+  const run = repairNumbers(maps.value, createInitialRun(now, initialMeta, config) as unknown as SaveRecord)
   const meta = repairNumbers(data.metaState, initialMeta as unknown as SaveRecord)
-  const repaired = run.repaired + meta.repaired
+  const repaired = maps.repaired + run.repaired + meta.repaired
   if (repaired > 0 && status === "ok") {
     status = "repaired"
     reason = `숫자 ${repaired}개를 기본값으로 되돌렸습니다.`
