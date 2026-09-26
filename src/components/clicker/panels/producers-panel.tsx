@@ -47,6 +47,7 @@ export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automatio
                 {p.unlocked ? (
                   <>
                     다음 <strong>{p.nextCostText}</strong> CORE
+                    {p.waitText ? <span className="clicker-producer-wait"> · {p.waitText}</span> : null}
                   </>
                 ) : (
                   <>

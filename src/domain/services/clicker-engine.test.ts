@@ -39,7 +39,7 @@ import {
   MINE_HOME_ONLY_ERROR,
 } from "./clicker-engine.ts"
 import { MINE_SESSION_BASE_MS as MINE_SESSION_MS, mineSessionDurationMs } from "./clicker-engine.ts"
-import { formatNumber } from "./clicker-format.ts"
+import { formatNumber, formatWait, secondsUntilAffordable } from "./clicker-format.ts"
 
 const config = clickerConfig
 const rng = () => 0.99
@@ -50,6 +50,37 @@ test("formatNumber uses a single suffix scale", () => {
   assert.equal(formatNumber(1250), "1.25K")
   assert.equal(formatNumber(1_250_000), "1.25M")
   assert.equal(formatNumber(1_250_000_000), "1.25B")
+})
+
+test("formatNumber keeps short suffixes past quadrillions", () => {
+  assert.equal(formatNumber(1.5e15), "1.5Qa")
+  assert.equal(formatNumber(2e18), "2Qi")
+  assert.equal(formatNumber(3.25e21), "3.25Sx")
+  assert.equal(formatNumber(4e24), "4Sp")
+  assert.equal(formatNumber(5e27), "5Oc")
+})
+
+test("wait until affordable counts passive production only", () => {
+  assert.equal(secondsUntilAffordable(600, 600, 5), null, "already affordable")
+  assert.equal(secondsUntilAffordable(600, 100, 0), null, "nothing produced")
+  assert.equal(secondsUntilAffordable(600, 100, 10), 50)
+  assert.equal(secondsUntilAffordable(601, 100, 10), 51, "rounds up")
+  assert.equal(formatWait(45), "45초")
+  assert.equal(formatWait(200), "3분 20초")
+  assert.equal(formatWait(180), "3분")
+  assert.equal(formatWait(7500), "2시간 5분")
+  assert.equal(formatWait(1e9), "99시간+")
+})
+
+test("early producers stay worth buying: each new one pays back faster than the one before at Lv.8", () => {
+  // Idle-game rule of thumb: a newly unlocked generator should beat stacking the first one,
+  // so the opening minutes rotate through producers instead of buying Solar Node only.
+  const payback = (id: string, level: number) => {
+    const p = config.producers.find((x) => x.id === id)!
+    return producerCost(config, id, level) / p.productionPerSecond
+  }
+  assert.ok(payback("pulse_relay", 0) < payback("solar_node", 8))
+  assert.ok(payback("core_extractor", 0) < payback("pulse_relay", 8))
 })
 
 test("producer cost follows base × growth^level and bulk uses the same rule", () => {

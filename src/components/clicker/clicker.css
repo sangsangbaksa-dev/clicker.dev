@@ -2178,6 +2178,10 @@ button.clicker-metric-action.is-fever-ready em {
   color: var(--core-bright);
 }
 
+.clicker-producer-wait {
+  color: var(--text-2);
+}
+
 .clicker-buy-cost {
   display: block;
   font-size: 10px;
