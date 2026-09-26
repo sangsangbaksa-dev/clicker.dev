@@ -952,6 +952,11 @@
   color: #ff8a8a;
 }
 
+/* Region hub goal card: size to its text instead of a mostly empty full-height panel. */
+[data-clicker].is-region-hub .clicker-goal {
+  align-self: start;
+}
+
 /* Mine session result — reuses the welcome card */
 [data-clicker] .clicker-mine-result.is-best {
   border-color: #ffd36b;
@@ -1159,6 +1164,22 @@
 
   [data-clicker] .clicker-hub-dock-btn strong {
     font-size: 13px;
+  }
+
+  /* Region hub: the goal strip sits under the region chips instead of stretching down the
+     whole stage (it covered the region art), and the activity button clears the dock. */
+  [data-clicker] .clicker-goal-compact {
+    align-self: start;
+    margin-top: 44px;
+  }
+
+  [data-clicker].is-region-hub .clicker-region-station {
+    bottom: calc(154px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Seven dock buttons (TRANSCENDENCE unlocked) wrap to a third row. */
+  [data-clicker].is-region-hub:has(.clicker-hub-dock-btn:nth-child(7)) .clicker-region-station {
+    bottom: calc(214px + env(safe-area-inset-bottom, 0px));
   }
 
   /* The manage header already has the back button (and a full-width copy here overflowed the row). */
