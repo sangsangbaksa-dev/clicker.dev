@@ -11,6 +11,12 @@
   --shadow-lift: 0 10px 30px -12px rgb(0 0 0 / 0.7);
 }
 
+/* Korean wraps between words, never inside one ("15초", not "15 / 초"); long tokens may still break. */
+[data-clicker] {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
 /* ---------- HUD ---------- */
 [data-clicker] .clicker-top {
   display: flex;
