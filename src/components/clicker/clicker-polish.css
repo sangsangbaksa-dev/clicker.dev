@@ -1377,3 +1377,28 @@
 @keyframes clicker-zoom-pop {
   from { transform: scale(0.6); }
 }
+
+/* World cards: big square scene thumbnails. */
+[data-clicker] .clicker-world-card.clicker-card {
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  align-items: center;
+}
+[data-clicker] .clicker-world-card.clicker-card > img {
+  width: 120px;
+  height: 120px;
+  margin: 0;
+  border-radius: 12px;
+  object-fit: cover;
+  background: none;
+  filter: none;
+  box-shadow: 0 0 0 1px var(--line), 0 6px 14px rgb(0 0 0 / 0.45);
+}
+@media (max-width: 720px) {
+  [data-clicker] .clicker-world-card.clicker-card {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+  [data-clicker] .clicker-world-card.clicker-card > img {
+    width: 96px;
+    height: 96px;
+  }
+}
