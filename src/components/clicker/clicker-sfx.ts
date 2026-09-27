@@ -361,7 +361,22 @@ const CUES = {
 export type SfxName = keyof typeof CUES
 
 /** Play a named UI/game cue. Respects the global mute and per-cue rate limits. */
+let cueSerial = 0
+
+/**
+ * Generic button click, played only if the press didn't trigger its own cue
+ * (purchase, deny, travel…). Call from a capture-phase listener: the check runs
+ * after the button's own handler.
+ */
+export function playTapUnlessCued() {
+  const before = cueSerial
+  window.setTimeout(() => {
+    if (cueSerial === before) playSfx("tap")
+  }, 0)
+}
+
 export function playSfx(name: SfxName) {
+  cueSerial++
   if (muted) return
   const now = typeof performance !== "undefined" ? performance.now() : Date.now()
   const gap = MIN_GAP_MS[name] ?? 30

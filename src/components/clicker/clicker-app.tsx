@@ -26,7 +26,7 @@ import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
 import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
-import { playLaser, playSfx, unlockSfx } from "@/components/clicker/clicker-sfx"
+import { playLaser, playSfx, playTapUnlessCued, unlockSfx } from "@/components/clicker/clicker-sfx"
 import { ClickerAchievementsPanel } from "@/components/clicker/panels/achievements-panel"
 import { ClickerProducersPanel } from "@/components/clicker/panels/producers-panel"
 import { ClickerUpgradesPanel } from "@/components/clicker/panels/upgrades-panel"
@@ -131,13 +131,13 @@ export function ClickerApp() {
     }
   }, [])
 
-  // Every button press clicks. Mining targets have their own laser / vein sounds.
+  // Every button press clicks unless it plays its own cue. Mining targets have their own laser / vein sounds.
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const el = e.target instanceof Element ? e.target.closest("button") : null
       if (!el || el.disabled || !el.closest("[data-clicker]")) return
       if (el.closest(".clicker-mine-crystal, .clicker-mine-vein-gold, [data-sfx='off']")) return
-      playSfx("tap")
+      playTapUnlessCued()
     }
     window.addEventListener("click", onClick, true)
     return () => window.removeEventListener("click", onClick, true)
