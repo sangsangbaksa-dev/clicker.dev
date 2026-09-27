@@ -56,6 +56,70 @@
   animation: clicker-guardian-arrive 700ms ease-out;
 }
 
+/* Scene hit: light bursts over the body; nothing in the picture moves. */
+.clicker-guardian-flash {
+  position: absolute;
+  aspect-ratio: 1;
+  translate: 0 -50%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, #fff 55%, var(--accent)) 0%,
+    color-mix(in srgb, var(--accent) 45%, transparent) 30%,
+    transparent 62%
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: clicker-guardian-flash 220ms ease-out;
+}
+
+.clicker-guardian-flash::after {
+  content: "";
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--accent) 80%, #fff);
+  opacity: 0;
+  animation: clicker-guardian-ring 320ms ease-out;
+}
+
+.clicker-guardian-flash.is-crit {
+  animation-duration: 340ms;
+  background: radial-gradient(
+    circle,
+    #fff 0%,
+    color-mix(in srgb, var(--accent) 70%, #fff) 26%,
+    color-mix(in srgb, var(--accent) 35%, transparent) 46%,
+    transparent 66%
+  );
+}
+
+.clicker-guardian-flash.is-crit::after {
+  border-width: 3px;
+  animation-duration: 440ms;
+}
+
+@keyframes clicker-guardian-flash {
+  0% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes clicker-guardian-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
 /* Fallen: the scene stays as the backdrop, dimmed and drained of color. */
 .clicker-guardian.is-down .clicker-guardian-art {
   filter: grayscale(0.85) brightness(0.45);
@@ -214,10 +278,10 @@
   }
 }
 
+/* Light only: the scene fades back up without moving. */
 @keyframes clicker-guardian-arrive {
   0% {
-    filter: brightness(0.3) blur(4px);
-    transform: scale(1.04);
+    filter: brightness(0.3) grayscale(0.85);
   }
   100% {
     filter: none;
@@ -236,6 +300,11 @@
   .clicker-guardian-art.is-crit,
   .clicker-guardian-art.is-arrive,
   .clicker-guardian.is-sprite .clicker-guardian-art img {
+    animation: none;
+  }
+
+  /* Keep a plain flash so hits still read, but drop the expanding ring. */
+  .clicker-guardian-flash::after {
     animation: none;
   }
 }

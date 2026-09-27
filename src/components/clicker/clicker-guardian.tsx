@@ -82,12 +82,27 @@ export function ClickerGuardian({ guardian, onHit }: Props) {
       }
     >
       <div className="clicker-guardian-scene">
+        {/*
+          Scene art is one flat picture (monster, castle and sky together), so it never moves:
+          moving it would shake the whole world. Hits flash light over the body instead.
+          Sprite art stands alone on the backdrop and may recoil.
+        */}
         <div
-          key={`${spawnKey}-${hitSeq}`}
-          className={`clicker-guardian-art${hitSeq > 0 ? (crit ? " is-crit" : " is-hit") : down ? "" : " is-arrive"}`}
+          key={art.kind === "sprite" ? `${spawnKey}-${hitSeq}` : spawnKey}
+          className={`clicker-guardian-art${
+            art.kind === "sprite" && hitSeq > 0 ? (crit ? " is-crit" : " is-hit") : down || hitSeq > 0 ? "" : " is-arrive"
+          }`}
         >
           <img src={art.src} alt="" draggable={false} />
         </div>
+        {art.kind === "scene" && hitSeq > 0 ? (
+          <span
+            key={`flash-${spawnKey}-${hitSeq}`}
+            className={`clicker-guardian-flash${crit ? " is-crit" : ""}`}
+            style={bodyStyle}
+            aria-hidden
+          />
+        ) : null}
         {!down ? (
           <button
             type="button"
