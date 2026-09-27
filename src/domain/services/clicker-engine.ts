@@ -1314,6 +1314,36 @@ export function grantAdminEnergy(run: RunState, amount: number): RunState {
   }
 }
 
+/** Stored `{ id: count }` maps keep only finite, non-negative whole numbers. */
+function countRecord(value: unknown): Record<string, number> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  const out: Record<string, number> = {}
+  for (const [k, v] of Object.entries(value)) {
+    if (typeof v === "number" && Number.isFinite(v) && v >= 0) out[k] = Math.floor(v)
+  }
+  return out
+}
+
+/** Stored `{ id: timestamp }` maps keep only finite numbers. */
+function timeRecord(value: unknown): Record<string, number> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  const out: Record<string, number> = {}
+  for (const [k, v] of Object.entries(value)) {
+    if (typeof v === "number" && Number.isFinite(v)) out[k] = v
+  }
+  return out
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : []
+}
+
+function isTimed(value: unknown): value is { id: string; expiresAt: number } {
+  if (!value || typeof value !== "object") return false
+  const v = value as { id?: unknown; expiresAt?: unknown }
+  return typeof v.id === "string" && typeof v.expiresAt === "number" && Number.isFinite(v.expiresAt)
+}
+
 export function sanitizeSave(raw: unknown, config: GameConfig, now: number): SaveData {
   const fallback = createInitialSave(now, config)
   if (!raw || typeof raw !== "object") return fallback
@@ -1365,14 +1395,18 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
       runState: {
         ...createInitialRun(now, createInitialMeta(), config),
         ...run,
-        producerLevels: { ...Object.fromEntries(config.producers.map((p) => [p.id, 0])), ...run.producerLevels },
-        potions: { ...run.potions },
-        skillItems: { ...(run.skillItems ?? {}) },
-        ownedUpgradeIds: Array.isArray(run.ownedUpgradeIds) ? run.ownedUpgradeIds : [],
-        ownedSkillNodeIds: Array.isArray(run.ownedSkillNodeIds) ? run.ownedSkillNodeIds : [],
+        producerLevels: {
+          ...Object.fromEntries(config.producers.map((p) => [p.id, 0])),
+          ...countRecord(run.producerLevels),
+        },
+        potions: countRecord(run.potions),
+        skillItems: countRecord(run.skillItems),
+        skillCooldowns: timeRecord(run.skillCooldowns),
+        ownedUpgradeIds: stringList(run.ownedUpgradeIds),
+        ownedSkillNodeIds: stringList(run.ownedSkillNodeIds),
         combo: { ...createInitialCombo(), ...run.combo },
         fever: { ...createInitialFever(), ...run.fever },
-        activeBuffs: Array.isArray(run.activeBuffs) ? (run.activeBuffs as TimedBuff[]) : [],
+        activeBuffs: Array.isArray(run.activeBuffs) ? (run.activeBuffs.filter(isTimed) as TimedBuff[]) : [],
         lastTickAt: typeof run.lastTickAt === "number" ? run.lastTickAt : now,
         mineSessionEndsAt: typeof run.mineSessionEndsAt === "number" ? run.mineSessionEndsAt : 0,
         mineCooldownUntil: typeof run.mineCooldownUntil === "number" ? run.mineCooldownUntil : 0,
@@ -1380,13 +1414,15 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
           typeof run.mineSessionCoreAtEnter === "number" ? run.mineSessionCoreAtEnter : 0,
         mineSessionDurationMs:
           typeof run.mineSessionDurationMs === "number" ? run.mineSessionDurationMs : 0,
-        eventBoosts: Array.isArray(run.eventBoosts) ? run.eventBoosts : [],
+        eventBoosts: Array.isArray(run.eventBoosts)
+          ? run.eventBoosts.filter(
+              (b) => isTimed(b) && typeof b.multiplier === "number" && Number.isFinite(b.multiplier),
+            )
+          : [],
         drillOverdriveUntil: typeof run.drillOverdriveUntil === "number" ? run.drillOverdriveUntil : 0,
         drillOverdriveReadyAt: typeof run.drillOverdriveReadyAt === "number" ? run.drillOverdriveReadyAt : 0,
-        regionCooldowns:
-          run.regionCooldowns && typeof run.regionCooldowns === "object" ? { ...run.regionCooldowns } : {},
-        challengeCooldowns:
-          run.challengeCooldowns && typeof run.challengeCooldowns === "object" ? { ...run.challengeCooldowns } : {},
+        regionCooldowns: timeRecord(run.regionCooldowns),
+        challengeCooldowns: timeRecord(run.challengeCooldowns),
         costScale:
           typeof run.costScale === "number" && run.costScale > 0
             ? run.costScale

@@ -146,6 +146,44 @@ test("region location persists through sanitizeSave reload", () => {
   assert.equal(loaded.settings.gameStarted, true)
 })
 
+test("sanitizeSave drops corrupt maps so ticks and clicks stay finite", () => {
+  const now = 12_000_000
+  const meta = createInitialMeta()
+  const run = createInitialRun(now, meta, config)
+  const producerId = config.producers[0].id
+  const raw = JSON.parse(
+    JSON.stringify({
+      schemaVersion: config.schemaVersion,
+      savedAt: now,
+      settings: {},
+      metaState: meta,
+      runState: {
+        ...run,
+        producerLevels: { [producerId]: [1, "a"], ghost: "x" },
+        potions: { a: null, b: -3, c: 2.7 },
+        skillCooldowns: null,
+        regionCooldowns: "x",
+        ownedUpgradeIds: [1, "a"],
+        activeBuffs: [{ id: 1 }, { id: "overclock", expiresAt: now + 5000 }],
+        eventBoosts: [{ id: "surge", expiresAt: now + 5000 }],
+      },
+    }),
+  )
+  const loaded = sanitizeSave(raw, config, now)
+  assert.equal(loaded.runState.producerLevels[producerId], 0)
+  assert.deepEqual(loaded.runState.potions, { c: 2 })
+  assert.deepEqual(loaded.runState.skillCooldowns, {})
+  assert.deepEqual(loaded.runState.regionCooldowns, {})
+  assert.deepEqual(loaded.runState.ownedUpgradeIds, ["a"])
+  assert.equal(loaded.runState.activeBuffs.length, 1)
+  assert.equal(loaded.runState.eventBoosts.length, 0)
+
+  const ticked = processTick(loaded.runState, loaded.metaState, config, now + 1000)
+  const clicked = processClick(ticked.run, ticked.meta, config, now + 1100, () => 0.5)
+  assert.ok(Number.isFinite(clicked.run.coreEnergy))
+  assert.ok(Number.isFinite(clicked.run.skillPoints))
+})
+
 test("startClickerGame leaves title for the hub surface", () => {
   const save = createInitialSave(1_000, config)
   assert.equal(save.settings.gameStarted, false)
