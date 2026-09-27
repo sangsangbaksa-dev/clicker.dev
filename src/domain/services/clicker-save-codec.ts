@@ -30,6 +30,18 @@ export type SaveMigration = (data: SaveRecord) => SaveRecord
 export const SAVE_MIGRATIONS: Readonly<Record<number, SaveMigration>> = {
   // v0 = saves written before schemaVersion existed; same shape as v1.
   0: (data) => ({ ...data, schemaVersion: 1 }),
+  // v2 changed the CORE unit (÷1000) and the whole catalog: progress restarts, audio settings stay.
+  1: (data) => {
+    if (!isRecord(data.runState) || !isRecord(data.metaState)) return data
+    const settings = isRecord(data.settings) ? data.settings : {}
+    return {
+      schemaVersion: 2,
+      savedAt: data.savedAt,
+      settings: { muted: settings.muted, musicMuted: settings.musicMuted, musicVolume: settings.musicVolume },
+      runState: {},
+      metaState: {},
+    }
+  },
 }
 
 function isRecord(value: unknown): value is SaveRecord {

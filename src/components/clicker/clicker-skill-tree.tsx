@@ -1,9 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
 import {
   SKILL_BRANCH_COLOR,
-  SKILL_BRANCH_GLYPH,
   SKILL_BRANCH_LABEL,
   layoutSkillTree,
   orthogonalPath,
@@ -11,6 +10,7 @@ import {
 } from "@/data/clicker/skill-tree-layout"
 import type { SkillNodeView } from "@/domain/services/clicker-view"
 import { formatNumber } from "@/domain/services/clicker-format"
+import { useClickerEscape } from "@/components/clicker/clicker-a11y"
 
 type TreeNode = SkillNodeView & SkillCell
 
@@ -18,14 +18,19 @@ type Props = {
   nodes: SkillNodeView[]
   coreEnergy: number
   onBuy: (id: string) => void
+  onClose: () => void
 }
+
+/** Board cell size in px. */
+const CELL = 84
+/** Moving the pointer this close to an edge pans the map that way. */
+const EDGE = 56
+const EDGE_SPEED = 9
 
 function statusLabel(status: SkillNodeView["status"]): string {
   switch (status) {
     case "OWNED":
       return "활성"
-    case "LOCKED":
-      return "잠김"
     case "POOR":
       return "CORE 부족"
     default:
@@ -33,224 +38,204 @@ function statusLabel(status: SkillNodeView["status"]): string {
   }
 }
 
-function cellStyle(cell: SkillCell): CSSProperties {
-  return {
-    left: `calc(var(--cell) * ${cell.col + 0.5})`,
-    top: `calc(var(--cell) * ${cell.row + 0.5})`,
-  }
-}
-
-export function ClickerSkillTree({ nodes, coreEnergy, onBuy }: Props) {
-  // The whole tree is always on the board; locked circuits show dimmed with their prerequisites.
-  const layout = useMemo(() => layoutSkillTree(nodes), [nodes])
+/**
+ * Full-screen circuit map. Only circuits whose prerequisites are all owned are drawn —
+ * the rest stay hidden until their parent lights up. Drag (or push the pointer to an
+ * edge, or scroll) to move around the map.
+ */
+export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
+  useClickerEscape(true, onClose)
+  // Positions come from the full tree so nothing jumps as circuits reveal.
+  const layout = useMemo(() => layoutSkillTree(nodes), [nodes.length]) // eslint-disable-line react-hooks/exhaustive-deps
   const treeNodes = useMemo<TreeNode[]>(
-    () => nodes.filter((node) => layout.cells[node.id]).map((node) => ({ ...node, ...layout.cells[node.id] })),
+    () =>
+      nodes
+        .filter((node) => layout.cells[node.id] && node.status !== "LOCKED")
+        .map((node) => ({ ...node, ...layout.cells[node.id] })),
     [layout, nodes],
   )
-  const ownedCount = treeNodes.filter((n) => n.status === "OWNED").length
-  const lockedCount = treeNodes.filter((n) => n.status === "LOCKED").length
-
-  const [selectedId, setSelectedId] = useState<string | null>(
-    () => treeNodes.find((n) => n.status === "AVAILABLE")?.id ?? treeNodes[0]?.id ?? null,
-  )
-
-  useEffect(() => {
-    if (!treeNodes.length) {
-      setSelectedId(null)
-      return
-    }
-    const current = treeNodes.find((n) => n.id === selectedId)
-    if (current) return
-    setSelectedId(
-      treeNodes.find((n) => n.status === "AVAILABLE")?.id ??
-        treeNodes.find((n) => n.status === "OWNED")?.id ??
-        treeNodes[0]?.id ??
-        null,
-    )
-  }, [selectedId, treeNodes])
-
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const hubCol = layout.hub.col
-  const hubRow = layout.hub.row
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    const cell = el.scrollWidth / layout.cols
-    el.scrollLeft = (hubCol + 0.5) * cell - el.clientWidth / 2
-    el.scrollTop = (hubRow + 0.5) * cell - el.clientHeight / 2
-  }, [hubCol, hubRow, layout.cols])
-
-  const selected = treeNodes.find((n) => n.id === selectedId) ?? null
   const byId = useMemo(() => new Map(treeNodes.map((n) => [n.id, n])), [treeNodes])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selected = (selectedId && byId.get(selectedId)) || null
+
+  const viewRef = useRef<HTMLDivElement>(null)
+  const [pan, setPan] = useState<{ x: number; y: number } | null>(null)
+  const panRef = useRef({ x: 0, y: 0 })
+  const drag = useRef<{ x: number; y: number; px: number; py: number; moved: boolean } | null>(null)
+  const edge = useRef({ dx: 0, dy: 0 })
+
+  const boardW = layout.cols * CELL
+  const boardH = layout.rows * CELL
+
+  const clampPan = (x: number, y: number) => {
+    const el = viewRef.current
+    const w = el?.clientWidth ?? 800
+    const h = el?.clientHeight ?? 600
+    const pad = 160
+    return {
+      x: Math.min(pad, Math.max(w - boardW - pad, x)),
+      y: Math.min(pad, Math.max(h - boardH - pad, y)),
+    }
+  }
+  const applyPan = (x: number, y: number) => {
+    const next = clampPan(x, y)
+    panRef.current = next
+    setPan(next)
+  }
+
+  // Start centred on the hub.
+  useEffect(() => {
+    const el = viewRef.current
+    if (!el) return
+    applyPan(el.clientWidth / 2 - (layout.hub.col + 0.5) * CELL, el.clientHeight / 2 - (layout.hub.row + 0.5) * CELL)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Edge panning loop (desktop pointers only).
+  useEffect(() => {
+    let raf = 0
+    const loop = () => {
+      const { dx, dy } = edge.current
+      if ((dx || dy) && !drag.current) applyPan(panRef.current.x - dx * EDGE_SPEED, panRef.current.y - dy * EDGE_SPEED)
+      raf = window.requestAnimationFrame(loop)
+    }
+    raf = window.requestAnimationFrame(loop)
+    return () => window.cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    drag.current = { x: e.clientX, y: e.clientY, px: panRef.current.x, py: panRef.current.y, moved: false }
+  }
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = viewRef.current
+    if (el && e.pointerType === "mouse") {
+      const r = el.getBoundingClientRect()
+      const x = e.clientX - r.left
+      const y = e.clientY - r.top
+      edge.current = {
+        dx: x < EDGE ? -1 : x > r.width - EDGE ? 1 : 0,
+        dy: y < EDGE ? -1 : y > r.height - EDGE ? 1 : 0,
+      }
+    }
+    const d = drag.current
+    if (!d) return
+    const mx = e.clientX - d.x
+    const my = e.clientY - d.y
+    if (!d.moved && Math.hypot(mx, my) < 5) return
+    if (!d.moved) {
+      d.moved = true
+      e.currentTarget.setPointerCapture(e.pointerId)
+    }
+    applyPan(d.px + mx, d.py + my)
+  }
+  const endDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (drag.current?.moved && e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
+    // Keep `moved` visible to the click that follows this pointerup.
+    const d = drag.current
+    window.setTimeout(() => {
+      if (drag.current === d) drag.current = null
+    }, 0)
+  }
 
   const edges = useMemo(() => {
-    const lines: Array<{ d: string; branch: TreeNode["branch"]; lit: boolean }> = []
+    const lines: Array<{ d: string; color: string; lit: boolean }> = []
     for (const node of treeNodes) {
-      const parents: SkillCell[] =
-        node.requires.length > 0
-          ? node.requires.map((id) => byId.get(id)).filter((n): n is TreeNode => Boolean(n))
-          : [layout.hub]
+      const parents: SkillCell[] = node.requires.length
+        ? node.requires.map((id) => byId.get(id)).filter((n): n is TreeNode => Boolean(n))
+        : [layout.hub]
       for (const parent of parents) {
-        lines.push({ d: orthogonalPath(parent, node), branch: node.branch, lit: node.status === "OWNED" })
+        lines.push({ d: orthogonalPath(parent, node), color: SKILL_BRANCH_COLOR[node.branch], lit: node.status === "OWNED" })
       }
     }
     return lines
   }, [byId, layout.hub, treeNodes])
 
-  const head = (
-    <div className="clicker-skill-tree-head">
-      <div>
-        <div className="clicker-skill-tree-title">CIRCUITS · 회로</div>
-        <div className="clicker-skill-tree-sub">
-          회로 {treeNodes.length}개 · 활성 {ownedCount} — 선행 회로를 해금하면 다음 노드가 열립니다
-        </div>
-      </div>
-      <div className="clicker-skill-tree-sp" aria-live="polite">
-        CORE <strong>{formatNumber(coreEnergy)}</strong>
-      </div>
-    </div>
-  )
-
-  if (!treeNodes.length) {
-    return (
-      <div className="clicker-skill-tree">
-        {head}
-        <p className="clicker-skill-tree-empty" role="status">
-          회로가 아직 열리지 않았습니다. CORE를 모아 노드를 해금하세요.
-        </p>
-      </div>
-    )
-  }
+  const owned = treeNodes.filter((n) => n.status === "OWNED").length
 
   return (
-    <div className="clicker-skill-tree">
-      {head}
-
-      <ul className="clicker-skill-legend" aria-label="노드 상태">
-        <li className="is-available">해금 가능</li>
-        <li className="is-poor">CORE 부족</li>
-        <li className="is-owned">활성</li>
-        <li className="is-locked">잠김 {lockedCount}</li>
-      </ul>
-      {ownedCount === treeNodes.length ? (
-        <p className="clicker-skill-tree-empty" role="status">
-          모든 회로를 활성화했습니다.
-        </p>
-      ) : null}
-
-      <div className="clicker-skill-tree-scroll" ref={scrollRef}>
+    <div className="clicker-skillmap" role="dialog" aria-modal="true" aria-label="스킬 회로">
+      <header className="clicker-skillmap-head">
+        <strong>스킬 회로</strong>
+        <span>
+          활성 {owned}/{nodes.length} · CORE <b>{formatNumber(coreEnergy)}</b>
+        </span>
+        <button type="button" className="clicker-ghost clicker-skillmap-close" onClick={onClose}>
+          닫기
+        </button>
+      </header>
+      <div
+        ref={viewRef}
+        className="clicker-skillmap-view"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onPointerLeave={() => (edge.current = { dx: 0, dy: 0 })}
+        onWheel={(e) => applyPan(panRef.current.x - e.deltaX, panRef.current.y - e.deltaY)}
+      >
         <div
-          className="clicker-skill-tree-board"
+          className="clicker-skillmap-board"
           style={{
-            width: `calc(var(--cell) * ${layout.cols})`,
-            height: `calc(var(--cell) * ${layout.rows})`,
+            width: boardW,
+            height: boardH,
+            transform: `translate3d(${pan?.x ?? 0}px, ${pan?.y ?? 0}px, 0)`,
+            visibility: pan ? "visible" : "hidden",
           }}
         >
-          <svg
-            className="clicker-skill-tree-lines"
-            viewBox={`0 0 ${layout.cols} ${layout.rows}`}
-            preserveAspectRatio="none"
-            aria-hidden
-          >
-            {edges.map((edge, i) => (
+          <svg className="clicker-skillmap-lines" viewBox={`0 0 ${layout.cols} ${layout.rows}`} preserveAspectRatio="none" aria-hidden>
+            {edges.map((line, i) => (
               <path
-                key={`edge-${i}`}
-                d={edge.d}
+                key={i}
+                d={line.d}
                 fill="none"
-                stroke={SKILL_BRANCH_COLOR[edge.branch]}
-                strokeWidth={edge.lit ? 2.5 : 1.5}
-                strokeOpacity={edge.lit ? 0.9 : 0.4}
-                strokeLinejoin="round"
+                stroke={line.color}
+                strokeWidth={line.lit ? 3 : 1.5}
+                strokeOpacity={line.lit ? 0.95 : 0.45}
                 vectorEffect="non-scaling-stroke"
               />
             ))}
           </svg>
-
-          <div className="clicker-skill-node is-hub" style={cellStyle(layout.hub)} aria-hidden>
-            <span className="clicker-skill-node-glyph">◆</span>
+          <div className="clicker-skillmap-hub" style={{ left: (layout.hub.col + 0.5) * CELL, top: (layout.hub.row + 0.5) * CELL }} aria-hidden>
+            ◆
           </div>
-
           {treeNodes.map((node) => (
             <button
               key={node.id}
               type="button"
-              className={`clicker-skill-node is-${node.status.toLowerCase()}${node.tier >= 5 ? " is-apex" : ""}${selectedId === node.id ? " is-selected" : ""}`}
-              style={{ ...cellStyle(node), "--branch-color": SKILL_BRANCH_COLOR[node.branch] } as CSSProperties}
-              aria-pressed={selectedId === node.id}
-              aria-current={selectedId === node.id ? "true" : undefined}
+              className={`clicker-skillmap-node is-${node.status.toLowerCase()}${selectedId === node.id ? " is-selected" : ""}${node.tier >= 5 ? " is-apex" : ""}`}
+              style={{ left: (node.col + 0.5) * CELL, top: (node.row + 0.5) * CELL, "--branch-color": SKILL_BRANCH_COLOR[node.branch] } as CSSProperties}
               aria-label={`${node.name} · ${statusLabel(node.status)} · ${formatNumber(node.cost)} CORE`}
-              onClick={() => setSelectedId(node.id)}
+              onClick={() => {
+                if (drag.current?.moved) return
+                setSelectedId(node.id)
+              }}
             >
-              <span className="clicker-skill-node-glyph">{SKILL_BRANCH_GLYPH[node.branch]}</span>
+              {node.assetId ? <img src={node.assetId} alt="" draggable={false} /> : null}
             </button>
           ))}
         </div>
       </div>
-
       {selected ? (
-        <aside className={`clicker-skill-detail is-${selected.status.toLowerCase()}`} aria-live="polite">
-          <div className="clicker-skill-detail-top">
-            <div className="clicker-skill-detail-meta">
+        <aside className={`clicker-skillmap-detail is-${selected.status.toLowerCase()}`} aria-live="polite">
+          {selected.assetId ? <img src={selected.assetId} alt="" /> : null}
+          <div>
+            <small>
               {SKILL_BRANCH_LABEL[selected.branch]} · T{selected.tier}
-              {selected.tier >= 5 ? " · 정점" : ""}
-            </div>
-            <span className={`clicker-skill-detail-status is-${selected.status.toLowerCase()}`}>
-              {statusLabel(selected.status)}
-            </span>
-          </div>
-          <strong>{selected.name}</strong>
-          <p className="clicker-skill-detail-effect">{selected.description}</p>
-          {selected.status === "LOCKED" ? (
-            <p className="clicker-skill-detail-requires">
-              선행 회로 ·{" "}
-              {selected.requires
-                .filter((id) => byId.get(id)?.status !== "OWNED")
-                .map((id) => byId.get(id)?.name ?? id)
-                .join(", ")}
-            </p>
-          ) : null}
-          <div className="clicker-skill-detail-stats">
-            <span>
-              비용 <strong>{formatNumber(selected.cost)} CORE</strong>
-            </span>
-            <span>
-              보유 <strong>{formatNumber(coreEnergy)} CORE</strong>
-            </span>
-            {selected.status === "POOR" ? (
-              <span className="is-short">
-                부족 <strong>{formatNumber(Math.max(0, selected.cost - coreEnergy))} CORE</strong>
-              </span>
-            ) : null}
+            </small>
+            <strong>{selected.name}</strong>
+            <p>{selected.description}</p>
           </div>
           <button
             className="clicker-primary"
             type="button"
             disabled={!selected.canBuy}
-            onClick={() => {
-              onBuy(selected.id)
-              const child = nodes.find(
-                (n) =>
-                  n.requires.includes(selected.id) &&
-                  n.status !== "OWNED" &&
-                  n.requires.every((id) => id === selected.id || byId.get(id)?.status === "OWNED"),
-              )
-              if (child) setSelectedId(child.id)
-            }}
+            onClick={() => onBuy(selected.id)}
           >
-            {selected.status === "OWNED"
-              ? "활성화됨"
-              : selected.status === "LOCKED"
-                ? "선행 회로 필요"
-                : selected.status === "POOR"
-                ? `CORE 부족 · ${formatNumber(selected.cost)} 필요`
-                : `${formatNumber(selected.cost)} CORE로 해금`}
+            {selected.status === "OWNED" ? "활성" : `${formatNumber(selected.cost)} CORE`}
           </button>
         </aside>
-      ) : (
-        <p className="clicker-skill-tree-empty" role="status">
-          회로 노드를 선택하면 비용과 효과가 여기에 표시됩니다.
-        </p>
-      )}
+      ) : null}
     </div>
   )
 }

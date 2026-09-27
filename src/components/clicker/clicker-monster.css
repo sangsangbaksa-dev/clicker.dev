@@ -1,0 +1,139 @@
+/* Region monsters: roam across the stage background, die on tap, respawn later. */
+.clicker-monster-roam {
+  position: absolute;
+  left: 8%;
+  top: 34%;
+  z-index: 3;
+  pointer-events: none;
+  animation: clicker-roam 22s ease-in-out infinite alternate;
+}
+.clicker-monster-roam.is-wisp,
+.clicker-monster-roam.is-stormbird,
+.clicker-monster-roam.is-hunter { top: 16%; animation-duration: 16s; }
+.clicker-monster-roam.is-worm,
+.clicker-monster-roam.is-crawler { top: 52%; }
+
+@keyframes clicker-roam {
+  0% { transform: translate(0, 0) scaleX(1); }
+  45% { transform: translate(52vw, -3vh) scaleX(1); }
+  50% { transform: translate(54vw, 0) scaleX(-1); }
+  95% { transform: translate(6vw, 2vh) scaleX(-1); }
+  100% { transform: translate(0, 0) scaleX(1); }
+}
+
+.clicker-monster {
+  pointer-events: auto;
+  display: block;
+  width: clamp(72px, 11vw, 120px);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: crosshair;
+  filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.55));
+  animation: clicker-monster-spawn 420ms ease-out, clicker-monster-bob 1.4s ease-in-out 420ms infinite;
+}
+.clicker-monster svg { display: block; width: 100%; height: auto; overflow: visible; }
+.clicker-monster:hover { filter: drop-shadow(0 0 10px rgb(255 230 140 / 0.8)); }
+
+@keyframes clicker-monster-spawn {
+  from { opacity: 0; transform: scale(0.2) translateY(30px); }
+}
+@keyframes clicker-monster-bob {
+  50% { transform: translateY(-6px); }
+}
+
+.clicker-monster.is-dying {
+  pointer-events: none;
+  animation: clicker-monster-die 650ms ease-in forwards;
+}
+@keyframes clicker-monster-die {
+  0% { transform: scale(1); filter: brightness(3) drop-shadow(0 0 16px #fff); }
+  30% { transform: scale(1.2) rotate(-8deg); }
+  100% { transform: scale(0.2) rotate(40deg) translateY(40px); opacity: 0; }
+}
+
+/* Part motion. */
+.clicker-monster .mon-eye { animation: clicker-mon-blink 3.2s infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes clicker-mon-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+.clicker-monster .mon-legs path { animation: clicker-mon-legs 0.4s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: top center; }
+.clicker-monster .mon-legs path:nth-child(even) { animation-delay: 0.2s; }
+@keyframes clicker-mon-legs { to { transform: rotate(18deg); } }
+.clicker-monster .mon-wing { animation: clicker-mon-flap 0.35s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: right center; }
+.clicker-monster .mon-wing.is-right { transform-origin: left center; }
+@keyframes clicker-mon-flap { to { transform: scaleY(0.35); } }
+.clicker-monster .mon-rotor { animation: clicker-mon-rotor 0.18s linear infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes clicker-mon-rotor { 50% { transform: scaleX(0.2); } }
+.clicker-monster .mon-tail { animation: clicker-mon-tail 1s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: top center; }
+@keyframes clicker-mon-tail { to { transform: skewX(20deg); } }
+.clicker-monster .mon-body { animation: clicker-mon-slither 0.9s ease-in-out infinite alternate; }
+@keyframes clicker-mon-slither { to { transform: translateY(5px); } }
+.clicker-monster .mon-arm { animation: clicker-mon-arm 1.2s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: top center; }
+.clicker-monster .mon-arm.is-right { animation-delay: 0.6s; }
+@keyframes clicker-mon-arm { to { transform: rotate(10deg); } }
+
+/* ---------- Core guardian fight ---------- */
+.clicker-boss {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  width: min(560px, 100%);
+  margin: 0 auto;
+  color: #fff3dc;
+  text-align: center;
+}
+.clicker-boss-bars { display: grid; gap: 6px; width: 100%; }
+.clicker-boss-bar {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  background: rgb(0 0 0 / 0.55);
+  border: 1px solid rgb(255 200 120 / 0.35);
+  overflow: hidden;
+}
+.clicker-boss-bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #ff5a1f, #ffcc4d); transition: width 120ms linear; }
+.clicker-boss-bar.is-player i { background: linear-gradient(90deg, #2fd27a, #9cf5c0); }
+.clicker-boss-bar span { position: relative; display: block; font-size: 10px; line-height: 14px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.clicker-boss-target {
+  width: clamp(180px, 34vw, 300px);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: crosshair;
+  touch-action: manipulation;
+  filter: drop-shadow(0 12px 22px rgb(0 0 0 / 0.6));
+  animation: clicker-monster-bob 2.2s ease-in-out infinite;
+}
+.clicker-boss-target svg { width: 100%; height: auto; display: block; }
+.clicker-boss-target:active { transform: scale(0.97); }
+.clicker-boss-target .mon-core { animation: clicker-boss-core 1.1s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes clicker-boss-core { 50% { transform: scale(1.15); filter: brightness(1.4); } }
+.clicker-boss.is-attack .clicker-boss-target { animation: clicker-boss-lunge 380ms ease-out; }
+@keyframes clicker-boss-lunge { 40% { transform: translateY(18px) scale(1.12); } }
+.clicker-boss-hurt {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+  background: radial-gradient(circle, transparent 40%, rgb(255 0 0 / 0.45));
+  animation: clicker-boss-hurt 420ms ease-out forwards;
+}
+@keyframes clicker-boss-hurt { to { opacity: 0; } }
+.clicker-boss-start { min-width: 220px; }
+.clicker-boss-note { margin: 0; font-size: 12px; color: #ffd9a8; }
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-monster-roam { animation: none; left: 30%; }
+  .clicker-monster, .clicker-boss-target { animation: none; }
+}
+
+.clicker-shell.is-region-hub .clicker-boss {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 8;
+  pointer-events: auto;
+}
+.clicker-monster-roam { z-index: 9; }

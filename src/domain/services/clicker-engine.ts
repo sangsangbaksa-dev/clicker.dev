@@ -25,7 +25,8 @@ import {
 /** Base timed-mine length before skill-tree extensions. Balance PROVISIONAL. */
 export const MINE_SESSION_BASE_MS = 10_000
 export const MINE_REENTER_COOLDOWN_MS = 30_000
-export const MINE_REENTER_CORE_COST = 25
+/** Strikes per second allowed in the mine (taps + assist drill together). */
+export const MINE_MAX_CPS = 12
 
 export type Rng = () => number
 
@@ -92,6 +93,8 @@ export function createInitialRun(now: number, meta: MetaState, config: GameConfi
     lightningStormUntil: 0,
     droneSwarmUntil: 0,
     costScale: scale,
+    monsterRespawnAt: {},
+    boss: null,
   }
 }
 
@@ -114,6 +117,8 @@ export function createInitialMeta(): MetaState {
     visitedRegionIds: [],
     gameCompleted: false,
     completedAt: null,
+    bossDefeated: false,
+    monstersSlain: 0,
   }
 }
 
@@ -122,15 +127,14 @@ export function isGameCompleted(meta: MetaState): boolean {
 }
 
 export function canTriggerTrueEnding(meta: MetaState, config: GameConfig): boolean {
-  if (meta.gameCompleted) return false
-  const owned = new Set(meta.transcendenceIds)
-  return config.transcendence.every((t) => owned.has(t.id))
+  void config
+  return !meta.gameCompleted && Boolean(meta.bossDefeated)
 }
 
 export function applyTrueEnding(save: SaveData, config: GameConfig, now: number): { save: SaveData; error?: string } {
   if (save.metaState.gameCompleted) return { save, error: "이미 완료된 기록입니다." }
   if (!canTriggerTrueEnding(save.metaState, config)) {
-    return { save, error: "아직 Protocol 조건이 충족되지 않았습니다." }
+    return { save, error: "아직 코어 수호자를 쓰러뜨리지 않았습니다." }
   }
   return {
     save: {
@@ -172,10 +176,16 @@ export function startClickerGame(save: SaveData): SaveData {
       ...save.settings,
       gameStarted: true,
       introSeen: true,
-      tutorialSeen: true,
+      tutorialSeen: false,
       playSurface: "hub",
     },
   }
+}
+
+/** Tutorial overlay finished or skipped. */
+export function finishClickerTutorial(save: SaveData): SaveData {
+  if (save.settings.tutorialSeen) return save
+  return { ...save, settings: { ...save.settings, tutorialSeen: true } }
 }
 
 /** Timed mine length: 10s base + owned skill `mineSessionSecondsAdd` totals. */
@@ -184,25 +194,13 @@ export function mineSessionDurationMs(run: RunState, config: GameConfig): number
   return MINE_SESSION_BASE_MS + Math.max(0, addSec) * 1000
 }
 
-/**
- * Whether Enter Mine is allowed right now, and what it costs.
- * Re-enter rules: cooldown `MINE_REENTER_COOLDOWN_MS`; CORE cost `MINE_REENTER_CORE_COST`
- * when cooldown was set (subsequent enters). The cost is waived when the player can't
- * pay and owns no producers — mining is then the only CORE source, so charging would soft-lock.
- */
+/** Whether Enter Mine is allowed right now. Entry is free; only the re-enter cooldown applies. */
 export function mineEntryCheck(save: SaveData, now: number): { cost: number; error?: string } {
   if (save.runState.mineCooldownUntil > now) {
     const secs = Math.ceil((save.runState.mineCooldownUntil - now) / 1000)
     return { cost: 0, error: `광산 재입장 대기 ${secs}초` }
   }
-  const hadCooldown = save.runState.mineCooldownUntil > 0
-  const cost = hadCooldown ? scaledCost(save.runState, MINE_REENTER_CORE_COST) : 0
-  if (cost > 0 && save.runState.coreEnergy < cost) {
-    const hasProducers = Object.values(save.runState.producerLevels ?? {}).some((level) => level > 0)
-    if (!hasProducers) return { cost: 0 }
-    return { cost, error: `재입장에 CORE ${cost}이 필요합니다.` }
-  }
-  return { cost }
+  return { cost: 0 }
 }
 
 /** Enter timed mine from hub Enter Mine CTA. Session length from `mineSessionDurationMs`. */
@@ -563,11 +561,14 @@ export function isProducerUnlocked(run: RunState, config: GameConfig, producerId
   return run.lifetimeCoreEnergy >= scaledCost(run, producer.unlockAt) || (run.producerLevels[producerId] ?? 0) > 0
 }
 
-function buffMultiplier(run: RunState, now: number, skillId: string, field: "productionMultiplier" | "clickMultiplier", config: GameConfig): number {
-  const active = run.activeBuffs.find((b) => b.id === skillId && b.expiresAt > now)
-  if (!active) return 1
-  const skill = config.activeSkills.find((s) => s.id === skillId)
-  return skill?.[field] ?? 1
+/** Product of every running active-skill buff's multiplier for `field`. */
+export function buffMultiplier(run: RunState, now: number, field: "productionMultiplier" | "clickMultiplier", config: GameConfig): number {
+  let m = 1
+  for (const b of run.activeBuffs) {
+    if (b.expiresAt <= now) continue
+    m *= config.activeSkills.find((s) => s.id === b.id)?.[field] ?? 1
+  }
+  return m
 }
 
 export function productionSnapshot(
@@ -589,8 +590,7 @@ export function productionSnapshot(
   instabBonus += trans.reduce((s, t) => s + (t.instabilityRewardBonus ?? 0), 0)
   instabBonus += skills.reduce((s, n) => s + (n.instabilityRewardBonus ?? 0), 0)
   const instab = instabilityReward(run.instability, instabBonus)
-  const overclock = buffMultiplier(run, now, "overclock", "productionMultiplier", config)
-  const stabilizer = buffMultiplier(run, now, "stabilizer", "productionMultiplier", config)
+  const buffs = buffMultiplier(run, now, "productionMultiplier", config)
   const region = regionPresenceMultipliers(run, config)
   const globalProd =
     product(upgrades.filter((u) => !u.producerId && !u.producerTag).map((u) => u.productionMultiplier ?? 1)) *
@@ -598,8 +598,7 @@ export function productionSnapshot(
     product(trans.map((t) => t.productionMultiplier ?? 1)) *
     fever.production *
     instab *
-    overclock *
-    stabilizer *
+    buffs *
     region.production *
     eventBoostMultiplier(run, "surge", now) *
     eventBoostMultiplier(run, "relay", now) *
@@ -680,7 +679,12 @@ export function processClick(
   const isCritical = rng() < derived.critChance
   if (isCritical) combo.expiresAt += 250
 
-  let hit = derived.click * combo.multiplier * fever.click * eventBoostMultiplier(run, "laser_rush", now)
+  let hit =
+    derived.click *
+    combo.multiplier *
+    fever.click *
+    eventBoostMultiplier(run, "laser_rush", now) *
+    buffMultiplier(run, now, "clickMultiplier", config)
   if (isCritical) hit *= derived.critMult
 
   const strikes = strikeStats(run, config, meta, now)
@@ -912,6 +916,7 @@ export function processTick(
     lifetimeCoreEnergy: next.lifetimeCoreEnergy + gained,
   }
   if (next.instability >= 100 && !next.crisisActive) next.crisisActive = true
+  next = tickBoss(next, config, now)
   next = refreshSkillPoints(next, config)
   next = refreshObjective(next, meta, config)
   const nextMeta: MetaState = {
@@ -1121,6 +1126,7 @@ export function applyRebirth(
   }
   const buff = config.transcendence.find((t) => t.id === buffId)
   if (!buff) return { run, meta, error: "초월 버프가 없습니다." }
+  if (meta.transcendenceIds.includes(buffId)) return { run, meta, error: "이미 걸어 본 세계선입니다." }
   const nextMeta: MetaState = {
     ...meta,
     rebirthCount: meta.rebirthCount + 1,
@@ -1139,7 +1145,9 @@ export function applyRebirth(
   }
 }
 
+/** Each worldline buff is walked once; after the last one the path leads to Core Heart instead. */
 export function canRebirth(run: RunState, meta: MetaState, config: GameConfig): boolean {
+  if (new Set(meta.transcendenceIds).size >= config.transcendence.length) return false
   return run.lifetimeCoreEnergy >= rebirthRequirement(meta, config)
 }
 
@@ -1254,6 +1262,7 @@ export function claimRegionChallenge(
 export function isRegionUnlocked(run: RunState, config: GameConfig, regionId: string): boolean {
   const region = config.regions.find((r) => r.id === regionId)
   if (!region) return false
+  if ((region.requiresRebirths ?? 0) > run.currentWorldLine - 1) return false
   return run.lifetimeCoreEnergy >= scaledCost(run, region.unlockAtLifetimeEnergy)
 }
 
@@ -1277,7 +1286,7 @@ export function travelToRegion(
   if (!region) return { run, error: "지역을 찾을 수 없습니다." }
   if (!isRegionUnlocked(run, config, regionId)) return { run, error: "아직 잠겨 있습니다." }
   if (run.currentRegionId === regionId) return { run, error: "이미 이 지역입니다." }
-  return { run: { ...run, currentRegionId: regionId } }
+  return { run: { ...run, currentRegionId: regionId, boss: null } }
 }
 
 /** Records a region visit; `firstVisit` is true only the first time the region is entered. */
@@ -1289,7 +1298,7 @@ export function markRegionVisited(meta: MetaState, regionId: string): { meta: Me
 export function returnHomeRegion(run: RunState, config: GameConfig): { run: RunState; error?: string } {
   const homeId = homeRegionId(config)
   if (run.currentRegionId === homeId) return { run, error: "이미 Core Mine에 있습니다." }
-  return { run: { ...run, currentRegionId: homeId } }
+  return { run: { ...run, currentRegionId: homeId, boss: null } }
 }
 
 /**
@@ -1303,6 +1312,7 @@ export function resumeAfterGap(run: RunState): RunState {
     combo: createInitialCombo(),
     activeBuffs: [],
     eventBoosts: [],
+    boss: null,
   }
 }
 
@@ -1361,6 +1371,8 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
           : [],
         gameCompleted: Boolean(meta.gameCompleted),
         completedAt: typeof meta.completedAt === "number" ? meta.completedAt : null,
+        bossDefeated: Boolean(meta.bossDefeated),
+        monstersSlain: typeof meta.monstersSlain === "number" ? meta.monstersSlain : 0,
       },
       runState: {
         ...createInitialRun(now, createInitialMeta(), config),
@@ -1387,6 +1399,9 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
           run.regionCooldowns && typeof run.regionCooldowns === "object" ? { ...run.regionCooldowns } : {},
         challengeCooldowns:
           run.challengeCooldowns && typeof run.challengeCooldowns === "object" ? { ...run.challengeCooldowns } : {},
+        monsterRespawnAt:
+          run.monsterRespawnAt && typeof run.monsterRespawnAt === "object" ? { ...run.monsterRespawnAt } : {},
+        boss: null,
         costScale:
           typeof run.costScale === "number" && run.costScale > 0
             ? run.costScale
@@ -1403,5 +1418,102 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
   }
 }
 
+/* ---------- Region monsters ---------- */
+
+export function monsterAlive(run: RunState, regionId: string, now: number): boolean {
+  return (run.monsterRespawnAt[regionId] ?? 0) <= now
+}
+
+/** Tap the region's roaming monster: it dies, drops CORE, and returns after `respawnSec`. */
+export function slayMonster(
+  run: RunState,
+  meta: MetaState,
+  config: GameConfig,
+  regionId: string,
+  now: number,
+): { run: RunState; meta: MetaState; reward: number; error?: string } {
+  const region = config.regions.find((r) => r.id === regionId)
+  const monster = region?.monster
+  if (!region || !monster) return { run, meta, reward: 0, error: "이 지역에는 몬스터가 없습니다." }
+  if (run.currentRegionId !== regionId) return { run, meta, reward: 0, error: `${region.name}에 있어야 합니다.` }
+  if (!monsterAlive(run, regionId, now)) return { run, meta, reward: 0, error: "아직 돌아오지 않았습니다." }
+  const perSecond = productionSnapshot(run, meta, config, now).perSecond
+  const reward = perSecond * monster.rewardSeconds + derivedClick(run, meta, config).click * 25
+  return {
+    run: {
+      ...run,
+      coreEnergy: run.coreEnergy + reward,
+      lifetimeCoreEnergy: run.lifetimeCoreEnergy + reward,
+      monsterRespawnAt: { ...run.monsterRespawnAt, [regionId]: now + monster.respawnSec * 1000 },
+    },
+    meta: { ...meta, totalCoreEnergy: meta.totalCoreEnergy + reward, monstersSlain: (meta.monstersSlain ?? 0) + 1 },
+    reward,
+  }
+}
+
+/* ---------- Core guardian ---------- */
+
+export function startBossFight(run: RunState, config: GameConfig, now: number): { run: RunState; error?: string } {
+  const region = currentRegionDef(run, config)
+  const boss = region?.boss
+  if (!region || !boss) return { run, error: "여기에는 수호자가 없습니다." }
+  if (run.crisisActive) return { run, error: "위기 중에는 싸울 수 없습니다." }
+  if (run.boss) return { run }
+  return {
+    run: {
+      ...run,
+      boss: {
+        regionId: region.id,
+        hp: boss.hp,
+        maxHp: boss.hp,
+        playerHp: boss.playerHp,
+        playerMaxHp: boss.playerHp,
+        endsAt: now + boss.timeLimitSec * 1000,
+        nextAttackAt: now + boss.attackEverySec * 1000,
+      },
+    },
+  }
+}
+
+/** One strike on the guardian: damage equals the CORE the strike would mine. */
+export function strikeBoss(
+  run: RunState,
+  meta: MetaState,
+  config: GameConfig,
+  now: number,
+  rng: Rng,
+): { run: RunState; meta: MetaState; damage: number; critical: boolean; defeated: boolean } {
+  const fight = run.boss
+  if (!fight || fight.hp <= 0 || now >= fight.endsAt || fight.playerHp <= 0) {
+    return { run, meta, damage: 0, critical: false, defeated: false }
+  }
+  const hit = processClick(run, meta, config, now, rng)
+  const damage = hit.result.energyGained
+  const hp = Math.max(0, fight.hp - damage)
+  const defeated = hp <= 0
+  return {
+    run: { ...hit.run, boss: defeated ? null : { ...fight, hp } },
+    meta: defeated ? { ...hit.meta, bossDefeated: true } : hit.meta,
+    damage,
+    critical: hit.result.isCritical,
+    defeated,
+  }
+}
+
+/** Guardian attacks on its timer; the fight ends when the player falls or time runs out. */
+export function tickBoss(run: RunState, config: GameConfig, now: number): RunState {
+  const fight = run.boss
+  if (!fight) return run
+  const def = config.regions.find((r) => r.id === fight.regionId)?.boss
+  if (!def || now >= fight.endsAt || run.currentRegionId !== fight.regionId) return { ...run, boss: null }
+  let { playerHp, nextAttackAt } = fight
+  while (now >= nextAttackAt && playerHp > 0) {
+    playerHp -= def.attackDamage
+    nextAttackAt += def.attackEverySec * 1000
+  }
+  if (playerHp <= 0) return { ...run, boss: null }
+  if (playerHp === fight.playerHp) return run
+  return { ...run, boss: { ...fight, playerHp, nextAttackAt } }
+}
 
 export type { ActiveSkillDef }

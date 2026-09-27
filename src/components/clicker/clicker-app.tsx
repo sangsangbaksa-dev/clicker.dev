@@ -15,7 +15,7 @@ import { useClickerBgm } from "@/hooks/use-clicker-bgm"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine } from "@/components/clicker/clicker-mine"
-import { ClickerCinematic } from "@/components/clicker/clicker-cinematic"
+import { ClickerCinematic, preloadCinematic } from "@/components/clicker/clicker-cinematic"
 import { ClickerRegionChallenge } from "@/components/clicker/clicker-region-challenge"
 import { MineArt } from "@/data/clicker/mine-assets"
 import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
@@ -24,6 +24,11 @@ import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motio
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
+import { ClickerMonster } from "@/components/clicker/clicker-monster"
+import { ClickerBossFight } from "@/components/clicker/clicker-boss"
+import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
+import { monsterAlive } from "@/domain/services/clicker-engine"
+import type { SfxName } from "@/components/clicker/clicker-sfx"
 import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import { playLaser, playSfx, unlockSfx } from "@/components/clicker/clicker-sfx"
@@ -73,14 +78,16 @@ function CountUpNumber({ value }: { value: number }) {
   return <span aria-hidden>{formatNumber(shown)}</span>
 }
 
-const DRAWER_FOOT_HINT: Record<TabId, string> = {
-  producers: "생산자 구매",
-  upgrades: "영구 강화",
-  skills: "회로 해금",
-  shop: "LUMA 상점",
-  world: "지역 이동 · Esc",
-  achievements: "업적 1개당 생산 +1%",
-  transcendence: "초월 · Esc",
+/** Button kind → click cue, so different kinds of buttons sound different. */
+function buttonCue(el: Element): SfxName {
+  if (el.closest(".clicker-tabs, .clicker-hub-dock, .clicker-stage-region")) return "nav"
+  if (el.matches(".clicker-manage-back, .clicker-skillmap-close, .clicker-ghost")) return "back"
+  if (el.matches(".clicker-settings-launch, .clicker-drawer-toggle, .clicker-hub-enter-only")) return "open"
+  if (el.closest(".clicker-skillmap-node, .clicker-producer-card")) return "select"
+  if (el.matches(".clicker-danger")) return "danger"
+  if (el.matches(".clicker-settings-toggle")) return "toggle"
+  if (el.matches(".clicker-primary")) return "confirm"
+  return "tap"
 }
 
 const DRAWER_STORAGE_KEY = "aurelia-clicker-drawer-h"
@@ -137,7 +144,7 @@ export function ClickerApp() {
       const el = e.target instanceof Element ? e.target.closest("button") : null
       if (!el || el.disabled || !el.closest("[data-clicker]")) return
       if (el.closest(".clicker-mine-crystal, .clicker-mine-vein-gold, [data-sfx='off']")) return
-      playSfx("tap")
+      playSfx(buttonCue(el))
     }
     window.addEventListener("click", onClick, true)
     return () => window.removeEventListener("click", onClick, true)
@@ -171,10 +178,13 @@ export function ClickerApp() {
   const storyBeatRef = useRef<HTMLDivElement | null>(null)
   const adminRef = useRef<HTMLElement | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [skillMapOpen, setSkillMapOpen] = useState(false)
+  /** Ending sequence after the guardian falls: two videos, then the story cards. */
+  const [endingPhase, setEndingPhase] = useState<"fall" | "awaken" | null>(null)
 
   useClickerBgm(game.hud?.coreVisual, {
     // Cinematics carry their own soundtrack.
-    scene: enteringMine || game.regionIntro
+    scene: enteringMine || game.regionIntro || endingPhase
       ? "silent"
       : pendingRebirth || endingOpen
         ? "chamber"
@@ -232,13 +242,14 @@ export function ClickerApp() {
 
   const selectTab = useCallback(
     (id: TabId) => {
+      if (id === "skills") {
+        setSkillMapOpen(true)
+        return
+      }
       if (id === "transcendence") playSfx("transcend")
       setTab(id)
       setHubView("manage")
       if (drawerHeight <= drawerSnaps.peek + 16) {
-        setDrawerHeight(drawerSnaps.half)
-        persistDrawerHeight(drawerSnaps.half)
-      } else if (id === "skills" && drawerHeight < drawerSnaps.half + 40) {
         setDrawerHeight(drawerSnaps.half)
         persistDrawerHeight(drawerSnaps.half)
       }
@@ -321,8 +332,8 @@ export function ClickerApp() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented) return
-      // Rebirth and settings own Esc themselves.
-      if (pendingRebirth || settingsOpen) return
+      // Rebirth, settings and the skill map own Esc themselves.
+      if (pendingRebirth || settingsOpen || skillMapOpen || endingPhase) return
 
       if (endingOpen) {
         // Ending owns Esc (confirm cancel vs close) via ClickerEnding.
@@ -369,6 +380,8 @@ export function ClickerApp() {
   }, [
     pendingRebirth,
     settingsOpen,
+    skillMapOpen,
+    endingPhase,
     endingOpen,
     adminOpen,
     game.toast,
@@ -429,7 +442,7 @@ export function ClickerApp() {
       return
     }
     if (unlocked && !prevCanRebirth.current) {
-      setStoryBeat("누적 CORE가 임계에 닿았습니다. TRANSCENDENCE에서 세계선을 접을 수 있습니다.")
+      setStoryBeat("환생할 수 있습니다. 상단 WORLD LINE을 누르세요.")
     }
     prevCanRebirth.current = unlocked
   }, [game.hud?.canRebirth])
@@ -463,7 +476,7 @@ export function ClickerApp() {
     )
     prevUnlockedRegionIds.current = unlockedIds
     if (!fresh) return
-    setStoryBeat(`새 지역 해금 · ${fresh.name}. WORLD에서 이동할 수 있습니다.`)
+    setStoryBeat(`새 지역 해금 · ${fresh.name}`)
   }, [game.regions])
 
   // Keyed on the objective id only: depending on the whole save re-fired the beat every tick,
@@ -475,7 +488,7 @@ export function ClickerApp() {
     prevObjectiveId.current = objectiveId
     if (!prev || prev === objectiveId) return
     const obj = game.config.objectives.find((o) => o.id === objectiveId)
-    if (obj?.lumaLine) setStoryBeat(obj.lumaLine)
+    if (obj?.line) setStoryBeat(obj.line)
   }, [objectiveId, game.config.objectives])
 
   // Event cues that can start without a click (gauge auto-FEVER, crisis roll).
@@ -511,6 +524,36 @@ export function ClickerApp() {
     prevInMine.current = inMineSurface
   }, [inMineSurface])
 
+  // Warm the videos the player is about to see: mine entry at home, intros of unlocked unvisited regions.
+  const atHomeNow = Boolean(game.currentRegion?.isHome)
+  const visited = game.save?.metaState.visitedRegionIds
+  const unlockedKey = game.regions.filter((r) => r.unlocked).map((r) => r.id).join(",")
+  useEffect(() => {
+    const idle = window.setTimeout(() => {
+      if (atHomeNow) preloadCinematic(MineArt.enterCinematic)
+      for (const id of unlockedKey.split(",")) {
+        const intro = game.config.regions.find((r) => r.id === id)?.intro
+        if (intro && !visited?.includes(id)) preloadCinematic(intro.video)
+      }
+    }, 1500)
+    return () => window.clearTimeout(idle)
+  }, [atHomeNow, unlockedKey, visited, game.config.regions])
+
+  const bossDefeated = Boolean(game.save?.metaState.bossDefeated)
+  const prevBossDefeated = useRef<boolean | null>(null)
+  const bossFighting = Boolean(game.save?.runState.boss)
+  useEffect(() => {
+    if (bossDefeated || bossFighting) {
+      preloadCinematic("/clicker/ending/ending_guardian_fall.mp4")
+      preloadCinematic("/clicker/ending/ending_core_awaken.mp4")
+    }
+    if (prevBossDefeated.current === false && bossDefeated) {
+      playSfx("bossDown")
+      setEndingPhase("fall")
+    }
+    prevBossDefeated.current = bossDefeated
+  }, [bossDefeated, bossFighting])
+
   if (game.otherTabActive) {
     return (
       <ClickerOtherTab
@@ -531,8 +574,6 @@ export function ClickerApp() {
           aria-hidden
         />
         <p className="clicker-loading-text">CORE를 깨우는 중…</p>
-        <p className="clicker-loading-sub">세이브 불러오는 중</p>
-        <p className="clicker-loading-hint">자동 저장 키는 그대로 유지됩니다</p>
       </div>
     )
   }
@@ -571,9 +612,6 @@ export function ClickerApp() {
             onClick={game.dismissToast}
           >
             <span className="clicker-toast-msg">{game.toast}</span>
-            <span className="clicker-toast-dismiss" aria-hidden>
-              탭 · Esc
-            </span>
           </button>
         ) : null}
       </div>
@@ -590,7 +628,6 @@ export function ClickerApp() {
   const mineDurationMs = Math.max(1, run.mineSessionDurationMs || 10_000)
   const mineHaul = Math.max(0, run.coreEnergy - (run.mineSessionCoreAtEnter || 0))
   const mineCooldownSec = Math.ceil((game.mineGate?.cooldownLeftMs ?? 0) / 1000)
-  const mineEntryCost = game.mineGate?.cost ?? 0
   const stageBg = inMine
     ? CLICKER_ASSETS.bgMine
     : game.currentRegion?.isHome
@@ -603,11 +640,14 @@ export function ClickerApp() {
   const transcendenceTotal = game.config.transcendence.length
   // Every circuit (all 100, transcendence branch included) stays on the board.
   const visibleSkillNodes = game.skillNodes
+  const regionDef = game.config.regions.find((r) => r.id === run.currentRegionId)
+  const monsterDef = regionDef?.monster
+  const monsterIsAlive = monsterDef ? monsterAlive(run, run.currentRegionId, tickNow) : false
   const drawerTabs = (
     [
       ["producers", "PRODUCERS", "생산자"],
       ["upgrades", "UPGRADES", "업그레이드"],
-      ["skills", "SKILLS", "스킬 회로"],
+      ["skills", "SKILLS", "스킬"],
       ["shop", "SHOP", "상점"],
       ["world", "WORLD", "지역"],
       ["achievements", "RECORDS", "업적"],
@@ -805,6 +845,15 @@ export function ClickerApp() {
           aria-hidden
         />
         <div className="clicker-vignette" />
+        {!inMine && monsterDef && !regionDef?.boss ? (
+          <ClickerMonster
+            key={run.currentRegionId}
+            kind={monsterDef.kind}
+            name={monsterDef.name}
+            alive={monsterIsAlive}
+            onSlay={(x, y) => game.slayMonster(run.currentRegionId, x, y)}
+          />
+        ) : null}
         <nav className="clicker-stage-region" aria-label="현재 지역">
           {game.currentRegion ? (
             <span className="clicker-stage-region-slot">
@@ -1008,9 +1057,7 @@ export function ClickerApp() {
               aria-label={
                 mineCooldownSec > 0
                   ? `Enter Mine · 재입장 대기 ${mineCooldownSec}초`
-                  : mineEntryCost > 0
-                    ? `Enter Mine · 입장료 CORE ${mineEntryCost}`
-                    : "Enter Mine"
+                  : "Enter Mine"
               }
               disabled={enteringMine}
               onClick={beginEnterMine}
@@ -1018,10 +1065,20 @@ export function ClickerApp() {
               Enter Mine
               {mineCooldownSec > 0 ? (
                 <span className="clicker-hub-enter-sub">재입장 {mineCooldownSec}초</span>
-              ) : mineEntryCost > 0 ? (
-                <span className="clicker-hub-enter-sub">입장료 {formatNumber(mineEntryCost)} CORE</span>
               ) : null}
             </button>
+          ) : regionDef?.boss ? (
+            <ClickerBossFight
+              def={regionDef.boss}
+              fight={run.boss}
+              now={tickNow}
+              defeated={bossDefeated}
+              onStart={game.startBoss}
+              onStrike={(x, y) => {
+                playLaser(game.save!.settings.muted, false)
+                game.strikeBoss(x, y)
+              }}
+            />
           ) : game.currentRegion?.activity || game.currentRegion?.challenge ? (() => {
             // Away from home there is no mine: the region's own activity and challenge take the stage.
             const region = game.currentRegion
@@ -1070,7 +1127,6 @@ export function ClickerApp() {
                     </span>
                   </button>
                 ) : null}
-                <p className="clicker-region-station-note">광산은 Core Mine에서만 열립니다.</p>
               </div>
             )
           })() : null}
@@ -1139,7 +1195,7 @@ export function ClickerApp() {
             <div className="clicker-bar clicker-goal-bar" aria-hidden>
               <i style={{ width: `${Math.round(hud.currentGoal.ratio * 100)}%` }} />
             </div>
-            {hud.currentGoal.lumaLine ? <p className="clicker-goal-line">{hud.currentGoal.lumaLine}</p> : null}
+            {hud.currentGoal.line ? <p className="clicker-goal-line">{hud.currentGoal.line}</p> : null}
           </aside>
         ) : null}
         {!inMine ? (
@@ -1263,13 +1319,6 @@ export function ClickerApp() {
         >
           <span className="clicker-drawer-grab" aria-hidden />
           <div className="clicker-drawer-handle-row">
-            <span className="clicker-drawer-hint">
-              {drawerMode === "peek"
-                ? "위로 당겨 패널 열기"
-                : drawerMode === "full"
-                  ? "아래로 내려 광산 보기 · Esc"
-                  : "드래그로 높이 조절"}
-            </span>
             <button
               type="button"
               className="clicker-drawer-toggle"
@@ -1308,6 +1357,8 @@ export function ClickerApp() {
         </nav>
 
         <section className="clicker-panel">
+        {managing || (inMine && drawerMode !== "peek") ? (
+        <>
         {tab === "achievements" ? <ClickerAchievementsPanel game={game} meta={game.save.metaState} /> : null}
         {tab === "producers" ? (
           <ClickerProducersPanel {...panelProps} automationBuff={automationBuff} />
@@ -1317,9 +1368,6 @@ export function ClickerApp() {
 
         {tab === "shop" ? <ClickerShopPanel {...panelProps} /> : null}
 
-        {tab === "skills" ? (
-          <ClickerSkillTree nodes={visibleSkillNodes} coreEnergy={run.coreEnergy} onBuy={game.buySkill} />
-        ) : null}
 
         {tab === "world" ? <ClickerWorldPanel game={game} run={run} onBack={() => selectTab("producers")} /> : null}
 
@@ -1328,9 +1376,10 @@ export function ClickerApp() {
             {...panelProps}
             meta={game.save.metaState}
             onSelectTab={selectTab}
-            onOpenEnding={() => setEndingOpen(true)}
             onChoose={(buff) => setPendingRebirth({ id: buff.id, label: buff.name })}
           />
+        ) : null}
+        </>
         ) : null}
         </section>
 
@@ -1346,7 +1395,6 @@ export function ClickerApp() {
                   ? ` · 세계선 ${transcendenceOwned}/${transcendenceTotal}`
                   : ""}
           </span>
-          <span className="clicker-drawer-foot-hint">{DRAWER_FOOT_HINT[tab]}</span>
         </footer>
       </aside>
 
@@ -1358,6 +1406,10 @@ export function ClickerApp() {
           onToggleMute={game.toggleMute}
           onToggleMusic={game.toggleMusic}
           onMusicVolume={game.setMusicVolume}
+          onReset={() => {
+            setSettingsOpen(false)
+            game.adminReset()
+          }}
           onClose={() => setSettingsOpen(false)}
         />
       ) : null}
@@ -1439,7 +1491,7 @@ export function ClickerApp() {
           className="clicker-story-beat"
           role="dialog"
           aria-modal="false"
-          aria-label="LUMA 알림"
+          aria-label="알림"
           aria-describedby="clicker-story-beat-body"
           tabIndex={0}
           onClick={() => setStoryBeat(null)}
@@ -1450,11 +1502,8 @@ export function ClickerApp() {
             }
           }}
         >
-          <img src={CLICKER_ASSETS.luma} alt="" width={40} height={40} />
           <div>
-            <strong>LUMA</strong>
             <p id="clicker-story-beat-body">{storyBeat}</p>
-            <span className="clicker-story-beat-hint">탭 또는 Esc로 닫기</span>
           </div>
         </div>
       ) : null}
@@ -1470,9 +1519,6 @@ export function ClickerApp() {
           onClick={game.dismissToast}
         >
           <span className="clicker-toast-msg">{game.toast}</span>
-          <span className="clicker-toast-dismiss" aria-hidden>
-            탭 · Esc
-          </span>
         </button>
       ) : null}
       {CLICKER_ADMIN_UI && adminAllowed && !adminOpen ? (
@@ -1502,6 +1548,36 @@ export function ClickerApp() {
         />
       ) : null}
 
+      {skillMapOpen ? (
+        <ClickerSkillTree
+          nodes={visibleSkillNodes}
+          coreEnergy={run.coreEnergy}
+          onBuy={game.buySkill}
+          onClose={() => setSkillMapOpen(false)}
+        />
+      ) : null}
+
+      {game.save.settings.gameStarted && !game.save.settings.tutorialSeen && !inMine ? (
+        <ClickerTutorial onDone={game.finishTutorial} />
+      ) : null}
+
+      {endingPhase ? (
+        <ClickerCinematic
+          key={endingPhase}
+          src={endingPhase === "fall" ? "/clicker/ending/ending_guardian_fall.mp4" : "/clicker/ending/ending_core_awaken.mp4"}
+          poster={endingPhase === "fall" ? "/clicker/bg/region_core_heart.jpg" : "/clicker/bg/loading_core_awakening.png"}
+          label="엔딩"
+          muted={game.save.settings.musicMuted}
+          onDone={() => {
+            if (endingPhase === "fall") setEndingPhase("awaken")
+            else {
+              setEndingPhase(null)
+              setEndingOpen(true)
+            }
+          }}
+        />
+      ) : null}
+
       {endingOpen ? (
         <ClickerEnding
           summary={{
@@ -1510,7 +1586,6 @@ export function ClickerApp() {
             rebirthCount: game.save.metaState.rebirthCount,
             lifetimeCoreText: formatNumber(game.save.metaState.totalCoreEnergy),
           }}
-          onCancel={() => setEndingOpen(false)}
           onComplete={() => {
             if (game.completeEnding()) setEndingOpen(false)
           }}

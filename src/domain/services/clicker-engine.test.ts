@@ -2,6 +2,11 @@ import assert from "node:assert/strict"
 import test from "node:test"
 import { clickerConfig } from "../../data/clicker/catalog.ts"
 import {
+  monsterAlive,
+  slayMonster,
+  startBossFight,
+  strikeBoss,
+  tickBoss,
   resumeAfterGap,
   applyRebirth,
   applyTrueEnding,
@@ -54,15 +59,15 @@ test("formatNumber uses a single suffix scale", () => {
 
 test("producer cost follows base × growth^level and bulk uses the same rule", () => {
   const one = producerCost(config, "solar_node", 0)
-  assert.equal(one, 600)
+  assert.equal(one, 0.3)
   const ten = producerBulkCost(config, "solar_node", 0, 10)
   let sum = 0
   for (let i = 0; i < 10; i++) sum += producerCost(config, "solar_node", i)
   assert.ok(Math.abs(ten - sum) < 1e-6)
-  assert.equal(maxAffordable(config, "solar_node", 0, 599), 0)
-  assert.equal(maxAffordable(config, "solar_node", 0, 600), 1)
+  assert.equal(maxAffordable(config, "solar_node", 0, 0.29), 0)
+  assert.equal(maxAffordable(config, "solar_node", 0, 0.3), 1)
   // Later worldlines price everything up by priceGrowth^rebirths.
-  assert.equal(producerCost(config, "solar_node", 0, config.priceGrowth), 600 * config.priceGrowth)
+  assert.equal(producerCost(config, "solar_node", 0, config.priceGrowth), 0.3 * config.priceGrowth)
 })
 
 test("click adds energy, combo expires by clock, critical uses rng", () => {
@@ -70,7 +75,7 @@ test("click adds energy, combo expires by clock, critical uses rng", () => {
   const run = createInitialRun(now, createInitialMeta(), config)
   const meta = createInitialMeta()
   const first = processClick(run, meta, config, now, rng)
-  assert.ok(first.result.energyGained >= 1)
+  assert.ok(first.result.energyGained > 0)
   assert.equal(first.result.isCritical, false)
   assert.equal(first.result.comboCount, 1)
   const second = processClick(first.run, first.meta, config, now + 200, rng)
@@ -247,25 +252,31 @@ test("rebirth resets region to home chamber", () => {
   assert.equal(reborn.run.currentRegionId, "core_chamber")
 })
 
-test("transcendence gate starts at 10M lifetime CORE and grows each worldline", () => {
+test("rebirth gate starts at rebirthEnergy lifetime CORE and grows each worldline", () => {
   const now = 12_000_000
   const meta = createInitialMeta()
   let run = createInitialRun(now, meta, config)
   assert.equal(canRebirth(run, meta, config), false)
-  run = grantAdminEnergy(run, 9_999_999)
+  run = grantAdminEnergy(run, config.rebirthEnergy * 0.999)
   assert.equal(canRebirth(run, meta, config), false)
-  run = grantAdminEnergy(run, 1)
+  run = grantAdminEnergy(run, config.rebirthEnergy * 0.001)
   assert.equal(canRebirth(run, meta, config), true)
   const later = { ...meta, rebirthCount: 1 }
   assert.equal(canRebirth(run, later, config), false)
-  assert.equal(rebirthRequirement(later, config), 10_000_000 * config.rebirthGrowth)
+  assert.equal(rebirthRequirement(later, config), config.rebirthEnergy * config.rebirthGrowth)
+  // Every worldline buff walked once: no more rebirths, Core Heart instead.
+  const done = { ...meta, transcendenceIds: config.transcendence.map((t) => t.id) }
+  assert.equal(canRebirth(grantAdminEnergy(run, 1e30), done, config), false)
 })
 
-test("45min-to-10M balance knobs remain on tuned values", () => {
-  assert.equal(config.baseClick, 6.5)
-  assert.equal(config.rebirthEnergy, 10_000_000)
-  assert.equal(config.producers[0]?.productionPerSecond, 1.5)
-  assert.equal(config.producers.find((p) => p.id === "resonance_array")?.unlockAt, 10_000_000)
+test("economy is in the ÷1000 unit and rebirths are worth ×5", () => {
+  assert.ok(Math.abs(config.baseClick - 0.0065) < 1e-12)
+  assert.equal(config.rebirthEnergy, 1e9)
+  assert.equal(config.producers[0]?.productionPerSecond, 0.0015)
+  assert.equal(config.worldlineBonus, 4)
+  // Same tech, cheapest first.
+  const costs = config.producers.map((p) => p.baseCost)
+  assert.deepEqual(costs, [...costs].sort((a, b) => a - b))
 })
 
 test("active skill shop purchase adds charges and use consumes one", () => {
@@ -439,24 +450,19 @@ test("region visits are recorded once so the intro plays only on the first entry
   assert.deepEqual(legacy.metaState.visitedRegionIds, [])
 })
 
-test("broke re-entry is free without producers, charged once producers exist", () => {
+test("mine entry is free; only the re-enter cooldown applies", () => {
   const now = 11_500_000
   const start = startClickerGame(createInitialSave(now, config))
-  // Past a cooldown, zero CORE — the state a player lands in after an idle mine run.
+  const firstProducer = config.producers[0]!.id
   const broke = {
     ...start,
-    runState: { ...start.runState, coreEnergy: 0, mineCooldownUntil: now - 1 },
+    runState: { ...start.runState, coreEnergy: 0, mineCooldownUntil: now - 1, producerLevels: { ...start.runState.producerLevels, [firstProducer]: 1 } },
   }
-  const free = enterClickerMine(broke, now, config, "ko")
+  const free = enterClickerMine(broke, now, config)
   assert.equal(free.error, undefined)
-  assert.equal(free.save.settings.playSurface, "mine")
-
-  const firstProducer = config.producers[0]!.id
-  const withProducer = {
-    ...broke,
-    runState: { ...broke.runState, producerLevels: { ...broke.runState.producerLevels, [firstProducer]: 1 } },
-  }
-  assert.ok(enterClickerMine(withProducer, now, config, "ko").error)
+  assert.equal(free.save.runState.coreEnergy, 0)
+  const cooling = { ...broke, runState: { ...broke.runState, mineCooldownUntil: now + 5_000 } }
+  assert.ok(enterClickerMine(cooling, now, config).error)
 })
 
 test("mine session length grows from skill-tree dwell nodes", () => {
@@ -477,26 +483,53 @@ test("mine session length grows from skill-tree dwell nodes", () => {
   assert.equal(entered.save.runState.mineSessionEndsAt, now + MINE_SESSION_MS + 15_000)
 })
 
-test("true ending unlocks when all transcendence buffs were chosen once", () => {
+test("true ending unlocks once the Core Heart guardian falls", () => {
   const now = 10_000_000
   let save = createInitialSave(now, config)
   assert.equal(canTriggerTrueEnding(save.metaState, config), false)
   for (const buff of config.transcendence) {
-    save = {
-      ...save,
-      runState: grantAdminEnergy(save.runState, rebirthRequirement(save.metaState, config)),
-      metaState: save.metaState,
-    }
+    save = { ...save, runState: grantAdminEnergy(save.runState, rebirthRequirement(save.metaState, config)) }
     const result = applyRebirth(save.runState, save.metaState, config, buff.id, now + buff.id.length)
+    assert.equal(result.error, undefined)
     save = { ...save, runState: result.run, metaState: result.meta }
   }
+  assert.equal(canTriggerTrueEnding(save.metaState, config), false)
+  const heart = config.regions.find((r) => r.boss)!
+  let run = grantAdminEnergy(save.runState, 1e40)
+  run = travelToRegion(run, config, heart.id).run
+  assert.equal(run.currentRegionId, heart.id)
+  run = startBossFight(run, config, now).run
+  assert.ok(run.boss)
+  // Guardian swings on its timer.
+  const hurt = tickBoss(run, config, now + heart.boss!.attackEverySec * 1000)
+  assert.equal(hurt.boss!.playerHp, heart.boss!.playerHp - heart.boss!.attackDamage)
+  // Timeout ends the fight without a win.
+  assert.equal(tickBoss(run, config, now + heart.boss!.timeLimitSec * 1000).boss, null)
+  const strong = { ...run, boss: { ...run.boss!, hp: 1e-9 } }
+  const hit = strikeBoss(strong, save.metaState, config, now + 100, () => 0.5)
+  assert.equal(hit.defeated, true)
+  assert.equal(hit.run.boss, null)
+  save = { ...save, runState: hit.run, metaState: hit.meta }
   assert.equal(canTriggerTrueEnding(save.metaState, config), true)
   const completed = applyTrueEnding(save, config, now + 99)
   assert.equal(completed.error, undefined)
   assert.equal(completed.save.metaState.gameCompleted, true)
-  assert.ok(completed.save.metaState.completedAt)
   const again = applyTrueEnding(completed.save, config, now + 100)
   assert.equal(again.error, "이미 완료된 기록입니다.")
+})
+
+test("region monsters die on tap, pay CORE and respawn after 30s", () => {
+  const now = 20_000_000
+  const meta = createInitialMeta()
+  const run = createInitialRun(now, meta, config)
+  const home = run.currentRegionId
+  assert.equal(monsterAlive(run, home, now), true)
+  const slain = slayMonster(run, meta, config, home, now)
+  assert.equal(slain.error, undefined)
+  assert.ok(slain.reward > 0)
+  assert.equal(monsterAlive(slain.run, home, now + 29_000), false)
+  assert.equal(monsterAlive(slain.run, home, now + 30_000), true)
+  assert.ok(slayMonster(slain.run, slain.meta, config, home, now + 1_000).error)
 })
 
 test("upgrade purchase is rejected when CORE is short or already owned", () => {

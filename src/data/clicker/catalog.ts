@@ -2,6 +2,7 @@ import type { GameConfig } from "../../domain/entities/clicker"
 import { CLICKER_REGIONS } from "./regions.ts"
 import { MineArt } from "./mine-assets.ts"
 import { CLICKER_ACHIEVEMENTS } from "./achievements.ts"
+import { finalizeCatalog } from "./catalog-extra.ts"
 
 export const CLICKER_ASSETS = {
   bgLoading: "/clicker/bg/loading_core_awakening.png",
@@ -15,12 +16,11 @@ export const CLICKER_ASSETS = {
   coreIdle: "/clicker/core/core_idle.png",
   coreFever: "/clicker/core/core_fever.png",
   coreCrisis: "/clicker/core/core_crisis.png",
-  luma: "/clicker/char/char_luma_default.png",
   icon: "/clicker/icon/icon_core.png",
 } as const
 
-export const clickerConfig: GameConfig = {
-  schemaVersion: 1,
+const baseConfig: GameConfig = {
+  schemaVersion: 2,
   baseClick: 6.5,
   baseCritChance: 0.05,
   baseCritMultiplier: 3,
@@ -35,13 +35,13 @@ export const clickerConfig: GameConfig = {
   feverCritChanceAdd: 0.1,
   feverComboCap: 10,
   feverCoolDown: 2,
-  rebirthEnergy: 10_000_000,
-  // Worldline goals: 10M → 100M → 1B → 10B → 100B, so later producers and apex circuits matter.
-  rebirthGrowth: 10,
+  // Final unit ÷1000: goals 1B → 2T → 4Qa … Each worldline must climb past the whole catalog.
+  rebirthEnergy: 1e12,
+  rebirthGrowth: 2_000,
   // Prices double per worldline while goals grow ×10, so each worldline climbs further.
   priceGrowth: 2,
-  // ×1.8 permanent click & production per rebirth: each worldline runs ~30% faster than the last.
-  worldlineBonus: 0.8,
+  // ×5 permanent click & production per rebirth: every worldline plays about five times faster.
+  worldlineBonus: 4,
   skillPointEveryLevels: 10,
   producers: [
     {
@@ -1501,87 +1501,25 @@ export const clickerConfig: GameConfig = {
     },
   ],
   objectives: [
-    {
-      id: "first_node",
-      title: "Solar Node 복구",
-      lumaLine: "CORE가 아주 약하게 숨 쉬고 있습니다. 첫 노드를 켜세요.",
-      kind: "PRODUCER",
-      producerId: "solar_node",
-      target: 1,
-      nextId: "auto_start",
-    },
-    {
-      id: "auto_start",
-      title: "자동 생산 정착",
-      lumaLine: "문명이 스스로 움직이기 시작합니다.",
-      kind: "ENERGY",
-      target: 1200,
-      nextId: "first_fever",
-    },
-    {
-      id: "first_fever",
-      title: "첫 FEVER",
-      lumaLine: "게이지가 가득 차면 CORE를 깨우세요.",
-      kind: "FEVER",
-      target: 1,
-      nextId: "build_identity",
-    },
-    {
-      id: "build_identity",
-      title: "네트워크 확장",
-      lumaLine: "어떤 방식으로 CORE를 되살릴지는 당신의 선택입니다. 생산자를 더 키우세요.",
-      kind: "ENERGY",
-      target: 75000,
-      nextId: "skill_spark",
-    },
-    {
-      id: "skill_spark",
-      title: "회로 각성",
-      lumaLine: "SKILLS 탭의 별자리 — 잃어버린 능력의 조각입니다. 첫 노드를 밝히세요.",
-      kind: "SKILL",
-      target: 1,
-      nextId: "shop_memory",
-    },
-    {
-      id: "shop_memory",
-      title: "기억 조각 회수",
-      lumaLine: "SHOP에서 LUMA가 남긴 물약을 하나 사세요. 직접 떨어지지 않습니다.",
-      kind: "POTION",
-      target: 1,
-      nextId: "network_hum",
-    },
-    {
-      id: "network_hum",
-      title: "맥동의 확장",
-      lumaLine: "방 전체가 미세하게 진동합니다. WORLD 탭에서 Signal Relay가 열립니다.",
-      kind: "ENERGY",
-      target: 250000,
-      nextId: "deep_pulse",
-    },
-    {
-      id: "deep_pulse",
-      title: "심층 공명",
-      lumaLine: "벽 너머 잔향이 깊어집니다. WORLD에서 Phase Vault를 확인하세요.",
-      kind: "ENERGY",
-      target: 2000000,
-      nextId: "rebirth_ready",
-    },
-    {
-      id: "rebirth_ready",
-      title: "첫 REBIRTH 검토",
-      lumaLine: "10M CORE에 닿으면 세계선을 접을 수 있습니다. Core Mine의 문이 열립니다.",
-      kind: "REBIRTH",
-      target: 1,
-      nextId: null,
-    },
+    { id: "first_node", title: "Solar Node 복구", line: "광산 입구의 첫 노드가 꺼져 있습니다. 채굴한 CORE로 다시 켜세요.", kind: "PRODUCER", producerId: "solar_node", target: 1, nextId: "auto_start" },
+    { id: "auto_start", title: "자동 생산 정착", line: "노드가 스스로 숨 쉬기 시작합니다. 생산자를 늘려 흐름을 키우세요.", kind: "ENERGY", target: 1200, nextId: "first_fever" },
+    { id: "first_fever", title: "첫 FEVER", line: "게이지가 가득 차면 CORE가 과열됩니다. 그때 몰아서 채굴하세요.", kind: "FEVER", target: 1, nextId: "build_identity" },
+    { id: "build_identity", title: "네트워크 확장", line: "배경의 크리처를 눌러 보세요. 쓰러뜨리면 CORE를 떨어뜨립니다.", kind: "ENERGY", target: 60000, nextId: "skill_spark" },
+    { id: "skill_spark", title: "회로 각성", line: "스킬 회로는 잃어버린 능력의 조각입니다. 첫 회로를 밝히세요.", kind: "SKILL", target: 1, nextId: "shop_memory" },
+    { id: "shop_memory", title: "보급품 회수", line: "상점에서 물약을 하나 사 두세요. 광산에서 FEVER를 바로 열 수 있습니다.", kind: "POTION", target: 1, nextId: "network_hum" },
+    { id: "network_hum", title: "맥동의 확장", line: "중계 복도가 응답합니다. 지역마다 다른 활동과 도전이 기다립니다.", kind: "ENERGY", target: 250000, nextId: "deep_pulse" },
+    { id: "deep_pulse", title: "심층 공명", line: "더 깊은 곳에서 무언가가 코어를 막고 있습니다. 힘을 모으세요.", kind: "ENERGY", target: 2000000, nextId: "rebirth_ready" },
+    { id: "rebirth_ready", title: "첫 환생", line: "이 세계선은 한계에 닿았습니다. 환생하면 더 강한 규칙으로 다시 시작합니다.", kind: "REBIRTH", target: 1, nextId: "rebirth_all" },
+    { id: "rebirth_all", title: "다섯 세계선", line: "다섯 개의 세계선을 모두 걸어야 코어 심장부의 문이 열립니다.", kind: "REBIRTH", target: 5, nextId: "heart_gate" },
+    { id: "heart_gate", title: "코어 심장부", line: "문이 열립니다. 코어를 막고 있던 수호자를 제한 시간 안에 쓰러뜨리세요.", kind: "ENERGY", target: 1e22, nextId: null },
   ],
   transcendence: [
     {
       id: "focus_line",
       name: "Directive Pulse",
-      description: "채굴 ×4 · 콤보 유지 +0.5초 · 번개 확률 +5%",
+      description: "채굴 ×3 · 번개 +5%",
       identity: "직접 개입 세계선",
-      clickMultiplier: 4,
+      clickMultiplier: 3,
       comboWindowAdd: 0.5,
       lightningChanceAdd: 0.05,
       assetId: "/clicker/buff/buff_focus.webp",
@@ -1589,9 +1527,9 @@ export const clickerConfig: GameConfig = {
     {
       id: "auto_line",
       name: "AURELIA Grid",
-      description: "생산 ×4 · 드론 타격 +2회/초 · 시작 +2,000 CORE",
+      description: "생산 ×3 · 드론 +2회/초",
       identity: "자동화 세계선",
-      productionMultiplier: 4,
+      productionMultiplier: 3,
       droneStrikesPerSecond: 2,
       startingEnergy: 2_000,
       assetId: "/clicker/buff/buff_automation.webp",
@@ -1599,18 +1537,19 @@ export const clickerConfig: GameConfig = {
     {
       id: "reso_line",
       name: "Resonance Protocol",
-      description: "FEVER +10초 · FEVER 강도 +60% · 채굴 ×2 · 잔향 확률 +8%",
+      description: "채굴·생산 ×1.8 · FEVER +10초 · 잔향 +8%",
       identity: "공명 세계선",
       feverDurationAdd: 10,
       feverIntensity: 1.6,
-      clickMultiplier: 2,
+      clickMultiplier: 1.8,
+      productionMultiplier: 1.8,
       echoChanceAdd: 0.08,
       assetId: "/clicker/buff/buff_resonance.webp",
     },
     {
       id: "risk_line",
       name: "Volatile Core",
-      description: "불안정 보상 +60% · 생산 ×2.5 · 치명타 배율 ×2",
+      description: "생산 ×2.5 · 치명타 배율 ×2",
       identity: "위험 세계선",
       instabilityRewardBonus: 0.6,
       productionMultiplier: 2.5,
@@ -1620,10 +1559,10 @@ export const clickerConfig: GameConfig = {
     {
       id: "hybrid_line",
       name: "Adaptive Architect",
-      description: "채굴 ×2.5 · 생산 ×2.5 · 시작 +20,000 CORE",
+      description: "채굴·생산 ×2 · 시작 +20 CORE",
       identity: "균형 세계선",
-      clickMultiplier: 2.5,
-      productionMultiplier: 2.5,
+      clickMultiplier: 2,
+      productionMultiplier: 2,
       startingEnergy: 20_000,
       assetId: "/clicker/buff/buff_utility.webp",
     },
@@ -1638,3 +1577,5 @@ export const clickerConfig: GameConfig = {
     { producerId: "singularity_plant", minLevel: 8, instabilityRewardBonus: 0.15 },
   ],
 }
+
+export const clickerConfig: GameConfig = finalizeCatalog(baseConfig)

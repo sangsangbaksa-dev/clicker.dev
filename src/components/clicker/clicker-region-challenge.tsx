@@ -34,6 +34,8 @@ type GameProps = {
 function attempts(kind: RegionChallengeKind, elapsed: number, hits: number, misses: number): number {
   if (kind === "ROD_STRIKE") return Math.max(0, Math.floor((elapsed - ROD_FIRST_MS) / ROD_EVERY_MS) + 1) + misses * 0.5
   if (kind === "FAULT_DRILL") return Math.max(DRILL_TARGET, hits) + misses * 0.5
+  if (kind === "SIGNAL_TUNE") return Math.max(0, Math.floor((elapsed - SIGNAL_FIRST_MS) / SIGNAL_EVERY_MS) + 1) + misses * 0.5
+  if (kind === "VAULT_LOCK") return Math.max(VAULT_TARGET, hits) + misses * 0.5
   return Math.max(0, Math.floor((elapsed - DRONE_FIRST_MS) / DRONE_EVERY_MS) + 1)
 }
 
@@ -67,7 +69,7 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
   const elapsed = Math.min(durationMs, Math.max(0, clock - COUNTDOWN_MS))
   const left = durationMs - elapsed
   const tries = attempts(kind, elapsed, hits, misses)
-  const score = tries > 0 ? Math.min(1, Math.min(hits, kind === "FAULT_DRILL" ? DRILL_TARGET : hits) / tries) : 0
+  const score = tries > 0 ? Math.min(1, Math.min(hits, kind === "FAULT_DRILL" ? DRILL_TARGET : kind === "VAULT_LOCK" ? VAULT_TARGET : hits) / tries) : 0
   const pct = Math.round(score * 100)
 
   const close = () => {
@@ -127,6 +129,8 @@ export function ClickerRegionChallenge({ kind, name, description, durationSec, m
         {kind === "ROD_STRIKE" ? <RodStrike {...gameProps} /> : null}
         {kind === "FAULT_DRILL" ? <FaultDrill {...gameProps} misses={misses} /> : null}
         {kind === "DRONE_RECALL" ? <DroneRecall {...gameProps} /> : null}
+        {kind === "SIGNAL_TUNE" ? <SignalTune {...gameProps} /> : null}
+        {kind === "VAULT_LOCK" ? <VaultLock {...gameProps} /> : null}
         {phase === "countdown" ? (
           <div className="clicker-challenge-countdown" aria-live="assertive">
             {Math.max(1, Math.ceil((COUNTDOWN_MS - clock) / 1000))}
@@ -335,6 +339,112 @@ function DroneRecall({ elapsed, playing, onHit }: GameProps) {
           </button>
         )
       })}
+    </div>
+  )
+}
+
+/* ---------- Signal Relay: tap the lit relay, never the red noise ---------- */
+
+const SIGNAL_FIRST_MS = 200
+const SIGNAL_EVERY_MS = 700
+const SIGNAL_WINDOW_MS = 650
+const SIGNAL_CELLS = 9
+
+function SignalTune({ elapsed, playing, onHit, onMiss }: GameProps) {
+  const plan = useSchedule(() =>
+    Array.from({ length: 40 }, () => {
+      const target = Math.floor(Math.random() * SIGNAL_CELLS)
+      let noise = Math.floor(Math.random() * SIGNAL_CELLS)
+      if (noise === target) noise = (noise + 3) % SIGNAL_CELLS
+      return { target, noise }
+    }),
+  )
+  const [caught, setCaught] = useState<ReadonlySet<number>>(() => new Set())
+  const [flash, setFlash] = useState<Flash | null>(null)
+  const index = Math.floor((elapsed - SIGNAL_FIRST_MS) / SIGNAL_EVERY_MS)
+  const start = SIGNAL_FIRST_MS + index * SIGNAL_EVERY_MS
+  const live = playing && index >= 0 && elapsed - start < SIGNAL_WINDOW_MS && !caught.has(index) ? index : -1
+
+  const tap = (cell: number) => {
+    if (!playing) return
+    const ok = live >= 0 && plan[live].target === cell
+    if (ok) {
+      setCaught(new Set(caught).add(live))
+      onHit()
+    } else onMiss()
+    setFlash({ key: cell, ok, at: elapsed })
+  }
+  return (
+    <div className="clicker-signal-grid">
+      {Array.from({ length: SIGNAL_CELLS }, (_, cell) => {
+        const lit = live >= 0 && plan[live].target === cell
+        const noise = live >= 0 && plan[live].noise === cell
+        const fx = flash && flash.key === cell && elapsed - flash.at < FLASH_MS ? (flash.ok ? " is-hit" : " is-miss") : ""
+        return (
+          <button
+            key={cell}
+            type="button"
+            className={`clicker-signal-cell${lit ? " is-lit" : ""}${noise ? " is-noise" : ""}${fx}`}
+            aria-label={`중계기 ${cell + 1}${lit ? " · 신호" : noise ? " · 잡음" : ""}`}
+            onPointerDown={(e) => {
+              e.preventDefault()
+              tap(cell)
+            }}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+/* ---------- Phase Vault: repeat the flashed lock sequence ---------- */
+
+const VAULT_TARGET = 12
+const VAULT_LOCKS = 4
+const VAULT_SHOW_MS = 420
+
+function VaultLock({ elapsed, playing, onHit, onMiss }: GameProps) {
+  const [round, setRound] = useState(1)
+  const [pos, setPos] = useState(0)
+  const [shownAt, setShownAt] = useState(0)
+  const seq = useSchedule(() => Array.from({ length: 30 }, () => Math.floor(Math.random() * VAULT_LOCKS)))
+  const length = Math.min(2 + round, 8)
+  const showing = elapsed - shownAt < length * VAULT_SHOW_MS
+  const flashIdx = showing ? Math.floor((elapsed - shownAt) / VAULT_SHOW_MS) : -1
+  const offset = (round * 3) % 20
+  const tap = (lock: number) => {
+    if (!playing || showing) return
+    if (seq[offset + pos] === lock) {
+      onHit()
+      if (pos + 1 >= length) {
+        setRound(round + 1)
+        setPos(0)
+        setShownAt(elapsed + 300)
+      } else setPos(pos + 1)
+    } else {
+      onMiss()
+      setPos(0)
+      setShownAt(elapsed + 200)
+    }
+  }
+  return (
+    <div className="clicker-vault">
+      <p className="clicker-drill-depth">{showing ? "순서를 기억하세요" : `${pos}/${length}`}</p>
+      <div className="clicker-vault-locks">
+        {Array.from({ length: VAULT_LOCKS }, (_, lock) => (
+          <button
+            key={lock}
+            type="button"
+            className={`clicker-vault-lock is-${lock}${flashIdx >= 0 && seq[offset + flashIdx] === lock ? " is-lit" : ""}`}
+            disabled={!playing || showing}
+            aria-label={`자물쇠 ${lock + 1}`}
+            onPointerDown={(e) => {
+              e.preventDefault()
+              tap(lock)
+            }}
+          />
+        ))}
+      </div>
     </div>
   )
 }

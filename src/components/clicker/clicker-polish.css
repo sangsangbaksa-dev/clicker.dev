@@ -554,7 +554,6 @@
   border: 1px solid var(--edge);
   border-radius: 18px;
   background: rgb(6 12 21 / 0.72);
-  backdrop-filter: blur(10px);
   box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.85);
 }
 
@@ -713,7 +712,6 @@
   place-items: center;
   padding: 16px;
   background: rgb(2 6 12 / 0.72);
-  backdrop-filter: blur(6px);
 }
 
 [data-clicker] .clicker-welcome {
@@ -783,7 +781,6 @@
   place-items: center;
   padding: 16px;
   background: rgb(2 6 12 / 0.72);
-  backdrop-filter: blur(6px);
 }
 
 [data-clicker] .clicker-settings {
@@ -1099,3 +1096,141 @@
     min-height: 40px;
   }
 }
+
+/* ---------- Full-screen skill map ---------- */
+[data-clicker] .clicker-skillmap {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at 50% 45%, #10202c 0%, #060b12 70%);
+}
+[data-clicker] .clicker-skillmap-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgb(120 200 230 / 0.18);
+  color: #dff6ff;
+}
+[data-clicker] .clicker-skillmap-head strong { font-size: 16px; letter-spacing: 0.06em; }
+[data-clicker] .clicker-skillmap-head span { font-size: 12px; color: #9fc3cf; }
+[data-clicker] .clicker-skillmap-close { margin-left: auto; }
+[data-clicker] .clicker-skillmap-view {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+[data-clicker] .clicker-skillmap-view:active { cursor: grabbing; }
+[data-clicker] .clicker-skillmap-board {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+[data-clicker] .clicker-skillmap-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+[data-clicker] .clicker-skillmap-hub {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 30px;
+  color: #ffe08a;
+  text-shadow: 0 0 18px #ffb347;
+}
+[data-clicker] .clicker-skillmap-node {
+  position: absolute;
+  width: 62px;
+  height: 62px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--branch-color) 55%, transparent);
+  background: #0b141c;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  animation: clicker-skillmap-in 260ms ease-out;
+}
+[data-clicker] .clicker-skillmap-node img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  pointer-events: none;
+}
+[data-clicker] .clicker-skillmap-node.is-poor img { filter: saturate(0.4) brightness(0.7); }
+[data-clicker] .clicker-skillmap-node.is-available {
+  box-shadow: 0 0 14px color-mix(in srgb, var(--branch-color) 70%, transparent);
+}
+[data-clicker] .clicker-skillmap-node.is-owned {
+  border-color: #ffe08a;
+  box-shadow: 0 0 10px rgb(255 224 138 / 0.5);
+}
+[data-clicker] .clicker-skillmap-node.is-apex { width: 74px; height: 74px; }
+[data-clicker] .clicker-skillmap-node.is-selected,
+[data-clicker] .clicker-skillmap-node:hover { transform: translate(-50%, -50%) scale(1.12); }
+@keyframes clicker-skillmap-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+}
+[data-clicker] .clicker-skillmap-detail {
+  position: absolute;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: min(460px, calc(100% - 32px));
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgb(120 200 230 / 0.3);
+  background: rgb(6 12 18 / 0.94);
+  color: #e6f7ff;
+}
+[data-clicker] .clicker-skillmap-detail img { width: 56px; height: 56px; }
+[data-clicker] .clicker-skillmap-detail small { font-size: 11px; color: #8fb5c2; }
+[data-clicker] .clicker-skillmap-detail strong { display: block; font-size: 15px; }
+[data-clicker] .clicker-skillmap-detail p { margin: 2px 0 0; font-size: 13px; color: #bfe3ef; }
+
+/* ---------- Tutorial ---------- */
+[data-clicker] .clicker-tutorial {
+  position: fixed;
+  inset: 0;
+  z-index: 58;
+  display: grid;
+  place-items: end center;
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  background: rgb(2 6 12 / 0.55);
+}
+[data-clicker] .clicker-tutorial.is-story { place-items: end center; background: #000; }
+[data-clicker] .clicker-tutorial-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  animation: clicker-tutorial-pan 9s ease-out forwards, clicker-tutorial-fade 600ms ease-out;
+}
+@keyframes clicker-tutorial-pan { from { transform: scale(1.08); } to { transform: scale(1); } }
+@keyframes clicker-tutorial-fade { from { opacity: 0; } }
+[data-clicker] .clicker-tutorial-card {
+  position: relative;
+  width: min(520px, 100%);
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid rgb(120 220 255 / 0.3);
+  background: rgb(6 12 20 / 0.92);
+  color: #e8f8ff;
+  animation: clicker-tutorial-fade 300ms ease-out;
+}
+[data-clicker] .clicker-tutorial-kicker { margin: 0 0 4px; font-size: 11px; letter-spacing: 0.2em; color: #7fd8f0; }
+[data-clicker] .clicker-tutorial-card h2 { margin: 0 0 8px; font-size: 20px; }
+[data-clicker] .clicker-tutorial-card p { margin: 0; line-height: 1.55; color: #cfeaf3; }
+[data-clicker] .clicker-tutorial-actions { display: flex; justify-content: space-between; margin-top: 14px; }

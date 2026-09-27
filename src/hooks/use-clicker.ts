@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   clickerAdminGrant,
   clickerAdminPatch,
@@ -17,7 +17,6 @@ import {
   clickerDrinkPotion,
   clickerEnterMine,
   clickerMineEntryError,
-  clickerMineEntryCost,
   clickerExitMine,
   clickerFinishMineSession,
   clickerGameConfig,
@@ -34,6 +33,11 @@ import {
   clickerRegionChallengeError,
   clickerTick,
   clickerUseSkill,
+  clickerFinishTutorial,
+  clickerSlayMonster,
+  clickerStartBoss,
+  clickerStrikeBoss,
+  allowMineStrike,
   loadClickerGame,
   persistClickerGame,
   resetClickerPersistence,
@@ -180,6 +184,7 @@ export function useClicker() {
   useEffect(() => {
     let frame = 0
     let last = 0
+    let lastRender = 0
     const loop = (ts: number) => {
       if (ts - last > 100) {
         last = ts
@@ -197,7 +202,11 @@ export function useClicker() {
               ? finishMine(current, next)
               : next
           saveRef.current = committed
-          setSave(committed)
+          // Engine ticks every 100ms; React only repaints every 250ms (or at once when the surface flips).
+          if (committed !== next || ts - lastRender >= 250 || committed.runState.boss !== current.runState.boss) {
+            lastRender = ts
+            setSave(committed)
+          }
         }
       }
       frame = window.requestAnimationFrame(loop)
@@ -268,9 +277,11 @@ export function useClicker() {
     setToast(null)
   }, [])
 
+  const mineStrikes = useRef<number[]>([])
   const clickCore = useCallback((clientX?: number, clientY?: number) => {
     const current = saveRef.current
-    if (!current || current.metaState.gameCompleted) return { critical: false }
+    if (!current || current.metaState.gameCompleted) return null
+    if (current.settings.playSurface === "mine" && !allowMineStrike(mineStrikes.current, performance.now())) return null
     const result = clickerClick(current, now())
     commit(result.save)
     if (result.quake) playSfx("quake")
@@ -607,6 +618,56 @@ export function useClicker() {
 
   const dismissMineSummary = useCallback(() => setMineSummary(null), [])
 
+  const finishTutorial = useCallback(() => {
+    if (!saveRef.current) return
+    const next = clickerFinishTutorial(saveRef.current)
+    commit(next)
+    persistNow(next)
+  }, [commit, persistNow])
+
+  /** Background monster tapped. Returns the CORE it dropped (0 when refused). */
+  const slayMonster = useCallback(
+    (regionId: string, clientX: number, clientY: number) => {
+      if (!saveRef.current) return 0
+      const result = clickerSlayMonster(saveRef.current, regionId, now())
+      if (!result.ok) return 0
+      commit(result.value.save)
+      playSfx("monsterDie")
+      const id = ++floatId.current
+      setFloats((prev) => [...prev.slice(-12), { id, text: `+${formatNumber(result.value.reward)}`, critical: true, x: clientX, y: clientY }])
+      window.setTimeout(() => setFloats((prev) => prev.filter((f) => f.id !== id)), 1000)
+      return result.value.reward
+    },
+    [commit],
+  )
+
+  const startBoss = useCallback(() => {
+    if (!saveRef.current) return
+    const result = clickerStartBoss(saveRef.current, now())
+    if (!result.ok) return refuse(result.error)
+    commit(result.value)
+    playSfx("bossRoar")
+  }, [commit, refuse])
+
+  /** Strike the guardian. Returns true on the killing blow. */
+  const strikeBoss = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!saveRef.current) return false
+      const result = clickerStrikeBoss(saveRef.current, now())
+      if (result.damage <= 0) return false
+      commit(result.save)
+      const id = ++floatId.current
+      setFloats((prev) => [...prev.slice(-12), { id, text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }])
+      window.setTimeout(() => setFloats((prev) => prev.filter((f) => f.id !== id)), 700)
+      if (result.defeated) {
+        commit(result.save)
+        persistNow(result.save)
+      }
+      return result.defeated
+    },
+    [commit, persistNow],
+  )
+
   const forceSave = useCallback(() => {
     if (!saveRef.current) return
     persistNow()
@@ -635,21 +696,36 @@ export function useClicker() {
         }
       })
     : []
-  const snapshot = save ? productionSnapshot(save.runState, save.metaState, clickerGameConfig, t) : null
-  const hud = save ? buildHud(save.runState, save.metaState, clickerGameConfig, t, snapshot ?? undefined) : null
-  const producers = save ? buildProducerViews(save.runState, save.metaState, clickerGameConfig, t) : []
-  const upgrades = save ? buildUpgradeViews(save.runState, clickerGameConfig) : []
-  const potionShop = save ? buildPotionShopViews(save.runState, clickerGameConfig) : []
-  const activeSkillShop = save ? buildActiveSkillShopViews(save.runState, clickerGameConfig) : []
-  const regions = save ? buildRegionViews(save.runState, clickerGameConfig, t) : []
-  const currentRegion =
-    regions.find((r) => r.isCurrent) ?? regions.find((r) => r.isHome) ?? regions[0] ?? null
-  const skillNodes = save ? buildSkillNodeViews(save.runState, clickerGameConfig) : []
-  /** Enter Mine button state: re-entry cooldown left and the CORE cost of the next entry. */
+  const views = useMemo(() => {
+    if (!save) return null
+    const snapshot = productionSnapshot(save.runState, save.metaState, clickerGameConfig, t)
+    const regions = buildRegionViews(save.runState, clickerGameConfig, t)
+    return {
+      snapshot,
+      hud: buildHud(save.runState, save.metaState, clickerGameConfig, t, snapshot),
+      producers: buildProducerViews(save.runState, save.metaState, clickerGameConfig, t),
+      upgrades: buildUpgradeViews(save.runState, clickerGameConfig),
+      potionShop: buildPotionShopViews(save.runState, clickerGameConfig),
+      activeSkillShop: buildActiveSkillShopViews(save.runState, clickerGameConfig),
+      regions,
+      currentRegion: regions.find((r) => r.isCurrent) ?? regions.find((r) => r.isHome) ?? regions[0] ?? null,
+      skillNodes: buildSkillNodeViews(save.runState, clickerGameConfig),
+    }
+  }, [save, t])
+  const snapshot = views?.snapshot ?? null
+  const hud = views?.hud ?? null
+  const producers = views?.producers ?? []
+  const upgrades = views?.upgrades ?? []
+  const potionShop = views?.potionShop ?? []
+  const activeSkillShop = views?.activeSkillShop ?? []
+  const regions = views?.regions ?? []
+  const currentRegion = views?.currentRegion ?? null
+  const skillNodes = views?.skillNodes ?? []
+  /** Enter Mine button state: re-entry cooldown left. */
   const mineGate = save
     ? {
         cooldownLeftMs: Math.max(0, save.runState.mineCooldownUntil - t),
-        cost: clickerMineEntryCost(save, t),
+        cost: 0,
       }
     : null
   const canCompleteEnding = save ? clickerCanCompleteEnding(save) : false
@@ -716,5 +792,9 @@ export function useClicker() {
     canStartChallenge,
     claimChallenge,
     mineGate,
+    finishTutorial,
+    slayMonster,
+    startBoss,
+    strikeBoss,
   }
 }

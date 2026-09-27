@@ -15,6 +15,9 @@ const MASTER_GAIN = 0.9
 /** Rapid-fire guard per cue so a held key or MAX-buy doesn't machine-gun. */
 const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   tap: 45,
+  nav: 45,
+  select: 45,
+  playerHurt: 200,
   purchase: 60,
   deny: 140,
   tick: 90,
@@ -350,6 +353,59 @@ const CUES = {
     tone(c, "sine", 220, 220, 0.05, t, 0.9, { attack: 0.2, dest: e })
     tone(c, "sine", 330, 330, 0.035, t + 0.1, 0.8, { attack: 0.2, dest: e })
     tone(c, "sine", 495, 495, 0.02, t + 0.2, 0.7, { attack: 0.2, dest: e })
+  },
+  /** Tab / dock / navigation button: soft woody knock. */
+  nav(c: AudioContext, t: number) {
+    tone(c, "sine", 520, 430, 0.07, t, 0.07, { attack: 0.002 })
+    tone(c, "triangle", 1040, 860, 0.02, t, 0.05)
+  },
+  /** Back / close: short falling blip. */
+  back(c: AudioContext, t: number) {
+    tone(c, "triangle", 900, 520, 0.05, t, 0.09)
+  },
+  /** Opening a panel or screen (settings, skill tree): airy rising blip. */
+  open(c: AudioContext, t: number) {
+    tone(c, "sine", 600, 1200, 0.045, t, 0.12, { attack: 0.01 })
+    noise(c, "bandpass", 3000, 2, 0.015, t, 0.1, { sweepTo: 6000 })
+  },
+  /** Selecting a node / card: glassy ping. */
+  select(c: AudioContext, t: number) {
+    tone(c, "sine", 1760, 1760, 0.035, t, 0.08, { attack: 0.001 })
+    tone(c, "sine", 2637, 2637, 0.012, t + 0.02, 0.08)
+  },
+  /** Confirm / primary action (not a purchase). */
+  confirm(c: AudioContext, t: number) {
+    tone(c, "square", 660, 660, 0.025, t, 0.06, { attack: 0.001 })
+    tone(c, "square", 990, 990, 0.025, t + 0.05, 0.08, { attack: 0.001 })
+  },
+  /** Dangerous choice (crisis options, reset). */
+  danger(c: AudioContext, t: number) {
+    tone(c, "sawtooth", 300, 240, 0.035, t, 0.12)
+    noise(c, "lowpass", 900, 1, 0.03, t, 0.12)
+  },
+  /** Region monster slain: squelch + coin spill. */
+  monsterDie(c: AudioContext, t: number) {
+    tone(c, "sawtooth", 420, 90, 0.06, t, 0.25, { attack: 0.002 })
+    noise(c, "lowpass", 1200, 1, 0.08, t, 0.25, { sweepTo: 200 })
+    ;[1318, 1568, 2093].forEach((f, i) => tone(c, "triangle", f, f, 0.03, t + 0.18 + i * 0.05, 0.15))
+  },
+  /** Guardian wakes. */
+  bossRoar(c: AudioContext, t: number) {
+    tone(c, "sawtooth", 90, 55, 0.12, t, 1.2, { attack: 0.08, detune: 12 })
+    tone(c, "sawtooth", 92, 50, 0.1, t, 1.2, { attack: 0.08, detune: -12 })
+    noise(c, "lowpass", 500, 1, 0.12, t, 1.2, { sweepTo: 120, attack: 0.1 })
+  },
+  /** Guardian strikes the player. */
+  playerHurt(c: AudioContext, t: number) {
+    tone(c, "square", 220, 110, 0.06, t, 0.18)
+    noise(c, "bandpass", 700, 1.5, 0.08, t, 0.2)
+  },
+  /** Guardian falls. */
+  bossDown(c: AudioContext, t: number) {
+    const e = echo(c, 0.2, 0.45, 0.45)
+    tone(c, "sine", 60, 25, 0.3, t, 1.6)
+    noise(c, "lowpass", 800, 1, 0.2, t, 1.8, { sweepTo: 80 })
+    ;[523, 659, 784, 1046, 1318].forEach((f, i) => tone(c, "triangle", f, f, 0.05, t + 0.6 + i * 0.12, 0.8, { dest: e }))
   },
 } satisfies Record<string, (c: AudioContext, t: number) => void>
 

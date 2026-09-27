@@ -80,11 +80,6 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onCho
           onError={() => setChromeFailed(true)}
         />
       ) : null}
-      <p className="clicker-wl-select-note">
-        {reducedMotion
-          ? "선택하면 재탄생이 바로 시작됩니다. 이번 런의 생산·채굴은 초기화되며 버프는 영구입니다. Esc로 연출을 건너뛸 수 있습니다."
-          : "선택 즉시 재탄생 연출이 시작되며, 이번 런의 생산·채굴은 초기화됩니다. 버프는 영구 · Esc로 연출 건너뛰기."}
-      </p>
       <div className="clicker-wl-select-grid">
         {chromeBuffs.map((buff) => {
           const variant = rebirthVariantFor(buff.id)
@@ -126,7 +121,7 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onCho
               <div className="clicker-wl-chrome-body">
                 <strong>
                   {buff.name}
-                  {walked ? <em className="clicker-wl-walked">기억됨</em> : null}
+                  {walked ? <em className="clicker-wl-walked">완료</em> : null}
                 </strong>
                 <p>{buff.identity}</p>
                 <small>{buff.description}</small>
@@ -134,10 +129,11 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onCho
               <button
                 type="button"
                 className="clicker-primary"
-                aria-label={walked ? `${buff.name} · 기억된 선 — 다시 접기` : `${buff.name} · 이 선으로 접기`}
+                disabled={walked}
+                aria-label={walked ? `${buff.name} · 이미 걸은 세계선` : `${buff.name} · 환생하기`}
                 onClick={() => choose(buff)}
               >
-                {walked ? "다시 이 선으로" : "이 선으로 접기"}
+                {walked ? "완료" : "환생하기"}
               </button>
             </article>
           )
@@ -156,7 +152,7 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onCho
                 <div>
                   <strong>
                     {buff.name}
-                    {walked ? <em className="clicker-wl-walked">기억됨</em> : null}
+                    {walked ? <em className="clicker-wl-walked">완료</em> : null}
                   </strong>
                   <div style={{ color: "var(--text-2)", fontSize: 12 }}>{buff.identity}</div>
                   <div style={{ fontSize: 12 }}>{buff.description}</div>
@@ -164,10 +160,11 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onCho
                 <button
                   type="button"
                   className="clicker-primary"
-                  aria-label={walked ? `${buff.name} · 기억된 선 — 다시 접기` : `${buff.name} · 이 선으로 접기`}
+                  disabled={walked}
+                aria-label={walked ? `${buff.name} · 이미 걸은 세계선` : `${buff.name} · 환생하기`}
                   onClick={() => choose(buff)}
                 >
-                  {walked ? "다시 이 선으로" : "이 선으로 접기"}
+                  {walked ? "완료" : "환생하기"}
                 </button>
               </article>
             )

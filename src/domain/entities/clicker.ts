@@ -97,6 +97,20 @@ export type RunState = {
   droneSwarmUntil: number
   /** Worldline price level: every CORE cost and goal in this run is multiplied by it. */
   costScale: number
+  /** Region id → absolute ms when its monster respawns (absent/past = alive). */
+  monsterRespawnAt: Record<string, number>
+  /** Active boss fight, or null. */
+  boss: BossFight | null
+}
+
+export type BossFight = {
+  regionId: string
+  hp: number
+  maxHp: number
+  playerHp: number
+  playerMaxHp: number
+  endsAt: number
+  nextAttackAt: number
 }
 
 export type ClickerStatistics = {
@@ -126,6 +140,9 @@ export type MetaState = {
   /** True when the player finished the true ending; run is frozen. */
   gameCompleted: boolean
   completedAt: number | null
+  /** The core guardian fell at least once — unlocks the ending. */
+  bossDefeated: boolean
+  monstersSlain: number
 }
 
 export type ClickerSettings = {
@@ -184,6 +201,8 @@ export type ProducerDef = {
 }
 
 export type UpgradeDef = {
+  /** Icon; each upgrade has its own art. */
+  assetId?: string
   id: string
   name: string
   description: string
@@ -218,6 +237,8 @@ export type PotionDef = {
 
 export type SkillNodeDef = {
   id: string
+  /** Icon; each circuit has its own art. */
+  assetId?: string
   branch: SkillBranch
   /** Depth band 1–5; 5 is the branch capstone. */
   tier: number
@@ -337,9 +358,36 @@ export type RegionDef = {
   challenge?: RegionChallengeDef
   /** First-visit cinematic (video with its own soundtrack), played once per save. */
   intro?: RegionIntroDef
+  /** Rebirths needed before the region can open (on top of lifetime CORE). */
+  requiresRebirths?: number
+  /** The creature roaming this region's background. */
+  monster?: MonsterDef
+  /** Final guardian fight (last region only). */
+  boss?: BossDef
 }
 
-export type RegionChallengeKind = "ROD_STRIKE" | "FAULT_DRILL" | "DRONE_RECALL"
+export type MonsterDef = {
+  name: string
+  /** Visual kind drawn by the client. */
+  kind: string
+  /** Kill pays this many seconds of current production (plus a click-based floor). */
+  rewardSeconds: number
+  respawnSec: number
+}
+
+export type BossDef = {
+  name: string
+  kind: string
+  /** Guardian health in CORE-strike damage. */
+  hp: number
+  playerHp: number
+  /** Damage dealt to the player per attack. */
+  attackDamage: number
+  attackEverySec: number
+  timeLimitSec: number
+}
+
+export type RegionChallengeKind = "ROD_STRIKE" | "FAULT_DRILL" | "DRONE_RECALL" | "SIGNAL_TUNE" | "VAULT_LOCK"
 
 /** Timed field mini-game: a perfect run pays `rewardSeconds` of current production. */
 export type RegionChallengeDef = {
@@ -360,7 +408,7 @@ export type RegionIntroDef = {
 export type ObjectiveDef = {
   id: string
   title: string
-  lumaLine: string
+  line: string
   kind: "ENERGY" | "PRODUCER" | "FEVER" | "REBIRTH" | "SKILL" | "POTION"
   target: number
   producerId?: string

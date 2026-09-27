@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { formatNumber } from "@/domain/services/clicker-format"
 import { bulkAffordable, bulkCostText } from "@/domain/services/clicker-view"
 import type { PanelProps } from "./types"
 
@@ -9,19 +8,6 @@ export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automatio
   const [selectedProducerId, setSelectedProducerId] = useState<string | null>(null)
   return (
     <div className="clicker-producers">
-      <header className="clicker-producers-head">
-        <p className="clicker-producers-kicker">PRODUCERS · 생산</p>
-        <p className="clicker-producers-lead">
-          보유 CORE <strong>{formatNumber(run.coreEnergy)}</strong>
-          {game.snapshot ? ` · +${formatNumber(game.snapshot.perSecond)}/s` : ""}
-          {!game.producers.some((p) => p.canBuy) ? " · 채굴로 CORE를 더 모으세요" : ""}
-        </p>
-        <ul className="clicker-producers-legend" aria-label="상태 안내">
-          <li className="is-affordable">구매 가능</li>
-          <li className="is-poor">CORE 부족</li>
-          <li className="is-locked">잠김</li>
-        </ul>
-      </header>
       {game.producers.map((p) => {
         const selected = selectedProducerId === p.id
         const statusClass = !p.unlocked ? "is-locked" : p.canBuy ? "is-affordable" : "is-poor"

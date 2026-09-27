@@ -394,7 +394,6 @@ button.clicker-metric-action.is-active {
   border: 1px solid color-mix(in srgb, var(--core) 18%, var(--line));
   background: color-mix(in srgb, #0b0f1a 76%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, #142033 55%, transparent);
-  backdrop-filter: blur(4px);
 }
 
 .clicker-goal {
@@ -940,7 +939,6 @@ button.clicker-metric-action.is-fever-ready em {
   padding: 16px;
   padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
   background: color-mix(in srgb, var(--void) 55%, transparent);
-  backdrop-filter: blur(4px);
 }
 
 .clicker-settings {
@@ -2019,6 +2017,16 @@ button.clicker-metric-action.is-fever-ready em {
   grid-template-columns: 1fr auto;
 }
 
+.clicker-upgrade-card:has(.clicker-upgrade-icon) {
+  grid-template-columns: 48px 1fr auto;
+}
+
+.clicker-upgrade-icon {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
 .clicker-upgrade-card.is-affordable {
   border-color: color-mix(in srgb, var(--core) 32%, var(--line));
 }
@@ -2683,7 +2691,6 @@ button.clicker-metric-action.is-fever-ready em {
   place-items: center;
   padding: 20px;
   background: color-mix(in srgb, var(--void) 72%, transparent);
-  backdrop-filter: blur(6px);
 }
 
 .clicker-tutorial {
@@ -3455,7 +3462,6 @@ button.clicker-metric-action.is-fever-ready em {
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, #3d6a78 45%, transparent);
   background: color-mix(in srgb, #070b14 82%, transparent);
-  backdrop-filter: blur(8px);
   pointer-events: none;
   min-width: min(92vw, 320px);
 }
@@ -3503,7 +3509,6 @@ button.clicker-metric-action.is-fever-ready em {
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, #3d6a78 55%, transparent);
   background: color-mix(in srgb, #070b14 78%, transparent);
-  backdrop-filter: blur(8px);
   cursor: pointer;
   appearance: none;
 }
@@ -3704,7 +3709,6 @@ button.clicker-metric-action.is-fever-ready em {
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--mine-glow) 22%, transparent);
   background: color-mix(in srgb, #070b14 90%, transparent);
-  backdrop-filter: blur(6px);
   pointer-events: auto;
   min-height: min(58vh, 460px);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, #142033 50%, transparent);

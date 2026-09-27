@@ -1,28 +1,10 @@
 "use client"
 
-import { formatNumber } from "@/domain/services/clicker-format"
 import type { PanelProps } from "./types"
 
 export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) {
   return (
     <div className="clicker-shop">
-      <header className="clicker-shop-head">
-        <p className="clicker-shop-lead">
-          기억을 잃은 채 방에 갇혀 있습니다. LUMA가 남긴 상점에서 물약과 일회용 스킬을 되찾을 수 있습니다.
-        </p>
-        <p className="clicker-shop-wallet">
-          보유 CORE <strong>{formatNumber(run.coreEnergy)}</strong>
-          {game.snapshot ? ` · +${formatNumber(game.snapshot.perSecond)}/s` : ""}
-          {!game.potionShop.some((p) => p.canBuy) && !game.activeSkillShop.some((s) => s.canBuy)
-            ? " · 채굴로 CORE를 더 모으세요"
-            : ""}
-        </p>
-        <ul className="clicker-shop-legend" aria-label="상점 상태">
-          <li className="is-affordable">구매 가능</li>
-          <li className="is-poor">CORE 부족</li>
-          <li className="is-stocked">보유 있음</li>
-        </ul>
-      </header>
       <h3 className="clicker-shop-section">물약 · FEVER</h3>
       {game.potionShop.map((item) => {
         const statusClass = item.canBuy ? "is-affordable" : "is-poor"

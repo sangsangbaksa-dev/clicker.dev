@@ -40,7 +40,7 @@ export function ClickerTitle({ muted, onToggleMute, onStart }: Props) {
           AURELIA CORE
         </h1>
         <p id="clicker-title-lead" className="clicker-title-lead">
-          코어를 깨우고 업그레이드를 쌓은 뒤, 허브에서 Enter Mine으로 채굴 세션을 엽니다.
+          막혀 버린 코어를 되살리세요.
         </p>
         <div className="clicker-title-cta">
           <button
@@ -52,9 +52,6 @@ export function ClickerTitle({ muted, onToggleMute, onStart }: Props) {
           >
             시작하기
           </button>
-          <span className="clicker-title-cta-hint">
-            {muted ? "허브 → Enter Mine · muted" : "허브 → Enter Mine"}
-          </span>
         </div>
       </div>
     </div>

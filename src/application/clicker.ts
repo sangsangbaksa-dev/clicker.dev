@@ -33,6 +33,11 @@ import {
   travelToRegion,
   markRegionVisited,
   activateSkill,
+  finishClickerTutorial,
+  slayMonster,
+  startBossFight,
+  strikeBoss,
+  MINE_MAX_CPS,
   type Rng,
 } from "@/domain/services/clicker-engine"
 import {
@@ -304,6 +309,36 @@ export function clickerFinishMineSession(
     save: { ...after, metaState: recorded.meta },
     summary: { ...diff, best: recorded.best, previousBest: recorded.previousBest },
   }
+}
+
+export function clickerFinishTutorial(save: SaveData): SaveData {
+  return finishClickerTutorial(save)
+}
+
+export function clickerSlayMonster(save: SaveData, regionId: string, now: number): UseCaseResult<{ save: SaveData; reward: number }> {
+  const next = slayMonster(save.runState, save.metaState, config, regionId, now)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ save: withAchievements({ ...save, runState: next.run, metaState: next.meta }), reward: next.reward })
+}
+
+export function clickerStartBoss(save: SaveData, now: number): UseCaseResult<SaveData> {
+  return withRun(save, startBossFight(save.runState, config, now))
+}
+
+export function clickerStrikeBoss(save: SaveData, now: number) {
+  const next = strikeBoss(save.runState, save.metaState, config, now, rng)
+  return { save: { ...save, runState: next.run, metaState: next.meta }, damage: next.damage, critical: next.critical, defeated: next.defeated }
+}
+
+/**
+ * Mine strike limiter: at most MINE_MAX_CPS strikes (taps + drill) in any rolling second.
+ * Returns true when this strike may land; the caller keeps the timestamp window.
+ */
+export function allowMineStrike(window: number[], now: number): boolean {
+  while (window.length && now - window[0] >= 1000) window.shift()
+  if (window.length >= MINE_MAX_CPS) return false
+  window.push(now)
+  return true
 }
 
 export { mineSessionStart as clickerMineSessionStart }

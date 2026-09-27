@@ -43,6 +43,7 @@ import {
   activateRegion,
   claimRegionChallenge,
   regionChallengeError,
+  slayMonster,
 } from "../src/domain/services/clicker-engine.ts"
 import { autoDrillRate, awardAchievements, claimGoldenVein, VEIN_SPAWN_CHANCE } from "../src/domain/services/clicker-bonus.ts"
 
@@ -81,7 +82,7 @@ for (const t of config.transcendence) {
   if (t.clickMultiplier) t.clickMultiplier **= knob("BUFF_POW", 1)
   if (t.productionMultiplier) t.productionMultiplier **= knob("BUFF_POW", 1)
 }
-const MAX_HOURS = 6
+const MAX_HOURS = knob("MAX_HOURS", 9)
 let seed = 11
 const rng = () => (seed = (seed * 16807) % 2147483647) / 2147483647
 
@@ -182,6 +183,7 @@ const credit = (key: string, before: number) => {
 const CHALLENGE_SCORE = 0.8
 let runStart = 0
 let mineCycles = 0
+let heartReached = false
 
 function bestRegion(): void {
   const run = save.runState
@@ -221,6 +223,13 @@ function bestRegion(): void {
 
 while (elapsed() < MAX_HOURS * 3600) {
   bestRegion()
+  {
+    const m = slayMonster(save.runState, save.metaState, config, save.runState.currentRegionId, now)
+    if (!m.error) {
+      save = { ...save, runState: m.run, metaState: m.meta }
+      sources.monster = (sources.monster ?? 0) + m.reward
+    }
+  }
   const entered = enterClickerMine(save, now, config)
   if (!entered.error) {
     save = entered.save
@@ -278,10 +287,16 @@ while (elapsed() < MAX_HOURS * 3600) {
     )
     save = { ...save, runState: r.run, metaState: r.meta }
     runStart = elapsed()
-    if (canTriggerTrueEnding(save.metaState, config)) break
+  }
+  const heart = config.regions.find((r) => r.boss)
+  if (heart && isRegionUnlocked(save.runState, config, heart.id)) {
+    const d = derivedClick(save.runState, save.metaState, config)
+    runLog.push(`worldline 6 → Core Heart: ${fmt(elapsed() - runStart)} · click ${d.click.toExponential(2)} · crit ×${d.critMult.toFixed(1)} · boss hp ${heart.boss!.hp.toExponential(2)}`)
+    heartReached = true
+    break
   }
 }
 
 console.log(`clicks/s ${CLICKS_PER_SEC} · mine sessions ${mineCycles}`)
 for (const line of runLog) console.log(line)
-console.log(`total ${fmt(elapsed())}${canTriggerTrueEnding(save.metaState, config) ? " · true ending" : " · NOT FINISHED"}`)
+console.log(`total ${fmt(elapsed())}${heartReached ? " · Core Heart open" : " · NOT FINISHED"}`)

@@ -24,10 +24,10 @@ function ownAll(ids: string[]) {
   return { now, meta, run }
 }
 
-test("skill graph: ~100 unique nodes, known prereqs, tier never below a prereq, every node laid out", () => {
+test("skill graph: 130+ unique nodes, known prereqs, tier never below a prereq, every node laid out", () => {
   const ids = new Set(config.skillNodes.map((n) => n.id))
   assert.equal(ids.size, config.skillNodes.length)
-  assert.ok(config.skillNodes.length >= 95 && config.skillNodes.length <= 105)
+  assert.ok(config.skillNodes.length >= 130 && config.skillNodes.length <= 150)
   const byId = new Map(config.skillNodes.map((n) => [n.id, n]))
   const layout = layoutSkillTree(config.skillNodes)
   const taken = new Set<string>([`${layout.hub.col},${layout.hub.row}`])
@@ -80,7 +80,7 @@ test("startingEnergy nodes carry CORE into the next run", () => {
   const reborn = applyRebirth(run, meta, config, "focus_line", now + 1)
   assert.equal(reborn.error, undefined)
   // Carried CORE is paid at the new worldline's price level.
-  assert.equal(reborn.run.coreEnergy, 50 * config.priceGrowth)
+  assert.ok(Math.abs(reborn.run.coreEnergy - 0.05 * config.priceGrowth) < 1e-12)
   assert.deepEqual(reborn.run.ownedSkillNodeIds, [])
 })
 

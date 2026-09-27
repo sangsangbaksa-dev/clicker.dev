@@ -103,14 +103,16 @@ test("findNonFinite points at the bad value", () => {
   assert.equal(findNonFinite(save), "save.runState.producerLevels.drill")
 })
 
-test("pre-versioned (v0) saves migrate and keep progress", () => {
+test("pre-v2 saves migrate to a fresh run in the new unit (audio settings kept)", () => {
   const legacy = progressedSave() as unknown as Record<string, unknown>
   delete legacy.schemaVersion
   const decoded = decodeClickerSave(JSON.stringify(legacy), config, NOW)
   assert.equal(decoded.status, "migrated")
   assert.equal(decoded.backup, true)
   assert.equal(decoded.save.schemaVersion, config.schemaVersion)
-  assert.equal(decoded.save.runState.coreEnergy, 12_345)
+  assert.equal(decoded.save.runState.coreEnergy, 0)
+  assert.equal(decoded.save.settings.gameStarted, false)
+  assert.equal(decoded.save.settings.tutorialSeen, false)
 })
 
 test("migrations run in order and stamp each version", () => {

@@ -11,12 +11,13 @@
   padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
   background: radial-gradient(ellipse at 50% 40%, rgb(8 14 24 / 0.9), rgb(2 4 8 / 0.97));
   color: #e8f6ff;
-  backdrop-filter: blur(3px);
 }
 
 .clicker-challenge.is-rod_strike { --accent: #b9a8ff; --accent-soft: rgb(185 168 255 / 0.28); }
 .clicker-challenge.is-fault_drill { --accent: #ff8a4c; --accent-soft: rgb(255 138 76 / 0.28); }
 .clicker-challenge.is-drone_recall { --accent: #ffc266; --accent-soft: rgb(255 194 102 / 0.28); }
+.clicker-challenge.is-signal_tune { --accent: #62d8eb; --accent-soft: rgb(98 216 235 / 0.28); }
+.clicker-challenge.is-vault_lock { --accent: #c49bff; --accent-soft: rgb(196 155 255 / 0.28); }
 
 .clicker-challenge-head {
   display: flex;
@@ -332,3 +333,19 @@
   .clicker-drone-body::before,
   .clicker-drone-body::after { animation: none; }
 }
+
+/* Signal Relay */
+.clicker-signal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: min(360px, 90%); margin: auto; }
+.clicker-signal-cell { aspect-ratio: 1; border-radius: 14px; border: 1px solid var(--accent-soft); background: rgb(10 24 34 / 0.8); cursor: pointer; transition: background 80ms; }
+.clicker-signal-cell.is-lit { background: var(--accent); box-shadow: 0 0 22px var(--accent); }
+.clicker-signal-cell.is-noise { background: #ff4d4d; box-shadow: 0 0 18px #ff4d4d; }
+.clicker-signal-cell.is-hit { outline: 3px solid #fff; }
+.clicker-signal-cell.is-miss { animation: clicker-drill-shake 220ms; }
+/* Phase Vault */
+.clicker-vault { display: grid; justify-items: center; gap: 16px; margin: auto; }
+.clicker-vault-locks { display: grid; grid-template-columns: repeat(2, 110px); gap: 14px; }
+.clicker-vault-lock { height: 110px; border-radius: 50%; border: 3px solid var(--accent-soft); cursor: pointer; opacity: 0.55; }
+.clicker-vault-lock.is-0 { background: #6d5bd0; } .clicker-vault-lock.is-1 { background: #2fb4a0; }
+.clicker-vault-lock.is-2 { background: #d0708f; } .clicker-vault-lock.is-3 { background: #d6b24a; }
+.clicker-vault-lock.is-lit { opacity: 1; box-shadow: 0 0 26px #fff; transform: scale(1.06); }
+.clicker-vault-lock:not(:disabled):active { opacity: 1; }

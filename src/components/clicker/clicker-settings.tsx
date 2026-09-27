@@ -10,6 +10,8 @@ type Props = {
   onToggleMute: () => void
   onToggleMusic: () => void
   onMusicVolume: (volume: number) => void
+  /** Wipe the save and start over (title and tutorial come back). */
+  onReset: () => void
   onClose: () => void
 }
 
@@ -33,8 +35,10 @@ export function ClickerSettings({
   onToggleMute,
   onToggleMusic,
   onMusicVolume,
+  onReset,
   onClose,
 }: Props) {
+  const [resetArmed, setResetArmed] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const reducedMotion = useReducedMotion()
   useClickerDialogFocus(rootRef)
@@ -53,11 +57,10 @@ export function ClickerSettings({
       >
         <header className="clicker-settings-head">
           <div>
-            <p className="clicker-settings-kicker">AURELIA · 환경설정</p>
-            <h2 id="clicker-settings-title">설정</h2>
+                        <h2 id="clicker-settings-title">설정</h2>
           </div>
           <button type="button" className="clicker-ghost" onClick={onClose} aria-keyshortcuts="Escape">
-            닫기 · Esc
+            닫기
           </button>
         </header>
 
@@ -65,7 +68,7 @@ export function ClickerSettings({
           <li className="clicker-settings-row">
             <div className="clicker-settings-copy">
               <strong>효과음</strong>
-              <p>레이저·환생 등 짧은 피드백 사운드.</p>
+              
             </div>
             <button
               type="button"
@@ -80,7 +83,7 @@ export function ClickerSettings({
           <li className="clicker-settings-row">
             <div className="clicker-settings-copy">
               <strong>배경음악</strong>
-              <p>허브·광산·환생 장면마다 곡이 바뀌며 부드럽게 전환됩니다.</p>
+              
             </div>
             <button
               type="button"
@@ -117,6 +120,15 @@ export function ClickerSettings({
             <span className={`clicker-settings-status${reducedMotion ? " is-on" : ""}`}>
               {reducedMotion ? "사용 중" : "기본"}
             </span>
+          </li>
+          <li className="clicker-settings-row">
+            <div className="clicker-settings-copy">
+              <strong>저장 초기화</strong>
+              <p>{resetArmed ? "한 번 더 누르면 모든 진행이 지워집니다." : "처음부터 다시 시작합니다."}</p>
+            </div>
+            <button type="button" className="clicker-danger" onClick={() => (resetArmed ? onReset() : setResetArmed(true))}>
+              {resetArmed ? "확인" : "초기화"}
+            </button>
           </li>
         </ul>
       </aside>

@@ -46,7 +46,7 @@ export type MainHudViewModel = {
   }
   currentGoal: {
     title: string
-    lumaLine: string
+    line: string
     progressText: string
     ratio: number
   }
@@ -123,7 +123,7 @@ export function buildHud(
     },
     currentGoal: {
       title: obj?.title ?? "",
-      lumaLine: obj?.lumaLine ?? "",
+      line: obj?.line ?? "",
       progressText: (() => {
         const base = `${formatNumber(Math.min(current, target))} / ${formatNumber(target)}`
         const done = target > 0 && current >= target
@@ -211,6 +211,7 @@ export type UpgradeView = {
   costText: string
   status: "AVAILABLE" | "OWNED" | "LOCKED" | "POOR"
   reason: string
+  assetId: string
 }
 
 export function buildUpgradeViews(run: RunState, config: GameConfig): UpgradeView[] {
@@ -239,6 +240,7 @@ export function buildUpgradeViews(run: RunState, config: GameConfig): UpgradeVie
       costText: formatNumber(scaledCost(run, u.cost)),
       status,
       reason,
+      assetId: u.assetId ?? "",
     }
   })
 }
@@ -279,6 +281,7 @@ export type SkillNodeView = {
   canBuy: boolean
   /** Shown only once every prerequisite is owned. */
   visible: boolean
+  assetId: string
 }
 
 export function buildSkillNodeViews(run: RunState, config: GameConfig): SkillNodeView[] {
@@ -302,6 +305,7 @@ export function buildSkillNodeViews(run: RunState, config: GameConfig): SkillNod
       status,
       canBuy: status === "AVAILABLE",
       visible: isSkillNodeVisible(run, node),
+      assetId: node.assetId ?? "",
     }
   })
 }
