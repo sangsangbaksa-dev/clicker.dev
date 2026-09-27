@@ -1872,6 +1872,160 @@ button.clicker-metric-action.is-fever-ready em {
   width: 100%;
 }
 
+.clicker-skill-tree-head-side {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.clicker-skill-tree-next {
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--core) 55%, var(--line));
+  background: color-mix(in srgb, var(--core) 14%, transparent);
+  color: var(--core-bright);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--core) 25%, transparent);
+}
+
+.clicker-skill-tree-next:hover,
+.clicker-skill-tree-next:focus-visible {
+  background: color-mix(in srgb, var(--core) 24%, transparent);
+}
+
+/* POOR circuits charge up from the bottom as CORE comes in (315deg = screen-up on the rotated diamond). */
+.clicker-skill-node.is-poor {
+  background:
+    linear-gradient(
+      315deg,
+      color-mix(in srgb, var(--branch-color, var(--core)) 30%, transparent) 0 var(--afford, 0%),
+      transparent var(--afford, 0%)
+    ),
+    color-mix(in srgb, var(--void) 70%, var(--panel));
+}
+
+.clicker-skill-node.is-available .clicker-skill-node-glyph {
+  animation: clicker-skill-ready 1.8s ease-in-out infinite;
+}
+
+@keyframes clicker-skill-ready {
+  50% {
+    text-shadow: 0 0 8px var(--branch-color, var(--core));
+  }
+}
+
+/* Circuits the selected node still needs: lifted out of the dimmed web. */
+.clicker-skill-node.is-path,
+.clicker-skill-node.is-locked.is-path {
+  opacity: 1;
+  filter: none;
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--branch-color, var(--core)) 85%, white);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--branch-color, var(--core)) 40%, transparent);
+  z-index: 1;
+}
+
+.clicker-skill-tree-lines path.is-path {
+  animation: clicker-skill-path-flow 1.2s linear infinite;
+}
+
+@keyframes clicker-skill-path-flow {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+
+.clicker-skill-tree-stage {
+  position: relative;
+  /* Let the inner scroller clip the board instead of the board widening the panel. */
+  min-width: 0;
+}
+
+/* Always-visible action for the selected circuit, docked over the board. */
+.clicker-skill-quickbar {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 6px 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+  background: color-mix(in srgb, var(--void) 82%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--void) 60%, transparent);
+  pointer-events: auto;
+}
+
+.clicker-skill-quickbar-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.clicker-skill-quickbar-buy {
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--core) 60%, var(--line));
+  background: color-mix(in srgb, var(--core) 26%, var(--panel));
+  color: var(--core-bright);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.clicker-skill-quickbar-buy:disabled {
+  cursor: not-allowed;
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--panel) 80%, transparent);
+  color: var(--muted);
+}
+
+.clicker-skill-detail-progress {
+  height: 6px;
+  margin: -2px 0 10px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--line) 55%, transparent);
+  overflow: hidden;
+}
+
+.clicker-skill-detail-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--warn, #d4a017) 70%, var(--core)), var(--core-bright));
+  transition: width 240ms ease;
+}
+
+.clicker-skill-detail-hint {
+  margin: 6px 0 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-skill-node.is-available .clicker-skill-node-glyph,
+  .clicker-skill-tree-lines path.is-path {
+    animation: none;
+  }
+}
+
 .clicker-producers-head {
   margin: 0 0 10px;
 }
@@ -4811,6 +4965,8 @@ button.clicker-metric-action.is-fever-ready em {
 
   .clicker-skill-tree-scroll {
     --cell: 46px;
+    /* Short enough that the docked quick-buy bar stays on screen. */
+    max-height: min(50vh, 420px);
   }
 
   .clicker-skill-node {

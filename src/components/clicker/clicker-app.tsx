@@ -1318,7 +1318,12 @@ export function ClickerApp() {
         {tab === "shop" ? <ClickerShopPanel {...panelProps} /> : null}
 
         {tab === "skills" ? (
-          <ClickerSkillTree nodes={visibleSkillNodes} coreEnergy={run.coreEnergy} onBuy={game.buySkill} />
+          <ClickerSkillTree
+            nodes={visibleSkillNodes}
+            coreEnergy={run.coreEnergy}
+            onBuy={game.buySkill}
+            onBuyPath={game.buySkillPath}
+          />
         ) : null}
 
         {tab === "world" ? <ClickerWorldPanel game={game} run={run} onBack={() => selectTab("producers")} /> : null}

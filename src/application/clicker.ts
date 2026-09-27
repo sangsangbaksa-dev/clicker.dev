@@ -8,6 +8,7 @@ import {
   buyProducer,
   buyPotion,
   buySkillNode,
+  buySkillNodePath,
   buyUpgrade,
   canTriggerTrueEnding,
   createInitialSave,
@@ -189,6 +190,13 @@ export function clickerBuyUpgrade(save: SaveData, id: string): UseCaseResult<Sav
 
 export function clickerBuySkill(save: SaveData, id: string): UseCaseResult<SaveData> {
   return withRun(save, buySkillNode(save.runState, config, id))
+}
+
+/** Unlock a circuit and all of its missing prerequisites; `bought` lists them in unlock order. */
+export function clickerBuySkillPath(save: SaveData, id: string): UseCaseResult<{ save: SaveData; bought: string[] }> {
+  const next = buySkillNodePath(save.runState, config, id)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ save: { ...save, runState: next.run }, bought: next.bought ?? [] })
 }
 
 export function clickerDrinkPotion(save: SaveData, potionId: string): UseCaseResult<SaveData> {

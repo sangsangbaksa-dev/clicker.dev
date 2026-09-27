@@ -8,6 +8,7 @@ import {
   clickerBuyProducer,
   clickerBuyPotion,
   clickerBuySkill,
+  clickerBuySkillPath,
   clickerBuyUpgrade,
   clickerCanCompleteEnding,
   clickerClaimVein,
@@ -340,6 +341,17 @@ export function useClicker() {
     playSfx("skillUnlock")
     const name = clickerGameConfig.skillNodes.find((s) => s.id === id)?.name ?? id
     flash(`회로 해금 · ${name}`)
+  }, [commit, flash, refuse])
+
+  const buySkillPath = useCallback((id: string) => {
+    if (!saveRef.current) return
+    const result = clickerBuySkillPath(saveRef.current, id)
+    if (!result.ok) return refuse(result.error)
+    commit(result.value.save)
+    playSfx("skillUnlock")
+    const name = clickerGameConfig.skillNodes.find((s) => s.id === id)?.name ?? id
+    const count = result.value.bought.length
+    flash(count > 1 ? `경로 해금 · ${name} 외 ${count - 1}개` : `회로 해금 · ${name}`)
   }, [commit, flash, refuse])
 
   const drinkPotion = useCallback((id: string) => {
@@ -682,6 +694,7 @@ export function useClicker() {
     buyProducer,
     buyUpgrade,
     buySkill,
+    buySkillPath,
     drinkPotion,
     startFever,
     useSkill,

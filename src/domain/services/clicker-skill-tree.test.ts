@@ -5,6 +5,9 @@ import { layoutSkillTree, orthogonalPath } from "../../data/clicker/skill-tree-l
 import {
   applyRebirth,
   buySkillNode,
+  buySkillNodePath,
+  skillNodePath,
+  skillNodePathCost,
   droneEnergyPerSecond,
   isSkillNodeVisible,
   processTick,
@@ -129,4 +132,28 @@ test("mining drones add CORE every tick", () => {
   assert.ok(rate > 0)
   const ticked = processTick({ ...run, lastTickAt: now }, meta, config, now + 1000).run
   assert.ok(Math.abs(ticked.coreEnergy - run.coreEnergy - rate) < 1e-6)
+})
+
+test("path unlock buys every missing prerequisite first, all or nothing", () => {
+  const { run } = ownAll(["focus_pinpoint"])
+  const path = skillNodePath(run, config, "focus_breaker")
+  assert.equal(path.at(-1), "focus_breaker")
+  assert.ok(!path.includes("focus_pinpoint"), "owned circuits are skipped")
+  assert.ok(path.includes("focus_rhythm"))
+  const byId = new Map(config.skillNodes.map((n) => [n.id, n]))
+  path.forEach((id, i) => {
+    for (const req of byId.get(id)!.requires ?? []) {
+      assert.ok(run.ownedSkillNodeIds.includes(req) || path.indexOf(req) < i, `${req} before ${id}`)
+    }
+  })
+  const cost = skillNodePathCost(run, config, path)
+  const poor = buySkillNodePath({ ...run, coreEnergy: cost - 1 }, config, "focus_breaker")
+  assert.equal(poor.error, "CORE가 부족합니다.")
+  assert.deepEqual(poor.run.ownedSkillNodeIds, ["focus_pinpoint"])
+  const rich = buySkillNodePath({ ...run, coreEnergy: cost }, config, "focus_breaker")
+  assert.equal(rich.error, undefined)
+  assert.equal(rich.run.coreEnergy, 0)
+  assert.deepEqual(rich.bought, path)
+  assert.deepEqual(skillNodePath(rich.run, config, "focus_breaker"), [])
+  assert.equal(buySkillNodePath(rich.run, config, "focus_breaker").error, "이미 보유함")
 })

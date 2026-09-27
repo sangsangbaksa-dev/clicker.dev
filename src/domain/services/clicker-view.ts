@@ -17,6 +17,8 @@ import {
   producerCost,
   productionSnapshot,
   isSkillNodeVisible,
+  skillNodePath,
+  skillNodePathCost,
   rebirthRequirement,
   scaledCost,
   worldlineMultiplier,
@@ -279,6 +281,11 @@ export type SkillNodeView = {
   canBuy: boolean
   /** Shown only once every prerequisite is owned. */
   visible: boolean
+  /** Unowned circuits (prerequisites first, this node last) a path unlock would buy. */
+  path: string[]
+  /** CORE for the whole path at the current cost scale. */
+  pathCost: number
+  canBuyPath: boolean
 }
 
 export function buildSkillNodeViews(run: RunState, config: GameConfig): SkillNodeView[] {
@@ -291,6 +298,8 @@ export function buildSkillNodeViews(run: RunState, config: GameConfig): SkillNod
     else if (!prereqsMet) status = "LOCKED"
     else if (run.coreEnergy < scaledCost(run, node.cost)) status = "POOR"
     else status = "AVAILABLE"
+    const path = owned ? [] : skillNodePath(run, config, node.id)
+    const pathCost = skillNodePathCost(run, config, path)
     return {
       id: node.id,
       name: node.name,
@@ -302,6 +311,9 @@ export function buildSkillNodeViews(run: RunState, config: GameConfig): SkillNod
       status,
       canBuy: status === "AVAILABLE",
       visible: isSkillNodeVisible(run, node),
+      path,
+      pathCost,
+      canBuyPath: path.length > 0 && run.coreEnergy >= pathCost,
     }
   })
 }

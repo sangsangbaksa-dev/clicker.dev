@@ -1039,6 +1039,56 @@ export function buySkillNode(
   }
 }
 
+/**
+ * Unowned circuits needed to reach `nodeId`, prerequisites first, ending with the node itself.
+ * Empty when the node is owned or unknown.
+ */
+export function skillNodePath(run: RunState, config: GameConfig, nodeId: string): string[] {
+  const byId = new Map(config.skillNodes.map((n) => [n.id, n]))
+  const owned = new Set(run.ownedSkillNodeIds)
+  const order: string[] = []
+  const seen = new Set<string>()
+  const visit = (id: string) => {
+    if (seen.has(id) || owned.has(id)) return
+    seen.add(id)
+    const node = byId.get(id)
+    if (!node) return
+    for (const req of node.requires ?? []) visit(req)
+    order.push(id)
+  }
+  visit(nodeId)
+  return order
+}
+
+/** Total CORE for `skillNodePath` at the run's current cost scale. */
+export function skillNodePathCost(run: RunState, config: GameConfig, path: string[]): number {
+  return path.reduce((sum, id) => {
+    const node = config.skillNodes.find((n) => n.id === id)
+    return sum + (node ? scaledCost(run, node.cost) : 0)
+  }, 0)
+}
+
+/** Unlock a circuit together with every missing prerequisite in one all-or-nothing purchase. */
+export function buySkillNodePath(
+  run: RunState,
+  config: GameConfig,
+  nodeId: string
+): { run: RunState; error?: string; bought?: string[] } {
+  if (!config.skillNodes.some((n) => n.id === nodeId)) return { run, error: "스킬이 없습니다." }
+  const path = skillNodePath(run, config, nodeId)
+  if (!path.length) return { run, error: "이미 보유함" }
+  const cost = skillNodePathCost(run, config, path)
+  if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
+  return {
+    run: {
+      ...run,
+      coreEnergy: run.coreEnergy - cost,
+      ownedSkillNodeIds: [...run.ownedSkillNodeIds, ...path],
+    },
+    bought: path,
+  }
+}
+
 export function activateSkill(
   run: RunState,
   meta: MetaState,
