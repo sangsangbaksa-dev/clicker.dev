@@ -4,11 +4,23 @@ import { derivedClick, productionSnapshot } from "./clicker-engine.ts"
 /**
  * Monster hunting: every region away from home has a guardian on its home screen.
  * Each tap on it is a normal mining click, and the CORE that click earns is dealt as
- * damage. A kill pays a bounty and a tougher guardian appears after a short pause.
+ * damage. A kill pays a bounty and a tougher guardian revives 30s later (less with
+ * the FOCUS hunt skills).
  * HP is fixed at spawn from the player's click power then, so hunts stay a handful
  * of taps at any point of the run instead of drifting with progress.
  */
 export const GUARDIAN_RESPAWN_MS = 30_000
+/** Skill-tree cuts never bring the revival below this. */
+export const GUARDIAN_RESPAWN_MIN_MS = 1_000
+
+/** Revival delay after a kill: 30s base minus owned `guardianRespawnSecondsReduce`, at least 1s. */
+export function guardianRespawnMs(run: RunState, config: GameConfig): number {
+  const owned = new Set(run.ownedSkillNodeIds)
+  const cutSec = config.skillNodes
+    .filter((n) => owned.has(n.id))
+    .reduce((sum, n) => sum + (n.guardianRespawnSecondsReduce ?? 0), 0)
+  return Math.max(GUARDIAN_RESPAWN_MIN_MS, GUARDIAN_RESPAWN_MS - cutSec * 1000)
+}
 
 /** Base-click hits needed for a guardian of this level (before crits, combo, strikes). */
 export function guardianHits(level: number): number {
@@ -92,7 +104,7 @@ export function strikeGuardian(
       lifetimeCoreEnergy: run.lifetimeCoreEnergy + bounty,
       guardians: {
         ...run.guardians,
-        [regionId]: { level: guardian.level + 1, hp: 0, maxHp: guardian.maxHp, respawnAt: now + GUARDIAN_RESPAWN_MS },
+        [regionId]: { level: guardian.level + 1, hp: 0, maxHp: guardian.maxHp, respawnAt: now + guardianRespawnMs(run, config) },
       },
     },
     meta: {

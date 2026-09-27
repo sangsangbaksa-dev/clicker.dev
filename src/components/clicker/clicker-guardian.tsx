@@ -3,7 +3,6 @@
 import { useRef, useState, type CSSProperties, type PointerEvent } from "react"
 import { guardianArt } from "@/data/clicker/monsters"
 import { formatNumber } from "@/domain/services/clicker-format"
-import { GUARDIAN_RESPAWN_MS } from "@/domain/services/clicker-hunt"
 import "./clicker-guardian.css"
 
 export type GuardianView = {
@@ -15,6 +14,8 @@ export type GuardianView = {
   hp: number
   maxHp: number
   respawnInMs: number
+  /** Full revival delay after a kill (30s base, shortened by skills). */
+  respawnMs: number
 }
 
 type Props = {
@@ -28,7 +29,8 @@ const SCENE_RATIO = 1680 / 944
 
 /**
  * The region's guardian on the home screen. Tap its body to fight it: each tap is a
- * mining click dealt as damage; at zero HP it falls and a tougher one revives 30s later.
+ * mining click dealt as damage; at zero HP it falls and a tougher one revives
+ * after the respawn delay.
  */
 export function ClickerGuardian({ guardian, onHit }: Props) {
   const art = guardianArt(guardian.regionId)
@@ -46,7 +48,7 @@ export function ClickerGuardian({ guardian, onHit }: Props) {
   if (!art) return null
   // While down the bar refills toward the revival instead of showing HP.
   const ratio = down
-    ? 1 - Math.min(1, guardian.respawnInMs / GUARDIAN_RESPAWN_MS)
+    ? 1 - Math.min(1, guardian.respawnInMs / Math.max(1, guardian.respawnMs))
     : guardian.maxHp > 0
       ? Math.max(0, Math.min(1, guardian.hp / guardian.maxHp))
       : 0

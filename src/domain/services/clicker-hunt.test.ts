@@ -3,8 +3,10 @@ import test from "node:test"
 import { clickerConfig as config } from "../../data/clicker/catalog.ts"
 import { createInitialMeta, createInitialRun, derivedClick, sanitizeSave } from "./clicker-engine.ts"
 import {
+  GUARDIAN_RESPAWN_MIN_MS,
   GUARDIAN_RESPAWN_MS,
   currentGuardian,
+  guardianRespawnMs,
   guardianHits,
   regionGuardian,
   strikeGuardian,
@@ -77,4 +79,27 @@ test("guardian progress survives a save round trip and bad values are repaired",
   assert.deepEqual(saved.runState.guardians, { storm_spire: { level: 3, hp: 5, maxHp: 10, respawnAt: 0 } })
   const legacy = sanitizeSave({ ...raw, runState: { ...raw.runState, guardians: undefined } }, config, now)
   assert.deepEqual(legacy.runState.guardians, {})
+})
+
+test("hunt skills shorten the revival down to exactly 1s with the full chain", () => {
+  const { meta, run } = atRegion("signal_relay")
+  assert.equal(guardianRespawnMs(run, config), GUARDIAN_RESPAWN_MS)
+
+  const chain = config.skillNodes.filter((n) => n.guardianRespawnSecondsReduce)
+  assert.ok(chain.length >= 2)
+  const firstCut = { ...run, ownedSkillNodeIds: [chain[0].id] }
+  assert.equal(guardianRespawnMs(firstCut, config), GUARDIAN_RESPAWN_MS - chain[0].guardianRespawnSecondsReduce! * 1000)
+
+  const full = { ...run, ownedSkillNodeIds: chain.map((n) => n.id) }
+  assert.equal(guardianRespawnMs(full, config), GUARDIAN_RESPAWN_MIN_MS)
+  assert.equal(GUARDIAN_RESPAWN_MIN_MS, 1_000)
+
+  // Extra cuts past the floor never go below 1s.
+  const overkill = { ...config, skillNodes: config.skillNodes.map((n) => ({ ...n, guardianRespawnSecondsReduce: n.guardianRespawnSecondsReduce ? 60 : undefined })) }
+  assert.equal(guardianRespawnMs(full, overkill), GUARDIAN_RESPAWN_MIN_MS)
+
+  // The kill uses the owned cuts for its timer.
+  const g = currentGuardian(full, meta, config, "signal_relay", now)!
+  const kill = strikeGuardian(full, meta, config, g.maxHp, now)!
+  assert.equal(kill.run.guardians.signal_relay.respawnAt, now + GUARDIAN_RESPAWN_MIN_MS)
 })

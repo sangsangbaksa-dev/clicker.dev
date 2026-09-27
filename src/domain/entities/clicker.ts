@@ -254,6 +254,8 @@ export type SkillNodeDef = {
   startingEnergy?: number
   /** Extra seconds added to the timed mine session (base is 10s). */
   mineSessionSecondsAdd?: number
+  /** Seconds cut from the region guardian's revival (base 30s, floor 1s). */
+  guardianRespawnSecondsReduce?: number
   /** Auto-drill strikes per second on the center ore while in the mine. */
   autoDrillPerSecond?: number
   /** Lightning strike: chance per click to add click energy × lightning multiplier. */

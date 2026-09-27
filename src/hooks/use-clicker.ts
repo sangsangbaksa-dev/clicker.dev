@@ -714,6 +714,7 @@ export function useClicker() {
           hp: guardianState.hp,
           maxHp: guardianState.maxHp,
           respawnInMs: guardianState.hp <= 0 ? Math.max(0, guardianState.respawnAt - t) : 0,
+          respawnMs: guardianState.respawnMs,
         }
       : null
   const isCompleted = Boolean(save?.metaState.gameCompleted)

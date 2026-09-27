@@ -51,7 +51,7 @@ import {
   type MineSessionSummary,
 } from "@/domain/services/clicker-mine-session"
 import { decodeClickerSave, encodeClickerSave } from "@/domain/services/clicker-save-codec"
-import { currentGuardian, strikeGuardian } from "@/domain/services/clicker-hunt"
+import { currentGuardian, guardianRespawnMs, strikeGuardian } from "@/domain/services/clicker-hunt"
 import { backupClickerRaw, readClickerRaw, writeClickerRaw } from "@/infrastructure/persistence/clicker-save"
 
 const config = clickerConfig
@@ -197,7 +197,8 @@ export function clickerHuntGuardian(save: SaveData, now: number): GuardianHit | 
 
 /** Guardian of the current region for the HUD (spawned lazily, so render needs no save write). */
 export function clickerGuardianView(save: SaveData, now: number) {
-  return currentGuardian(save.runState, save.metaState, config, save.runState.currentRegionId, now)
+  const state = currentGuardian(save.runState, save.metaState, config, save.runState.currentRegionId, now)
+  return state && { ...state, respawnMs: guardianRespawnMs(save.runState, config) }
 }
 
 export function clickerBuyPotion(save: SaveData, potionId: string): UseCaseResult<SaveData> {
