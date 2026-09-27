@@ -5,7 +5,7 @@ Each sheet (black background, four icons in quadrants) maps to four catalog ids 
 sheets.json; the black is keyed to alpha and each quadrant is saved as
 public/clicker/<kind>/<id>.webp.
 
-    python3 scripts/clicker-icon-sheets.py sheets.json sheetmap.json <blob dir>
+    python3 scripts/clicker-icon-sheets.py media/icon-sheets/sheets.json media/icon-sheets/sheetmap.json media/icon-sheets
 """
 import json
 import sys

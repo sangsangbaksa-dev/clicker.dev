@@ -1,0 +1,1339 @@
+[
+{
+"items": [
+[
+"upgrade",
+"grip_tape"
+],
+[
+"upgrade",
+"reinforced_input"
+],
+[
+"upgrade",
+"wire_clean"
+],
+[
+"upgrade",
+"warm_up"
+]
+],
+"desc": [
+"compact cyan laser pickaxe",
+"ornate cyan laser pickaxe",
+"heavy armored violet machine gear assembly",
+"crystalline orange fever flame core"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"lens_polish"
+],
+[
+"upgrade",
+"solar_efficiency"
+],
+[
+"upgrade",
+"precision_control"
+],
+[
+"upgrade",
+"fever_duration"
+]
+],
+"desc": [
+"sleek cyan laser pickaxe",
+"ancient green energy factory reactor",
+"overcharged cyan laser pickaxe",
+"glowing orange fever flame core"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"spark_coil_tune"
+],
+[
+"upgrade",
+"keen_eye"
+],
+[
+"upgrade",
+"pulse_relay_tune"
+],
+[
+"upgrade",
+"beam_split"
+]
+],
+"desc": [
+"twin green energy factory reactor",
+"spiked cyan precision targeting crosshair lens",
+"floating green energy factory reactor",
+"engraved cyan laser pickaxe"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"cooling_protocol"
+],
+[
+"upgrade",
+"solar_node_overdrive"
+],
+[
+"upgrade",
+"critical_calibration"
+],
+[
+"upgrade",
+"fever_intensity"
+]
+],
+"desc": [
+"compact violet machine gear assembly",
+"ornate green energy factory reactor",
+"heavy armored cyan precision targeting crosshair lens",
+"crystalline orange fever flame core"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"core_extractor_tune"
+],
+[
+"upgrade",
+"spark_coil_overdrive"
+],
+[
+"upgrade",
+"combo_band"
+],
+[
+"upgrade",
+"coil_tuning"
+]
+],
+"desc": [
+"sleek green energy factory reactor",
+"ancient green energy factory reactor",
+"overcharged cyan glowing combo chain links",
+"glowing green energy factory reactor"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"ion_pump_tune"
+],
+[
+"upgrade",
+"heat_sink"
+],
+[
+"upgrade",
+"flux_compression"
+],
+[
+"upgrade",
+"pulse_relay_overdrive"
+]
+],
+"desc": [
+"twin green energy factory reactor",
+"spiked violet machine gear assembly",
+"floating green energy factory reactor",
+"engraved green energy factory reactor"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"perfect_timing"
+],
+[
+"upgrade",
+"fever_finish"
+],
+[
+"upgrade",
+"heavy_focus"
+],
+[
+"upgrade",
+"core_extractor_overdrive"
+]
+],
+"desc": [
+"compact cyan precision targeting crosshair lens",
+"ornate orange fever flame core",
+"heavy armored cyan precision targeting crosshair lens",
+"crystalline green energy factory reactor"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"grid_stabilizer"
+],
+[
+"upgrade",
+"fever_core"
+],
+[
+"upgrade",
+"combo_engine"
+],
+[
+"upgrade",
+"factory_routing"
+]
+],
+"desc": [
+"sleek violet machine gear assembly",
+"ancient orange fever flame core",
+"overcharged cyan glowing combo chain links",
+"glowing green energy factory reactor"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"ion_pump_overdrive"
+],
+[
+"upgrade",
+"prism_loom_tune"
+],
+[
+"upgrade",
+"coil_harvester_overdrive"
+],
+[
+"upgrade",
+"phase_harmonics"
+]
+],
+"desc": [
+"twin green energy factory reactor",
+"spiked green energy factory reactor",
+"floating green energy factory reactor",
+"engraved green energy factory reactor"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"fever_long"
+],
+[
+"upgrade",
+"overclick_logic"
+],
+[
+"upgrade",
+"flux_generator_overdrive"
+],
+[
+"upgrade",
+"grid_sync"
+]
+],
+"desc": [
+"compact orange fever flame core",
+"ornate cyan laser pickaxe",
+"heavy armored green energy factory reactor",
+"crystalline violet machine gear assembly"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"resonance_matrix"
+],
+[
+"upgrade",
+"prism_loom_overdrive"
+],
+[
+"upgrade",
+"phase_regulator_overdrive"
+],
+[
+"upgrade",
+"photon_drill"
+]
+],
+"desc": [
+"sleek green energy factory reactor",
+"ancient green energy factory reactor",
+"overcharged green energy factory reactor",
+"glowing cyan laser pickaxe"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"lattice_memory"
+],
+[
+"upgrade",
+"gravity_well_tune"
+],
+[
+"upgrade",
+"quantum_foundry_overdrive"
+],
+[
+"upgrade",
+"fever_blaze"
+]
+],
+"desc": [
+"twin green energy factory reactor",
+"spiked green energy factory reactor",
+"floating green energy factory reactor",
+"engraved orange fever flame core"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"hyper_click"
+],
+[
+"upgrade",
+"echo_lattice_overdrive"
+],
+[
+"upgrade",
+"void_seal"
+],
+[
+"upgrade",
+"core_lattice"
+]
+],
+"desc": [
+"compact cyan laser pickaxe",
+"ornate green energy factory reactor",
+"heavy armored green energy factory reactor",
+"crystalline violet machine gear assembly"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"gravity_well_overdrive"
+],
+[
+"upgrade",
+"resonance_array_overdrive"
+],
+[
+"upgrade",
+"singularity_bind"
+],
+[
+"upgrade",
+"star_cutter"
+]
+],
+"desc": [
+"sleek green energy factory reactor",
+"ancient green energy factory reactor",
+"overcharged green energy factory reactor",
+"glowing cyan laser pickaxe"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"grid_overmind"
+],
+[
+"upgrade",
+"fever_crown"
+],
+[
+"upgrade",
+"void_condenser_overdrive"
+],
+[
+"upgrade",
+"horizon_lens"
+]
+],
+"desc": [
+"twin violet machine gear assembly",
+"spiked orange fever flame core",
+"floating green energy factory reactor",
+"engraved green energy factory reactor"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"nova_forge_tune"
+],
+[
+"upgrade",
+"singularity_plant_overdrive"
+],
+[
+"upgrade",
+"aurora_reactor_tune"
+],
+[
+"upgrade",
+"horizon_engine_overdrive"
+]
+],
+"desc": [
+"compact green energy factory reactor",
+"ornate green energy factory reactor",
+"heavy armored green energy factory reactor",
+"crystalline green energy factory reactor"
+]
+},
+{
+"items": [
+[
+"upgrade",
+"world_engine"
+],
+[
+"upgrade",
+"void_edge"
+],
+[
+"upgrade",
+"nova_forge_overdrive"
+],
+[
+"upgrade",
+"aurora_reactor_overdrive"
+]
+],
+"desc": [
+"sleek violet machine gear assembly",
+"ancient cyan laser pickaxe",
+"overcharged green energy factory reactor",
+"glowing green energy factory reactor"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"focus_click"
+],
+[
+"skill-node",
+"focus_crit"
+],
+[
+"skill-node",
+"focus_combo"
+],
+[
+"skill-node",
+"focus_press"
+]
+],
+"desc": [
+"twin cyan laser pickaxe, tier 1",
+"spiked cyan precision targeting crosshair lens, tier 1",
+"floating cyan glowing combo chain links, tier 1",
+"engraved cyan laser pickaxe, tier 1"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"focus_edge"
+],
+[
+"skill-node",
+"focus_amp"
+],
+[
+"skill-node",
+"focus_lethal"
+],
+[
+"skill-node",
+"focus_chain"
+]
+],
+"desc": [
+"compact cyan precision targeting crosshair lens, tier 1",
+"ornate cyan laser pickaxe, tier 2",
+"heavy armored cyan precision targeting crosshair lens, tier 2",
+"crystalline cyan glowing combo chain links, tier 2"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"focus_pinpoint"
+],
+[
+"skill-node",
+"focus_rhythm"
+],
+[
+"skill-node",
+"focus_breaker"
+],
+[
+"skill-node",
+"focus_apex"
+]
+],
+"desc": [
+"sleek cyan precision targeting crosshair lens, tier 3",
+"ancient cyan glowing combo chain links, tier 3",
+"overcharged cyan laser pickaxe, tier 4",
+"glowing cyan precision targeting crosshair lens, tier 5"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"focus_overcharge"
+],
+[
+"skill-node",
+"mine_dwell"
+],
+[
+"skill-node",
+"mine_extend"
+],
+[
+"skill-node",
+"mine_marathon"
+]
+],
+"desc": [
+"twin cyan laser pickaxe, tier 3",
+"spiked cyan sci-fi hourglass timer, tier 1",
+"floating cyan sci-fi hourglass timer, tier 1",
+"engraved cyan sci-fi hourglass timer, tier 1"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"mine_deepcut"
+],
+[
+"skill-node",
+"mine_endless"
+],
+[
+"skill-node",
+"mine_eternal"
+],
+[
+"skill-node",
+"storm_spark"
+]
+],
+"desc": [
+"compact cyan sci-fi hourglass timer, tier 2",
+"ornate cyan sci-fi hourglass timer, tier 4",
+"heavy armored cyan sci-fi hourglass timer, tier 5",
+"crystalline cyan lightning bolt capacitor, tier 1"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"storm_bolt"
+],
+[
+"skill-node",
+"storm_charge"
+],
+[
+"skill-node",
+"storm_chain"
+],
+[
+"skill-node",
+"storm_rod"
+]
+],
+"desc": [
+"sleek cyan lightning bolt capacitor, tier 2",
+"ancient cyan lightning bolt capacitor, tier 2",
+"overcharged cyan lightning bolt capacitor, tier 3",
+"glowing cyan lightning bolt capacitor, tier 3"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"storm_thunder"
+],
+[
+"skill-node",
+"storm_apex"
+],
+[
+"skill-node",
+"quake_tremor"
+],
+[
+"skill-node",
+"quake_pulse"
+]
+],
+"desc": [
+"twin cyan lightning bolt capacitor, tier 4",
+"spiked cyan lightning bolt capacitor, tier 5",
+"floating cyan shockwave seismic hammer, tier 1",
+"engraved cyan shockwave seismic hammer, tier 2"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"quake_force"
+],
+[
+"skill-node",
+"quake_fault"
+],
+[
+"skill-node",
+"quake_rupture"
+],
+[
+"skill-node",
+"quake_apex"
+]
+],
+"desc": [
+"compact cyan shockwave seismic hammer, tier 2",
+"ornate cyan shockwave seismic hammer, tier 3",
+"heavy armored cyan shockwave seismic hammer, tier 4",
+"crystalline cyan shockwave seismic hammer, tier 5"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"echo_tap"
+],
+[
+"skill-node",
+"echo_double"
+],
+[
+"skill-node",
+"echo_resonant"
+],
+[
+"skill-node",
+"echo_apex"
+]
+],
+"desc": [
+"sleek cyan resonance echo rings emitter, tier 1",
+"ancient cyan resonance echo rings emitter, tier 2",
+"overcharged cyan resonance echo rings emitter, tier 3",
+"glowing cyan resonance echo rings emitter, tier 4"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"auto_prod"
+],
+[
+"skill-node",
+"auto_more"
+],
+[
+"skill-node",
+"auto_loop"
+],
+[
+"skill-node",
+"auto_surge"
+]
+],
+"desc": [
+"twin green machine gear assembly, tier 1",
+"spiked green machine gear assembly, tier 1",
+"floating green machine gear assembly, tier 1",
+"engraved green machine gear assembly, tier 1"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"auto_drill"
+],
+[
+"skill-node",
+"auto_mesh"
+],
+[
+"skill-node",
+"auto_early"
+],
+[
+"skill-node",
+"auto_drill2"
+]
+],
+"desc": [
+"compact green auto mining drill head, tier 1",
+"ornate green machine gear assembly, tier 2",
+"heavy armored green energy factory reactor, tier 2",
+"crystalline green auto mining drill head, tier 2"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"auto_factory"
+],
+[
+"skill-node",
+"auto_mid"
+],
+[
+"skill-node",
+"auto_drill3"
+],
+[
+"skill-node",
+"auto_overflow"
+]
+],
+"desc": [
+"sleek green energy factory reactor, tier 3",
+"ancient green energy factory reactor, tier 3",
+"overcharged green auto mining drill head, tier 4",
+"glowing green machine gear assembly, tier 4"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"auto_late"
+],
+[
+"skill-node",
+"auto_apex"
+],
+[
+"skill-node",
+"auto_link"
+],
+[
+"skill-node",
+"auto_core"
+]
+],
+"desc": [
+"twin green energy factory reactor, tier 4",
+"spiked green machine gear assembly, tier 5",
+"floating green energy factory reactor, tier 2",
+"engraved green energy factory reactor, tier 2"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"auto_control"
+],
+[
+"skill-node",
+"auto_burst"
+],
+[
+"skill-node",
+"auto_risk"
+],
+[
+"skill-node",
+"auto_end"
+]
+],
+"desc": [
+"compact green energy factory reactor, tier 3",
+"ornate green energy factory reactor, tier 3",
+"heavy armored green energy factory reactor, tier 4",
+"crystalline green energy factory reactor, tier 5"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"auto_grid2"
+],
+[
+"skill-node",
+"drone_scout"
+],
+[
+"skill-node",
+"drone_pair"
+],
+[
+"skill-node",
+"drone_tune"
+]
+],
+"desc": [
+"sleek green machine gear assembly, tier 3",
+"ancient green small mining drone, tier 2",
+"overcharged green small mining drone, tier 2",
+"glowing green small mining drone, tier 3"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"drone_squad"
+],
+[
+"skill-node",
+"drone_mesh"
+],
+[
+"skill-node",
+"drone_fleet"
+],
+[
+"skill-node",
+"drone_apex"
+]
+],
+"desc": [
+"twin green small mining drone, tier 3",
+"spiked green small mining drone, tier 4",
+"floating green small mining drone, tier 4",
+"engraved green small mining drone, tier 5"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"reso_fever"
+],
+[
+"skill-node",
+"reso_intense"
+],
+[
+"skill-node",
+"reso_linger"
+],
+[
+"skill-node",
+"reso_spark"
+]
+],
+"desc": [
+"compact violet fever flame core, tier 1",
+"ornate violet fever flame core, tier 1",
+"heavy armored violet fever flame core, tier 1",
+"crystalline violet fever flame core, tier 1"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"reso_chorus"
+],
+[
+"skill-node",
+"reso_finale"
+],
+[
+"skill-node",
+"reso_amplify"
+],
+[
+"skill-node",
+"reso_array"
+]
+],
+"desc": [
+"sleek violet fever flame core, tier 2",
+"ancient violet fever flame core, tier 2",
+"overcharged violet fever flame core, tier 3",
+"glowing violet energy factory reactor, tier 3"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"reso_brink"
+],
+[
+"skill-node",
+"reso_storm"
+],
+[
+"skill-node",
+"reso_apex"
+],
+[
+"skill-node",
+"reso_tempo"
+]
+],
+"desc": [
+"twin violet unstable hazard energy canister, tier 4",
+"spiked violet fever flame core, tier 4",
+"floating violet fever flame core, tier 5",
+"engraved violet fever flame core, tier 2"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"reso_encore"
+],
+[
+"skill-node",
+"reso_edge"
+],
+[
+"skill-node",
+"reso_abyss"
+],
+[
+"skill-node",
+"reso_hymn"
+]
+],
+"desc": [
+"compact violet fever flame core, tier 3",
+"ornate violet unstable hazard energy canister, tier 2",
+"heavy armored violet unstable hazard energy canister, tier 4",
+"crystalline violet fever flame core, tier 3"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"reso_static"
+],
+[
+"skill-node",
+"reso_wave"
+],
+[
+"skill-node",
+"reso_overture"
+],
+[
+"skill-node",
+"reso_array2"
+]
+],
+"desc": [
+"sleek violet lightning bolt capacitor, tier 3",
+"ancient violet shockwave seismic hammer, tier 4",
+"overcharged violet fever flame core, tier 4",
+"glowing violet machine gear assembly, tier 3"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"trans_start"
+],
+[
+"skill-node",
+"trans_seed2"
+],
+[
+"skill-node",
+"trans_echo"
+],
+[
+"skill-node",
+"trans_insight"
+]
+],
+"desc": [
+"twin gold glowing energy seed crystal, tier 1",
+"spiked gold glowing energy seed crystal, tier 3",
+"floating gold machine gear assembly, tier 4",
+"engraved gold fever flame core, tier 4"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"trans_vault"
+],
+[
+"skill-node",
+"trans_convergence"
+],
+[
+"skill-node",
+"trans_focus"
+],
+[
+"skill-node",
+"trans_grid"
+]
+],
+"desc": [
+"compact gold glowing energy seed crystal, tier 4",
+"ornate gold fever flame core, tier 5",
+"heavy armored gold laser pickaxe, tier 4",
+"crystalline gold machine gear assembly, tier 4"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"trans_storm"
+],
+[
+"skill-node",
+"trans_quake"
+],
+[
+"skill-node",
+"trans_drone"
+],
+[
+"skill-node",
+"trans_fever"
+]
+],
+"desc": [
+"sleek gold lightning bolt capacitor, tier 4",
+"ancient gold shockwave seismic hammer, tier 4",
+"overcharged gold small mining drone, tier 4",
+"glowing gold fever flame core, tier 4"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"trans_crit"
+],
+[
+"skill-node",
+"trans_mine"
+],
+[
+"skill-node",
+"trans_echo_hit"
+],
+[
+"skill-node",
+"trans_seed3"
+]
+],
+"desc": [
+"twin gold precision targeting crosshair lens, tier 4",
+"spiked gold sci-fi hourglass timer, tier 3",
+"floating gold resonance echo rings emitter, tier 4",
+"engraved gold glowing energy seed crystal, tier 5"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"focus_grip"
+],
+[
+"skill-node",
+"focus_tempo"
+],
+[
+"skill-node",
+"focus_sharp"
+],
+[
+"skill-node",
+"focus_heavy"
+]
+],
+"desc": [
+"compact cyan laser pickaxe, tier 1",
+"ornate cyan glowing combo chain links, tier 1",
+"heavy armored cyan precision targeting crosshair lens, tier 2",
+"crystalline cyan laser pickaxe, tier 2"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"focus_split"
+],
+[
+"skill-node",
+"focus_deep"
+],
+[
+"skill-node",
+"focus_titan"
+],
+[
+"skill-node",
+"focus_star"
+]
+],
+"desc": [
+"sleek cyan laser pickaxe, tier 3",
+"ancient cyan precision targeting crosshair lens, tier 3",
+"overcharged cyan laser pickaxe, tier 4",
+"glowing cyan laser pickaxe, tier 5"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"mine_quick"
+],
+[
+"skill-node",
+"mine_lamp"
+],
+[
+"skill-node",
+"storm_static"
+],
+[
+"skill-node",
+"storm_arc"
+]
+],
+"desc": [
+"twin cyan sci-fi hourglass timer, tier 1",
+"spiked cyan laser pickaxe, tier 2",
+"floating cyan lightning bolt capacitor, tier 2",
+"engraved cyan lightning bolt capacitor, tier 3"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"quake_step"
+],
+[
+"skill-node",
+"echo_ring"
+],
+[
+"skill-node",
+"auto_oil"
+],
+[
+"skill-node",
+"auto_belt"
+]
+],
+"desc": [
+"compact cyan shockwave seismic hammer, tier 2",
+"ornate cyan resonance echo rings emitter, tier 3",
+"heavy armored green machine gear assembly, tier 1",
+"crystalline green machine gear assembly, tier 1"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"auto_gear"
+],
+[
+"skill-node",
+"auto_press"
+],
+[
+"skill-node",
+"auto_robot"
+],
+[
+"skill-node",
+"auto_ai"
+]
+],
+"desc": [
+"sleek green machine gear assembly, tier 2",
+"ancient green machine gear assembly, tier 2",
+"overcharged green machine gear assembly, tier 3",
+"glowing green machine gear assembly, tier 4"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"auto_mega"
+],
+[
+"skill-node",
+"auto_end2"
+],
+[
+"skill-node",
+"drone_bay"
+],
+[
+"skill-node",
+"drone_ai"
+]
+],
+"desc": [
+"twin green machine gear assembly, tier 5",
+"spiked green energy factory reactor, tier 5",
+"floating green small mining drone, tier 3",
+"engraved green small mining drone, tier 4"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"reso_hum"
+],
+[
+"skill-node",
+"reso_glow"
+],
+[
+"skill-node",
+"reso_choir"
+],
+[
+"skill-node",
+"reso_bell"
+]
+],
+"desc": [
+"compact violet fever flame core, tier 1",
+"ornate violet fever flame core, tier 1",
+"heavy armored violet machine gear assembly, tier 2",
+"crystalline violet laser pickaxe, tier 2"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"reso_wave2"
+],
+[
+"skill-node",
+"reso_peak"
+],
+[
+"skill-node",
+"reso_crown"
+],
+[
+"skill-node",
+"reso_risk"
+]
+],
+"desc": [
+"sleek violet fever flame core, tier 3",
+"ancient violet machine gear assembly, tier 4",
+"overcharged violet machine gear assembly, tier 5",
+"glowing violet unstable hazard energy canister, tier 3"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"trans_spark"
+],
+[
+"skill-node",
+"trans_kin"
+],
+[
+"skill-node",
+"trans_flow"
+],
+[
+"skill-node",
+"trans_deep"
+]
+],
+"desc": [
+"twin gold glowing energy seed crystal, tier 1",
+"spiked gold laser pickaxe, tier 2",
+"floating gold machine gear assembly, tier 2",
+"engraved gold machine gear assembly, tier 3"
+]
+},
+{
+"items": [
+[
+"skill-node",
+"trans_heart"
+]
+],
+"desc": [
+"compact gold machine gear assembly, tier 5"
+]
+}
+]
