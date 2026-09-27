@@ -54,10 +54,6 @@ type Props = {
 
 type Vein = { x: number; y: number; expiresAt: number }
 
-/** Hits to shatter the center ore; each shatter pays BREAK_BONUS extra strikes. */
-const ORE_HP = 24
-const BREAK_BONUS = 3
-const REGROW_MS = 650
 
 type Box = { left: number; top: number; width: number; height: number }
 
@@ -87,15 +83,14 @@ export function ClickerMine({
   onMine,
   onPop,
   playLaser,
-  onOreBroken,
+  onOreBroken: _onOreBroken,
   autoRate = 0,
   onVein,
 }: Props) {
   const [box, setBox] = useState<Box | null>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
-  const [hp, setHp] = useState(ORE_HP)
   const [hitSeq, setHitSeq] = useState(0)
-  const [broken, setBroken] = useState(false)
+  const broken = false
   const [sparks, setSparks] = useState<Spark[]>([])
   const [lasers, setLasers] = useState<Laser[]>([])
   const [impacts, setImpacts] = useState<Impact[]>([])
@@ -162,9 +157,9 @@ export function ClickerMine({
   }, [])
 
   // Latest values for the drill interval without re-arming it every render.
-  const live = useRef({ hp, broken, box, muted, onMine, onPop, onOreBroken, playLaser })
+  const live = useRef({ broken, box, muted, onMine, onPop, playLaser })
   useEffect(() => {
-    live.current = { hp, broken, box, muted, onMine, onPop, onOreBroken, playLaser }
+    live.current = { broken, box, muted, onMine, onPop, playLaser }
   })
 
   /** One strike at a point in mine-local px — shared by taps and the assist drill. */
@@ -184,30 +179,6 @@ export function ClickerMine({
       fireLaser(x, y, critical, drill)
       setHitSeq((n) => n + 1)
 
-      const next = cur.hp - (critical ? 2 : 1)
-      live.current = { ...cur, hp: Math.max(0, next) }
-      if (next > 0) {
-        setHp(next)
-        return
-      }
-      // Shatter: bonus strikes around the crystal, then regrow.
-      setHp(0)
-      setBroken(true)
-      live.current = { ...live.current, broken: true }
-      cur.onOreBroken?.()
-      const b = cur.box
-      for (let i = 0; i < BREAK_BONUS; i++) {
-        later(() => {
-          const cx = b ? b.left + b.width * (0.3 + Math.random() * 0.4) : rect.width / 2
-          const cy = b ? b.top + b.height * (0.3 + Math.random() * 0.4) : rect.height / 2
-          live.current.onMine(rect.left + cx, rect.top + cy)
-          fireLaser(cx, cy, false)
-        }, 90 * (i + 1))
-      }
-      later(() => {
-        setHp(ORE_HP)
-        setBroken(false)
-      }, reduceMotion.current ? 120 : REGROW_MS)
     },
     [fireLaser],
   )
@@ -274,7 +245,6 @@ export function ClickerMine({
   const plate = MineArt.orePlate
   const { width: iw, height: ih, ore } = MINE_ORE_PLATE
   const scale = size.width ? Math.max(size.width / iw, size.height / ih) : 0
-  const integrity = hp / ORE_HP
 
   return (
     <div
@@ -287,11 +257,11 @@ export function ClickerMine({
       {box ? (
         <button
           type="button"
-          className={`clicker-mine-crystal${broken ? " is-broken" : ""}${integrity <= 0.34 ? " is-weak" : ""}`}
+          className={`clicker-mine-crystal${broken ? " is-broken" : ""}`}
           aria-label={
             muted
-              ? `코어 광석 채굴 · 내구도 ${hp}/${ORE_HP} · 음소거`
-              : `코어 광석 채굴 · 레이저 · 내구도 ${hp}/${ORE_HP}`
+              ? "코어 광석 채굴 · 음소거"
+              : "코어 광석 채굴 · 레이저"
           }
           style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
           onPointerDown={strike}
@@ -305,7 +275,6 @@ export function ClickerMine({
                 backgroundImage: `url(${plate})`,
                 backgroundSize: `${iw * scale}px ${ih * scale}px`,
                 backgroundPosition: `${-ore.x * scale}px ${-ore.y * scale}px`,
-                "--ore-crack": String(1 - integrity),
               } as CSSProperties
             }
           />
@@ -313,15 +282,6 @@ export function ClickerMine({
         </button>
       ) : null}
 
-      {box ? (
-        <div
-          className="clicker-mine-integrity"
-          style={{ left: box.left + box.width * 0.15, top: box.top + box.height + 10, width: box.width * 0.7 }}
-          aria-hidden
-        >
-          <i style={{ width: `${Math.round(integrity * 100)}%` }} />
-        </div>
-      ) : null}
 
       {vein && box ? (
         <button
