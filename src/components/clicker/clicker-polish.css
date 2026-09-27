@@ -1330,3 +1330,21 @@
 [data-clicker] .clicker-tutorial-card h2 { margin: 0 0 8px; font-size: 20px; }
 [data-clicker] .clicker-tutorial-card p { margin: 0; line-height: 1.55; color: #cfeaf3; }
 [data-clicker] .clicker-tutorial-actions { display: flex; justify-content: space-between; margin-top: 14px; }
+
+/* Entrance: centre the door (and its Enter Mine button) in the space above the menu dock. */
+[data-clicker].is-entrance-hub.is-view-entrance { --dock-clear: 96px; }
+@media (max-width: 640px) {
+  [data-clicker].is-entrance-hub.is-view-entrance { --dock-clear: 146px; }
+}
+[data-clicker].is-entrance-hub.is-view-entrance .clicker-stage-bg {
+  bottom: var(--dock-clear);
+  height: auto;
+  background-position: center;
+  -webkit-mask-image: linear-gradient(180deg, #000 88%, transparent);
+  mask-image: linear-gradient(180deg, #000 88%, transparent);
+}
+[data-clicker].is-entrance-hub.is-view-entrance .clicker-core-wrap {
+  bottom: var(--dock-clear);
+  height: auto;
+}
+[data-clicker].is-entrance-hub.is-view-entrance .clicker-hub-enter-only { top: 56%; }
