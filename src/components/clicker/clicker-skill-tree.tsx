@@ -218,7 +218,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
       </div>
       {selected ? (
         <aside className={`clicker-skillmap-detail is-${selected.status.toLowerCase()}`} aria-live="polite">
-          {selected.assetId ? <img src={selected.assetId} alt="" /> : null}
+          {selected.assetId ? <img className="clicker-zoomable" src={selected.assetId} alt="" /> : null}
           <div>
             <small>
               {SKILL_BRANCH_LABEL[selected.branch]} · T{selected.tier}

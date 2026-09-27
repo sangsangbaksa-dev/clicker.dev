@@ -14,7 +14,7 @@ export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) 
             key={item.id}
             className={`clicker-card clicker-shop-card ${statusClass}${item.owned > 0 ? " is-stocked" : ""}${(popIcons[item.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
           >
-            <img src={item.assetId} alt="" />
+            <img className="clicker-zoomable" src={item.assetId} alt="" />
             <div className="clicker-shop-body">
               <div className="clicker-shop-title-row">
                 <strong>{item.name}</strong>
@@ -60,7 +60,7 @@ export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) 
             key={item.id}
             className={`clicker-card clicker-shop-card ${statusClass}${item.owned > 0 ? " is-stocked" : ""}${(popIcons[item.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
           >
-            <img src={item.assetId} alt="" />
+            <img className="clicker-zoomable" src={item.assetId} alt="" />
             <div className="clicker-shop-body">
               <div className="clicker-shop-title-row">
                 <strong>{item.name}</strong>

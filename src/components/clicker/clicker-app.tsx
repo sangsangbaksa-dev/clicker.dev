@@ -21,6 +21,7 @@ import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
 import { ClickerOtherTab } from "@/components/clicker/clicker-other-tab"
 import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motion"
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
+import { ClickerImageZoom } from "@/components/clicker/clicker-image-zoom"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
@@ -1020,7 +1021,6 @@ export function ClickerApp() {
                 }}
                 playLaser={playLaser}
                 autoRate={game.drill?.rate ?? 0}
-                onVein={game.claimVein}
                 onOreBroken={game.oreBroken}
               />
             </div>
@@ -1372,6 +1372,7 @@ export function ClickerApp() {
         </footer>
       </aside>
 
+      <ClickerImageZoom />
       {settingsOpen ? (
         <ClickerSettings
           muted={game.save.settings.muted}

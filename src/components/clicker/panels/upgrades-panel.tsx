@@ -76,7 +76,7 @@ export function ClickerUpgradesPanel({ game, run }: { game: ClickerGame; run: Ru
               key={u.id}
               className={`clicker-card clicker-upgrade-card ${statusClass}`}
             >
-              {u.assetId ? <img className="clicker-upgrade-icon" src={u.assetId} alt="" loading="lazy" /> : null}
+              {u.assetId ? <img className="clicker-upgrade-icon clicker-zoomable" src={u.assetId} alt="" loading="lazy" /> : null}
               <div className="clicker-upgrade-body">
                 <div className="clicker-upgrade-title-row">
                   <strong>{u.name}</strong>

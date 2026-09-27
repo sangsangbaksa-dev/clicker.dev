@@ -1348,3 +1348,32 @@
   height: auto;
 }
 [data-clicker].is-entrance-hub.is-view-entrance .clicker-hub-enter-only { top: 50%; left: 50%; }
+
+/* ---------- Image zoom ---------- */
+.clicker-zoomable {
+  cursor: zoom-in;
+}
+.clicker-zoom {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: rgb(4 8 16 / 0.82);
+  backdrop-filter: blur(6px);
+  cursor: zoom-out;
+  animation: clicker-zoom-fade 160ms ease-out;
+}
+.clicker-zoom img {
+  width: min(78vw, 78vh, 420px);
+  height: auto;
+  image-rendering: auto;
+  filter: drop-shadow(0 0 32px rgb(120 220 255 / 0.35));
+  animation: clicker-zoom-pop 220ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+@keyframes clicker-zoom-fade {
+  from { opacity: 0; }
+}
+@keyframes clicker-zoom-pop {
+  from { transform: scale(0.6); }
+}

@@ -19,7 +19,7 @@ export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automatio
             aria-current={selected ? "true" : undefined}
             onClick={() => setSelectedProducerId(p.id)}
           >
-            <img src={p.assetId} alt="" />
+            <img className="clicker-zoomable" src={p.assetId} alt="" />
             <div className="clicker-producer-body">
               <div className="clicker-producer-title-row">
                 <strong>{p.name}</strong>
