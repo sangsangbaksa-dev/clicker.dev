@@ -16,6 +16,7 @@ import {
 } from "./clicker-engine.ts"
 
 const rng = () => 0.99
+const skill = (id: string) => config.skillNodes.find((n) => n.id === id)!
 
 function ownAll(ids: string[]) {
   const now = 1_000_000
@@ -56,7 +57,7 @@ test("tagged production nodes only boost producers with that tag", () => {
   base.run = { ...base.run, producerLevels: { ...base.run.producerLevels, solar_node: 10, pulse_relay: 10 } }
   const before = productionSnapshot(base.run, base.meta, config, base.now)
   const after = productionSnapshot({ ...base.run, ownedSkillNodeIds: ["auto_early"] }, base.meta, config, base.now)
-  assert.equal(after.byProducer.solar_node, before.byProducer.solar_node * 2)
+  assert.equal(after.byProducer.solar_node, before.byProducer.solar_node * skill("auto_early").productionMultiplier!)
   assert.equal(after.byProducer.pulse_relay, before.byProducer.pulse_relay)
 })
 
@@ -67,7 +68,7 @@ test("critical multiplier and combo cap nodes apply to clicks", () => {
   const a = processClick(plain.run, plain.meta, config, plain.now, critRng).result
   const b = processClick(lethal.run, lethal.meta, config, lethal.now, critRng).result
   assert.ok(a.isCritical && b.isCritical)
-  assert.ok(Math.abs(b.energyGained / a.energyGained - 1.5) < 1e-9)
+  assert.ok(Math.abs(b.energyGained / a.energyGained - skill("focus_lethal").criticalMultiplier!) < 1e-9)
   const chained = processClick(ownAll(["focus_chain"]).run, plain.meta, config, plain.now, rng).run
   assert.equal(chained.combo.maxCombo, 35)
 })
@@ -80,7 +81,7 @@ test("startingEnergy nodes carry CORE into the next run", () => {
   const reborn = applyRebirth(run, meta, config, "focus_line", now + 1)
   assert.equal(reborn.error, undefined)
   // Carried CORE is paid at the new worldline's price level.
-  assert.equal(reborn.run.coreEnergy, 50 * config.priceGrowth)
+  assert.equal(reborn.run.coreEnergy, skill("trans_start").startingEnergy! * config.priceGrowth)
   assert.deepEqual(reborn.run.ownedSkillNodeIds, [])
 })
 
@@ -96,13 +97,12 @@ test("connectors are only horizontal or vertical", () => {
 })
 
 test("a node stays hidden until every prerequisite is owned", () => {
-  const node = (id: string) => config.skillNodes.find((n) => n.id === id)!
   const { run } = ownAll(["focus_pinpoint"])
-  assert.equal(isSkillNodeVisible(run, node("focus_click")), true)
-  assert.equal(isSkillNodeVisible(run, node("focus_crit")), false)
-  assert.equal(isSkillNodeVisible(run, node("focus_breaker")), false, "needs focus_rhythm too")
+  assert.equal(isSkillNodeVisible(run, skill("focus_click")), true)
+  assert.equal(isSkillNodeVisible(run, skill("focus_crit")), false)
+  assert.equal(isSkillNodeVisible(run, skill("focus_breaker")), false, "needs focus_rhythm too")
   const both = { ...run, ownedSkillNodeIds: ["focus_pinpoint", "focus_rhythm"] }
-  assert.equal(isSkillNodeVisible(both, node("focus_breaker")), true)
+  assert.equal(isSkillNodeVisible(both, skill("focus_breaker")), true)
 })
 
 test("lightning, echo and shockwave add bonus hits", () => {
@@ -118,7 +118,7 @@ test("lightning, echo and shockwave add bonus hits", () => {
   const quake = ownAll(["quake_tremor"])
   const q = processClick({ ...quake.run, clickCount: 29 }, quake.meta, config, quake.now, rng).result
   assert.ok(q.quake)
-  assert.ok(Math.abs(q.energyGained / plain - 6) < 1e-9)
+  assert.ok(Math.abs(q.energyGained / plain - (1 + skill("quake_tremor").quakeMultiplierAdd!)) < 1e-9)
   const miss = processClick({ ...quake.run, clickCount: 3 }, quake.meta, config, quake.now, rng).result
   assert.equal(miss.quake, false)
 })

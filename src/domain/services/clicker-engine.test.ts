@@ -42,6 +42,7 @@ import { MINE_SESSION_BASE_MS as MINE_SESSION_MS, mineSessionDurationMs } from "
 import { formatNumber } from "./clicker-format.ts"
 
 const config = clickerConfig
+const regionUnlock = (id: string) => config.regions.find((r) => r.id === id)!.unlockAtLifetimeEnergy
 const rng = () => 0.99
 const critRng = () => 0.0
 
@@ -120,7 +121,7 @@ test("region travel unlocks at lifetime threshold and return home works", () => 
   let run = createInitialRun(now, meta, config)
   const locked = travelToRegion(run, config, "signal_relay")
   assert.equal(locked.error, "아직 잠겨 있습니다.")
-  run = grantAdminEnergy(run, 250_000)
+  run = grantAdminEnergy(run, regionUnlock("signal_relay"))
   const travel = travelToRegion(run, config, "signal_relay")
   assert.equal(travel.error, undefined)
   assert.equal(travel.run.currentRegionId, "signal_relay")
@@ -132,7 +133,7 @@ test("region travel unlocks at lifetime threshold and return home works", () => 
 test("region location persists through sanitizeSave reload", () => {
   const now = 11_500_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 250_000)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), regionUnlock("signal_relay"))
   run = travelToRegion(run, config, "signal_relay").run
   const save = {
     schemaVersion: config.schemaVersion,
@@ -173,13 +174,13 @@ test("sanitizeSave marks gameStarted for returning players", () => {
   assert.equal(loaded.settings.gameStarted, true)
 })
 
-test("phase vault unlocks at 2M lifetime CORE", () => {
+test("phase vault unlocks at its lifetime CORE threshold", () => {
   const now = 11_200_000
   const meta = createInitialMeta()
   let run = createInitialRun(now, meta, config)
   const locked = travelToRegion(run, config, "phase_vault")
   assert.equal(locked.error, "아직 잠겨 있습니다.")
-  run = grantAdminEnergy(run, 2_000_000)
+  run = grantAdminEnergy(run, regionUnlock("phase_vault"))
   const travel = travelToRegion(run, config, "phase_vault")
   assert.equal(travel.error, undefined)
   assert.equal(travel.run.currentRegionId, "phase_vault")
@@ -188,7 +189,7 @@ test("phase vault unlocks at 2M lifetime CORE", () => {
 test("region presence bonuses apply only while in that region", () => {
   const now = 13_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 2_000_000)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), regionUnlock("phase_vault"))
   run = { ...run, producerLevels: { ...run.producerLevels, solar_node: 10 } }
 
   const chamber = regionPresenceMultipliers(run, config)
@@ -247,25 +248,25 @@ test("rebirth resets region to home chamber", () => {
   assert.equal(reborn.run.currentRegionId, "core_chamber")
 })
 
-test("transcendence gate starts at 10M lifetime CORE and grows each worldline", () => {
+test("transcendence gate starts at the first goal and grows each worldline", () => {
   const now = 12_000_000
   const meta = createInitialMeta()
   let run = createInitialRun(now, meta, config)
   assert.equal(canRebirth(run, meta, config), false)
-  run = grantAdminEnergy(run, 9_999_999)
+  run = grantAdminEnergy(run, config.rebirthEnergy - 1)
   assert.equal(canRebirth(run, meta, config), false)
   run = grantAdminEnergy(run, 1)
   assert.equal(canRebirth(run, meta, config), true)
   const later = { ...meta, rebirthCount: 1 }
   assert.equal(canRebirth(run, later, config), false)
-  assert.equal(rebirthRequirement(later, config), 10_000_000 * config.rebirthGrowth)
+  assert.equal(rebirthRequirement(later, config), config.rebirthEnergy * config.rebirthGrowth)
 })
 
-test("45min-to-10M balance knobs remain on tuned values", () => {
+test("balance knobs remain on tuned values", () => {
   assert.equal(config.baseClick, 6.5)
-  assert.equal(config.rebirthEnergy, 10_000_000)
+  assert.equal(config.rebirthEnergy, 200_000_000_000)
   assert.equal(config.producers[0]?.productionPerSecond, 1.5)
-  assert.equal(config.producers.find((p) => p.id === "resonance_array")?.unlockAt, 10_000_000)
+  assert.equal(config.producers.find((p) => p.id === "resonance_array")?.unlockAt, 100_000_000_000)
 })
 
 test("active skill shop purchase adds charges and use consumes one", () => {
@@ -285,7 +286,7 @@ test("active skill shop purchase adds charges and use consumes one", () => {
 test("clicks do not drop potions and shop purchase adds inventory", () => {
   const now = 6_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 2_000_000)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), config.potions.find((p) => p.id === "blue")!.shopCost * 2)
   for (let i = 0; i < 200; i++) {
     const click = processClick(run, meta, config, now + i * 50, () => 0.99)
     run = click.run
@@ -344,7 +345,7 @@ test("corrupted save falls back without throwing", () => {
 test("owned skills persist through sanitizeSave reload", () => {
   const now = 8_500_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 10_000)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), 20_000)
   run = buySkillNode(run, config, "focus_click").run
   const save = {
     schemaVersion: config.schemaVersion,
@@ -398,7 +399,7 @@ test("Enter Mine starts a timed session from any UI locale", () => {
 test("the mine opens only in the home region", () => {
   const now = 11_200_000
   const save = startClickerGame(createInitialSave(now, config))
-  const away = grantAdminEnergy(save.runState, 300_000)
+  const away = grantAdminEnergy(save.runState, regionUnlock("signal_relay"))
   const traveled = { ...save, runState: travelToRegion(away, config, "signal_relay").run }
   const refused = enterClickerMine(traveled, now, config)
   assert.equal(refused.error, MINE_HOME_ONLY_ERROR)
@@ -410,7 +411,7 @@ test("the mine opens only in the home region", () => {
 test("field challenge pays production by score and then cools down", () => {
   const now = 12_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 60_000_000)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), regionUnlock("storm_spire"))
   run = buyProducer(run, meta, config, "solar_node", 5).run
   const away = claimRegionChallenge(run, meta, config, "storm_spire", 1, now)
   assert.ok(away.error, "must stand in the region")
@@ -431,7 +432,7 @@ test("field challenge pays production by score and then cools down", () => {
 test("Signal Relay's monster hunt is a field challenge played in the relay", () => {
   const now = 12_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 1_000_000)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), regionUnlock("signal_relay"))
   run = buyProducer(run, meta, config, "solar_node", 5).run
   assert.equal(config.regions.find((r) => r.id === "signal_relay")?.challenge?.kind, "MONSTER_HUNT")
   assert.ok(regionChallengeError(run, config, "signal_relay", now), "must stand in the relay")
@@ -478,7 +479,7 @@ test("mine session length grows from skill-tree dwell nodes", () => {
   let save = startClickerGame(createInitialSave(now, config))
   save = {
     ...save,
-    runState: grantAdminEnergy(save.runState, 200_000),
+    runState: grantAdminEnergy(save.runState, 1_000_000),
   }
   let run = buySkillNode(save.runState, config, "focus_click").run
   run = buySkillNode(run, config, "mine_dwell").run

@@ -1559,14 +1559,14 @@ export function ClickerApp() {
             이 브라우저의 세이브에만 적용됩니다 · 설정에서 관리자 모드를 끌 수 있습니다 · Esc로 닫기
           </p>
           <div className="clicker-admin-grid">
-            <button type="button" className="clicker-primary" aria-label="치트 · CORE 1천 지급" onClick={() => game.adminGrant(1_000)}>
-              +1K CORE
+            <button type="button" className="clicker-primary" aria-label="치트 · CORE 1M 지급" onClick={() => game.adminGrant(1_000_000)}>
+              +1M CORE
             </button>
-            <button type="button" className="clicker-primary" onClick={() => game.adminGrant(100_000)}>
-              +100K CORE
+            <button type="button" className="clicker-primary" onClick={() => game.adminGrant(1_000_000_000)}>
+              +1B CORE
             </button>
-            <button type="button" className="clicker-primary" onClick={() => game.adminGrant(10_000_000)}>
-              +10M CORE
+            <button type="button" className="clicker-primary" onClick={() => game.adminGrant(1_000_000_000_000)}>
+              +1T CORE
             </button>
             <button type="button" className="clicker-primary" aria-label="치트 · FEVER 게이지 충전" onClick={game.adminFillFever}>
               FEVER 충전

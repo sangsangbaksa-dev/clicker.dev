@@ -24,7 +24,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     description: "코어에서 뻗어 나간 중계 복도. 잔향이 벽면을 타고 흐릅니다.",
     bgAssetId: "/clicker/bg/region_signal_relay.png",
     intro: { video: "/clicker/region/signal_relay_intro.mp4", poster: "/clicker/bg/region_signal_relay.png" },
-    unlockAtLifetimeEnergy: 250_000,
+    unlockAtLifetimeEnergy: 63_000_000,
     productionMultiplier: 1.12,
     challenge: {
       kind: "MONSTER_HUNT",
@@ -49,7 +49,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     description: "깊은 공명이 먼지처럼 쌓인 보관소. CORE 맥동의 잔향이 오래 남습니다.",
     bgAssetId: "/clicker/bg/region_phase_vault.png",
     intro: { video: "/clicker/region/phase_vault_intro.mp4", poster: "/clicker/bg/region_phase_vault.png" },
-    unlockAtLifetimeEnergy: 2_000_000,
+    unlockAtLifetimeEnergy: 4_000_000_000,
     clickMultiplier: 1.08,
     productionMultiplier: 1.1,
     challenge: {
@@ -76,7 +76,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     description: "번개가 멎지 않는 첨탑. 채굴 레이저가 낙뢰를 끌어당깁니다.",
     bgAssetId: "/clicker/bg/region_storm_spire.jpg",
     intro: { video: "/clicker/region/storm_spire_intro.mp4", poster: "/clicker/bg/region_storm_spire.jpg" },
-    unlockAtLifetimeEnergy: 30_000_000,
+    unlockAtLifetimeEnergy: 900_000_000_000,
     clickMultiplier: 1.15,
     lightningChanceAdd: 0.08,
     challenge: {
@@ -101,7 +101,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     description: "행성 깊이 갈라진 단층. 한 번의 타격이 지각을 울립니다.",
     bgAssetId: "/clicker/bg/region_deep_fault.jpg",
     intro: { video: "/clicker/region/deep_fault_intro.mp4", poster: "/clicker/bg/region_deep_fault.jpg" },
-    unlockAtLifetimeEnergy: 400_000_000,
+    unlockAtLifetimeEnergy: 160_000_000_000_000,
     productionMultiplier: 1.2,
     quakeIntervalReduce: 5,
     challenge: {
@@ -126,7 +126,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     description: "버려진 드론 공장. 격납고마다 채굴 드론이 잠들어 있습니다.",
     bgAssetId: "/clicker/bg/region_drone_foundry.jpg",
     intro: { video: "/clicker/region/drone_foundry_intro.mp4", poster: "/clicker/bg/region_drone_foundry.jpg" },
-    unlockAtLifetimeEnergy: 5_000_000_000,
+    unlockAtLifetimeEnergy: 2.5e16,
     productionMultiplier: 1.15,
     droneEfficiencyAdd: 1,
     challenge: {

@@ -64,6 +64,20 @@ if (process.env.TIERED) {
     p.unlockAt *= m
   })
 }
+// STRETCH=a: every price and goal c above 1k becomes c·(c/1k)^a, so the whole curve is steeper in log space.
+const stretch = (c: number, a: number) => (c > 1e3 ? c * (c / 1e3) ** a : c)
+if (process.env.STRETCH) {
+  const [sa, ga] = process.env.STRETCH.split(",").map(Number)
+  for (const n of config.skillNodes) n.cost = stretch(n.cost, sa)
+  for (const u of config.upgrades) u.cost = stretch(u.cost, sa)
+  for (const p of config.producers) {
+    p.baseCost = stretch(p.baseCost, sa)
+    p.unlockAt = stretch(p.unlockAt, sa)
+  }
+  const g = ga ?? sa
+  config.rebirthEnergy = stretch(config.rebirthEnergy, g)
+  config.rebirthGrowth = config.rebirthGrowth ** (1 + g)
+}
 for (const n of config.skillNodes) n.cost = Math.round(n.cost * knob("SKILL_COST", 1))
 for (const u of config.upgrades) u.cost = Math.round(u.cost * knob("UPG_COST", 1))
 for (const p of config.producers) {
