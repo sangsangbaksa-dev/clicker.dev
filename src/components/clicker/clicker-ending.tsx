@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react"
 import { CLICKER_TRUE_ENDING_STEPS } from "@/data/clicker/ending"
-import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
+import { useArmedPress, useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 
 export type EndingSummary = {
   worldlinesOwned: number
@@ -23,6 +23,8 @@ export function ClickerEnding({ onComplete, summary }: Props) {
   const current = CLICKER_TRUE_ENDING_STEPS[step]
   const last = step >= CLICKER_TRUE_ENDING_STEPS.length - 1
   useClickerDialogFocus(rootRef)
+  // "다음" and "완료" sit in the same spot: a fast double-click through the story must not seal the record.
+  const armedPress = useArmedPress(String(step))
 
   return (
     <div ref={rootRef} className="clicker-ending-backdrop" role="dialog" aria-modal="true" aria-labelledby="clicker-ending-title">
@@ -61,7 +63,7 @@ export function ClickerEnding({ onComplete, summary }: Props) {
           ))}
         </div>
         <footer className="clicker-ending-foot">
-          <button type="button" className="clicker-primary" autoFocus onClick={() => (last ? onComplete() : setStep(step + 1))}>
+          <button type="button" className="clicker-primary" autoFocus onClick={last ? armedPress(onComplete) : () => setStep(step + 1)}>
             {last ? "완료" : "다음"}
           </button>
         </footer>

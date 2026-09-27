@@ -5,7 +5,7 @@ import { CLICKER_ASSETS } from "@/data/clicker/catalog"
 import { CLICKER_COMPLETION_EPILOGUE } from "@/data/clicker/ending"
 import { formatNumber } from "@/domain/services/clicker-format"
 import type { MetaState } from "@/domain/entities/clicker"
-import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
+import { useArmedPress, useClickerDialogFocus, useFocusOnChange } from "@/components/clicker/clicker-a11y"
 
 type Props = {
   meta: MetaState
@@ -17,11 +17,16 @@ type Props = {
 export function ClickerComplete({ meta, worldlineTotal, onReset }: Props) {
   const [confirmReset, setConfirmReset] = useState(false)
   const rootRef = useRef<HTMLElement | null>(null)
+  const startRef = useRef<HTMLButtonElement | null>(null)
+  const cancelRef = useRef<HTMLButtonElement | null>(null)
   const completedDate =
     meta.completedAt != null ? new Date(meta.completedAt).toLocaleString("ko-KR") : "—"
   const worldlinesOwned = meta.transcendenceIds.length
 
   useClickerDialogFocus(rootRef)
+  // "삭제하고 새 기록" appears where "새 기록 시작" was; a double-click must not wipe the save.
+  const armedPress = useArmedPress(confirmReset)
+  useFocusOnChange(confirmReset ? cancelRef : startRef, confirmReset)
 
   useEffect(() => {
     if (!confirmReset) return
@@ -85,7 +90,7 @@ export function ClickerComplete({ meta, worldlineTotal, onReset }: Props) {
         </p>
         {!confirmReset ? (
           <div className="clicker-complete-actions">
-            <button type="button" className="clicker-primary" onClick={() => setConfirmReset(true)}>
+            <button ref={startRef} type="button" className="clicker-primary" onClick={() => setConfirmReset(true)}>
               새 기록 시작
             </button>
           </div>
@@ -93,14 +98,14 @@ export function ClickerComplete({ meta, worldlineTotal, onReset }: Props) {
           <div className="clicker-complete-confirm" role="group" aria-label="새 기록 확인">
             <p>현재 기록·세이브가 삭제됩니다. 되돌릴 수 없습니다. (8초 후 또는 Esc로 취소)</p>
             <div className="clicker-complete-actions">
-              <button type="button" className="clicker-ghost" onClick={() => setConfirmReset(false)}>
+              <button ref={cancelRef} type="button" className="clicker-ghost" onClick={() => setConfirmReset(false)}>
                 취소 · Esc
               </button>
               <button
                 type="button"
                 className="clicker-danger"
                 aria-label="세이브를 삭제하고 새 기록을 시작합니다"
-                onClick={onReset}
+                onClick={armedPress(onReset)}
               >
                 삭제하고 새 기록
               </button>
