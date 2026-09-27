@@ -23,10 +23,8 @@ import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motio
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
-import { ClickerMonster } from "@/components/clicker/clicker-monster"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
 import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
-import { monsterAlive } from "@/domain/services/clicker-engine"
 import type { SfxName } from "@/components/clicker/clicker-sfx"
 import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
@@ -628,8 +626,6 @@ export function ClickerApp() {
   // Every circuit (all 100, transcendence branch included) stays on the board.
   const visibleSkillNodes = game.skillNodes
   const regionDef = game.config.regions.find((r) => r.id === run.currentRegionId)
-  const monsterDef = regionDef?.monster
-  const monsterIsAlive = monsterDef ? monsterAlive(run, run.currentRegionId, tickNow) : false
   const drawerTabs = (
     [
       ["producers", "PRODUCERS", "생산자"],
@@ -832,15 +828,6 @@ export function ClickerApp() {
           aria-hidden
         />
         <div className="clicker-vignette" />
-        {!inMine && monsterDef && !regionDef?.boss ? (
-          <ClickerMonster
-            key={run.currentRegionId}
-            kind={monsterDef.kind}
-            name={monsterDef.name}
-            alive={monsterIsAlive}
-            onSlay={(x, y) => game.slayMonster(run.currentRegionId, x, y)}
-          />
-        ) : null}
         <nav className="clicker-stage-region" aria-label="현재 지역">
           {game.currentRegion ? (
             <span className="clicker-stage-region-slot">
