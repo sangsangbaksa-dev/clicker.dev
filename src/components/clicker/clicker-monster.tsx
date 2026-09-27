@@ -4,12 +4,12 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import "./clicker-monster.css"
 
 /** Inline SVG creature art, one per region monster kind. Parts carry classes the CSS animates. */
-/** Region monsters painted as giant dragons (Canva art, black keyed to alpha). */
+/** Region monsters painted as giant bosses (Canva art, black keyed to alpha). */
 const DRAGON_ART: Record<string, string> = {
-  wisp: "/clicker/monster/dragon_wisp.webp",
-  golem: "/clicker/monster/dragon_golem.webp",
-  stormbird: "/clicker/monster/dragon_stormbird.webp",
-  worm: "/clicker/monster/dragon_worm.webp",
+  wisp: "/clicker/monster/kraken.webp",
+  golem: "/clicker/monster/titan.webp",
+  stormbird: "/clicker/monster/storm_dragon.webp",
+  worm: "/clicker/monster/behemoth.webp",
 }
 
 export function MonsterArt({ kind }: { kind: string }) {
