@@ -23,7 +23,8 @@ export function isClickerAdminAllowed(input: ClickerAdminGateInput = {}): boolea
     input.nodeEnv ??
     (typeof process !== "undefined" && process.env.NODE_ENV ? process.env.NODE_ENV : "production")
   ).toLowerCase()
-  // Hard deny: production (and Production casing) never exposes admin helpers.
+  // Playtest builds opt in explicitly; otherwise production never exposes admin helpers.
+  if (process.env.NEXT_PUBLIC_CLICKER_ADMIN === "1" && input.nodeEnv === undefined) return true
   if (nodeEnv === "production") return false
 
   if (!input.hostname && typeof window === "undefined") return false

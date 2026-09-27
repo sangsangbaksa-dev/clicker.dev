@@ -11,7 +11,6 @@ import {
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
 import { formatNumber } from "@/domain/services/clicker-format"
 import { useClicker } from "@/hooks/use-clicker"
-import { useClickerBgm } from "@/hooks/use-clicker-bgm"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine } from "@/components/clicker/clicker-mine"
@@ -42,7 +41,7 @@ import "./clicker.css"
 import "./clicker-polish.css"
 
 /** Next inlines NODE_ENV — production builds dead-code-eliminate admin JSX. */
-const CLICKER_ADMIN_UI = process.env.NODE_ENV !== "production"
+const CLICKER_ADMIN_UI = process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_CLICKER_ADMIN === "1"
 
 type TabId = "producers" | "upgrades" | "skills" | "shop" | "world" | "achievements" | "transcendence"
 
@@ -182,18 +181,6 @@ export function ClickerApp() {
   /** Ending sequence after the guardian falls: two videos, then the story cards. */
   const [endingPhase, setEndingPhase] = useState<"fall" | "awaken" | null>(null)
 
-  useClickerBgm(game.hud?.coreVisual, {
-    // Cinematics carry their own soundtrack.
-    scene: enteringMine || game.regionIntro || endingPhase
-      ? "silent"
-      : pendingRebirth || endingOpen
-        ? "chamber"
-        : game.save?.settings.playSurface === "mine"
-          ? "mine"
-          : "hub",
-    muted: game.otherTabActive || (game.save?.settings.musicMuted ?? false),
-    volume: game.save?.settings.musicVolume ?? 0,
-  })
 
   useClickerDialogFocus(crisisRef, Boolean(game.hud?.crisisActive))
   useClickerDialogFocus(storyBeatRef, Boolean(storyBeat))
@@ -1616,6 +1603,9 @@ export function ClickerApp() {
             </button>
             <button type="button" className="clicker-primary" onClick={() => game.adminGrant(10_000_000)}>
               +10M CORE
+            </button>
+            <button type="button" className="clicker-primary" onClick={() => game.adminGrant(Math.max(1e12, (game.save?.runState.coreEnergy ?? 0) * 100))}>
+              CORE ×100
             </button>
             <button type="button" className="clicker-primary" aria-label="치트 · FEVER 게이지 충전" onClick={game.adminFillFever}>
               FEVER 충전

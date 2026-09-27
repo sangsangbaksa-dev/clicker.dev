@@ -5,11 +5,10 @@
   top: 34%;
   z-index: 3;
   pointer-events: none;
-  animation: clicker-roam 22s ease-in-out infinite alternate;
 }
 .clicker-monster-roam.is-wisp,
 .clicker-monster-roam.is-stormbird,
-.clicker-monster-roam.is-hunter { top: 16%; animation-duration: 16s; }
+.clicker-monster-roam.is-hunter { top: 18%; }
 .clicker-monster-roam.is-worm,
 .clicker-monster-roam.is-crawler { top: 52%; }
 

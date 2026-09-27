@@ -90,38 +90,6 @@ export function ClickerSettings({
           </li>
           <li className="clicker-settings-row">
             <div className="clicker-settings-copy">
-              <strong>배경음악</strong>
-              
-            </div>
-            <button
-              type="button"
-              className={`clicker-settings-toggle${musicMuted ? "" : " is-on"}`}
-              aria-pressed={!musicMuted}
-              aria-label={musicMuted ? "배경음악 꺼짐 — 켜려면 탭" : "배경음악 켜짐 — 끄려면 탭"}
-              onClick={onToggleMusic}
-            >
-              {musicMuted ? "꺼짐" : "켜짐"}
-            </button>
-          </li>
-          <li className="clicker-settings-row">
-            <label className="clicker-settings-copy" htmlFor="clicker-music-volume">
-              <strong>음악 볼륨</strong>
-              <p>{musicMuted ? "배경음악이 꺼져 있습니다." : `${volumePct}%`}</p>
-            </label>
-            <input
-              id="clicker-music-volume"
-              className="clicker-settings-range"
-              type="range"
-              min={0}
-              max={100}
-              step={5}
-              value={volumePct}
-              disabled={musicMuted}
-              onChange={(e) => onMusicVolume(Number(e.target.value) / 100)}
-            />
-          </li>
-          <li className="clicker-settings-row">
-            <div className="clicker-settings-copy">
               <strong>움직임 줄이기</strong>
               <p>시스템 접근성 설정을 따릅니다.</p>
             </div>
