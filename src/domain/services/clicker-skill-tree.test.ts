@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { clickerConfig as config } from "../../data/clicker/catalog.ts"
-import { layoutSkillTree, orthogonalPath } from "../../data/clicker/skill-tree-layout.ts"
+import { layoutSkillTree, connectorPath } from "../../data/clicker/skill-tree-layout.ts"
 import {
   applyRebirth,
   buySkillNode,
@@ -30,13 +30,12 @@ test("skill graph: 130+ unique nodes, known prereqs, tier never below a prereq, 
   assert.ok(config.skillNodes.length >= 130 && config.skillNodes.length <= 150)
   const byId = new Map(config.skillNodes.map((n) => [n.id, n]))
   const layout = layoutSkillTree(config.skillNodes)
-  const taken = new Set<string>([`${layout.hub.col},${layout.hub.row}`])
+  const placed: Array<{ col: number; row: number }> = [layout.hub]
   for (const node of config.skillNodes) {
     const cell = layout.cells[node.id]
     assert.ok(cell, `layout missing for ${node.id}`)
-    const key = `${cell.col},${cell.row}`
-    assert.ok(!taken.has(key), `${node.id} overlaps another node`)
-    taken.add(key)
+    for (const other of placed) assert.ok(Math.hypot(other.col - cell.col, other.row - cell.row) > 1, `${node.id} overlaps another node`)
+    placed.push(cell)
     assert.ok(node.tier >= 1 && node.tier <= 5, node.id)
     for (const req of node.requires ?? []) {
       const parent = byId.get(req)
@@ -46,7 +45,7 @@ test("skill graph: 130+ unique nodes, known prereqs, tier never below a prereq, 
       assert.ok(parent.cost <= node.cost, `${node.id} cheaper than ${req}`)
     }
   }
-  for (const branch of ["FOCUS", "AUTOMATION", "RESONANCE", "TRANSCENDENCE"]) {
+  for (const branch of ["FOCUS", "AUTOMATION", "RESONANCE", "TRANSCENDENCE", "HUNT"]) {
     assert.ok(config.skillNodes.some((n) => n.branch === branch && n.tier === 5), `${branch} has no capstone`)
   }
 })
@@ -84,13 +83,13 @@ test("startingEnergy nodes carry CORE into the next run", () => {
   assert.deepEqual(reborn.run.ownedSkillNodeIds, [])
 })
 
-test("connectors are only horizontal or vertical", () => {
+test("connectors are straight lines between circuits", () => {
   const layout = layoutSkillTree(config.skillNodes)
   for (const node of config.skillNodes) {
     const parents = (node.requires ?? []).map((id) => layout.cells[id])
     for (const parent of parents.length ? parents : [layout.hub]) {
-      const d = orthogonalPath(parent, layout.cells[node.id])
-      assert.match(d, /^M[\d.]+ [\d.]+(?:[HV][\d.]+)+$/, d)
+      const d = connectorPath(parent, layout.cells[node.id])
+      assert.match(d, /^M-?[\d.]+ -?[\d.]+L-?[\d.]+ -?[\d.]+$/, d)
     }
   }
 })

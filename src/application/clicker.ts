@@ -35,6 +35,7 @@ import {
   activateSkill,
   finishClickerTutorial,
   slayMonster,
+  drillStrike,
   startBossFight,
   strikeBoss,
   MINE_MAX_CPS,
@@ -94,7 +95,7 @@ export function loadClickerGame(now: number): SaveData {
     persistBlocked = !kept && decoded.status === "corrupt"
   }
   try {
-    return syncClickerMineSession(decoded.save, now)
+    return syncClickerMineSession(decoded.save, now, config)
   } catch {
     if (raw) persistBlocked = !backupClickerRaw(raw, "corrupt: 광산 세션을 복원하지 못했습니다.", now)
     return createInitialSave(now, config)
@@ -138,7 +139,7 @@ const TICK_GAP_MS = 2500
 
 export function clickerTick(save: SaveData, now: number): SaveData {
   if (isGameCompleted(save.metaState)) return save
-  const synced = syncClickerMineSession(save, now)
+  const synced = syncClickerMineSession(save, now, config)
   const run =
     now - synced.runState.lastTickAt > TICK_GAP_MS
       ? { ...resumeAfterGap(synced.runState), lastTickAt: now }
@@ -167,7 +168,7 @@ export function clickerMineEntryCost(save: SaveData, now: number): number {
 }
 
 export function clickerExitMine(save: SaveData, now: number): SaveData {
-  return exitClickerMine(save, now)
+  return exitClickerMine(save, now, config)
 }
 
 export function clickerClick(save: SaveData, now: number): {
@@ -342,6 +343,12 @@ export function clickerSlayMonster(save: SaveData, regionId: string, now: number
   const next = slayMonster(save.runState, save.metaState, config, regionId, now)
   if (next.error) return { ok: false, status: 400, error: next.error }
   return ok({ save: withAchievements({ ...save, runState: next.run, metaState: next.meta }), reward: next.reward })
+}
+
+export function clickerDrill(save: SaveData, now: number): UseCaseResult<{ save: SaveData; reward: number }> {
+  const next = drillStrike(save.runState, save.metaState, config, now)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ save: { ...save, runState: next.run, metaState: next.meta }, reward: next.reward })
 }
 
 export function clickerStartBoss(save: SaveData, now: number): UseCaseResult<SaveData> {

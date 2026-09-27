@@ -420,3 +420,40 @@
     animation: none;
   }
 }
+
+/* FEVER gauge inside the mine HUD (the top bar is hidden in the mine). */
+[data-clicker] .clicker-mine-fever {
+  position: relative;
+  overflow: hidden;
+  appearance: none;
+  border: 1px solid color-mix(in srgb, #ff9d3c 45%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, #1a0e05 70%, transparent);
+  padding: 4px 10px 6px;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+}
+[data-clicker] .clicker-mine-fever > i {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ffb347, #ff5e3a);
+  transition: width 200ms linear;
+}
+[data-clicker] .clicker-mine-fever strong { color: #ffc27a; }
+[data-clicker] .clicker-mine-fever.is-ready {
+  cursor: pointer;
+  animation: clicker-mine-fever-pulse 1.2s ease-in-out infinite;
+  box-shadow: 0 0 14px rgb(255 157 60 / 0.6);
+}
+[data-clicker] .clicker-mine-fever.is-active {
+  border-color: #ff6a3a;
+  box-shadow: 0 0 18px rgb(255 90 50 / 0.7);
+}
+[data-clicker] .clicker-mine-potion.is-empty {
+  opacity: 0.38;
+  filter: grayscale(0.8);
+  cursor: default;
+}

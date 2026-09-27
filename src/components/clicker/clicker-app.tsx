@@ -22,10 +22,13 @@ import { ClickerOtherTab } from "@/components/clicker/clicker-other-tab"
 import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motion"
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
 import { ClickerImageZoom } from "@/components/clicker/clicker-image-zoom"
+import { ClickerPurchaseFx } from "@/components/clicker/clicker-purchase-fx"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
+import { ClickerMonster } from "@/components/clicker/clicker-monster"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
 import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
+import { monsterAlive, reentryCooldownMs } from "@/domain/services/clicker-engine"
 import type { SfxName } from "@/components/clicker/clicker-sfx"
 import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
@@ -118,12 +121,22 @@ function readDrawerHeight() {
   return drawerSnapPoints().peek
 }
 
+/** Deterministic pseudo-random stage spot for a hunting-ground spawn, clear of the HUD and dock. */
+function huntSpot(seed: number): { left: number; top: number } {
+  const r = (n: number) => {
+    const x = Math.sin(seed * 0.001 + n * 12.9898) * 43758.5453
+    return x - Math.floor(x)
+  }
+  return { left: 8 + r(1) * 72, top: 22 + r(2) * 40 }
+}
+
 export function ClickerApp() {
   const game = useClicker()
   // Door-walk entry cinematic between Enter Mine and the timed session (carries its own SFX).
   const [enteringMine, setEnteringMine] = useState(false)
   /** Region whose field challenge is open (mini-game overlay), or null. */
   const [challengeRegionId, setChallengeRegionId] = useState<string | null>(null)
+  const [drillHits, setDrillHits] = useState(0)
 
   // Prime Web Audio on first gesture so click/laser SFX are not stuck suspended.
   useEffect(() => {
@@ -627,6 +640,11 @@ export function ClickerApp() {
   // Every circuit (all 100, transcendence branch included) stays on the board.
   const visibleSkillNodes = game.skillNodes
   const regionDef = game.config.regions.find((r) => r.id === run.currentRegionId)
+  const monsterDef = regionDef?.monster
+  const monsterIsAlive = monsterDef ? monsterAlive(run, run.currentRegionId, tickNow) : false
+  const huntSpawn = run.monsterRespawnAt[run.currentRegionId] ?? 0
+  const drillCoolSec = Math.max(0, Math.ceil((run.drillCooldownUntil - tickNow) / 1000))
+  const drillCoolTotalSec = reentryCooldownMs(run, game.config) / 1000
   const drawerTabs = (
     [
       ["producers", "PRODUCERS", "생산자"],
@@ -829,6 +847,16 @@ export function ClickerApp() {
           aria-hidden
         />
         <div className="clicker-vignette" />
+        {!inMine && monsterDef && !regionDef?.boss ? (
+          <ClickerMonster
+            key={regionDef?.huntMode ? `${run.currentRegionId}-${huntSpawn}` : run.currentRegionId}
+            spot={regionDef?.huntMode ? huntSpot(huntSpawn) : undefined}
+            kind={monsterDef.kind}
+            name={monsterDef.name}
+            alive={monsterIsAlive}
+            onSlay={(x, y) => game.slayMonster(run.currentRegionId, x, y)}
+          />
+        ) : null}
         <nav className="clicker-stage-region" aria-label="현재 지역">
           {game.currentRegion ? (
             <span className="clicker-stage-region-slot">
@@ -926,6 +954,34 @@ export function ClickerApp() {
                   <span>남은 시간</span>
                   <strong>{mineRemainSec.toFixed(1)}s</strong>
                 </div>
+                <button
+                  type="button"
+                  className={`clicker-mine-hud-stat clicker-mine-fever${hud.fever.active ? " is-active" : ""}${hud.fever.ready && !hud.fever.active ? " is-ready" : ""}`}
+                  disabled={!hud.fever.ready || hud.fever.active || hud.crisisActive}
+                  aria-label={
+                    hud.fever.active
+                      ? `FEVER · ${hud.fever.remainingSeconds.toFixed(1)}초`
+                      : hud.fever.ready
+                        ? "FEVER 준비됨 — 탭하여 시작"
+                        : `FEVER 게이지 ${Math.round(run.fever.gauge)}%`
+                  }
+                  onClick={() => {
+                    flashStage()
+                    game.startFever()
+                  }}
+                >
+                  <span>FEVER</span>
+                  <strong>
+                    {hud.fever.active
+                      ? `${hud.fever.remainingSeconds.toFixed(1)}s`
+                      : run.fever.phase === "COOL_DOWN"
+                        ? "쿨다운"
+                        : hud.fever.ready
+                          ? "READY"
+                          : `${Math.round(run.fever.gauge)}%`}
+                  </strong>
+                  <i style={{ width: `${Math.round(hud.fever.progress * 100)}%` }} aria-hidden />
+                </button>
                 {game.drill?.owned ? (
                   <button
                     type="button"
@@ -958,10 +1014,9 @@ export function ClickerApp() {
                   />
                 </div>
               </div>
-              {game.config.potions.some((p) => (run.potions[p.id] ?? 0) > 0) ? (
+              {game.config.potions.length ? (
                 <div className="clicker-mine-potions" role="toolbar" aria-label="보유 포션">
                   {game.config.potions
-                    .filter((potion) => (run.potions[potion.id] ?? 0) > 0)
                     .map((potion) => {
                       const count = run.potions[potion.id] ?? 0
                       const feverBusy = hud.fever.active || run.fever.phase === "COOL_DOWN"
@@ -982,12 +1037,12 @@ export function ClickerApp() {
                         state = "confirm"
                         statusLabel = "확인"
                       }
-                      const disabled = hud.crisisActive || feverBusy
+                      const disabled = count <= 0 || hud.crisisActive || feverBusy
                       return (
                         <button
                           key={potion.id}
                           type="button"
-                          className={`clicker-mine-potion is-${state}${(popIcons[potion.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
+                          className={`clicker-mine-potion is-${state}${count <= 0 ? " is-empty" : ""}${(popIcons[potion.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
                           disabled={disabled}
                           aria-label={`${potion.name} · ${statusLabel} · 보유 ${count}`}
                           title={`${potion.name} · ${potion.description}`}
@@ -1053,57 +1108,43 @@ export function ClickerApp() {
                 game.strikeBoss(x, y)
               }}
             />
-          ) : game.currentRegion?.activity || game.currentRegion?.challenge ? (() => {
-            // Away from home there is no mine: the region's own activity and challenge take the stage.
-            const region = game.currentRegion
-            const act = region.activity
-            const challenge = region.challenge
-            const busy = (act?.activeMs ?? 0) > 0
-            const cooling = (act?.readyInMs ?? 0) > 0
-            return (
-              <div className="clicker-region-station" aria-label={`${region.name} · 지역 활동`}>
-                <p className="clicker-region-station-kicker">{region.name} · 지역 활동</p>
-                {challenge ? (
-                  <button
-                    type="button"
-                    className="clicker-region-activity is-challenge"
-                    disabled={challenge.readyInMs > 0 || regionIntroPlaying}
-                    title={challenge.description}
-                    aria-label={`${challenge.name} · ${challenge.description}`}
-                    onClick={() => {
-                      if (game.canStartChallenge(region.id)) setChallengeRegionId(region.id)
-                    }}
-                  >
-                    <strong>▶ {challenge.name}</strong>
-                    <span>
-                      {challenge.readyInMs > 0
-                        ? `재도전 ${Math.ceil(challenge.readyInMs / 1000)}초`
-                        : challenge.description}
-                    </span>
-                  </button>
-                ) : null}
-                {act ? (
-                  <button
-                    type="button"
-                    className={`clicker-region-activity${busy ? " is-active" : ""}`}
-                    disabled={cooling || regionIntroPlaying}
-                    title={act.description}
-                    aria-label={`${act.name} · ${act.description}`}
-                    onClick={() => game.regionActivity(region.id)}
-                  >
-                    <strong>{act.name}</strong>
-                    <span>
-                      {busy
-                        ? `진행 중 ${Math.ceil(act.activeMs / 1000)}초${act.deposit > 0 ? ` · 예치 ${formatNumber(act.deposit)}` : ""}`
-                        : cooling
-                          ? `재사용 ${Math.ceil(act.readyInMs / 1000)}초`
-                          : act.description}
-                    </span>
-                  </button>
-                ) : null}
+          ) : regionDef?.huntMode && monsterDef ? (
+            <div className="clicker-region-station clicker-hunt-station" aria-live="polite">
+              <p className="clicker-region-station-kicker">{game.currentRegion?.name} · 사냥터</p>
+              <p className="clicker-drill-hint">배경에 나타나는 {monsterDef.name}을(를) 눌러 처치하세요 · 처치할 때마다 CORE 획득</p>
+            </div>
+          ) : game.currentRegion && !game.currentRegion.isHome && !regionDef?.boss ? (
+            // Away from home there is no mine: drill the region's core vein for CORE instead.
+            <div className="clicker-region-station clicker-drill-station" aria-label={`${game.currentRegion.name} · 코어 에너지 시추`}>
+              <p className="clicker-region-station-kicker">{game.currentRegion.name} · 코어 에너지 시추</p>
+              <button
+                type="button"
+                data-sfx="off"
+                key={drillHits}
+                className={`clicker-drill${drillHits ? " is-hit" : ""}${drillCoolSec > 0 ? " is-cooling" : ""}`}
+                disabled={regionIntroPlaying || drillCoolSec > 0}
+                aria-label={drillCoolSec > 0 ? `시추 장비 냉각 중 ${drillCoolSec}초` : `코어 에너지 시추 · 게이지 ${Math.round(run.drillGauge * 100)}%`}
+                onPointerDown={(e) => {
+                  if (e.button !== 0) return
+                  e.preventDefault()
+                  const paid = game.drillVein(e.clientX, e.clientY)
+                  if (paid === null) return
+                  playLaser(game.save?.settings.muted ?? false, paid > 0)
+                  if (paid > 0) flashStage()
+                  setDrillHits((n) => n + 1)
+                }}
+              >
+                <img src="/clicker/drill/core_drill_rig.webp" alt="" draggable={false} />
+                <span className="clicker-drill-glow" aria-hidden />
+              </button>
+              <div className={`clicker-drill-gauge${drillCoolSec > 0 ? " is-cooling" : ""}`} aria-hidden>
+                <i style={{ width: `${drillCoolSec > 0 ? (drillCoolSec / drillCoolTotalSec) * 100 : run.drillGauge * 100}%` }} />
               </div>
-            )
-          })() : null}
+              <p className="clicker-drill-hint">
+                {drillCoolSec > 0 ? `냉각 중 · ${drillCoolSec}초 후 다시 시추` : `연속으로 탭해 게이지를 채우면 시추 · ${Math.round(run.drillGauge * 100)}%`}
+              </p>
+            </div>
+          ) : null}
           {hud.comboText ? (
             <div
               className="clicker-combo"
@@ -1373,6 +1414,7 @@ export function ClickerApp() {
       </aside>
 
       <ClickerImageZoom />
+      <ClickerPurchaseFx fx={game.purchaseFx} />
       {settingsOpen ? (
         <ClickerSettings
           muted={game.save.settings.muted}

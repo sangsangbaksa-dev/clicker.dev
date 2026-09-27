@@ -94,6 +94,8 @@ export function createInitialRun(now: number, meta: MetaState, config: GameConfi
     droneSwarmUntil: 0,
     costScale: scale,
     monsterRespawnAt: {},
+    drillGauge: 0,
+    drillCooldownUntil: 0,
     boss: null,
   }
 }
@@ -237,8 +239,14 @@ export function enterClickerMine(
   }
 }
 
+/** Mine re-entry and core-drilling cooldown: 30s base, minus owned `cooldownReduceSec`, never under 5s. */
+export function reentryCooldownMs(run: RunState, config?: GameConfig): number {
+  const cut = config ? ownedSkills(run, config).reduce((s, n) => s + (n.cooldownReduceSec ?? 0), 0) : 0
+  return Math.max(5_000, MINE_REENTER_COOLDOWN_MS - cut * 1000)
+}
+
 /** Leave mine → hub; starts re-enter cooldown. */
-export function exitClickerMine(save: SaveData, now: number): SaveData {
+export function exitClickerMine(save: SaveData, now: number, config?: GameConfig): SaveData {
   if (save.settings.playSurface !== "mine" && save.runState.mineSessionEndsAt <= 0) {
     return {
       ...save,
@@ -251,7 +259,7 @@ export function exitClickerMine(save: SaveData, now: number): SaveData {
     runState: {
       ...save.runState,
       mineSessionEndsAt: 0,
-      mineCooldownUntil: now + MINE_REENTER_COOLDOWN_MS,
+      mineCooldownUntil: now + reentryCooldownMs(save.runState, config),
       mineSessionCoreAtEnter: 0,
       mineSessionDurationMs: 0,
     },
@@ -259,10 +267,10 @@ export function exitClickerMine(save: SaveData, now: number): SaveData {
 }
 
 /** Tick helper: auto-exit when the timed session expires. */
-export function syncClickerMineSession(save: SaveData, now: number): SaveData {
+export function syncClickerMineSession(save: SaveData, now: number, config?: GameConfig): SaveData {
   if (save.settings.playSurface !== "mine") return save
   if (save.runState.mineSessionEndsAt <= 0 || save.runState.mineSessionEndsAt <= now) {
-    return exitClickerMine(save, now)
+    return exitClickerMine(save, now, config)
   }
   return save
 }
@@ -1403,6 +1411,8 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
           run.challengeCooldowns && typeof run.challengeCooldowns === "object" ? { ...run.challengeCooldowns } : {},
         monsterRespawnAt:
           run.monsterRespawnAt && typeof run.monsterRespawnAt === "object" ? { ...run.monsterRespawnAt } : {},
+        drillGauge: typeof run.drillGauge === "number" ? Math.min(1, Math.max(0, run.drillGauge)) : 0,
+        drillCooldownUntil: typeof run.drillCooldownUntil === "number" ? run.drillCooldownUntil : 0,
         boss: null,
         costScale:
           typeof run.costScale === "number" && run.costScale > 0
@@ -1440,15 +1450,56 @@ export function slayMonster(
   if (run.currentRegionId !== regionId) return { run, meta, reward: 0, error: `${region.name}에 있어야 합니다.` }
   if (!monsterAlive(run, regionId, now)) return { run, meta, reward: 0, error: "아직 돌아오지 않았습니다." }
   const perSecond = productionSnapshot(run, meta, config, now).perSecond
-  const reward = perSecond * monster.rewardSeconds + derivedClick(run, meta, config).click * 25
+  const skills = ownedSkills(run, config)
+  const rewardMul = skills.reduce((m, n) => m * (n.monsterRewardMultiplier ?? 1), 1)
+  // Same cooldown cuts as the mine re-entry and the drill, plus hunting-specific ones.
+  const respawnSec = Math.max(5, monster.respawnSec - skills.reduce((s, n) => s + (n.monsterRespawnReduce ?? 0) + (n.cooldownReduceSec ?? 0), 0))
+  // Hunting grounds are the region's main income, so their kills pay a much bigger click floor.
+  const clickFloor = region.huntMode ? 150 : 25
+  const reward = (perSecond * monster.rewardSeconds + derivedClick(run, meta, config).click * clickFloor) * rewardMul
   return {
     run: {
       ...run,
       coreEnergy: run.coreEnergy + reward,
       lifetimeCoreEnergy: run.lifetimeCoreEnergy + reward,
-      monsterRespawnAt: { ...run.monsterRespawnAt, [regionId]: now + monster.respawnSec * 1000 },
+      monsterRespawnAt: { ...run.monsterRespawnAt, [regionId]: now + respawnSec * 1000 },
     },
     meta: { ...meta, totalCoreEnergy: meta.totalCoreEnergy + reward, monstersSlain: (meta.monstersSlain ?? 0) + 1 },
+    reward,
+  }
+}
+
+/* ---------- Region core drilling ---------- */
+
+/** Taps needed to fill the drill gauge. */
+export const DRILL_TAPS = 25
+
+/**
+ * One tap on the region drill rig. Fills the gauge; the tap that fills it bores the vein:
+ * pays 90s of production plus a click-based floor, empties the gauge and starts the cooldown.
+ */
+export function drillStrike(
+  run: RunState,
+  meta: MetaState,
+  config: GameConfig,
+  now: number,
+): { run: RunState; meta: MetaState; reward: number; error?: string } {
+  if (run.drillCooldownUntil > now) {
+    return { run, meta, reward: 0, error: `시추 장비 냉각 중 · ${Math.ceil((run.drillCooldownUntil - now) / 1000)}초` }
+  }
+  const gauge = Math.min(1, run.drillGauge + 1 / DRILL_TAPS)
+  if (gauge < 1 - 1e-9) return { run: { ...run, drillGauge: gauge }, meta, reward: 0 }
+  const perSecond = productionSnapshot(run, meta, config, now).perSecond
+  const reward = perSecond * 90 + derivedClick(run, meta, config).click * 60
+  return {
+    run: {
+      ...run,
+      drillGauge: 0,
+      drillCooldownUntil: now + reentryCooldownMs(run, config),
+      coreEnergy: run.coreEnergy + reward,
+      lifetimeCoreEnergy: run.lifetimeCoreEnergy + reward,
+    },
+    meta: { ...meta, totalCoreEnergy: meta.totalCoreEnergy + reward },
     reward,
   }
 }
@@ -1490,7 +1541,7 @@ export function strikeBoss(
     return { run, meta, damage: 0, critical: false, defeated: false }
   }
   const hit = processClick(run, meta, config, now, rng)
-  const damage = hit.result.energyGained
+  const damage = hit.result.energyGained * ownedSkills(run, config).reduce((m, n) => m * (n.bossDamageMultiplier ?? 1), 1)
   const hp = Math.max(0, fight.hp - damage)
   const defeated = hp <= 0
   return {

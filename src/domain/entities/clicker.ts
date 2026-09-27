@@ -6,7 +6,7 @@ export type InstabilityLevel = "LOW" | "MID" | "HIGH" | "CRISIS"
 
 export type UpgradeCategory = "CLICK" | "PRODUCTION" | "FEVER" | "UTILITY"
 
-export type SkillBranch = "FOCUS" | "AUTOMATION" | "RESONANCE" | "TRANSCENDENCE"
+export type SkillBranch = "FOCUS" | "AUTOMATION" | "RESONANCE" | "TRANSCENDENCE" | "HUNT"
 
 export type CrisisChoice = "STABILIZE" | "RISK_IT" | "EMERGENCY_OVERCLOCK"
 
@@ -99,6 +99,9 @@ export type RunState = {
   costScale: number
   /** Region id → absolute ms when its monster respawns (absent/past = alive). */
   monsterRespawnAt: Record<string, number>
+  /** Region core drilling: taps fill the gauge (0–1); a full gauge pays out and starts the cooldown. */
+  drillGauge: number
+  drillCooldownUntil: number
   /** Active boss fight, or null. */
   boss: BossFight | null
 }
@@ -277,6 +280,14 @@ export type SkillNodeDef = {
   /** Mining drones: automatic strikes per second at a fraction of click power, everywhere. */
   droneStrikesPerSecond?: number
   droneEfficiencyAdd?: number
+  /** Region monsters drop this much more CORE (multiplies). */
+  monsterRewardMultiplier?: number
+  /** Seconds shaved off the mine re-entry and core-drilling cooldowns. */
+  cooldownReduceSec?: number
+  /** Seconds shaved off a region monster's respawn. */
+  monsterRespawnReduce?: number
+  /** Damage against the Core guardian (multiplies). */
+  bossDamageMultiplier?: number
 }
 
 export type AchievementKind =
@@ -362,6 +373,8 @@ export type RegionDef = {
   requiresRebirths?: number
   /** The creature roaming this region's background. */
   monster?: MonsterDef
+  /** Hunting ground: the region's main action is killing its background creatures. */
+  huntMode?: boolean
   /** Final guardian fight (last region only). */
   boss?: BossDef
 }

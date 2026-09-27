@@ -38,6 +38,7 @@ import {
   clickerUseSkill,
   clickerFinishTutorial,
   clickerSlayMonster,
+  clickerDrill,
   clickerStartBoss,
   clickerStrikeBoss,
   allowMineStrike,
@@ -102,6 +103,9 @@ export function useClicker() {
     setOtherTabActive(true)
   }, [])
   const [toast, setToast] = useState<string | null>(null)
+  /** Last purchase, drawn as a style-per-kind burst (skill branch or upgrade category). */
+  const [purchaseFx, setPurchaseFx] = useState<{ key: number; kind: string; assetId?: string } | null>(null)
+  const fxKey = useRef(0)
   const toastTimer = useRef<number | null>(null)
   const saveRef = useRef<SaveData | null>(null)
   const floatId = useRef(0)
@@ -284,7 +288,8 @@ export function useClicker() {
   const clickCore = useCallback((clientX?: number, clientY?: number) => {
     const current = saveRef.current
     if (!current || current.metaState.gameCompleted) return null
-    if (current.settings.playSurface === "mine" && !allowMineStrike(mineStrikes.current, performance.now())) return null
+    // Mine and region drilling share the 12-strikes-per-second cap.
+    if (!allowMineStrike(mineStrikes.current, performance.now())) return null
     const result = clickerClick(current, now())
     commit(result.save)
     if (result.quake) playSfx("quake")
@@ -342,7 +347,9 @@ export function useClicker() {
     if (!result.ok) return refuse(result.error)
     commit(result.value)
     playSfx("upgrade")
-    const name = clickerGameConfig.upgrades.find((u) => u.id === id)?.name ?? id
+    const def = clickerGameConfig.upgrades.find((u) => u.id === id)
+    setPurchaseFx({ key: ++fxKey.current, kind: def?.category ?? "UTILITY", assetId: def?.assetId })
+    const name = def?.name ?? id
     flash(`강화 · ${name}`)
   }, [commit, flash, refuse])
 
@@ -352,7 +359,9 @@ export function useClicker() {
     if (!result.ok) return refuse(result.error)
     commit(result.value)
     playSfx("skillUnlock")
-    const name = clickerGameConfig.skillNodes.find((s) => s.id === id)?.name ?? id
+    const def = clickerGameConfig.skillNodes.find((s) => s.id === id)
+    setPurchaseFx({ key: ++fxKey.current, kind: def?.branch ?? "FOCUS", assetId: def?.assetId })
+    const name = def?.name ?? id
     flash(`회로 해금 · ${name}`)
   }, [commit, flash, refuse])
 
@@ -646,6 +655,26 @@ export function useClicker() {
     [commit],
   )
 
+  /** One tap on the region drill rig. Returns the payout when this tap bored the vein, else 0 (null when refused). */
+  const drillVein = useCallback(
+    (clientX: number, clientY: number) => {
+      const current = saveRef.current
+      if (!current) return null
+      if (!allowMineStrike(mineStrikes.current, performance.now())) return null
+      const result = clickerDrill(current, now())
+      if (!result.ok) return null
+      commit(result.value.save)
+      if (result.value.reward > 0) {
+        playSfx("vein")
+        const id = ++floatId.current
+        setFloats((prev) => [...prev.slice(-12), { id, text: `+${formatNumber(result.value.reward)}`, critical: true, x: clientX, y: clientY }])
+        window.setTimeout(() => setFloats((prev) => prev.filter((f) => f.id !== id)), 1200)
+      }
+      return result.value.reward
+    },
+    [commit],
+  )
+
   const startBoss = useCallback(() => {
     if (!saveRef.current) return
     const result = clickerStartBoss(saveRef.current, now())
@@ -826,6 +855,8 @@ export function useClicker() {
     mineGate,
     finishTutorial,
     slayMonster,
+    drillVein,
+    purchaseFx,
     startBoss,
     strikeBoss,
   }

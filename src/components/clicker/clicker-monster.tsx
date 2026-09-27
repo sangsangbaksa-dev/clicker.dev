@@ -103,6 +103,8 @@ type Props = {
   kind: string
   name: string
   alive: boolean
+  /** Hunting grounds place each spawn somewhere new (percent of the stage). */
+  spot?: { left: number; top: number }
   onSlay: (clientX: number, clientY: number) => void
 }
 
@@ -110,7 +112,7 @@ type Props = {
  * Region monster roaming the stage background. Tap it to kill it; it falls, drops CORE,
  * and comes back when the engine says it has respawned.
  */
-export function ClickerMonster({ kind, name, alive, onSlay }: Props) {
+export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
   const [dying, setDying] = useState(false)
   const timer = useRef<number | null>(null)
   useEffect(() => () => {
@@ -127,7 +129,10 @@ export function ClickerMonster({ kind, name, alive, onSlay }: Props) {
     timer.current = window.setTimeout(() => setDying(false), 650)
   }
   return (
-    <div className={`clicker-monster-roam is-${kind}`}>
+    <div
+      className={`clicker-monster-roam is-${kind}${spot ? " is-hunt" : ""}`}
+      style={spot ? { left: `${spot.left}%`, top: `${spot.top}%` } : undefined}
+    >
       <button
         type="button"
         data-sfx="off"

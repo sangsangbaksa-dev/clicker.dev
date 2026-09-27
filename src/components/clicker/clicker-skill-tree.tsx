@@ -5,7 +5,7 @@ import {
   SKILL_BRANCH_COLOR,
   SKILL_BRANCH_LABEL,
   layoutSkillTree,
-  orthogonalPath,
+  connectorPath,
   type SkillCell,
 } from "@/data/clicker/skill-tree-layout"
 import type { SkillNodeView } from "@/domain/services/clicker-view"
@@ -145,7 +145,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
         ? node.requires.map((id) => byId.get(id)).filter((n): n is TreeNode => Boolean(n))
         : [layout.hub]
       for (const parent of parents) {
-        lines.push({ d: orthogonalPath(parent, node), color: SKILL_BRANCH_COLOR[node.branch], lit: node.status === "OWNED" })
+        lines.push({ d: connectorPath(parent, node), color: SKILL_BRANCH_COLOR[node.branch], lit: node.status === "OWNED" })
       }
     }
     return lines
@@ -197,7 +197,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
             ))}
           </svg>
           <div className="clicker-skillmap-hub" style={{ left: (layout.hub.col + 0.5) * CELL, top: (layout.hub.row + 0.5) * CELL }} aria-hidden>
-            ◆
+            <img src="/clicker/skill-node/hub_emblem.webp" alt="" draggable={false} />
           </div>
           {treeNodes.map((node) => (
             <button

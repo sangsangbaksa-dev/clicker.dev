@@ -136,3 +136,14 @@
   pointer-events: auto;
 }
 .clicker-monster-roam { z-index: 9; }
+
+/* Hunting grounds: each spawn fades in at a new spot in the background. */
+.clicker-monster-roam.is-hunt {
+  animation: clicker-hunt-spawn 320ms ease-out;
+}
+.clicker-monster-roam.is-hunt .clicker-monster {
+  width: clamp(64px, 9vw, 104px);
+}
+@keyframes clicker-hunt-spawn {
+  from { opacity: 0; transform: scale(0.6); }
+}

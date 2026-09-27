@@ -9,18 +9,24 @@ export type SkillTreeLayout = {
   rows: number
 }
 
-/** Right side grows FOCUS then RESONANCE; left side AUTOMATION then TRANSCENDENCE. */
-const SIDES: Array<{ dir: 1 | -1; branches: SkillBranch[] }> = [
-  { dir: 1, branches: ["FOCUS", "RESONANCE"] },
-  { dir: -1, branches: ["AUTOMATION", "TRANSCENDENCE"] },
-]
+/** Five branches around the hub, one per pentagon corner, clockwise from the top. */
+export const SKILL_BRANCH_ORDER: SkillBranch[] = ["FOCUS", "AUTOMATION", "RESONANCE", "HUNT", "TRANSCENDENCE"]
 
 type LayoutNode = Pick<SkillNodeDef, "id" | "branch" | "requires">
 
+/** Distance from the hub to a branch's first circuit, and between depth rings (in cells). */
+const RING0 = 2.4
+const RING_STEP = 1.35
+/** Half of the angle a branch fans across. */
+const FAN = (30 * Math.PI) / 180
+/** Nodes closer than this (in cells) get pushed apart. */
+const MIN_GAP = 1.2
+
 /**
- * Grid layout: depth (longest prerequisite chain) sets the column, a node's first
- * prerequisite is its layout parent, and the first child continues the parent's row so
- * main lines stay straight. Positions never depend on what is owned.
+ * Radial layout: the five branch roots sit on a pentagon around the hub and each branch
+ * fans outward — depth sets the ring, leaf order sets the angle within the branch's wedge.
+ * A short relaxation pass then pushes apart anything that landed too close. Deterministic,
+ * and positions never depend on what is owned.
  */
 export function layoutSkillTree(nodes: LayoutNode[]): SkillTreeLayout {
   const byId = new Map(nodes.map((n) => [n.id, n]))
@@ -39,54 +45,88 @@ export function layoutSkillTree(nodes: LayoutNode[]): SkillTreeLayout {
     if (parent) children.set(parent, [...(children.get(parent) ?? []), node.id])
   }
 
-  const cells: Record<string, SkillCell> = {}
-  let maxDepth = 0
-  let rows = 0
-  for (const side of SIDES) {
-    let nextRow = 0
-    const place = (id: string): number => {
+  const pos = new Map<string, { x: number; y: number }>()
+  const pinned = new Set<string>()
+  const branches = [...SKILL_BRANCH_ORDER, ...new Set(nodes.map((n) => n.branch).filter((b) => !SKILL_BRANCH_ORDER.includes(b)))]
+  branches.forEach((branch, i) => {
+    const theta = -Math.PI / 2 + (i * 2 * Math.PI) / branches.length
+    const roots = nodes.filter((n) => n.branch === branch && !n.requires?.some((r) => byId.has(r)))
+    // Leaf slots in DFS order; a parent sits at the mean of its children's slots.
+    const slot = new Map<string, number>()
+    let leaves = 0
+    const walk = (id: string): number => {
       const kids = children.get(id) ?? []
-      let row = nextRow
-      if (kids.length) {
-        row = place(kids[0])
-        for (const kid of kids.slice(1)) place(kid)
-      } else {
-        nextRow += 1
-      }
-      const d = depthOf(id)
-      maxDepth = Math.max(maxDepth, d)
-      cells[id] = { col: side.dir * (d + 1), row }
-      return row
+      const v = kids.length ? kids.map(walk).reduce((a, b) => a + b, 0) / kids.length : leaves++
+      slot.set(id, v)
+      return v
     }
-    side.branches.forEach((branch, i) => {
-      if (i > 0 && nextRow > 0) nextRow += 1
-      const start = nextRow
-      const roots = nodes.filter((n) => n.branch === branch && !n.requires?.some((r) => byId.has(r)))
-      for (const root of roots) place(root.id)
-      // The upper branch is mirrored so its main line sits next to the hub, like the lower one.
-      if (i === 0) {
-        const end = nextRow - 1
-        for (const node of nodes) {
-          if (node.branch === branch && cells[node.id]) cells[node.id].row = start + end - cells[node.id].row
+    for (const root of roots) walk(root.id)
+    const mid = (leaves - 1) / 2
+    for (const [id, v] of slot) {
+      const angle = theta + (leaves > 1 ? ((v - mid) / mid) * FAN : 0)
+      const r = RING0 + depthOf(id) * RING_STEP
+      pos.set(id, { x: Math.cos(angle) * r, y: Math.sin(angle) * r })
+    }
+    for (const root of roots) pinned.add(root.id)
+  })
+
+  // Relax: push overlapping nodes apart; roots stay on the pentagon.
+  const ids = [...pos.keys()]
+  for (let iter = 0; iter < 160; iter++) {
+    let moved = false
+    for (let a = 0; a < ids.length; a++) {
+      const pa = pos.get(ids[a])!
+      for (let b = a + 1; b < ids.length; b++) {
+        const pb = pos.get(ids[b])!
+        let dx = pb.x - pa.x
+        let dy = pb.y - pa.y
+        let d = Math.hypot(dx, dy)
+        if (d >= MIN_GAP) continue
+        if (d < 1e-6) {
+          dx = Math.cos(a + b)
+          dy = Math.sin(a + b)
+          d = 1
         }
+        const push = (MIN_GAP - d) / 2 + 0.01
+        const ux = dx / d
+        const uy = dy / d
+        const fa = pinned.has(ids[a]) ? 0 : pinned.has(ids[b]) ? 2 : 1
+        const fb = pinned.has(ids[b]) ? 0 : pinned.has(ids[a]) ? 2 : 1
+        pa.x -= ux * push * fa
+        pa.y -= uy * push * fa
+        pb.x += ux * push * fb
+        pb.y += uy * push * fb
+        moved = true
       }
-    })
-    rows = Math.max(rows, nextRow)
+      // Keep clear of the hub emblem.
+      const r = Math.hypot(pa.x, pa.y)
+      if (r < RING0 * 0.9 && !pinned.has(ids[a])) {
+        pa.x *= (RING0 * 0.9) / Math.max(r, 1e-6)
+        pa.y *= (RING0 * 0.9) / Math.max(r, 1e-6)
+      }
+    }
+    if (!moved) break
   }
-  const half = maxDepth + 1
-  for (const cell of Object.values(cells)) cell.col += half
-  return { cells, hub: { col: half, row: Math.floor((rows - 1) / 2) }, cols: half * 2 + 1, rows }
+
+  const pad = 1
+  const xs = [0, ...[...pos.values()].map((p) => p.x)]
+  const ys = [0, ...[...pos.values()].map((p) => p.y)]
+  const minX = Math.min(...xs) - pad
+  const minY = Math.min(...ys) - pad
+  const cells: Record<string, SkillCell> = {}
+  for (const [id, p] of pos) cells[id] = { col: p.x - minX, row: p.y - minY }
+  return {
+    cells,
+    hub: { col: -minX, row: -minY },
+    cols: Math.max(...xs) - minX + pad + 1,
+    rows: Math.max(...ys) - minY + pad + 1,
+  }
 }
 
-/**
- * Orthogonal connector: run along the parent's row, turn at the half-column just before
- * the child, then run along the child's row. Only horizontal and vertical segments.
- */
-export function orthogonalPath(from: SkillCell, to: SkillCell): string {
-  const turn = to.col - 0.5 * Math.sign(to.col - from.col || 1)
-  const x = (c: number) => c + 0.5
-  const y = (r: number) => r + 0.5
-  return `M${x(from.col)} ${y(from.row)}H${x(turn)}V${y(to.row)}H${x(to.col)}`
+/** Straight connector between two cell centres. */
+export function connectorPath(from: SkillCell, to: SkillCell): string {
+  const f = (n: number) => (n + 0.5).toFixed(3)
+  return `M${f(from.col)} ${f(from.row)}L${f(to.col)} ${f(to.row)}`
 }
 
 export const SKILL_BRANCH_LABEL: Record<SkillBranch, string> = {
@@ -94,6 +134,7 @@ export const SKILL_BRANCH_LABEL: Record<SkillBranch, string> = {
   AUTOMATION: "자동화",
   RESONANCE: "공명",
   TRANSCENDENCE: "초월",
+  HUNT: "사냥",
 }
 
 export const SKILL_BRANCH_COLOR: Record<SkillBranch, string> = {
@@ -101,6 +142,7 @@ export const SKILL_BRANCH_COLOR: Record<SkillBranch, string> = {
   AUTOMATION: "#6fd9b0",
   RESONANCE: "#a98cff",
   TRANSCENDENCE: "#e8c468",
+  HUNT: "#ff7a5c",
 }
 
 export const SKILL_BRANCH_GLYPH: Record<SkillBranch, string> = {
@@ -108,4 +150,5 @@ export const SKILL_BRANCH_GLYPH: Record<SkillBranch, string> = {
   AUTOMATION: "⚙",
   RESONANCE: "◎",
   TRANSCENDENCE: "✦",
+  HUNT: "⚔",
 }
