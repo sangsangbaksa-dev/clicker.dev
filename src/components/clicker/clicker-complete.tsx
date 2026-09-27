@@ -19,7 +19,8 @@ export function ClickerComplete({ meta, worldlineTotal, onReset }: Props) {
   const rootRef = useRef<HTMLElement | null>(null)
   const completedDate =
     meta.completedAt != null ? new Date(meta.completedAt).toLocaleString("ko-KR") : "—"
-  const worldlinesOwned = meta.transcendenceIds.length
+  // Re-walking a line repeats its id, so count distinct worldlines.
+  const worldlinesOwned = new Set(meta.transcendenceIds).size
 
   useClickerDialogFocus(rootRef)
 
