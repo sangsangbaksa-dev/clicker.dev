@@ -161,31 +161,56 @@ function echo(c: AudioContext, delay = 0.12, feedback = 0.32, wet = 0.35) {
   return input
 }
 
+/**
+ * Soft UI pluck: a sine that starts a touch sharp and settles, through a lowpass,
+ * so presses sound rounded instead of like raw oscillator blips.
+ */
+function pluck(c: AudioContext, freq: number, gain: number, start: number, dur: number, bend = 1.12) {
+  const lp = c.createBiquadFilter()
+  lp.type = "lowpass"
+  lp.frequency.value = Math.min(9000, freq * 4)
+  lp.Q.value = 0.3
+  lp.connect(out(c))
+  const osc = c.createOscillator()
+  osc.type = "sine"
+  osc.frequency.setValueAtTime(freq * bend, start)
+  osc.frequency.exponentialRampToValueAtTime(freq, start + Math.min(0.03, dur / 2))
+  const g = envGain(c, gain, start, 0.003, dur)
+  osc.connect(g)
+  g.connect(lp)
+  osc.start(start)
+  osc.stop(start + dur + 0.03)
+}
+
+/** Small bell: fundamental plus a quiet inharmonic partial, soft attack. */
+function bell(c: AudioContext, freq: number, gain: number, start: number, dur: number, dest?: AudioNode) {
+  tone(c, "sine", freq, freq, gain, start, dur, { attack: 0.004, dest })
+  tone(c, "sine", freq * 2.76, freq * 2.76, gain * 0.18, start, dur * 0.5, { attack: 0.002, dest })
+}
+
 /** Pentatonic-ish step so repeated purchases climb a little instead of droning. */
 let purchaseStep = 0
 const PURCHASE_STEPS = [0, 2, 4, 7, 9, 12]
 const semis = (base: number, n: number) => base * 2 ** (n / 12)
 
 const CUES = {
-  /** Generic UI press — tabs, dock, drawer. */
+  /** Generic UI press: soft rounded pop with a faint glassy top. */
   tap(c: AudioContext, t: number) {
-    // Crisp mechanical click with a short pitched body.
-    tone(c, "square", 1400, 900, 0.035, t, 0.04, { attack: 0.001 })
-    tone(c, "triangle", 880, 700, 0.06, t, 0.08, { attack: 0.002 })
-    noise(c, "highpass", 4500, 0.7, 0.03, t, 0.03)
+    pluck(c, 660, 0.05, t, 0.09)
+    pluck(c, 1980, 0.008, t, 0.05)
   },
   /** Soft tick — tab / panel switch. */
   tick(c: AudioContext, t: number) {
-    tone(c, "sine", 2400, 2200, 0.025, t, 0.03, { attack: 0.001 })
+    pluck(c, 1760, 0.014, t, 0.04)
   },
-  /** Buy OK: bright coin blip that climbs on streaks. */
+  /** Buy OK: warm two-note coin chime that climbs on streaks. */
   purchase(c: AudioContext, t: number) {
     const step = PURCHASE_STEPS[purchaseStep % PURCHASE_STEPS.length]
     purchaseStep += 1
-    const root = semis(880, step)
-    tone(c, "square", root, root, 0.03, t, 0.07, { attack: 0.002 })
-    tone(c, "triangle", root * 1.5, root * 1.5, 0.045, t + 0.045, 0.16)
-    noise(c, "bandpass", 6000, 2, 0.015, t, 0.05)
+    const root = semis(784, step)
+    const e = echo(c, 0.08, 0.18, 0.18)
+    bell(c, root, 0.04, t, 0.18, e)
+    bell(c, root * 1.5, 0.035, t + 0.05, 0.26, e)
   },
   /** Permanent upgrade: two-note rise with a sparkle tail. */
   upgrade(c: AudioContext, t: number) {
@@ -194,11 +219,10 @@ const CUES = {
     tone(c, "triangle", 988, 988, 0.055, t + 0.07, 0.22, { dest: e })
     tone(c, "sine", 1976, 1976, 0.018, t + 0.1, 0.3, { dest: e })
   },
-  /** Can't afford / refused: low double buzz. */
+  /** Can't afford / refused: muted low double bump. */
   deny(c: AudioContext, t: number) {
-    tone(c, "sawtooth", 180, 150, 0.04, t, 0.08)
-    tone(c, "sawtooth", 160, 130, 0.04, t + 0.1, 0.1)
-    noise(c, "lowpass", 600, 0.7, 0.02, t, 0.16)
+    pluck(c, 220, 0.06, t, 0.1, 0.8)
+    pluck(c, 185, 0.06, t + 0.11, 0.13, 0.8)
   },
   /** Skill circuit unlocked: electric arc + ascending arpeggio. */
   skillUnlock(c: AudioContext, t: number) {
@@ -300,8 +324,9 @@ const CUES = {
   },
   /** Manual save confirmation. */
   save(c: AudioContext, t: number) {
-    tone(c, "sine", 1318, 1318, 0.025, t, 0.08)
-    tone(c, "sine", 1760, 1760, 0.022, t + 0.06, 0.14)
+    const e = echo(c, 0.1, 0.2, 0.2)
+    bell(c, 1175, 0.025, t, 0.15, e)
+    bell(c, 1568, 0.022, t + 0.07, 0.25, e)
   },
   /** Center ore shattered. */
   oreBreak(c: AudioContext, t: number) {
@@ -345,7 +370,8 @@ const CUES = {
   },
   /** Settings toggle / on-off. */
   toggle(c: AudioContext, t: number) {
-    tone(c, "triangle", 1200, 1600, 0.03, t, 0.06)
+    pluck(c, 990, 0.03, t, 0.06)
+    pluck(c, 1320, 0.022, t + 0.04, 0.07)
   },
   /** Welcome-back reward claimed. */
   reward(c: AudioContext, t: number) {
@@ -362,32 +388,34 @@ const CUES = {
   },
   /** Tab / dock / navigation button: soft woody knock. */
   nav(c: AudioContext, t: number) {
-    tone(c, "sine", 520, 430, 0.07, t, 0.07, { attack: 0.002 })
-    tone(c, "triangle", 1040, 860, 0.02, t, 0.05)
+    pluck(c, 494, 0.06, t, 0.1)
+    pluck(c, 988, 0.012, t, 0.06)
   },
-  /** Back / close: short falling blip. */
+  /** Back / close: gentle falling two-step. */
   back(c: AudioContext, t: number) {
-    tone(c, "triangle", 900, 520, 0.05, t, 0.09)
+    pluck(c, 880, 0.035, t, 0.07)
+    pluck(c, 660, 0.035, t + 0.05, 0.1)
   },
-  /** Opening a panel or screen (settings, skill tree): airy rising blip. */
+  /** Opening a panel or screen: airy rising two-step. */
   open(c: AudioContext, t: number) {
-    tone(c, "sine", 600, 1200, 0.045, t, 0.12, { attack: 0.01 })
-    noise(c, "bandpass", 3000, 2, 0.015, t, 0.1, { sweepTo: 6000 })
+    pluck(c, 660, 0.035, t, 0.08)
+    pluck(c, 988, 0.035, t + 0.05, 0.12)
+    noise(c, "bandpass", 5000, 1.5, 0.006, t, 0.12, { sweepTo: 8000, attack: 0.03 })
   },
   /** Selecting a node / card: glassy ping. */
   select(c: AudioContext, t: number) {
-    tone(c, "sine", 1760, 1760, 0.035, t, 0.08, { attack: 0.001 })
-    tone(c, "sine", 2637, 2637, 0.012, t + 0.02, 0.08)
+    bell(c, 1568, 0.025, t, 0.14)
   },
   /** Confirm / primary action (not a purchase). */
   confirm(c: AudioContext, t: number) {
-    tone(c, "square", 660, 660, 0.025, t, 0.06, { attack: 0.001 })
-    tone(c, "square", 990, 990, 0.025, t + 0.05, 0.08, { attack: 0.001 })
+    const e = echo(c, 0.09, 0.18, 0.18)
+    bell(c, 784, 0.035, t, 0.16, e)
+    bell(c, 1175, 0.035, t + 0.06, 0.24, e)
   },
-  /** Dangerous choice (crisis options, reset). */
+  /** Dangerous choice (crisis options, reset): low muted thud with a minor second. */
   danger(c: AudioContext, t: number) {
-    tone(c, "sawtooth", 300, 240, 0.035, t, 0.12)
-    noise(c, "lowpass", 900, 1, 0.03, t, 0.12)
+    pluck(c, 196, 0.07, t, 0.18, 0.8)
+    pluck(c, 208, 0.04, t + 0.02, 0.18, 0.8)
   },
   /** Region monster slain: squelch + coin spill. */
   monsterDie(c: AudioContext, t: number) {
