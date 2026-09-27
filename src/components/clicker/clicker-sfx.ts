@@ -47,6 +47,11 @@ function audio(): AudioContext | null {
   return ctx
 }
 
+/** The shared context (created on demand, resumed if suspended). BGM routes through it too. */
+export function sharedAudioContext(): AudioContext | null {
+  return audio()
+}
+
 /** Call from a capture-phase gesture listener so later SFX aren't stuck suspended. */
 export function unlockSfx() {
   audio()

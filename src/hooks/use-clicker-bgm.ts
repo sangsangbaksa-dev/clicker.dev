@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import type { CoreVisual } from "@/domain/services/clicker-view"
+import { sharedAudioContext } from "@/components/clicker/clicker-sfx"
 
 /** Hub / mine loops plus the chamber cue for rebirth and ending. */
 const BGM_SRC = {
@@ -31,6 +32,14 @@ export function useClickerBgm(
 
   useEffect(() => {
     const tracks: Partial<Record<Track, HTMLAudioElement>> = {}
+    // iOS Safari ignores HTMLMediaElement.volume, so levels go through Web Audio gain
+    // nodes when available; element volume is the fallback.
+    const gains: Partial<Record<Track, GainNode>> = {}
+    const setVolume = (key: Track, audio: HTMLAudioElement, v: number) => {
+      const node = gains[key]
+      if (node) node.gain.value = v
+      else audio.volume = v
+    }
     const levels: Record<Track, number> = { hub: 0, mine: 0, chamber: 0 }
     let unlocked = false
     let hidden = document.visibilityState === "hidden"
@@ -44,6 +53,19 @@ export function useClickerBgm(
         audio.loop = true
         audio.volume = 0
         tracks[key] = audio
+        const c = sharedAudioContext()
+        if (c) {
+          try {
+            const node = c.createGain()
+            node.gain.value = 0
+            c.createMediaElementSource(audio).connect(node)
+            node.connect(c.destination)
+            audio.volume = 1
+            gains[key] = node
+          } catch {
+            /* stay on element volume */
+          }
+        }
       }
       return audio
     }
@@ -66,7 +88,7 @@ export function useClickerBgm(
         const level =
           target > levels[key] ? Math.min(target, levels[key] + delta) : Math.max(target, levels[key] - delta)
         levels[key] = level
-        audio.volume = Math.min(1, level * gain)
+        setVolume(key, audio, Math.min(1, level * gain))
         if (level === 0 && !audio.paused) audio.pause()
         if (level !== target) moving = true
       }
@@ -83,6 +105,7 @@ export function useClickerBgm(
     // Capture phase: mine ore buttons stopPropagation() on pointerdown.
     const onGesture = () => {
       unlocked = true
+      if (Object.keys(gains).length) sharedAudioContext() // resume a suspended context
       kick()
     }
     // rAF stalls in background tabs, so pause directly instead of fading.
@@ -110,6 +133,7 @@ export function useClickerBgm(
         audio.pause()
         audio.src = ""
       }
+      for (const node of Object.values(gains)) node.disconnect()
       kickRef.current = () => {}
     }
   }, [])
