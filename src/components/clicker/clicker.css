@@ -1945,55 +1945,141 @@ button.clicker-metric-action.is-fever-ready em {
   min-width: 0;
 }
 
-/* Always-visible action for the selected circuit, docked over the board. */
-.clicker-skill-quickbar {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
-  z-index: 3;
+/* Fullscreen tree: covers the game (toasts at z 60 stay above), board fills what the header leaves. */
+.clicker-skill-tree.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 58;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 10px;
-  padding: 6px 6px 6px 12px;
-  border-radius: var(--radius-pill);
-  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
-  background: color-mix(in srgb, var(--void) 82%, transparent);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--void) 60%, transparent);
-  pointer-events: auto;
+  padding: max(14px, env(safe-area-inset-top, 0px)) 16px max(14px, env(safe-area-inset-bottom, 0px));
+  background:
+    radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--core) 10%, transparent), transparent 60%),
+    var(--void);
+  animation: clicker-skill-fullscreen-in 200ms ease-out both;
 }
 
-.clicker-skill-quickbar-name {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
+@keyframes clicker-skill-fullscreen-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
 }
 
-.clicker-skill-quickbar-buy {
+.clicker-skill-tree.is-fullscreen .clicker-skill-tree-stage {
+  flex: 1;
+  min-height: 0;
+}
+
+.clicker-skill-tree.is-fullscreen .clicker-skill-tree-scroll {
+  display: flex;
+  height: 100%;
+  max-height: none;
+}
+
+/* Center the board when it is smaller than the screen (auto margins collapse to 0 on overflow). */
+.clicker-skill-tree.is-fullscreen .clicker-skill-tree-board {
   flex-shrink: 0;
-  min-height: 34px;
+  margin: auto;
+}
+
+.clicker-skill-tree-head-side {
+  grid-auto-flow: column;
+  align-items: center;
+}
+
+.clicker-skill-tree-close {
+  min-height: 32px;
   padding: 0 14px;
   border-radius: var(--radius-pill);
-  border: 1px solid color-mix(in srgb, var(--core) 60%, var(--line));
-  background: color-mix(in srgb, var(--core) 26%, var(--panel));
-  color: var(--core-bright);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 85%, transparent);
+  color: var(--text);
   font-size: 12px;
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
 
-.clicker-skill-quickbar-buy:disabled {
-  cursor: not-allowed;
-  border-color: var(--line);
-  background: color-mix(in srgb, var(--panel) 80%, transparent);
+.clicker-skill-tree-close:hover,
+.clicker-skill-tree-close:focus-visible {
+  border-color: color-mix(in srgb, var(--core) 55%, var(--line));
+}
+
+/* Hover card: floats next to the node under the pointer. */
+.clicker-skill-tip {
+  position: fixed;
+  z-index: 59;
+  box-sizing: border-box;
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--void) 70%, transparent);
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  animation: clicker-skill-tip-in 120ms ease-out both;
+}
+
+@keyframes clicker-skill-tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.clicker-skill-tip-close {
+  margin-left: 4px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
   color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.clicker-skill-tip-close:hover {
+  color: var(--text);
+}
+
+.clicker-skill-tip .clicker-skill-detail-top {
+  justify-content: flex-start;
+}
+
+.clicker-skill-tip .clicker-skill-detail-meta {
+  margin-right: auto;
+}
+
+/* Phones: no room beside a node, so the card docks along the bottom edge. */
+@media (max-width: 600px) {
+  .clicker-skill-tree.is-fullscreen {
+    padding-inline: 10px;
+  }
+
+  .clicker-skill-tree.is-fullscreen .clicker-skill-tree-head {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .clicker-skill-tree.is-fullscreen .clicker-skill-tree-head-side {
+    justify-items: start;
+    justify-content: start;
+  }
+
+  .clicker-skill-tip {
+    left: 8px !important;
+    right: 8px;
+    top: auto !important;
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    width: auto !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-skill-tree.is-fullscreen,
+  .clicker-skill-tip {
+    animation: none;
+  }
 }
 
 .clicker-skill-detail-progress {
@@ -4965,8 +5051,6 @@ button.clicker-metric-action.is-fever-ready em {
 
   .clicker-skill-tree-scroll {
     --cell: 46px;
-    /* Short enough that the docked quick-buy bar stays on screen. */
-    max-height: min(50vh, 420px);
   }
 
   .clicker-skill-node {

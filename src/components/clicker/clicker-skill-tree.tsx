@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from "react"
 import {
   SKILL_BRANCH_COLOR,
   SKILL_BRANCH_GLYPH,
@@ -20,7 +20,16 @@ type Props = {
   onBuy: (id: string) => void
   /** Unlock a circuit with every missing prerequisite in one purchase. */
   onBuyPath: (id: string) => void
+  /** Leave the fullscreen tree. */
+  onClose: () => void
 }
+
+/** Screen box of the node a tip is anchored to. */
+type Anchor = { left: number; top: number; right: number; bottom: number }
+
+const TIP_WIDTH = 288
+const TIP_GAP = 12
+const TIP_HIDE_MS = 160
 
 function statusLabel(status: SkillNodeView["status"]): string {
   switch (status) {
@@ -42,7 +51,7 @@ function cellStyle(cell: SkillCell): CSSProperties {
   }
 }
 
-export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onBuyPath }: Props) {
+export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onBuyPath, onClose }: Props) {
   // The whole tree is always on the board; locked circuits show dimmed with their prerequisites.
   const layout = useMemo(() => layoutSkillTree(nodes), [nodes])
   const treeNodes = useMemo<TreeNode[]>(
@@ -52,24 +61,27 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onBuyPath }: Props)
   const ownedCount = treeNodes.filter((n) => n.status === "OWNED").length
   const lockedCount = treeNodes.filter((n) => n.status === "LOCKED").length
 
-  const [selectedId, setSelectedId] = useState<string | null>(
-    () => treeNodes.find((n) => n.status === "AVAILABLE")?.id ?? treeNodes[0]?.id ?? null,
-  )
+  /**
+   * The hover card: follows the mouse over nodes, and stays put (pinned) after a click or tap
+   * so touch screens and keyboard users get the same card.
+   */
+  const [tip, setTip] = useState<{ id: string; anchor: Anchor; pinned: boolean } | null>(null)
+  const hideTimer = useRef(0)
+  const cancelHide = () => window.clearTimeout(hideTimer.current)
+  const scheduleHide = () => {
+    cancelHide()
+    hideTimer.current = window.setTimeout(() => setTip((t) => (t?.pinned ? t : null)), TIP_HIDE_MS)
+  }
+  useEffect(() => () => window.clearTimeout(hideTimer.current), [])
 
-  useEffect(() => {
-    if (!treeNodes.length) {
-      setSelectedId(null)
-      return
-    }
-    const current = treeNodes.find((n) => n.id === selectedId)
-    if (current) return
-    setSelectedId(
-      treeNodes.find((n) => n.status === "AVAILABLE")?.id ??
-        treeNodes.find((n) => n.status === "OWNED")?.id ??
-        treeNodes[0]?.id ??
-        null,
-    )
-  }, [selectedId, treeNodes])
+  const anchorOf = (el: Element): Anchor => {
+    const r = el.getBoundingClientRect()
+    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom }
+  }
+  const showTip = (id: string, el: Element, pinned: boolean) => {
+    cancelHide()
+    setTip((t) => ({ id, anchor: anchorOf(el), pinned: pinned || (t?.id === id && t.pinned) }))
+  }
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const hubCol = layout.hub.col
@@ -82,10 +94,10 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onBuyPath }: Props)
     el.scrollTop = (hubRow + 0.5) * cell - el.clientHeight / 2
   }, [hubCol, hubRow, layout.cols])
 
-  const selected = treeNodes.find((n) => n.id === selectedId) ?? null
   const byId = useMemo(() => new Map(treeNodes.map((n) => [n.id, n])), [treeNodes])
-  /** Circuits the selected node still needs (itself included) — highlighted on the board. */
-  const pathSet = useMemo(() => new Set(selected?.path ?? []), [selected])
+  const active = tip ? (byId.get(tip.id) ?? null) : null
+  /** Circuits the shown node still needs (itself included) — highlighted on the board. */
+  const pathSet = useMemo(() => new Set(active?.status === "OWNED" ? [] : (active?.path ?? [])), [active])
   const cheapest = useMemo(
     () =>
       treeNodes
@@ -94,43 +106,47 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onBuyPath }: Props)
     [treeNodes],
   )
 
-  const scrollToCell = (cell: SkillCell) => {
+  const nodeEl = (id: string) => scrollRef.current?.querySelector(`[data-node-id="${id}"]`) ?? null
+
+  /** Keep the card glued to its node while the board scrolls. */
+  const onBoardScroll = () => {
+    if (!tip) return
+    const el = nodeEl(tip.id)
+    if (el) setTip({ ...tip, anchor: anchorOf(el) })
+  }
+
+  const jumpTo = (node: TreeNode) => {
     const el = scrollRef.current
     if (!el) return
     const size = el.scrollWidth / layout.cols
     el.scrollTo({
-      left: (cell.col + 0.5) * size - el.clientWidth / 2,
-      top: (cell.row + 0.5) * size - el.clientHeight / 2,
-      behavior: "smooth",
+      left: (node.col + 0.5) * size - el.clientWidth / 2,
+      top: (node.row + 0.5) * size - el.clientHeight / 2,
+    })
+    window.requestAnimationFrame(() => {
+      const target = nodeEl(node.id)
+      if (target) showTip(node.id, target, true)
     })
   }
 
-  /** After unlocking `id`, move the selection to a child it just opened. */
-  const selectNextAfter = (id: string, unlocked: string[]) => {
-    const ownedNow = (rid: string) => unlocked.includes(rid) || byId.get(rid)?.status === "OWNED"
-    const child = treeNodes.find(
-      (n) => n.requires.includes(id) && n.status !== "OWNED" && !unlocked.includes(n.id) && n.requires.every(ownedNow),
-    )
-    if (child) setSelectedId(child.id)
+  const buy = (node: TreeNode) => {
+    if (node.canBuy) onBuy(node.id)
+    else if (node.status === "LOCKED" && node.canBuyPath) onBuyPath(node.id)
   }
 
-  const buySelected = (node: TreeNode) => {
-    if (node.canBuy) {
-      onBuy(node.id)
-      selectNextAfter(node.id, [node.id])
-    } else if (node.canBuyPath) {
-      onBuyPath(node.id)
-      selectNextAfter(node.id, node.path)
-    }
-  }
-
-  const onNodeClick = (node: TreeNode) => {
-    // Second tap on the selected, affordable circuit unlocks it — no trip to the button below.
-    if (selectedId === node.id && node.canBuy) {
-      buySelected(node)
+  const onNodeClick = (node: TreeNode, el: HTMLElement) => {
+    // Clicking the node whose card is already pinned unlocks it — the card's button is optional.
+    if (tip?.id === node.id && tip.pinned && node.canBuy) {
+      buy(node)
       return
     }
-    setSelectedId(node.id)
+    showTip(node.id, el, true)
+  }
+
+  const onNodeEnter = (e: PointerEvent<HTMLButtonElement>, node: TreeNode) => {
+    if (e.pointerType !== "mouse") return
+    // A pinned card stays until another node is hovered or clicked.
+    showTip(node.id, e.currentTarget, false)
   }
 
   const edges = useMemo(() => {
@@ -154,7 +170,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onBuyPath }: Props)
       <div>
         <div className="clicker-skill-tree-title">CIRCUITS · 회로</div>
         <div className="clicker-skill-tree-sub">
-          회로 {treeNodes.length}개 · 활성 {ownedCount} — 선행 회로를 해금하면 다음 노드가 열립니다
+          회로 {treeNodes.length}개 · 활성 {ownedCount} — 노드에 마우스를 올리면 효과와 해금 버튼이 보입니다
         </div>
       </div>
       <div className="clicker-skill-tree-head-side">
@@ -162,24 +178,20 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onBuyPath }: Props)
           CORE <strong>{formatNumber(coreEnergy)}</strong>
         </div>
         {cheapest ? (
-          <button
-            type="button"
-            className="clicker-skill-tree-next"
-            onClick={() => {
-              setSelectedId(cheapest.id)
-              scrollToCell(cheapest)
-            }}
-          >
+          <button type="button" className="clicker-skill-tree-next" onClick={() => jumpTo(cheapest)}>
             해금 가능 ▸
           </button>
         ) : null}
+        <button type="button" className="clicker-skill-tree-close" aria-label="스킬 트리 닫기 · Esc" onClick={onClose}>
+          닫기 · Esc
+        </button>
       </div>
     </div>
   )
 
   if (!treeNodes.length) {
     return (
-      <div className="clicker-skill-tree">
+      <div className="clicker-skill-tree is-fullscreen" role="dialog" aria-modal="true" aria-label="스킬 회로">
         {head}
         <p className="clicker-skill-tree-empty" role="status">
           회로가 아직 열리지 않았습니다. CORE를 모아 노드를 해금하세요.
@@ -188,8 +200,21 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onBuyPath }: Props)
     )
   }
 
+  const tipStyle = (anchor: Anchor): CSSProperties => {
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const fitsRight = anchor.right + TIP_GAP + TIP_WIDTH <= vw - 8
+    const left = fitsRight ? anchor.right + TIP_GAP : anchor.left - TIP_GAP - TIP_WIDTH
+    return {
+      width: TIP_WIDTH,
+      left: Math.max(8, Math.min(vw - TIP_WIDTH - 8, left)),
+      // Room for the tallest card (locked circuit with progress) below the anchor's top.
+      top: Math.max(8, Math.min(vh - 300, anchor.top - 24)),
+    }
+  }
+
   return (
-    <div className="clicker-skill-tree">
+    <div className="clicker-skill-tree is-fullscreen" role="dialog" aria-modal="true" aria-label="스킬 회로">
       {head}
 
       <ul className="clicker-skill-legend" aria-label="노드 상태">
@@ -205,12 +230,16 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onBuyPath }: Props)
       ) : null}
 
       <div className="clicker-skill-tree-stage">
-        <div className="clicker-skill-tree-scroll" ref={scrollRef}>
+        <div className="clicker-skill-tree-scroll" ref={scrollRef} onScroll={onBoardScroll}>
           <div
             className="clicker-skill-tree-board"
             style={{
               width: `calc(var(--cell) * ${layout.cols})`,
               height: `calc(var(--cell) * ${layout.rows})`,
+            }}
+            onClick={(e) => {
+              // A click on empty board drops the pinned card.
+              if (e.target === e.currentTarget) setTip(null)
             }}
           >
             <svg
@@ -243,7 +272,8 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onBuyPath }: Props)
               <button
                 key={node.id}
                 type="button"
-                className={`clicker-skill-node is-${node.status.toLowerCase()}${node.tier >= 5 ? " is-apex" : ""}${selectedId === node.id ? " is-selected" : ""}${pathSet.has(node.id) && selectedId !== node.id ? " is-path" : ""}`}
+                data-node-id={node.id}
+                className={`clicker-skill-node is-${node.status.toLowerCase()}${node.tier >= 5 ? " is-apex" : ""}${tip?.id === node.id ? " is-selected" : ""}${pathSet.has(node.id) && tip?.id !== node.id ? " is-path" : ""}`}
                 style={
                   {
                     ...cellStyle(node),
@@ -251,55 +281,48 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onBuyPath }: Props)
                     "--afford": node.status === "POOR" ? `${Math.floor(Math.min(1, coreEnergy / node.cost) * 100)}%` : undefined,
                   } as CSSProperties
                 }
-                aria-pressed={selectedId === node.id}
-                aria-current={selectedId === node.id ? "true" : undefined}
+                aria-pressed={tip?.id === node.id}
                 aria-label={`${node.name} · ${statusLabel(node.status)} · ${formatNumber(node.cost)} CORE`}
-                onClick={() => onNodeClick(node)}
+                onPointerEnter={(e) => onNodeEnter(e, node)}
+                onPointerLeave={scheduleHide}
+                onFocus={(e) => showTip(node.id, e.currentTarget, false)}
+                onClick={(e) => onNodeClick(node, e.currentTarget)}
               >
                 <span className="clicker-skill-node-glyph">{SKILL_BRANCH_GLYPH[node.branch]}</span>
               </button>
             ))}
           </div>
         </div>
-
-        {selected && selected.status !== "OWNED" ? (
-          <div className={`clicker-skill-quickbar is-${selected.status.toLowerCase()}`}>
-            <span className="clicker-skill-quickbar-name">
-              <span style={{ color: SKILL_BRANCH_COLOR[selected.branch] }}>{SKILL_BRANCH_GLYPH[selected.branch]}</span>{" "}
-              {selected.name}
-            </span>
-            <button
-              type="button"
-              className="clicker-skill-quickbar-buy"
-              disabled={!selected.canBuy && !(selected.status === "LOCKED" && selected.canBuyPath)}
-              onClick={() => buySelected(selected)}
-            >
-              {selected.status === "LOCKED"
-                ? `경로 ${selected.path.length} · ${formatNumber(selected.pathCost)}`
-                : formatNumber(selected.cost)}{" "}
-              CORE
-            </button>
-          </div>
-        ) : null}
       </div>
 
-      {selected ? (
-        <aside className={`clicker-skill-detail is-${selected.status.toLowerCase()}`} aria-live="polite">
+      {active && tip ? (
+        <aside
+          className={`clicker-skill-detail clicker-skill-tip is-${active.status.toLowerCase()}`}
+          style={tipStyle(tip.anchor)}
+          aria-live="polite"
+          onPointerEnter={cancelHide}
+          onPointerLeave={scheduleHide}
+        >
           <div className="clicker-skill-detail-top">
             <div className="clicker-skill-detail-meta">
-              {SKILL_BRANCH_LABEL[selected.branch]} · T{selected.tier}
-              {selected.tier >= 5 ? " · 정점" : ""}
+              {SKILL_BRANCH_LABEL[active.branch]} · T{active.tier}
+              {active.tier >= 5 ? " · 정점" : ""}
             </div>
-            <span className={`clicker-skill-detail-status is-${selected.status.toLowerCase()}`}>
-              {statusLabel(selected.status)}
+            <span className={`clicker-skill-detail-status is-${active.status.toLowerCase()}`}>
+              {statusLabel(active.status)}
             </span>
+            {tip.pinned ? (
+              <button type="button" className="clicker-skill-tip-close" aria-label="설명 닫기" onClick={() => setTip(null)}>
+                ×
+              </button>
+            ) : null}
           </div>
-          <strong>{selected.name}</strong>
-          <p className="clicker-skill-detail-effect">{selected.description}</p>
-          {selected.status === "LOCKED" ? (
+          <strong>{active.name}</strong>
+          <p className="clicker-skill-detail-effect">{active.description}</p>
+          {active.status === "LOCKED" ? (
             <p className="clicker-skill-detail-requires">
               선행 회로 ·{" "}
-              {selected.requires
+              {active.requires
                 .filter((id) => byId.get(id)?.status !== "OWNED")
                 .map((id) => byId.get(id)?.name ?? id)
                 .join(", ")}
@@ -307,23 +330,23 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onBuyPath }: Props)
           ) : null}
           <div className="clicker-skill-detail-stats">
             <span>
-              비용 <strong>{formatNumber(selected.cost)} CORE</strong>
+              비용 <strong>{formatNumber(active.cost)} CORE</strong>
             </span>
-            {selected.status === "LOCKED" ? (
+            {active.status === "LOCKED" ? (
               <span>
-                경로 {selected.path.length}개 <strong>{formatNumber(selected.pathCost)} CORE</strong>
+                경로 {active.path.length}개 <strong>{formatNumber(active.pathCost)} CORE</strong>
               </span>
             ) : null}
-            {selected.status !== "OWNED" && coreEnergy < (selected.status === "LOCKED" ? selected.pathCost : selected.cost) ? (
+            {active.status !== "OWNED" && coreEnergy < (active.status === "LOCKED" ? active.pathCost : active.cost) ? (
               <span className="is-short">
                 부족{" "}
                 <strong>
-                  {formatNumber(Math.max(0, (selected.status === "LOCKED" ? selected.pathCost : selected.cost) - coreEnergy))} CORE
+                  {formatNumber(Math.max(0, (active.status === "LOCKED" ? active.pathCost : active.cost) - coreEnergy))} CORE
                 </strong>
               </span>
             ) : null}
           </div>
-          {selected.status === "POOR" || (selected.status === "LOCKED" && !selected.canBuyPath) ? (
+          {active.status === "POOR" || (active.status === "LOCKED" && !active.canBuyPath) ? (
             <div
               className="clicker-skill-detail-progress"
               role="progressbar"
@@ -331,12 +354,12 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onBuyPath }: Props)
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={Math.floor(
-                Math.min(1, coreEnergy / (selected.status === "LOCKED" ? selected.pathCost : selected.cost)) * 100,
+                Math.min(1, coreEnergy / (active.status === "LOCKED" ? active.pathCost : active.cost)) * 100,
               )}
             >
               <span
                 style={{
-                  width: `${Math.min(1, coreEnergy / (selected.status === "LOCKED" ? selected.pathCost : selected.cost)) * 100}%`,
+                  width: `${Math.min(1, coreEnergy / (active.status === "LOCKED" ? active.pathCost : active.cost)) * 100}%`,
                 }}
               />
             </div>
@@ -344,26 +367,22 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onBuyPath }: Props)
           <button
             className="clicker-primary"
             type="button"
-            disabled={!selected.canBuy && !(selected.status === "LOCKED" && selected.canBuyPath)}
-            onClick={() => buySelected(selected)}
+            disabled={!active.canBuy && !(active.status === "LOCKED" && active.canBuyPath)}
+            onClick={() => buy(active)}
           >
-            {selected.status === "OWNED"
+            {active.status === "OWNED"
               ? "활성화됨"
-              : selected.status === "LOCKED"
-                ? selected.canBuyPath
-                  ? `경로 해금 · ${selected.path.length}개 · ${formatNumber(selected.pathCost)} CORE`
-                  : `경로 해금 · ${formatNumber(selected.pathCost)} CORE 필요`
-                : selected.status === "POOR"
-                  ? `CORE 부족 · ${formatNumber(selected.cost)} 필요`
-                  : `${formatNumber(selected.cost)} CORE로 해금`}
+              : active.status === "LOCKED"
+                ? active.canBuyPath
+                  ? `경로 해금 · ${active.path.length}개 · ${formatNumber(active.pathCost)} CORE`
+                  : `경로 해금 · ${formatNumber(active.pathCost)} CORE 필요`
+                : active.status === "POOR"
+                  ? `CORE 부족 · ${formatNumber(active.cost)} 필요`
+                  : `${formatNumber(active.cost)} CORE로 해금`}
           </button>
-          {selected.canBuy ? <p className="clicker-skill-detail-hint">노드를 한 번 더 누르면 바로 해금됩니다</p> : null}
+          {active.canBuy && tip.pinned ? <p className="clicker-skill-detail-hint">노드를 한 번 더 누르면 바로 해금됩니다</p> : null}
         </aside>
-      ) : (
-        <p className="clicker-skill-tree-empty" role="status">
-          회로 노드를 선택하면 비용과 효과가 여기에 표시됩니다.
-        </p>
-      )}
+      ) : null}
     </div>
   )
 }

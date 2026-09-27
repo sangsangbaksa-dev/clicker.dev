@@ -256,6 +256,12 @@ export function ClickerApp() {
     [drawerHeight, drawerSnaps, persistDrawerHeight],
   )
 
+  /** Leave the fullscreen skill tree for where the player came from. */
+  const closeSkills = useCallback(() => {
+    setTab("producers")
+    if (game.save?.settings.playSurface !== "mine") setHubView("entrance")
+  }, [game.save?.settings.playSurface])
+
   const playSurface = game.save?.settings.playSurface ?? "hub"
   const prevSurface = useRef(playSurface)
   useEffect(() => {
@@ -349,6 +355,12 @@ export function ClickerApp() {
         setStoryBeat(null)
         return
       }
+      // Before toasts: buying circuits toasts constantly, and Esc should still leave the tree.
+      if (tab === "skills" && (drawerMode !== "peek" || hubView === "manage")) {
+        e.preventDefault()
+        closeSkills()
+        return
+      }
       if (game.toast) {
         e.preventDefault()
         game.dismissToast()
@@ -384,6 +396,7 @@ export function ClickerApp() {
     setDrawerSnap,
     tab,
     selectTab,
+    closeSkills,
     hubView,
     game.save?.settings.playSurface,
   ])
@@ -637,6 +650,8 @@ export function ClickerApp() {
   const atHomeHub = !inMine && Boolean(game.currentRegion?.isHome)
   const regionIntroPlaying = Boolean(game.regionIntro)
   const managing = !inMine && hubView === "manage"
+  /** The skills tab takes the whole screen whenever its panel would be showing. */
+  const skillsOpen = tab === "skills" && (managing || (inMine && drawerMode !== "peek"))
 
   const beginEnterMine = () => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -1335,14 +1350,7 @@ export function ClickerApp() {
 
         {tab === "shop" ? <ClickerShopPanel {...panelProps} /> : null}
 
-        {tab === "skills" ? (
-          <ClickerSkillTree
-            nodes={visibleSkillNodes}
-            coreEnergy={run.coreEnergy}
-            onBuy={game.buySkill}
-            onBuyPath={game.buySkillPath}
-          />
-        ) : null}
+        {/* The skill tree opens fullscreen over the shell (rendered below), not in the drawer. */}
 
         {tab === "world" ? <ClickerWorldPanel game={game} run={run} onBack={() => selectTab("producers")} /> : null}
 
@@ -1508,6 +1516,16 @@ export function ClickerApp() {
         >
           관리자
         </button>
+      ) : null}
+
+      {skillsOpen ? (
+        <ClickerSkillTree
+          nodes={visibleSkillNodes}
+          coreEnergy={run.coreEnergy}
+          onBuy={game.buySkill}
+          onBuyPath={game.buySkillPath}
+          onClose={closeSkills}
+        />
       ) : null}
 
       {pendingRebirth ? (
