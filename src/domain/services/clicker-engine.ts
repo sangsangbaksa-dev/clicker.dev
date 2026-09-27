@@ -200,6 +200,8 @@ export function mineEntryCheck(save: SaveData, now: number): { cost: number; err
     const secs = Math.ceil((save.runState.mineCooldownUntil - now) / 1000)
     return { cost: 0, error: `광산 재입장 대기 ${secs}초` }
   }
+  // Ore strikes yield nothing during a crisis; entering would only burn the cooldown.
+  if (save.runState.crisisActive) return { cost: 0, error: "위기를 먼저 해소하세요." }
   return { cost: 0 }
 }
 

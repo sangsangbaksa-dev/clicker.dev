@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import type { CoreVisual } from "@/domain/services/clicker-view"
+import { sharedAudioContext } from "@/components/clicker/clicker-sfx"
 
 /** Hub / mine loops plus the chamber cue for rebirth and ending. */
 const BGM_SRC = {
@@ -21,6 +22,10 @@ const VISUAL_GAIN: Partial<Record<CoreVisual, number>> = { fever: 1.2, crisis: 0
 /**
  * Looping BGM with crossfades between scenes. Fades out while the tab is hidden and
  * retries play on gesture until the browser allows it. Tracks load lazily on first use.
+ *
+ * Levels go through a Web Audio gain node once a gesture has unlocked the shared context:
+ * iOS Safari ignores `HTMLMediaElement.volume`, so without it the volume slider, the
+ * crossfades and the fever/crisis mix would all play at full volume on iPhone.
  */
 export function useClickerBgm(
   visual: CoreVisual | undefined,
@@ -31,6 +36,7 @@ export function useClickerBgm(
 
   useEffect(() => {
     const tracks: Partial<Record<Track, HTMLAudioElement>> = {}
+    const gains: Partial<Record<Track, GainNode>> = {}
     const levels: Record<Track, number> = { hub: 0, mine: 0, chamber: 0 }
     let unlocked = false
     let hidden = document.visibilityState === "hidden"
@@ -48,6 +54,29 @@ export function useClickerBgm(
       return audio
     }
 
+    /** Route a track through a gain node (once). Falls back to element volume. */
+    const wire = (key: Track, audio: HTMLAudioElement) => {
+      if (gains[key]) return
+      const c = sharedAudioContext()
+      if (!c) return
+      try {
+        const node = c.createGain()
+        node.gain.value = 0
+        c.createMediaElementSource(audio).connect(node)
+        node.connect(c.destination)
+        audio.volume = 1
+        gains[key] = node
+      } catch {
+        /* already wired elsewhere or unsupported — element volume still works off iOS */
+      }
+    }
+
+    const setLevel = (key: Track, audio: HTMLAudioElement, value: number) => {
+      const node = gains[key]
+      if (node) node.gain.value = value
+      else audio.volume = value
+    }
+
     const step = (t: number) => {
       const dt = last ? t - last : 16
       last = t
@@ -58,6 +87,7 @@ export function useClickerBgm(
         if (target === 0 && levels[key] === 0 && !tracks[key]) continue
         const audio = track(key)
         if (target > 0 && audio.paused && unlocked) {
+          wire(key, audio)
           void audio.play().catch(() => {
             /* autoplay / not-ready — next gesture retries */
           })
@@ -66,7 +96,7 @@ export function useClickerBgm(
         const level =
           target > levels[key] ? Math.min(target, levels[key] + delta) : Math.max(target, levels[key] - delta)
         levels[key] = level
-        audio.volume = Math.min(1, level * gain)
+        setLevel(key, audio, Math.min(1, level * gain))
         if (level === 0 && !audio.paused) audio.pause()
         if (level !== target) moving = true
       }
@@ -93,6 +123,9 @@ export function useClickerBgm(
           levels[key] = 0
           tracks[key]?.pause()
         }
+      } else if (Object.keys(gains).length > 0) {
+        // Coming back on iOS leaves the context "interrupted"; wired tracks stay silent until resumed.
+        sharedAudioContext()
       }
       kick()
     }
@@ -110,6 +143,7 @@ export function useClickerBgm(
         audio.pause()
         audio.src = ""
       }
+      for (const node of Object.values(gains)) node.disconnect()
       kickRef.current = () => {}
     }
   }, [])

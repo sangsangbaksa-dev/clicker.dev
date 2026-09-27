@@ -199,7 +199,7 @@ export function ClickerApp() {
   useClickerDialogFocus(storyBeatRef, Boolean(storyBeat))
   useClickerDialogFocus(adminRef, CLICKER_ADMIN_UI && adminAllowed && adminOpen)
 
-  // One auto-dismiss for every LUMA beat. The triggers below used to own their timers,
+  // One auto-dismiss for every story beat. The triggers below used to own their timers,
   // but their effects re-run on every tick and the cleanup kept cancelling them.
   useEffect(() => {
     if (!storyBeat) return
@@ -1410,6 +1410,9 @@ export function ClickerApp() {
             setSettingsOpen(false)
             game.adminReset()
           }}
+          onExportCode={game.exportSaveCode}
+          onParseCode={game.parseSaveCode}
+          onImportJson={game.importSaveJson}
           onClose={() => setSettingsOpen(false)}
         />
       ) : null}
@@ -1565,7 +1568,7 @@ export function ClickerApp() {
         <ClickerCinematic
           key={endingPhase}
           src={endingPhase === "fall" ? "/clicker/ending/ending_guardian_fall.mp4" : "/clicker/ending/ending_core_awaken.mp4"}
-          poster={endingPhase === "fall" ? "/clicker/bg/region_core_heart.jpg" : "/clicker/bg/loading_core_awakening.png"}
+          poster={endingPhase === "fall" ? "/clicker/bg/region_core_heart.jpg" : "/clicker/bg/loading_core_awakening.webp"}
           label="엔딩"
           muted={game.save.settings.musicMuted}
           onDone={() => {

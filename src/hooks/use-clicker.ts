@@ -18,6 +18,9 @@ import {
   clickerEnterMine,
   clickerMineEntryError,
   clickerExitMine,
+  clickerExportCode,
+  clickerImportSave,
+  clickerParseSaveCode,
   clickerFinishMineSession,
   clickerGameConfig,
   clickerMineSessionStart,
@@ -548,6 +551,8 @@ export function useClicker() {
     }
     commit(hubbed)
     persistNow(hubbed)
+    // Ask the browser not to evict the save under storage pressure (a gesture helps it say yes).
+    void navigator.storage?.persist?.().catch(() => {})
   }, [commit, persistNow])
 
   const enterMine = useCallback(() => {
@@ -675,6 +680,30 @@ export function useClicker() {
     flash("진행 상황 저장됨")
   }, [persistNow, flash])
 
+  /** Current save as a copy-pasteable code (settings → 저장 데이터). */
+  const exportSaveCode = useCallback((): string | null => {
+    const current = saveRef.current
+    if (!current) return null
+    persistNow()
+    return clickerExportCode(current)
+  }, [persistNow])
+
+  const parseSaveCode = useCallback((code: string) => clickerParseSaveCode(code, now()), [])
+
+  /** Replace this device's save with an imported one (the old save is backed up first). */
+  const importSaveJson = useCallback(
+    (json: string): boolean => {
+      if (!clickerImportSave(json, now())) return false
+      loadAsOwner()
+      setMineSummary(null)
+      setRegionIntro(null)
+      playSfx("save")
+      flash("저장 코드를 불러왔습니다")
+      return true
+    },
+    [loadAsOwner, flash],
+  )
+
   // Render from the last tick's clock (updated every ~100ms) so render stays pure.
   const t = save?.runState.lastTickAt ?? 0
   const drill = save
@@ -751,6 +780,9 @@ export function useClicker() {
     otherTabActive,
     resumeHere,
     forceSave,
+    exportSaveCode,
+    parseSaveCode,
+    importSaveJson,
     dismissToast,
     clickCore,
     buyPotion,
