@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState } from "react"
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
 import { CLICKER_TRUE_ENDING_STEPS } from "@/data/clicker/ending"
-import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
+import {
+  useArmedPress,
+  useClickerDialogFocus,
+  useClickerEscape,
+  useFocusOnChange,
+} from "@/components/clicker/clicker-a11y"
 
 export type EndingSummary = {
   worldlinesOwned: number
@@ -22,10 +27,18 @@ export function ClickerEnding({ onComplete, onCancel, summary }: Props) {
   const [step, setStep] = useState(0)
   const [confirmRun, setConfirmRun] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
+  const backRef = useRef<HTMLButtonElement | null>(null)
+  const armRef = useRef<HTMLButtonElement | null>(null)
   const current = CLICKER_TRUE_ENDING_STEPS[step]
   const last = step >= CLICKER_TRUE_ENDING_STEPS.length - 1
 
   useClickerDialogFocus(rootRef)
+  // "다음" → "실행 확인" → "Protocol 실행" all sit in the same spot, so a fast
+  // double-click through the story must not run the Protocol by accident.
+  const armedPress = useArmedPress(`${last}:${confirmRun}`)
+  // Keyboard focus follows the swap: to "실행 확인" on the last step, to the safe
+  // back button once armed (a held Enter then backs out instead of running it).
+  useFocusOnChange(confirmRun ? backRef : armRef, `${last}:${confirmRun}`)
 
   useEffect(() => {
     if (!confirmRun) return
@@ -101,26 +114,39 @@ export function ClickerEnding({ onComplete, onCancel, summary }: Props) {
           ))}
         </div>
         <footer className="clicker-ending-foot">
-          <button type="button" className="clicker-ghost" aria-keyshortcuts="Escape" onClick={last && confirmRun ? () => setConfirmRun(false) : goBack}>
+          <button
+            ref={backRef}
+            type="button"
+            className="clicker-ghost"
+            aria-keyshortcuts="Escape"
+            onClick={last && confirmRun ? () => setConfirmRun(false) : goBack}>
             {last && confirmRun ? "한 단계 뒤로 · Esc" : step <= 0 ? "계속 플레이 · Esc" : "이전"}
           </button>
           {last ? (
             confirmRun ? (
               <button
+                key="run"
                 type="button"
                 className="clicker-danger"
                 aria-label="Protocol 실행 — 기록을 닫고 채굴을 종료합니다"
-                onClick={onComplete}
+                onClick={armedPress(onComplete)}
               >
                 Protocol 실행 · 기록 닫기
               </button>
             ) : (
-              <button type="button" className="clicker-primary" onClick={() => setConfirmRun(true)}>
+              <button
+                key="arm"
+                ref={armRef}
+                type="button"
+                className="clicker-primary"
+                onClick={armedPress(() => setConfirmRun(true))}
+              >
                 실행 확인
               </button>
             )
           ) : (
             <button
+              key="next"
               type="button"
               className="clicker-primary"
               aria-label={`다음 단계 · ${step + 2}/${CLICKER_TRUE_ENDING_STEPS.length}`}
