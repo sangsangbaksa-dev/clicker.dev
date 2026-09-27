@@ -2378,6 +2378,8 @@ button.clicker-metric-action.is-fever-ready em {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  /* left: 50% leaves only half the viewport for shrink-to-fit; size to the text instead. */
+  width: max-content;
   max-width: min(92vw, 420px);
   background: var(--panel-alt);
   border: 1px solid var(--line);
@@ -2390,6 +2392,7 @@ button.clicker-metric-action.is-fever-ready em {
 
 .clicker-toast-msg {
   min-width: 0;
+  word-break: keep-all;
   overflow-wrap: anywhere;
 }
 
@@ -2413,7 +2416,9 @@ button.clicker-metric-action.is-fever-ready em {
   display: flex;
   gap: 12px;
   align-items: flex-start;
+  width: max-content;
   max-width: min(420px, calc(100vw - 24px));
+  word-break: keep-all;
   padding: 12px 14px;
   border-radius: 14px;
   background: color-mix(in srgb, var(--panel) 92%, transparent);
