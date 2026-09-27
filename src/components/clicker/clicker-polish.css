@@ -1347,4 +1347,4 @@
   bottom: var(--dock-clear);
   height: auto;
 }
-[data-clicker].is-entrance-hub.is-view-entrance .clicker-hub-enter-only { top: 56%; }
+[data-clicker].is-entrance-hub.is-view-entrance .clicker-hub-enter-only { top: 50%; left: 50%; }
