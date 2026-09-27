@@ -234,6 +234,7 @@ export const clickerConfig: GameConfig = {
       cost: 15_000,
       productionMultiplier: 2,
       producerId: "solar_node",
+      unlockProducerId: "solar_node",
     },
     {
       id: "coil_tuning",
@@ -253,6 +254,7 @@ export const clickerConfig: GameConfig = {
       cost: 1_800_000,
       productionMultiplier: 2,
       producerId: "flux_generator",
+      unlockProducerId: "flux_generator",
     },
     {
       id: "factory_routing",
@@ -262,6 +264,7 @@ export const clickerConfig: GameConfig = {
       cost: 28_000_000,
       productionMultiplier: 2,
       producerId: "quantum_foundry",
+      unlockProducerId: "quantum_foundry",
     },
     {
       id: "resonance_matrix",

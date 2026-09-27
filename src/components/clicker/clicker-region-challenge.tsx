@@ -242,7 +242,7 @@ function FaultDrill({ elapsed, playing, hits, misses, onHit, onMiss }: GameProps
   const needle = (Math.sin((elapsed / 1000) * speed * Math.PI) + 1) / 2
 
   const drill = () => {
-    if (!playing) return
+    if (!playing || hits >= DRILL_TARGET) return
     const ok = Math.abs(needle - band) <= width / 2
     if (ok) {
       setBand(0.2 + Math.random() * 0.6)
@@ -285,13 +285,13 @@ function FaultDrill({ elapsed, playing, hits, misses, onHit, onMiss }: GameProps
       <button
         type="button"
         className="clicker-primary clicker-drill-btn"
-        disabled={!playing}
+        disabled={!playing || hits >= DRILL_TARGET}
         onPointerDown={(e) => {
           e.preventDefault()
           drill()
         }}
       >
-        시추 · Space
+        {hits >= DRILL_TARGET ? "목표 도달 완료" : "시추 · Space"}
       </button>
     </div>
   )

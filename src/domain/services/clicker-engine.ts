@@ -218,10 +218,7 @@ export function enterClickerMine(
   const { cost, error } = mineEntryCheck(save, now)
   if (error) return { save, error }
   const coreAfterCost = save.runState.coreEnergy - cost
-  const durationMs = mineSessionDurationMs(
-    { ...save.runState, coreEnergy: coreAfterCost },
-    config,
-  )
+  const durationMs = mineSessionDurationMs(save.runState, config)
   return {
     save: {
       ...save,

@@ -33,6 +33,8 @@ import {
   startFever,
   syncClickerMineSession,
   activateSkill,
+  activateRegion,
+  regionActivityReady,
   markRegionVisited,
   claimRegionChallenge,
   regionChallengeError,
@@ -497,6 +499,70 @@ test("true ending unlocks when all transcendence buffs were chosen once", () => 
   assert.ok(completed.save.metaState.completedAt)
   const again = applyTrueEnding(completed.save, config, now + 100)
   assert.equal(again.error, "이미 완료된 기록입니다.")
+})
+
+test("activateRegion: production boost grants a timed event boost and starts cooldown", () => {
+  const now = 14_000_000
+  const meta = createInitialMeta()
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), 250_000)
+  run = travelToRegion(run, config, "signal_relay").run
+  const relay = config.regions.find((r) => r.id === "signal_relay")!.activity!
+
+  const noActivity = activateRegion(run, meta, config, "core_chamber", now)
+  assert.equal(noActivity.error, "이 지역에는 활동이 없습니다.")
+
+  const result = activateRegion(run, meta, config, "signal_relay", now)
+  assert.equal(result.error, undefined)
+  const boost = result.run.eventBoosts.find((b) => b.id === "relay")
+  assert.equal(boost?.multiplier, relay.multiplier)
+  assert.equal(boost?.expiresAt, now + (relay.durationSec ?? 0) * 1000)
+  assert.equal(result.run.regionCooldowns.signal_relay, now + relay.cooldownSec * 1000)
+
+  const stillOnCooldown = activateRegion(result.run, meta, config, "signal_relay", now + 1000)
+  assert.ok(stillOnCooldown.error?.includes("재사용 대기"))
+  assert.equal(regionActivityReady(result.run, "signal_relay", now + 1000), false)
+  assert.equal(regionActivityReady(result.run, "signal_relay", now + relay.cooldownSec * 1000), true)
+
+  const region = config.regions.find((r) => r.id === "signal_relay")!
+  const wrongRegion = activateRegion({ ...run, currentRegionId: "core_chamber" }, meta, config, "signal_relay", now)
+  assert.equal(wrongRegion.error, `${region.name}에 있어야 합니다.`)
+
+  const crisisRun = { ...run, crisisActive: true }
+  assert.equal(activateRegion(crisisRun, meta, config, "signal_relay", now).error, "위기 중에는 사용할 수 없습니다.")
+})
+
+test("activateRegion: phase deposit pays out interest without double-counting the deposit", () => {
+  const now = 15_000_000
+  const meta = createInitialMeta()
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), 2_000_000)
+  run = travelToRegion(run, config, "phase_vault").run
+  const vault = config.regions.find((r) => r.id === "phase_vault")!.activity!
+  const multiplier = vault.multiplier ?? 1
+
+  const deposited = activateRegion(run, meta, config, "phase_vault", now)
+  assert.equal(deposited.error, undefined)
+  const expectedDeposit = Math.floor(run.coreEnergy * (vault.depositShare ?? 0.5))
+  assert.equal(deposited.run.vaultDeposit, expectedDeposit)
+  assert.equal(deposited.run.coreEnergy, run.coreEnergy - expectedDeposit)
+  assert.equal(deposited.run.vaultReadyAt, now + (vault.durationSec ?? 0) * 1000)
+
+  const alreadyDepositing = activateRegion(deposited.run, meta, config, "phase_vault", now + vault.cooldownSec * 1000)
+  assert.equal(alreadyDepositing.error, "이미 예치 중입니다.")
+
+  const readyAt = deposited.run.vaultReadyAt
+  const beforePayout = { ...deposited.run, lastTickAt: readyAt - 1000 }
+  const snapshot = productionSnapshot(beforePayout, meta, config, readyAt)
+  const { run: afterPayout } = processTick(beforePayout, meta, config, readyAt)
+  assert.equal(afterPayout.vaultDeposit, 0)
+  assert.equal(afterPayout.vaultReadyAt, 0)
+  const payout = expectedDeposit * multiplier
+  assert.equal(afterPayout.coreEnergy, beforePayout.coreEnergy + snapshot.perSecond + payout)
+
+  const emptyBank = { ...run, coreEnergy: 0 }
+  assert.equal(
+    activateRegion(emptyBank, meta, config, "phase_vault", now).error,
+    "예치할 CORE가 없습니다.",
+  )
 })
 
 test("upgrade purchase is rejected when CORE is short or already owned", () => {
