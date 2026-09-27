@@ -21,6 +21,10 @@ import "./clicker-rebirth-motion.css"
 type Props = {
   transcendenceId: string
   worldlineLabel: string
+  /** World line number the run lands on, shown on the result card. */
+  worldlineNumber?: number
+  /** What the chosen line grants, shown on the result card. */
+  description?: string
   muted?: boolean
   onComplete: () => void
 }
@@ -304,7 +308,25 @@ function MotifFx({ variant, phase, phaseT }: { variant: WorldlineMotionVariant; 
   return <div className="clicker-rebirth-motif clicker-rebirth-motif--hybrid" style={style} aria-hidden />
 }
 
-export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = false, onComplete }: Props) {
+const PHASE_ORDER: RebirthPhaseId[] = ["select_confirm", "collapse", "void_tear", "stamp", "rebuild", "settle"]
+
+const PHASE_CAPTION: Record<RebirthPhaseId, string> = {
+  select_confirm: "세계선 확정",
+  collapse: "세계 붕괴",
+  void_tear: "공허 균열",
+  stamp: "세계선 각인",
+  rebuild: "재구축",
+  settle: "새 세계선",
+}
+
+export function ClickerRebirthMotion({
+  transcendenceId,
+  worldlineLabel,
+  worldlineNumber,
+  description,
+  muted = false,
+  onComplete,
+}: Props) {
   const variant = useMemo(() => rebirthVariantFor(transcendenceId), [transcendenceId])
   const reducedMotion = useMemo(
     () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -521,19 +543,11 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
   const tearVisible = frame.phase === "void_tear" || frame.phase === "stamp"
   /** Prefers-reduced-motion + Wave A still → skip flashy MW plates; show still only. */
   const stillOnly = Boolean(reducedMotion && variant.reducedMotionStillAssetId)
-  const phaseCaption = stillOnly
-    ? "WORLDLINE LOCK"
-    : frame.phase === "select_confirm"
-      ? "SELECT CONFIRM"
-      : frame.phase === "collapse"
-        ? "COLLAPSE"
-        : frame.phase === "void_tear"
-          ? "VOID TEAR"
-          : frame.phase === "stamp"
-            ? "WORLDLINE STAMP"
-            : frame.phase === "rebuild"
-              ? "REBUILD"
-              : "SETTLE"
+  const shownPhase: RebirthPhaseId = stillOnly ? "settle" : frame.phase
+  const phaseIndex = PHASE_ORDER.indexOf(shownPhase)
+  const stamped = phaseIndex >= PHASE_ORDER.indexOf("stamp")
+  const settled = shownPhase === "settle"
+  const lineTag = worldlineNumber ? `WORLD LINE #${String(worldlineNumber).padStart(3, "0")}` : "WORLD LINE PROTOCOL"
 
   return (
     <div
@@ -542,7 +556,7 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
       role="dialog"
       aria-modal="true"
       aria-label={`${worldlineLabel} 세계선 환생`}
-      data-phase={stillOnly ? "settle" : frame.phase}
+      data-phase={shownPhase}
       style={
         {
           "--rebirth-shake": stillOnly ? "0px" : `${frame.shake}px`,
@@ -590,21 +604,36 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
       {!reducedMotion ? <canvas ref={canvasRef} className="clicker-rebirth-particles" aria-hidden /> : null}
       {!stillOnly && tearVisible ? <div className="clicker-rebirth-tear" aria-hidden /> : null}
       {!stillOnly ? <MotifFx variant={variant} phase={frame.phase} phaseT={frame.phaseT} /> : null}
+      {/* Mounts once at the stamp beat so its shockwave plays a single time. */}
+      {!stillOnly && stamped ? <div className="clicker-rebirth-shock" aria-hidden><i /><i /><b /></div> : null}
       <div className="clicker-rebirth-phase" aria-live="polite">
-        <span className="clicker-rebirth-phase-kicker">WORLD LINE PROTOCOL</span>
-        <strong>{phaseCaption}</strong>
-        <em>{worldlineLabel}</em>
+        <span className="clicker-rebirth-phase-kicker">{lineTag}</span>
+        <strong key={shownPhase}>{PHASE_CAPTION[shownPhase]}</strong>
+        <span className="clicker-rebirth-phase-steps" aria-hidden>
+          {PHASE_ORDER.map((id, i) => (
+            <i key={id} className={i < phaseIndex ? "is-done" : i === phaseIndex ? "is-now" : undefined} />
+          ))}
+        </span>
       </div>
-      <div className="clicker-rebirth-stamp-wrap">
-        <StampGlyph variant={variant} intensity={stillOnly ? 1 : frame.stampScale} reducedMotion={reducedMotion} />
-        <p className="clicker-rebirth-stamp-label">{worldlineLabel}</p>
-        {stillOnly || frame.phase === "settle" ? (
-          <p className="clicker-rebirth-chamber-reminder">{REBIRTH_CHAMBER_REMINDER}</p>
-        ) : null}
+      <div className={`clicker-rebirth-stamp-wrap${settled ? " is-settled" : ""}`}>
+        <div className="clicker-rebirth-stamp-core">
+          {stamped ? <span className="clicker-rebirth-halo" aria-hidden /> : null}
+          <StampGlyph variant={variant} intensity={stillOnly ? 1 : frame.stampScale} reducedMotion={reducedMotion} />
+        </div>
+        {settled ? (
+          <div className="clicker-rebirth-result">
+            <span className="clicker-rebirth-result-kicker">세계선 도약 완료</span>
+            <strong>{worldlineLabel}</strong>
+            {description ? <p>{description}</p> : null}
+            <small>{REBIRTH_CHAMBER_REMINDER}</small>
+          </div>
+        ) : (
+          <p className="clicker-rebirth-stamp-label">{worldlineLabel}</p>
+        )}
       </div>
       {!stillOnly ? <div className="clicker-rebirth-chromatic" aria-hidden /> : null}
       <div className="clicker-rebirth-vignette" aria-hidden />
-      <p className="clicker-rebirth-sr">{worldlineLabel} — {stillOnly ? "reduced motion still" : frame.phase.replace("_", " ")}</p>
+      <p className="clicker-rebirth-sr">{worldlineLabel} — {PHASE_CAPTION[shownPhase]}</p>
     </div>
   )
 }

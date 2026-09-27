@@ -91,7 +91,7 @@
 }
 
 .clicker-rebirth-motion[data-phase="settle"] .clicker-rebirth-hud-plate {
-  opacity: 0.96;
+  opacity: 0.6;
   mix-blend-mode: normal;
   filter: contrast(1.06) brightness(1.04);
 }
@@ -157,7 +157,6 @@
 }
 
 .clicker-rebirth-motion.is-still-only .clicker-rebirth-stamp-wrap {
-  transform: none;
   opacity: 1;
 }
 
@@ -168,7 +167,7 @@
 
 .clicker-rebirth-motion.is-still-only .clicker-rebirth-stamp-still {
   width: min(720px, 88vw);
-  max-height: min(58vh, 420px);
+  max-height: min(40vh, 320px);
   object-fit: contain;
   filter: drop-shadow(0 0 28px color-mix(in srgb, var(--stamp-primary) 35%, transparent));
 }
@@ -259,23 +258,225 @@
 }
 
 .clicker-rebirth-phase strong {
-  font-size: clamp(14px, 3.2vw, 18px);
-  letter-spacing: 0.12em;
+  font-size: clamp(16px, 3.4vw, 20px);
+  letter-spacing: 0.08em;
   color: var(--stamp-primary, #e8f4ff);
   text-shadow: 0 0 18px color-mix(in srgb, var(--stamp-primary) 45%, transparent);
+  animation: rebirth-caption-in 260ms ease-out both;
 }
 
-.clicker-rebirth-phase em {
-  font-style: normal;
+@keyframes rebirth-caption-in {
+  from {
+    opacity: 0;
+    letter-spacing: 0.4em;
+    filter: blur(4px);
+  }
+}
+
+.clicker-rebirth-phase-steps {
+  display: flex;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.clicker-rebirth-phase-steps i {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: color-mix(in srgb, #e8f4ff 18%, transparent);
+  transition: background 200ms ease, box-shadow 200ms ease;
+}
+
+.clicker-rebirth-phase-steps i.is-done {
+  background: color-mix(in srgb, var(--stamp-primary) 55%, transparent);
+}
+
+.clicker-rebirth-phase-steps i.is-now {
+  background: var(--stamp-primary);
+  box-shadow: 0 0 8px var(--stamp-primary);
+}
+
+/* Stamp impact: a white flash and two shockwave rings, played once. */
+.clicker-rebirth-shock {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 0;
+  height: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.clicker-rebirth-shock i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: min(80vmin, 640px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 3px solid var(--stamp-primary);
+  box-shadow:
+    0 0 24px var(--stamp-primary),
+    inset 0 0 24px color-mix(in srgb, var(--stamp-accent) 60%, transparent);
+  transform: translate(-50%, -50%) scale(0.05);
+  opacity: 0;
+  animation: rebirth-shock-ring 900ms cubic-bezier(0.16, 0.84, 0.3, 1) both;
+}
+
+.clicker-rebirth-shock i + i {
+  border-width: 1px;
+  animation-delay: 140ms;
+  animation-duration: 1100ms;
+}
+
+.clicker-rebirth-shock b {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% 46%, #fff 0%, color-mix(in srgb, var(--stamp-primary) 70%, #fff) 18%, transparent 60%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: rebirth-shock-flash 520ms ease-out both;
+}
+
+@keyframes rebirth-shock-ring {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.05);
+  }
+  70% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.6);
+  }
+}
+
+@keyframes rebirth-shock-flash {
+  0% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.clicker-rebirth-stamp-core,
+.clicker-rebirth-stamp-label {
+  transform: scale(var(--rebirth-stamp-scale, 0));
+}
+
+.clicker-rebirth-stamp-core {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+/* Slow-turning halo behind the emblem once it is stamped. */
+.clicker-rebirth-halo {
+  position: absolute;
+  inset: -14%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 12%,
+    color-mix(in srgb, var(--stamp-primary) 70%, transparent) 20%,
+    transparent 30% 45%,
+    color-mix(in srgb, var(--stamp-accent) 70%, transparent) 55%,
+    transparent 65% 80%,
+    color-mix(in srgb, var(--stamp-primary) 50%, transparent) 88%,
+    transparent 96%
+  );
+  mask-image: radial-gradient(circle, transparent 60%, #000 62%, #000 66%, transparent 68%);
+  filter: drop-shadow(0 0 10px var(--stamp-primary));
+  animation:
+    rebirth-halo-spin 6s linear infinite,
+    rebirth-halo-in 500ms ease-out both;
+}
+
+.clicker-rebirth-halo::after {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--stamp-primary) 26%, transparent), transparent 70%);
+}
+
+@keyframes rebirth-halo-spin {
+  to {
+    rotate: 1turn;
+  }
+}
+
+@keyframes rebirth-halo-in {
+  from {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+
+/* Settle: the emblem lifts and the new line's result card rises under it. */
+.clicker-rebirth-stamp-wrap.is-settled {
+  top: 44%;
+}
+
+.clicker-rebirth-result {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: min(420px, 86vw);
+  box-sizing: border-box;
+  padding: 14px 20px 16px;
+  border-radius: 14px;
+  text-align: center;
+  background: color-mix(in srgb, #05070d 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--stamp-primary) 45%, transparent);
+  box-shadow:
+    0 0 32px color-mix(in srgb, var(--stamp-primary) 22%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 10%, transparent);
+  backdrop-filter: blur(6px);
+  animation: rebirth-result-in 420ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.clicker-rebirth-result-kicker {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: color-mix(in srgb, var(--stamp-primary) 80%, #e8f4ff);
+}
+
+.clicker-rebirth-result strong {
+  font-size: clamp(20px, 4.6vw, 28px);
+  letter-spacing: 0.04em;
+  color: #f3f8ff;
+  text-shadow: 0 0 20px color-mix(in srgb, var(--stamp-primary) 60%, transparent);
+}
+
+.clicker-rebirth-result p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--stamp-primary) 65%, #e8f4ff);
+}
+
+.clicker-rebirth-result small {
   font-size: 12px;
-  color: color-mix(in srgb, var(--stamp-accent, #3d7eff) 80%, #e8f4ff);
+  line-height: 1.5;
+  color: color-mix(in srgb, #e8f4ff 62%, transparent);
+}
+
+@keyframes rebirth-result-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
 }
 
 .clicker-rebirth-stamp-wrap {
   position: absolute;
   left: 50%;
   top: 46%;
-  transform: translate(-50%, -50%) scale(var(--rebirth-stamp-scale, 0));
+  z-index: 4;
+  transform: translate(-50%, -50%);
   display: grid;
   place-items: center;
   gap: 12px;
@@ -287,17 +488,20 @@
   place-items: center;
 }
 
+/* Stamp art is a 16:9 JPEG on black: crop to the emblem and screen-blend the black away. */
 .clicker-rebirth-stamp-image {
-  width: min(220px, 42vw);
-  height: auto;
-  filter: drop-shadow(0 0 24px color-mix(in srgb, var(--stamp-primary) 55%, transparent));
+  width: min(300px, 56vw);
+  aspect-ratio: 1;
+  object-fit: cover;
+  mix-blend-mode: screen;
+  mask-image: radial-gradient(circle at 50% 50%, #000 52%, transparent 70%);
+  filter: brightness(1.15) saturate(1.1);
   transform: scale(calc(0.85 + var(--stamp-intensity, 1) * 0.15));
 }
 
 @media (max-width: 520px) {
   .clicker-rebirth-stamp-image {
-    width: min(78vw, 280px);
-    filter: drop-shadow(0 0 28px color-mix(in srgb, var(--stamp-primary) 65%, transparent));
+    width: min(72vw, 280px);
   }
 
   .clicker-rebirth-stamp-label {
@@ -313,16 +517,6 @@
     top: 48%;
     gap: 10px;
   }
-}
-
-.clicker-rebirth-chamber-reminder {
-  margin: 12px auto 0;
-  max-width: min(360px, 88vw);
-  font-size: 13px;
-  line-height: 1.5;
-  color: color-mix(in srgb, var(--stamp-primary) 70%, #e8f4ff);
-  text-align: center;
-  opacity: calc(var(--rebirth-rebuild, 0) * 0.9 + 0.1);
 }
 
 .clicker-rebirth-stamp-label {
@@ -561,11 +755,109 @@
     animation: none;
   }
 
+  .clicker-rebirth-shock,
+  .clicker-rebirth-halo {
+    display: none;
+  }
+
+  .clicker-rebirth-phase strong,
+  .clicker-rebirth-result {
+    animation: none;
+  }
+
   .clicker-rebirth-chromatic {
     display: none;
   }
 
   .clicker-rebirth-stamp-wrap {
     transition: none;
+  }
+}
+
+/* After the motion: a light sweep over the fresh run, then it removes itself. */
+.clicker-rebirth-arrival {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--stamp-primary) 30%, transparent), transparent 65%);
+  animation: rebirth-arrival 1400ms ease-out both;
+}
+
+.clicker-rebirth-arrival::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    color-mix(in srgb, var(--stamp-primary) 40%, transparent) 48%,
+    color-mix(in srgb, #fff 55%, transparent) 50%,
+    color-mix(in srgb, var(--stamp-accent) 40%, transparent) 52%,
+    transparent 65%
+  );
+  background-size: 250% 100%;
+  mix-blend-mode: screen;
+  animation: rebirth-arrival-sweep 1000ms cubic-bezier(0.3, 0.6, 0.2, 1) both;
+}
+
+.clicker-rebirth-arrival span {
+  font-size: clamp(22px, 5vw, 40px);
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: #f3f8ff;
+  text-shadow:
+    0 0 24px var(--stamp-primary),
+    0 0 48px color-mix(in srgb, var(--stamp-accent) 60%, transparent);
+  animation: rebirth-arrival-text 1400ms ease-out both;
+}
+
+@keyframes rebirth-arrival {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes rebirth-arrival-sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0% 0;
+  }
+}
+
+@keyframes rebirth-arrival-text {
+  0% {
+    opacity: 0;
+    letter-spacing: 0.6em;
+    filter: blur(6px);
+  }
+  30% {
+    opacity: 1;
+    letter-spacing: 0.3em;
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Keep a plain fade so animationend still clears the overlay. */
+  .clicker-rebirth-arrival {
+    animation-duration: 600ms;
+  }
+
+  .clicker-rebirth-arrival::before,
+  .clicker-rebirth-arrival span {
+    animation: none;
+    opacity: 0;
   }
 }

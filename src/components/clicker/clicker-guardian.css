@@ -152,6 +152,16 @@
   transition: width 120ms ease-out;
 }
 
+.clicker-guardian-hp.is-respawn i {
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--accent) 45%, transparent) 0 6px,
+    color-mix(in srgb, var(--accent) 25%, transparent) 6px 12px
+  );
+  box-shadow: none;
+  transition: width 300ms linear;
+}
+
 .clicker-guardian-meta {
   display: flex;
   justify-content: space-between;

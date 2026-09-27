@@ -64,14 +64,29 @@
   background: color-mix(in srgb, var(--void) 55%, transparent);
 }
 
+/* Stamp art is a 16:9 JPEG on black: crop to the emblem and screen-blend the black away. */
 .clicker-wl-chrome-art--stamp .clicker-wl-chrome-stamp {
-  width: 72px;
-  height: 72px;
+  width: 96px;
+  height: 96px;
   margin: 0 auto;
-  border-radius: 10px;
-  background:
-    radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--wl-primary, var(--core)) 18%, transparent), transparent 68%),
-    color-mix(in srgb, var(--void) 70%, transparent);
+  border-radius: 50%;
+  object-fit: cover;
+  background: none;
+  mix-blend-mode: screen;
+  mask-image: radial-gradient(circle, #000 55%, transparent 70%);
+  transition: transform 220ms ease, filter 220ms ease;
+}
+
+.clicker-wl-chrome-card:hover .clicker-wl-chrome-stamp,
+.clicker-wl-chrome-card.is-focus .clicker-wl-chrome-stamp {
+  transform: scale(1.08) rotate(-4deg);
+  filter: brightness(1.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-wl-chrome-art--stamp .clicker-wl-chrome-stamp {
+    transition: none;
+  }
 }
 
 .clicker-wl-chrome-art .clicker-wl-chrome-motif {

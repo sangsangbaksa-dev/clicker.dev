@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
@@ -21,6 +22,7 @@ import { MineArt } from "@/data/clicker/mine-assets"
 import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
 import { ClickerOtherTab } from "@/components/clicker/clicker-other-tab"
 import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motion"
+import { rebirthVariantFor } from "@/data/clicker/rebirth-motion"
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerGuardian } from "@/components/clicker/clicker-guardian"
@@ -155,7 +157,9 @@ export function ClickerApp() {
   const [popIcons, setPopIcons] = useState<Record<string, number>>({})
   const [confirmPotion, setConfirmPotion] = useState<string | null>(null)
   const [endingOpen, setEndingOpen] = useState(false)
-  const [pendingRebirth, setPendingRebirth] = useState<{ id: string; label: string } | null>(null)
+  const [pendingRebirth, setPendingRebirth] = useState<{ id: string; label: string; description: string } | null>(null)
+  /** Brief light sweep over the fresh run right after the rebirth motion ends. */
+  const [rebirthArrival, setRebirthArrival] = useState<{ id: string; line: number } | null>(null)
   const [storyBeat, setStoryBeat] = useState<string | null>(null)
   const [adminResetArmed, setAdminResetArmed] = useState(false)
   const prevVisual = useRef<string | null>(null)
@@ -1348,7 +1352,7 @@ export function ClickerApp() {
             meta={game.save.metaState}
             onSelectTab={selectTab}
             onOpenEnding={() => setEndingOpen(true)}
-            onChoose={(buff) => setPendingRebirth({ id: buff.id, label: buff.name })}
+            onChoose={(buff) => setPendingRebirth({ id: buff.id, label: buff.name, description: buff.description })}
           />
         ) : null}
         </section>
@@ -1511,14 +1515,35 @@ export function ClickerApp() {
           key={pendingRebirth.id}
           transcendenceId={pendingRebirth.id}
           worldlineLabel={pendingRebirth.label}
+          worldlineNumber={run.currentWorldLine + 1}
+          description={pendingRebirth.description}
           muted={game.save.settings.muted}
           onComplete={() => {
             const chosen = pendingRebirth
             game.rebirth(chosen.id)
             setPendingRebirth((cur) => (cur?.id === chosen.id ? null : cur))
+            setRebirthArrival({ id: chosen.id, line: run.currentWorldLine + 1 })
             setTab("producers")
           }}
         />
+      ) : null}
+
+      {rebirthArrival ? (
+        <div
+          className="clicker-rebirth-arrival"
+          style={
+            {
+              "--stamp-primary": rebirthVariantFor(rebirthArrival.id).primary,
+              "--stamp-accent": rebirthVariantFor(rebirthArrival.id).accent,
+            } as CSSProperties
+          }
+          onAnimationEnd={(e) => {
+            if (e.animationName === "rebirth-arrival") setRebirthArrival(null)
+          }}
+          aria-hidden
+        >
+          <span>WORLD LINE #{String(rebirthArrival.line).padStart(3, "0")}</span>
+        </div>
       ) : null}
 
       {endingOpen ? (

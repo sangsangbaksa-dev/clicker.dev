@@ -8,7 +8,7 @@ import { derivedClick, productionSnapshot } from "./clicker-engine.ts"
  * HP is fixed at spawn from the player's click power then, so hunts stay a handful
  * of taps at any point of the run instead of drifting with progress.
  */
-export const GUARDIAN_RESPAWN_MS = 2_500
+export const GUARDIAN_RESPAWN_MS = 30_000
 
 /** Base-click hits needed for a guardian of this level (before crits, combo, strikes). */
 export function guardianHits(level: number): number {

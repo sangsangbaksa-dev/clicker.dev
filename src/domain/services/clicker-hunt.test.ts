@@ -54,7 +54,9 @@ test("hits wear it down, a kill pays a bounty and a tougher one respawns", () =>
   assert.equal(down.hp, 0)
 
   // While it is down taps do nothing; after the timer a level-1 guardian stands.
+  assert.equal(GUARDIAN_RESPAWN_MS, 30_000, "a fallen guardian revives after 30s")
   assert.equal(strikeGuardian(kill.run, kill.meta, config, 1e9, now + 100), undefined)
+  assert.equal(strikeGuardian(kill.run, kill.meta, config, 1e9, now + GUARDIAN_RESPAWN_MS - 1), undefined)
   const next = currentGuardian(kill.run, kill.meta, config, "signal_relay", now + GUARDIAN_RESPAWN_MS)!
   assert.equal(next.level, 1)
   assert.ok(next.maxHp > g.maxHp)

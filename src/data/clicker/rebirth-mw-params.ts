@@ -121,8 +121,9 @@ export class RebirthMwParams {
     return {
       uiFade: 0,
       uiScale: 1,
-      voidAlpha: lerp(0.15, 0, t),
-      stampScale: lerp(0.82, 0.28, easeOutQuad(t)),
+      // Hold the void while the result card reads; the old run behind it is not the new one yet.
+      voidAlpha: lerp(0.75, 0.6, t),
+      stampScale: lerp(0.82, 0.7, easeOutQuad(t)),
       chromatic: 0,
       shakePx: 0,
       rebuild: 1,

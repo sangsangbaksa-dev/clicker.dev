@@ -35,22 +35,23 @@ const REBIRTH_TIMELINE_FULL: Array<{ id: RebirthPhaseId; start: number; end: num
   { id: "void_tear", start: 900, end: 1500 },
   { id: "stamp", start: 1500, end: 2200 },
   { id: "rebuild", start: 2200, end: 3000 },
-  { id: "settle", start: 3000, end: 3500 },
+  // Long enough to read the new worldline's result card before the run resumes.
+  { id: "settle", start: 3000, end: 4600 },
 ]
 
-export const REBIRTH_DURATION_FULL_MS = 3500
+export const REBIRTH_DURATION_FULL_MS = 4600
 
-/** Reduced motion — spec §Reduced motion, ≤1.5s */
+/** Reduced motion — short phases; settle holds the result card still. */
 const REBIRTH_TIMELINE_REDUCED: Array<{ id: RebirthPhaseId; start: number; end: number }> = [
   { id: "select_confirm", start: 0, end: 160 },
   { id: "collapse", start: 160, end: 400 },
   { id: "void_tear", start: 400, end: 550 },
   { id: "stamp", start: 550, end: 1050 },
   { id: "rebuild", start: 1050, end: 1300 },
-  { id: "settle", start: 1300, end: 1500 },
+  { id: "settle", start: 1300, end: 2600 },
 ]
 
-export const REBIRTH_DURATION_REDUCED_MS = 1500
+export const REBIRTH_DURATION_REDUCED_MS = 2600
 
 type VariantBase = Omit<WorldlineMotionVariant, "transcendenceId" | "stampAssetId" | "reducedMotionStillAssetId">
 
