@@ -284,8 +284,9 @@ export function useClicker() {
         text: `+${result.energy.toFixed(result.energy >= 100 ? 0 : 1)}`,
         critical: result.critical,
         strike: result.quake ? "quake" : result.lightning ? "lightning" : result.echo ? "echo" : undefined,
-        x: clientX ?? 0,
-        y: clientY ?? 0,
+        // Spread a little so rapid taps on one spot don't stack into an unreadable column.
+        x: clientX != null ? clientX + (Math.random() - 0.5) * 56 : 0,
+        y: clientY != null ? clientY + (Math.random() - 0.5) * 24 : 0,
       },
     ])
     window.setTimeout(() => {
