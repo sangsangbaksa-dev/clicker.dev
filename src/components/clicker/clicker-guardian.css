@@ -1,0 +1,238 @@
+/* Region guardian on the home screen: art sized to cover the stage, body as the tap target. */
+.clicker-guardian {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  container-type: size;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.clicker-guardian-scene {
+  --w: max(100cqw, calc(100cqh * var(--ratio)));
+  position: absolute;
+  width: var(--w);
+  aspect-ratio: var(--ratio);
+  left: clamp(calc(100cqw - var(--w)), calc(50cqw - var(--fx) * var(--w)), 0px);
+  top: clamp(calc(100cqh - var(--w) / var(--ratio)), calc(50cqh - var(--fy) * var(--w) / var(--ratio)), 0px);
+}
+
+.clicker-guardian.is-sprite .clicker-guardian-scene {
+  --w: min(62cqh, 72cqw);
+  aspect-ratio: 1;
+  left: calc(50cqw - var(--w) / 2);
+  top: calc(46cqh - var(--w) / 2);
+}
+
+.clicker-guardian-art,
+.clicker-guardian-art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.clicker-guardian-art img {
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.clicker-guardian.is-sprite .clicker-guardian-art img {
+  object-fit: contain;
+  filter: drop-shadow(0 0 24px color-mix(in srgb, var(--accent) 45%, transparent));
+  animation: clicker-guardian-hover 3.2s ease-in-out infinite;
+}
+
+.clicker-guardian-art.is-hit {
+  animation: clicker-guardian-hit 180ms ease-out;
+}
+
+.clicker-guardian-art.is-crit {
+  animation: clicker-guardian-crit 260ms ease-out;
+}
+
+.clicker-guardian-art.is-arrive {
+  animation: clicker-guardian-arrive 700ms ease-out;
+}
+
+/* Fallen: the scene stays as the backdrop, dimmed and drained of color. */
+.clicker-guardian.is-down .clicker-guardian-art {
+  filter: grayscale(0.85) brightness(0.45);
+  transition: filter 500ms ease;
+}
+
+.clicker-guardian.is-down.is-sprite .clicker-guardian-art {
+  opacity: 0;
+  transform: scale(0.7);
+  transition:
+    opacity 500ms ease,
+    transform 500ms ease;
+}
+
+.clicker-guardian-hit {
+  position: absolute;
+  aspect-ratio: 1;
+  translate: 0 -50%;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: crosshair;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.clicker-guardian.is-sprite .clicker-guardian-hit {
+  inset: 8%;
+  width: auto;
+  translate: none;
+}
+
+.clicker-guardian-hit:focus-visible {
+  outline: 2px dashed var(--accent);
+  outline-offset: 4px;
+}
+
+@media (hover: hover) {
+  .clicker-guardian-hit:hover {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+}
+
+.clicker-guardian-hud {
+  position: absolute;
+  top: clamp(52px, 11cqh, 96px);
+  left: 50%;
+  translate: -50% 0;
+  width: min(88cqw, 26rem);
+  padding: 8px 12px 9px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, #050a14 72%, transparent);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 22%, transparent);
+  pointer-events: none;
+  color: #eaf4ff;
+}
+
+.clicker-guardian-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.clicker-guardian-title strong {
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+.clicker-guardian-title span {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.clicker-guardian-hp {
+  height: 8px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.12);
+  overflow: hidden;
+}
+
+.clicker-guardian-hp i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff4d5e, color-mix(in srgb, var(--accent) 70%, #ff4d5e));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 50%, transparent);
+  transition: width 120ms ease-out;
+}
+
+.clicker-guardian-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 5px;
+  font-size: 11px;
+  color: rgb(234 244 255 / 0.72);
+  font-variant-numeric: tabular-nums;
+}
+
+.clicker-guardian-meta span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.clicker-guardian-meta .is-hp {
+  flex-shrink: 0;
+  color: #eaf4ff;
+}
+
+.clicker-guardian-meta .is-down {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+@keyframes clicker-guardian-hit {
+  0% {
+    filter: brightness(1.45) saturate(1.2);
+    transform: translate(3px, -2px);
+  }
+  100% {
+    filter: none;
+    transform: none;
+  }
+}
+
+@keyframes clicker-guardian-crit {
+  0% {
+    filter: brightness(2) saturate(1.4);
+    transform: translate(-6px, 4px) scale(1.01);
+  }
+  40% {
+    transform: translate(5px, -3px);
+  }
+  100% {
+    filter: none;
+    transform: none;
+  }
+}
+
+@keyframes clicker-guardian-arrive {
+  0% {
+    filter: brightness(0.3) blur(4px);
+    transform: scale(1.04);
+  }
+  100% {
+    filter: none;
+    transform: none;
+  }
+}
+
+@keyframes clicker-guardian-hover {
+  50% {
+    transform: translateY(-2.5%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-guardian-art.is-hit,
+  .clicker-guardian-art.is-crit,
+  .clicker-guardian-art.is-arrive,
+  .clicker-guardian.is-sprite .clicker-guardian-art img {
+    animation: none;
+  }
+}
+
+/* Narrow screens: clear the region chips and the slim goal bar above the guardian. */
+@media (max-width: 900px) {
+  .clicker-guardian-hud {
+    top: 112px;
+  }
+}

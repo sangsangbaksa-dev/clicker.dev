@@ -51,6 +51,7 @@ import {
   type MineSessionSummary,
 } from "@/domain/services/clicker-mine-session"
 import { decodeClickerSave, encodeClickerSave } from "@/domain/services/clicker-save-codec"
+import { currentGuardian, strikeGuardian } from "@/domain/services/clicker-hunt"
 import { backupClickerRaw, readClickerRaw, writeClickerRaw } from "@/infrastructure/persistence/clicker-save"
 
 const config = clickerConfig
@@ -170,6 +171,33 @@ export function clickerClick(save: SaveData, now: number): {
     quake: next.result.quake,
     echo: next.result.echo,
   }
+}
+
+export type GuardianHit = ReturnType<typeof clickerClick> & {
+  damage: number
+  killed: boolean
+  bounty: number
+  level: number
+}
+
+/**
+ * Tap on the region guardian: a normal mining click whose CORE is also dealt as damage.
+ * Undefined when there is nothing standing to hit (home, no guardian, or respawning).
+ */
+export function clickerHuntGuardian(save: SaveData, now: number): GuardianHit | undefined {
+  const run = save.runState
+  const standing = currentGuardian(run, save.metaState, config, run.currentRegionId, now)
+  if (!standing || standing.hp <= 0 || isGameCompleted(save.metaState)) return undefined
+  const click = clickerClick(save, now)
+  const strike = strikeGuardian(click.save.runState, click.save.metaState, config, click.energy, now)
+  if (!strike) return undefined
+  const next = withAchievements({ ...click.save, runState: strike.run, metaState: strike.meta })
+  return { ...click, save: next, damage: strike.damage, killed: strike.killed, bounty: strike.bounty, level: strike.level }
+}
+
+/** Guardian of the current region for the HUD (spawned lazily, so render needs no save write). */
+export function clickerGuardianView(save: SaveData, now: number) {
+  return currentGuardian(save.runState, save.metaState, config, save.runState.currentRegionId, now)
 }
 
 export function clickerBuyPotion(save: SaveData, potionId: string): UseCaseResult<SaveData> {

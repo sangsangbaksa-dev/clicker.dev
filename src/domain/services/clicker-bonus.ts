@@ -123,6 +123,8 @@ export function achievementProgress(kind: AchievementKind, run: RunState, meta: 
       return s.veins
     case "ORES":
       return s.oresBroken
+    case "MONSTERS":
+      return s.monsterKills
     case "MINE_SESSIONS":
       return s.mineSessions
     case "MINE_HAUL":

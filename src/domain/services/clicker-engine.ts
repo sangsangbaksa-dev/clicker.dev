@@ -4,6 +4,7 @@ import type {
   ComboState,
   CrisisChoice,
   FeverState,
+  GuardianState,
   GameConfig,
   InstabilityLevel,
   MetaState,
@@ -92,6 +93,7 @@ export function createInitialRun(now: number, meta: MetaState, config: GameConfi
     lightningStormUntil: 0,
     droneSwarmUntil: 0,
     costScale: scale,
+    guardians: {},
   }
 }
 
@@ -107,6 +109,7 @@ export function createInitialMeta(): MetaState {
       feverStarts: 0,
       veins: 0,
       oresBroken: 0,
+      monsterKills: 0,
       mineSessions: 0,
       bestMineHaul: 0,
     },
@@ -1364,6 +1367,22 @@ export function grantAdminEnergy(run: RunState, amount: number): RunState {
   }
 }
 
+function sanitizeGuardians(raw: unknown): Record<string, GuardianState> {
+  if (!raw || typeof raw !== "object") return {}
+  const out: Record<string, GuardianState> = {}
+  const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0)
+  for (const [id, value] of Object.entries(raw as Record<string, Partial<GuardianState>>)) {
+    if (!value || typeof value !== "object") continue
+    out[id] = {
+      level: Math.max(0, Math.floor(num(value.level))),
+      hp: Math.max(0, num(value.hp)),
+      maxHp: Math.max(0, num(value.maxHp)),
+      respawnAt: Math.max(0, num(value.respawnAt)),
+    }
+  }
+  return out
+}
+
 export function sanitizeSave(raw: unknown, config: GameConfig, now: number): SaveData {
   const fallback = createInitialSave(now, config)
   if (!raw || typeof raw !== "object") return fallback
@@ -1437,6 +1456,7 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
           run.regionCooldowns && typeof run.regionCooldowns === "object" ? { ...run.regionCooldowns } : {},
         challengeCooldowns:
           run.challengeCooldowns && typeof run.challengeCooldowns === "object" ? { ...run.challengeCooldowns } : {},
+        guardians: sanitizeGuardians(run.guardians),
         costScale:
           typeof run.costScale === "number" && run.costScale > 0
             ? run.costScale

@@ -20,6 +20,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
   },
   {
     id: "signal_relay",
+    guardian: { name: "에코 디바우러", nameEn: "ECHO DEVOURER", epithet: "중계탑의 신호를 삼키는 자" },
     name: "Signal Relay",
     description: "코어에서 뻗어 나간 중계 복도. 잔향이 벽면을 타고 흐릅니다.",
     bgAssetId: "/clicker/bg/region_signal_relay.png",
@@ -37,6 +38,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
   },
   {
     id: "phase_vault",
+    guardian: { name: "위상 망령", nameEn: "PHASE WRAITH", epithet: "금고의 틈새를 떠도는 보라빛 망령" },
     name: "Phase Vault",
     description: "깊은 공명이 먼지처럼 쌓인 보관소. CORE 맥동의 잔향이 오래 남습니다.",
     bgAssetId: "/clicker/bg/region_phase_vault.png",
@@ -56,6 +58,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
   },
   {
     id: "storm_spire",
+    guardian: { name: "볼트웜", nameEn: "VOLTWYRM", epithet: "첨탑을 휘감은 뇌룡" },
     name: "Storm Spire",
     description: "번개가 멎지 않는 첨탑. 채굴 레이저가 낙뢰를 끌어당깁니다.",
     bgAssetId: "/clicker/bg/region_storm_spire.jpg",
@@ -81,6 +84,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
   },
   {
     id: "deep_fault",
+    guardian: { name: "마그마 콜로서스", nameEn: "MAGMA COLOSSUS", epithet: "단층 깊은 곳의 용암 거신" },
     name: "Deep Fault",
     description: "행성 깊이 갈라진 단층. 한 번의 타격이 지각을 울립니다.",
     bgAssetId: "/clicker/bg/region_deep_fault.jpg",
@@ -106,6 +110,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
   },
   {
     id: "drone_foundry",
+    guardian: { name: "브루드 매트리아크", nameEn: "BROOD MATRIARCH", epithet: "드론 군체를 낳는 기계 여왕" },
     name: "Drone Foundry",
     description: "버려진 드론 공장. 격납고마다 채굴 드론이 잠들어 있습니다.",
     bgAssetId: "/clicker/bg/region_drone_foundry.jpg",

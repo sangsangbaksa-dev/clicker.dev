@@ -13,6 +13,8 @@ import {
   clickerCanCompleteEnding,
   clickerClaimVein,
   clickerClick,
+  clickerGuardianView,
+  clickerHuntGuardian,
   clickerCompleteEnding,
   clickerDrillOverdrive,
   clickerDrinkPotion,
@@ -294,6 +296,40 @@ export function useClicker() {
     }, 700)
     return { critical: result.critical }
   }, [commit])
+
+  /** Tap on the region guardian. Returns what happened so the stage can animate it. */
+  const huntGuardian = useCallback(
+    (clientX: number, clientY: number) => {
+      const current = saveRef.current
+      if (!current) return null
+      const hit = clickerHuntGuardian(current, now())
+      if (!hit) return null
+      commit(hit.save)
+      if (hit.quake) playSfx("quake")
+      else if (hit.lightning) playSfx("lightning")
+      else if (hit.echo) playSfx("echoStrike")
+      const id = ++floatId.current
+      setFloats((prev) => [
+        ...prev.slice(-12),
+        {
+          id,
+          text: `-${formatNumber(hit.damage)}`,
+          critical: hit.critical,
+          strike: hit.quake ? "quake" : hit.lightning ? "lightning" : hit.echo ? "echo" : undefined,
+          x: clientX,
+          y: clientY,
+        },
+      ])
+      window.setTimeout(() => setFloats((prev) => prev.filter((f) => f.id !== id)), 700)
+      if (hit.killed) {
+        playSfx("oreBreak")
+        const name = clickerGameConfig.regions.find((r) => r.id === current.runState.currentRegionId)?.guardian?.name
+        flash(`${name ?? "수호자"} Lv.${hit.level + 1} 처치 · +${formatNumber(hit.bounty)} CORE`)
+      }
+      return hit
+    },
+    [commit, flash],
+  )
 
   const buyPotion = useCallback((id: string) => {
     if (!saveRef.current) return
@@ -665,6 +701,21 @@ export function useClicker() {
       }
     : null
   const canCompleteEnding = save ? clickerCanCompleteEnding(save) : false
+  const guardianDef = currentRegion && !currentRegion.isHome
+    ? clickerGameConfig.regions.find((r) => r.id === currentRegion.id)?.guardian
+    : undefined
+  const guardianState = save && guardianDef ? clickerGuardianView(save, t) : undefined
+  const guardian =
+    guardianDef && guardianState
+      ? {
+          ...guardianDef,
+          regionId: currentRegion!.id,
+          level: guardianState.level,
+          hp: guardianState.hp,
+          maxHp: guardianState.maxHp,
+          respawnInMs: guardianState.hp <= 0 ? Math.max(0, guardianState.respawnAt - t) : 0,
+        }
+      : null
   const isCompleted = Boolean(save?.metaState.gameCompleted)
 
   return {
@@ -689,6 +740,8 @@ export function useClicker() {
     forceSave,
     dismissToast,
     clickCore,
+    huntGuardian,
+    guardian,
     buyPotion,
     buyActiveSkill,
     buyProducer,

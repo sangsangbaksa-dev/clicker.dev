@@ -97,6 +97,17 @@ export type RunState = {
   droneSwarmUntil: number
   /** Worldline price level: every CORE cost and goal in this run is multiplied by it. */
   costScale: number
+  /** Region id → its guardian on the home screen (HP, kills so far, respawn timer). */
+  guardians: Record<string, GuardianState>
+}
+
+export type GuardianState = {
+  /** Guardians slain in this region this run; each kill brings a tougher one. */
+  level: number
+  hp: number
+  maxHp: number
+  /** Absolute ms when the next guardian appears; 0 while one is standing. */
+  respawnAt: number
 }
 
 export type ClickerStatistics = {
@@ -108,6 +119,8 @@ export type ClickerStatistics = {
   veins: number
   /** Center ores shattered in the mine. */
   oresBroken: number
+  /** Region guardians slain (all runs). */
+  monsterKills: number
   /** Timed mine sessions finished. */
   mineSessions: number
   /** Largest CORE gained in a single mine session. */
@@ -269,6 +282,7 @@ export type AchievementKind =
   | "REBIRTHS"
   | "VEINS"
   | "ORES"
+  | "MONSTERS"
   | "MINE_SESSIONS"
   | "MINE_HAUL"
 
@@ -337,6 +351,14 @@ export type RegionDef = {
   challenge?: RegionChallengeDef
   /** First-visit cinematic (video with its own soundtrack), played once per save. */
   intro?: RegionIntroDef
+  /** Monster standing on the region's home screen; tap it to hunt it down. */
+  guardian?: RegionGuardianDef
+}
+
+export type RegionGuardianDef = {
+  name: string
+  nameEn: string
+  epithet: string
 }
 
 export type RegionChallengeKind = "ROD_STRIKE" | "FAULT_DRILL" | "DRONE_RECALL"

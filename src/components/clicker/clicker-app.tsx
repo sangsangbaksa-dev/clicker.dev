@@ -23,6 +23,7 @@ import { ClickerOtherTab } from "@/components/clicker/clicker-other-tab"
 import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motion"
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
+import { ClickerGuardian } from "@/components/clicker/clicker-guardian"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
 import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
@@ -805,6 +806,19 @@ export function ClickerApp() {
           aria-hidden
         />
         <div className="clicker-vignette" />
+        {!inMine && !atHomeHub && game.guardian ? (
+          <ClickerGuardian
+            key={game.guardian.regionId}
+            guardian={game.guardian}
+            onHit={(x, y) => {
+              const hit = game.huntGuardian(x, y)
+              if (!hit) return null
+              playLaser(game.save?.settings.muted ?? false, hit.critical)
+              if (hit.killed) flashStage()
+              return { killed: hit.killed, critical: hit.critical }
+            }}
+          />
+        ) : null}
         <nav className="clicker-stage-region" aria-label="현재 지역">
           {game.currentRegion ? (
             <span className="clicker-stage-region-slot">
