@@ -34,7 +34,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     },
     bgAssetId: "/clicker/bg/region_signal_relay.webp",
     intro: { video: "/clicker/region/signal_relay_intro.mp4", poster: "/clicker/bg/region_signal_relay.webp" },
-    unlockAtLifetimeEnergy: 250_000,
+    unlockAtLifetimeEnergy: 1_000_000,
     productionMultiplier: 1.12,
     activity: {
       kind: "PRODUCTION_BOOST",
@@ -61,7 +61,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     },
     bgAssetId: "/clicker/bg/region_phase_vault.webp",
     intro: { video: "/clicker/region/phase_vault_intro.mp4", poster: "/clicker/bg/region_phase_vault.webp" },
-    unlockAtLifetimeEnergy: 2_000_000,
+    unlockAtLifetimeEnergy: 8_000_000,
     clickMultiplier: 1.08,
     productionMultiplier: 1.1,
     activity: {
@@ -82,7 +82,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     huntMode: true,
     bgAssetId: "/clicker/bg/region_storm_spire.webp",
     intro: { video: "/clicker/region/storm_spire_intro.mp4", poster: "/clicker/bg/region_storm_spire.webp" },
-    unlockAtLifetimeEnergy: 30_000_000,
+    unlockAtLifetimeEnergy: 120_000_000,
     clickMultiplier: 1.15,
     lightningChanceAdd: 0.08,
     challenge: {
@@ -109,7 +109,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     huntMode: true,
     bgAssetId: "/clicker/bg/region_deep_fault.webp",
     intro: { video: "/clicker/region/deep_fault_intro.mp4", poster: "/clicker/bg/region_deep_fault.webp" },
-    unlockAtLifetimeEnergy: 400_000_000,
+    unlockAtLifetimeEnergy: 1_600_000_000,
     productionMultiplier: 1.2,
     quakeIntervalReduce: 5,
     challenge: {
@@ -134,7 +134,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     description: "코어의 심장부. 수호자가 코어를 틀어막고 있습니다.",
     bgAssetId: "/clicker/bg/region_core_heart.jpg",
     intro: { video: "/clicker/region/core_heart_intro.mp4", poster: "/clicker/bg/region_core_heart.jpg" },
-    unlockAtLifetimeEnergy: 1e25,
+    unlockAtLifetimeEnergy: 300_000_000_000,
     requiresRebirths: 5,
     clickMultiplier: 1.2,
     productionMultiplier: 1.2,
