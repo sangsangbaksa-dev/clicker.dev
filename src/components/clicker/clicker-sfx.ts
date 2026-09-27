@@ -419,44 +419,6 @@ export function playLaser(mutedArg: boolean, critical: boolean) {
   }
 }
 
-/** Stamp pitch per worldline so each rebirth lands with its own color. */
-const STAMP_ROOT: Record<string, number> = {
-  directive_pulse: 440,
-  aurelia_grid: 392,
-  resonance_protocol: 523,
-  volatile_core: 311,
-  adaptive_architect: 466,
-}
-
-/** Rebirth beat cues, keyed by the placeholder names in `REBIRTH_AUDIO_CUES`. */
-export function playRebirthCue(name: string) {
-  if (muted) return
-  const c = audio()
-  if (!c) return
-  const t = c.currentTime
-  if (name === "sfx_rebirth_confirm_click") {
-    tone(c, "square", 1200, 900, 0.04, t, 0.06)
-  } else if (name === "sfx_rebirth_collapse_whoosh") {
-    tone(c, "sine", 520, 70, 0.07, t, 0.5)
-    noise(c, "bandpass", 700, 0.6, 0.05, t, 0.5, { sweepTo: 200 })
-  } else if (name === "sfx_rebirth_void_tear") {
-    noise(c, "bandpass", 3200, 2, 0.06, t, 0.35)
-    tone(c, "sawtooth", 90, 45, 0.05, t, 0.55)
-  } else if (name.startsWith("sfx_rebirth_stamp_")) {
-    const root = STAMP_ROOT[name.slice("sfx_rebirth_stamp_".length)] ?? 440
-    const e = echo(c, 0.16, 0.35, 0.35)
-    tone(c, "triangle", root, root, 0.08, t, 0.6, { dest: e })
-    tone(c, "sine", root * 1.5, root * 1.5, 0.05, t + 0.04, 0.5, { dest: e })
-    noise(c, "lowpass", 180, 1, 0.08, t, 0.18)
-  } else if (name === "sfx_rebirth_rebuild_rise") {
-    tone(c, "sine", 220, 880, 0.05, t, 0.7)
-  } else if (name === "sfx_rebirth_settle_chime") {
-    const e = echo(c, 0.2, 0.4, 0.4)
-    tone(c, "sine", 1046, 1046, 0.04, t, 0.8, { dest: e })
-    tone(c, "sine", 1318, 1318, 0.03, t + 0.08, 0.7, { dest: e })
-  }
-}
-
 /** Region field challenge feedback: a clean hit, a kill (hunt), a miss, and the final whistle. */
 export function playChallengeCue(mutedArg: boolean, cue: "hit" | "kill" | "miss" | "done") {
   if (mutedArg || muted) return

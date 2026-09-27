@@ -93,3 +93,35 @@
     opacity: 1;
   }
 }
+
+/* After the rebirth cinematic fades out, a burst of light reveals the new worldline. */
+.clicker-rebirth-arrive {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 46%,
+    rgb(255 255 255 / 0.85),
+    color-mix(in srgb, var(--core, #5ce8ff) 45%, #05070d) 35%,
+    #05070d 80%
+  );
+  animation: rebirth-arrive 900ms ease-out forwards;
+}
+
+@keyframes rebirth-arrive {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-rebirth-arrive {
+    animation-duration: 300ms;
+  }
+}

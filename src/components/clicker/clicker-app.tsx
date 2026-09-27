@@ -15,13 +15,13 @@ import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine } from "@/components/clicker/clicker-mine"
 import { ClickerCinematic } from "@/components/clicker/clicker-cinematic"
+import { REBIRTH_CINEMATIC_STAMP_SEC, rebirthCinematicFor } from "@/data/clicker/rebirth-assets"
 import { ClickerRegionChallenge } from "@/components/clicker/clicker-region-challenge"
 import { ClickerMonsterEncounter, ClickerMonsterStage } from "@/components/clicker/clicker-monster"
 import { monsterForRegion } from "@/data/clicker/monsters"
 import { MineArt } from "@/data/clicker/mine-assets"
 import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
 import { ClickerOtherTab } from "@/components/clicker/clicker-other-tab"
-import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motion"
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
@@ -155,7 +155,7 @@ export function ClickerApp() {
   const [popIcons, setPopIcons] = useState<Record<string, number>>({})
   const [confirmPotion, setConfirmPotion] = useState<string | null>(null)
   const [endingOpen, setEndingOpen] = useState(false)
-  const [pendingRebirth, setPendingRebirth] = useState<{ id: string; label: string } | null>(null)
+  const [pendingRebirth, setPendingRebirth] = useState<{ id: string; label: string; identity: string } | null>(null)
   /** Bumped when a rebirth lands; keys the one-shot arrival flash over the new run. */
   const [rebornSeq, setRebornSeq] = useState(0)
   const [storyBeat, setStoryBeat] = useState<string | null>(null)
@@ -1331,7 +1331,7 @@ export function ClickerApp() {
             meta={game.save.metaState}
             onSelectTab={selectTab}
             onOpenEnding={() => setEndingOpen(true)}
-            onChoose={(buff) => setPendingRebirth({ id: buff.id, label: buff.name })}
+            onChoose={(buff) => setPendingRebirth({ id: buff.id, label: buff.name, identity: buff.identity })}
           />
         ) : null}
         </section>
@@ -1506,12 +1506,14 @@ export function ClickerApp() {
       ) : null}
 
       {pendingRebirth ? (
-        <ClickerRebirthMotion
+        <ClickerCinematic
           key={pendingRebirth.id}
-          transcendenceId={pendingRebirth.id}
-          worldlineLabel={pendingRebirth.label}
+          src={rebirthCinematicFor(pendingRebirth.id)}
+          label={`${pendingRebirth.label} 세계선으로 환생`}
+          caption={{ kicker: "WORLDLINE SHIFT", title: pendingRebirth.label, body: pendingRebirth.identity }}
+          captionAtSec={REBIRTH_CINEMATIC_STAMP_SEC}
           muted={game.save.settings.muted}
-          onComplete={() => {
+          onDone={() => {
             const chosen = pendingRebirth
             game.rebirth(chosen.id)
             setPendingRebirth((cur) => (cur?.id === chosen.id ? null : cur))

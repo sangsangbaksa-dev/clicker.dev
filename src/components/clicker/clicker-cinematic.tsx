@@ -9,6 +9,8 @@ type Props = {
   label: string
   /** Optional title card over the video (region intros). */
   caption?: { kicker: string; title: string; body: string }
+  /** When the caption fades in (default 1.2 s); it stays until the video ends. */
+  captionAtSec?: number
   muted: boolean
   onDone: () => void
 }
@@ -20,7 +22,7 @@ const SAFETY_TIMEOUT_MS = 15_000
  * Full-screen video with its own soundtrack (mine entry, first-visit region intros).
  * Always completes: ended, skip, Esc/Enter/Space, load error, or the safety timeout.
  */
-export function ClickerCinematic({ src, label, caption, muted, onDone }: Props) {
+export function ClickerCinematic({ src, label, caption, captionAtSec, muted, onDone }: Props) {
   // Black until the first frame actually plays: a poster image would flash a still before the video.
   const [playing, setPlaying] = useState(false)
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -83,7 +85,11 @@ export function ClickerCinematic({ src, label, caption, muted, onDone }: Props) 
         onError={finish}
       />
       {caption ? (
-        <div className="clicker-cinematic-caption" aria-live="polite">
+        <div
+          className="clicker-cinematic-caption"
+          aria-live="polite"
+          style={captionAtSec === undefined ? undefined : { animationDelay: `${captionAtSec}s`, animationDuration: "4.5s" }}
+        >
           <p>{caption.kicker}</p>
           <h2>{caption.title}</h2>
           <span>{caption.body}</span>

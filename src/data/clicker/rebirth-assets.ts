@@ -15,6 +15,22 @@ const STAMP_FALLBACK: Record<string, string> = {
   hybrid_line: "/clicker/stamp/stamp_adaptive_architect.png",
 }
 
+/** Full-screen rebirth cinematics (media/rebirth-cinematic/render.sh), one per worldline. */
+const CINEMATIC: Record<string, string> = {
+  focus_line: `${DIR}/rebirth_directive_pulse.mp4`,
+  auto_line: `${DIR}/rebirth_aurelia_grid.mp4`,
+  reso_line: `${DIR}/rebirth_resonance_protocol.mp4`,
+  risk_line: `${DIR}/rebirth_volatile_core.mp4`,
+  hybrid_line: `${DIR}/rebirth_adaptive_architect.mp4`,
+}
+
+/** Seconds into the cinematic when the worldline stamp lands (white flash at 4.3 s). */
+export const REBIRTH_CINEMATIC_STAMP_SEC = 4.8
+
+export function rebirthCinematicFor(transcendenceId: string): string {
+  return CINEMATIC[transcendenceId] ?? CINEMATIC.focus_line
+}
+
 /** Four-card chrome set from sheet 08; other worldlines use the geometric card. */
 export const REBIRTH_CHROME_WORLDLINE_IDS = Object.keys(SLUG)
 
