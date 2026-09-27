@@ -6,7 +6,6 @@ import "./clicker-monster.css"
 /** Inline SVG creature art, one per region monster kind. Parts carry classes the CSS animates. */
 /** Region monsters painted as giant bosses (Canva art, black keyed to alpha). */
 const DRAGON_ART: Record<string, string> = {
-  wisp: "/clicker/monster/kraken.webp",
   golem: "/clicker/monster/titan.webp",
   stormbird: "/clicker/monster/storm_dragon.webp",
   worm: "/clicker/monster/behemoth.webp",

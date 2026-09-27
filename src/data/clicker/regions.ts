@@ -22,7 +22,6 @@ export const CLICKER_REGIONS: RegionDef[] = [
     id: "signal_relay",
     name: "Signal Relay",
     description: "코어에서 뻗어 나간 중계 복도. 잔향이 벽면을 타고 흐릅니다.",
-    monster: { name: "유령 크라켄", kind: "wisp", rewardSeconds: 25, respawnSec: 30 },
     challenge: {
       kind: "SIGNAL_TUNE",
       name: "신호 포착",
