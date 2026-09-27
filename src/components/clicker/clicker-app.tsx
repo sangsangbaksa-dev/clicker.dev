@@ -1378,7 +1378,6 @@ export function ClickerApp() {
       {enteringMine ? (
         <ClickerCinematic
           src={MineArt.enterCinematic}
-          poster={MineArt.entranceGate}
           label="광산 입장 중"
           muted={game.save.settings.muted}
           onDone={() => {
@@ -1428,7 +1427,6 @@ export function ClickerApp() {
         <ClickerCinematic
           key={game.regionIntro.regionId}
           src={game.regionIntro.video}
-          poster={game.regionIntro.poster}
           label={`${game.regionIntro.name} 첫 진입`}
           caption={{
             kicker: "NEW REGION · 첫 진입",

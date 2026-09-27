@@ -1,11 +1,10 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import "./clicker-cinematic.css"
 
 type Props = {
   src: string
-  poster: string
   /** Accessible name of the dialog, e.g. "광산 입장 중". */
   label: string
   /** Optional title card over the video (region intros). */
@@ -21,7 +20,9 @@ const SAFETY_TIMEOUT_MS = 15_000
  * Full-screen video with its own soundtrack (mine entry, first-visit region intros).
  * Always completes: ended, skip, Esc/Enter/Space, load error, or the safety timeout.
  */
-export function ClickerCinematic({ src, poster, label, caption, muted, onDone }: Props) {
+export function ClickerCinematic({ src, label, caption, muted, onDone }: Props) {
+  // Black until the first frame actually plays: a poster image would flash a still before the video.
+  const [playing, setPlaying] = useState(false)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const doneRef = useRef(false)
   const mutedAtStart = useRef(muted)
@@ -73,11 +74,11 @@ export function ClickerCinematic({ src, poster, label, caption, muted, onDone }:
     <div className="clicker-cinematic" role="dialog" aria-label={label}>
       <video
         ref={videoRef}
-        className="clicker-cinematic-video"
+        className={`clicker-cinematic-video${playing ? " is-playing" : ""}`}
         src={src}
-        poster={poster}
         playsInline
         preload="auto"
+        onPlaying={() => setPlaying(true)}
         onEnded={finish}
         onError={finish}
       />
