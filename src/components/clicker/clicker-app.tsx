@@ -8,7 +8,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react"
-import { CLICKER_ASSETS } from "@/data/clicker/catalog"
+import { CLICKER_ASSETS, clickerConfig } from "@/data/clicker/catalog"
 import { formatNumber } from "@/domain/services/clicker-format"
 import { useClicker } from "@/hooks/use-clicker"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
@@ -21,6 +21,7 @@ import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
 import { ClickerOtherTab } from "@/components/clicker/clicker-other-tab"
 import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motion"
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
+import { collectImagePaths, useDecodedSrc, useImagePreload } from "@/components/clicker/clicker-preload"
 import { ClickerImageZoom } from "@/components/clicker/clicker-image-zoom"
 import { ClickerPurchaseFx } from "@/components/clicker/clicker-purchase-fx"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
@@ -130,8 +131,17 @@ function huntSpot(seed: number): { left: number; top: number } {
   return { left: 8 + r(1) * 72, top: 22 + r(2) * 40 }
 }
 
+/** Stage backdrop that keeps the previous image until the next is decoded (no blank/stale flash). */
+function StageBg({ src, className }: { src: string; className: string }) {
+  const shown = useDecodedSrc(src)
+  return <div className={className} style={{ backgroundImage: `url(${shown})` }} aria-hidden />
+}
+
+const PRELOAD_IMAGES = collectImagePaths(CLICKER_ASSETS, MineArt, clickerConfig)
+
 export function ClickerApp() {
   const game = useClicker()
+  useImagePreload(PRELOAD_IMAGES)
   // Door-walk entry cinematic between Enter Mine and the timed session (carries its own SFX).
   const [enteringMine, setEnteringMine] = useState(false)
   /** Region whose field challenge is open (mini-game overlay), or null. */
@@ -841,10 +851,9 @@ export function ClickerApp() {
       </header>
 
       <div className="clicker-stage">
-        <div
+        <StageBg
           className={`clicker-stage-bg ${stageEvent ? "is-event" : ""}${regionTransition ? " is-region-transition" : ""}${inMine && hud.fever.active ? " is-fever" : ""}`}
-          style={{ backgroundImage: `url(${stageBg})` }}
-          aria-hidden
+          src={stageBg}
         />
         <div className="clicker-vignette" />
         {!inMine && monsterDef && !regionDef?.boss ? (

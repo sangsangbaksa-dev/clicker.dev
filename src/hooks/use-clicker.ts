@@ -113,15 +113,17 @@ export function useClicker() {
   const mineStartRef = useRef<MineSessionStart | null>(null)
   const [mineSummary, setMineSummary] = useState<MineSessionSummary | null>(null)
 
-  const persistNow = useCallback((next?: SaveData) => {
+  const persistNow = useCallback((next?: SaveData, silent = false) => {
     const target = next ?? saveRef.current
     if (!target || blockedRef.current) return
     if (!canWriteClickerSave(browserLeaseStorage(), tabIdRef.current, now())) {
       markBlocked()
       return
     }
-    setSavePulse("saving")
     persistClickerGame(target)
+    // Background autosaves skip the save pulse: three extra full repaints every 2.5s caused hitches.
+    if (silent) return
+    setSavePulse("saving")
     if (savePulseTimer.current != null) window.clearTimeout(savePulseTimer.current)
     // Defer "saved" so the saving state can paint once.
     window.setTimeout(() => setSavePulse("saved"), 40)
@@ -224,10 +226,10 @@ export function useClicker() {
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      if (saveRef.current) persistNow()
+      if (saveRef.current) persistNow(undefined, true)
     }, 2500)
     const onHide = () => {
-      if (saveRef.current) persistNow()
+      if (saveRef.current) persistNow(undefined, true)
     }
     window.addEventListener("pagehide", onHide)
     document.addEventListener("visibilitychange", onHide)
