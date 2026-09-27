@@ -9,8 +9,7 @@
 .clicker-monster-roam.is-wisp,
 .clicker-monster-roam.is-stormbird,
 .clicker-monster-roam.is-hunter { top: 18%; }
-.clicker-monster-roam.is-worm,
-.clicker-monster-roam.is-crawler { top: 52%; }
+.clicker-monster-roam.is-worm { top: 52%; }
 
 @keyframes clicker-roam {
   0% { transform: translate(0, 0) scaleX(1); }
@@ -146,4 +145,33 @@
 }
 @keyframes clicker-hunt-spawn {
   from { opacity: 0; transform: scale(0.6); }
+}
+
+/* Giant dragon bosses: huge, centered on their spot, slow menacing hover. */
+.clicker-monster-roam.is-dragon {
+  left: 50%;
+  top: 34%;
+  translate: -50% -50%;
+}
+.clicker-monster-roam.is-dragon .clicker-monster,
+.clicker-monster-roam.is-hunt.is-dragon .clicker-monster {
+  width: clamp(240px, 62vw, 460px);
+  filter: drop-shadow(0 18px 28px rgb(0 0 0 / 0.7));
+  animation: clicker-monster-spawn 520ms ease-out, clicker-dragon-hover 3.2s ease-in-out 520ms infinite;
+}
+.clicker-monster-roam.is-dragon .clicker-monster:hover {
+  filter: drop-shadow(0 0 22px rgb(255 190 120 / 0.75));
+}
+.clicker-monster-roam.is-dragon .clicker-monster.is-dying {
+  animation: clicker-monster-die 650ms ease-in forwards;
+}
+.clicker-monster .mon-dragon {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+@keyframes clicker-dragon-hover {
+  50% { transform: translateY(-12px) scale(1.02); }
 }

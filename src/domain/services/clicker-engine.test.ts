@@ -533,8 +533,10 @@ test("true ending unlocks once the Core Heart guardian falls", () => {
 test("region monsters die on tap, pay CORE and respawn after 30s", () => {
   const now = 20_000_000
   const meta = createInitialMeta()
-  const run = createInitialRun(now, meta, config)
-  const home = run.currentRegionId
+  const start = createInitialRun(now, meta, config)
+  assert.equal(config.regions.find((r) => r.id === start.currentRegionId)?.monster, undefined, "home has no monster")
+  const home = "phase_vault"
+  const run = { ...start, currentRegionId: home }
   assert.equal(monsterAlive(run, home, now), true)
   const slain = slayMonster(run, meta, config, home, now)
   assert.equal(slain.error, undefined)

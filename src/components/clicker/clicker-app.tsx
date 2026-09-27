@@ -128,7 +128,8 @@ function huntSpot(seed: number): { left: number; top: number } {
     const x = Math.sin(seed * 0.001 + n * 12.9898) * 43758.5453
     return x - Math.floor(x)
   }
-  return { left: 8 + r(1) * 72, top: 22 + r(2) * 40 }
+  // Giant dragons are centered on the spot, so keep them well inside the stage.
+  return { left: 30 + r(1) * 40, top: 30 + r(2) * 16 }
 }
 
 /** Stage backdrop that keeps the previous image until the next is decoded (no blank/stale flash). */

@@ -13,7 +13,6 @@ export const CLICKER_REGIONS: RegionDef[] = [
     id: "core_chamber",
     name: "Core Mine",
     description: "코어 광맥이 드러난 AURELIA의 채굴 거점. 모든 세계선의 시작점입니다.",
-    monster: { name: "광석 갉개", kind: "crawler", rewardSeconds: 20, respawnSec: 30 },
     bgAssetId: "/clicker/bg/region_core_chamber.webp",
     unlockAtLifetimeEnergy: 0,
     isHome: true,

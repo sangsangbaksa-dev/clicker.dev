@@ -4,20 +4,18 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import "./clicker-monster.css"
 
 /** Inline SVG creature art, one per region monster kind. Parts carry classes the CSS animates. */
+/** Region monsters painted as giant dragons (Canva art, black keyed to alpha). */
+const DRAGON_ART: Record<string, string> = {
+  wisp: "/clicker/monster/dragon_wisp.webp",
+  golem: "/clicker/monster/dragon_golem.webp",
+  stormbird: "/clicker/monster/dragon_stormbird.webp",
+  worm: "/clicker/monster/dragon_worm.webp",
+}
+
 export function MonsterArt({ kind }: { kind: string }) {
+  const dragon = DRAGON_ART[kind]
+  if (dragon) return <img className="mon-dragon" src={dragon} alt="" draggable={false} />
   switch (kind) {
-    case "crawler":
-      return (
-        <svg viewBox="0 0 120 80" aria-hidden>
-          <g className="mon-legs" stroke="#5b3a22" strokeWidth="5" strokeLinecap="round">
-            <path d="M30 52 L14 70" /><path d="M48 56 L40 76" /><path d="M72 56 L80 76" /><path d="M90 52 L106 70" />
-          </g>
-          <ellipse cx="60" cy="46" rx="42" ry="22" fill="#6b4a2e" />
-          <path d="M28 38 L36 12 L44 34 M52 30 L60 4 L68 30 M76 34 L86 14 L92 38" fill="#5ee6ff" stroke="#b6f6ff" strokeWidth="2" />
-          <circle className="mon-eye" cx="86" cy="48" r="5" fill="#ffdf6b" />
-          <circle className="mon-eye" cx="100" cy="46" r="4" fill="#ffdf6b" />
-        </svg>
-      )
     case "wisp":
       return (
         <svg viewBox="0 0 100 110" aria-hidden>
@@ -130,7 +128,7 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
   }
   return (
     <div
-      className={`clicker-monster-roam is-${kind}${spot ? " is-hunt" : ""}`}
+      className={`clicker-monster-roam is-${kind}${spot ? " is-hunt" : ""}${DRAGON_ART[kind] ? " is-dragon" : ""}`}
       style={spot ? { left: `${spot.left}%`, top: `${spot.top}%` } : undefined}
     >
       <button
