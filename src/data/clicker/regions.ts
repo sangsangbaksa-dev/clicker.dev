@@ -20,6 +20,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
   },
   {
     id: "signal_relay",
+    currency: { name: "원유", icon: "🛢️" },
     name: "Signal Relay",
     description: "코어에서 뻗어 나간 중계 복도. 잔향이 벽면을 타고 흐릅니다.",
     challenge: {
@@ -45,6 +46,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
   },
   {
     id: "phase_vault",
+    currency: { name: "위상 수정", icon: "💎" },
     name: "Phase Vault",
     description: "깊은 공명이 먼지처럼 쌓인 보관소. CORE 맥동의 잔향이 오래 남습니다.",
     monster: { name: "수정 타이탄", kind: "golem", rewardSeconds: 240, respawnSec: 30 },
@@ -74,6 +76,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
   },
   {
     id: "storm_spire",
+    currency: { name: "뇌운 전하", icon: "⚡" },
     name: "Storm Spire",
     description: "번개가 멎지 않는 첨탑. 채굴 레이저가 낙뢰를 끌어당깁니다.",
     monster: { name: "뇌운 드래곤", kind: "stormbird", rewardSeconds: 240, respawnSec: 30 },
@@ -101,6 +104,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
   },
   {
     id: "deep_fault",
+    currency: { name: "용암석", icon: "🌋" },
     name: "Deep Fault",
     description: "행성 깊이 갈라진 단층. 한 번의 타격이 지각을 울립니다.",
     monster: { name: "용암 베히모스", kind: "worm", rewardSeconds: 240, respawnSec: 30 },
@@ -128,6 +132,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
   },
   {
     id: "core_heart",
+    currency: { name: "심장 파편", icon: "❤️‍🔥" },
     name: "Core Heart",
     description: "코어의 심장부. 수호자가 코어를 틀어막고 있습니다.",
     bgAssetId: "/clicker/bg/region_core_heart.jpg",

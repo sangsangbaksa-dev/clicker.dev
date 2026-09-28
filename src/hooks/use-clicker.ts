@@ -413,6 +413,7 @@ export function useClicker() {
     commit(result.value.save)
     persistNow(result.value.save)
     playSfx("travel")
+    // Every arrival plays the region's cinematic, not just the first.
     if (result.value.intro) setRegionIntro({ regionId, name: label, description: region?.description ?? "", ...result.value.intro })
     else flash(`${label}(으)로 이동`)
   }, [commit, flash, refuse, persistNow])

@@ -20,6 +20,8 @@ import {
   rebirthRequirement,
   scaledCost,
   worldlineMultiplier,
+  upgradeCurrencyCosts,
+  regionCurrencyBalance,
 } from "./clicker-engine"
 import { formatNumber } from "./clicker-format"
 
@@ -209,6 +211,8 @@ export type UpgradeView = {
   description: string
   category: UpgradeCategory
   costText: string
+  /** Region currencies this upgrade also needs (late game). */
+  extraCosts: Array<{ icon: string; name: string; amountText: string; enough: boolean }>
   status: "AVAILABLE" | "OWNED" | "LOCKED" | "POOR"
   reason: string
   assetId: string
@@ -232,12 +236,24 @@ export function buildUpgradeViews(run: RunState, config: GameConfig): UpgradeVie
       status = "POOR"
       reason = "CORE 부족"
     }
+    const extra = upgradeCurrencyCosts(run, config, u)
+    const short = extra.find((c) => regionCurrencyBalance(run, c.regionId) < c.amount)
+    if (status === "AVAILABLE" && short) {
+      status = "POOR"
+      reason = `${short.name} 부족`
+    }
     return {
       id: u.id,
       name: u.name,
       description: u.description,
       category: u.category,
       costText: formatNumber(scaledCost(run, u.cost)),
+      extraCosts: extra.map((c) => ({
+        icon: c.icon,
+        name: c.name,
+        amountText: formatNumber(c.amount),
+        enough: regionCurrencyBalance(run, c.regionId) >= c.amount,
+      })),
       status,
       reason,
       assetId: u.assetId ?? "",

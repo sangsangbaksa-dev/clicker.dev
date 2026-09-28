@@ -74,6 +74,7 @@ export function createInitialRun(now: number, meta: MetaState, config: GameConfi
     currentObjectiveId: config.objectives[0]?.id ?? "first_node",
     runStartedAt: now,
     lastTickAt: now,
+    regionCurrency: {},
     currentWorldLine: meta.rebirthCount + 1,
     currentRegionId: config.regions.find((r) => r.isHome)?.id ?? config.regions[0]?.id ?? "core_chamber",
     clickCount: 0,
@@ -1001,6 +1002,40 @@ export function buyProducer(
   return { run: refreshObjective(next, meta, config), bought: n }
 }
 
+/** Late upgrades also cost each region's currency once that region is normally open by then. */
+const REGION_CURRENCY_UNLOCK_LEAD = 3
+const REGION_CURRENCY_COST_SHARE = 0.03
+
+export type CurrencyCost = { regionId: string; name: string; icon: string; amount: number }
+
+export function upgradeCurrencyCosts(run: RunState, config: GameConfig, upgrade: UpgradeDef): CurrencyCost[] {
+  const cost = scaledCost(run, upgrade.cost)
+  return config.regions
+    .filter((r) => r.currency && !r.isHome && r.unlockAtLifetimeEnergy * REGION_CURRENCY_UNLOCK_LEAD <= upgrade.cost)
+    .map((r) => ({
+      regionId: r.id,
+      name: r.currency!.name,
+      icon: r.currency!.icon,
+      amount: Math.ceil(cost * REGION_CURRENCY_COST_SHARE),
+    }))
+}
+
+export function regionCurrencyBalance(run: RunState, regionId: string): number {
+  return run.regionCurrency?.[regionId] ?? 0
+}
+
+/** CORE earned while standing in a region also mints that region's currency, 1:1. */
+export function accrueRegionCurrency(prev: RunState, next: RunState, config: GameConfig): RunState {
+  const gained = next.lifetimeCoreEnergy - prev.lifetimeCoreEnergy
+  if (!(gained > 0)) return next
+  const region = config.regions.find((r) => r.id === prev.currentRegionId)
+  if (!region?.currency) return next
+  return {
+    ...next,
+    regionCurrency: { ...next.regionCurrency, [region.id]: regionCurrencyBalance(next, region.id) + gained },
+  }
+}
+
 export function buyUpgrade(
   run: RunState,
   config: GameConfig,
@@ -1017,10 +1052,16 @@ export function buyUpgrade(
   }
   const cost = scaledCost(run, upgrade.cost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
+  const extra = upgradeCurrencyCosts(run, config, upgrade)
+  const short = extra.find((c) => regionCurrencyBalance(run, c.regionId) < c.amount)
+  if (short) return { run, error: `${short.name}이(가) 부족합니다.` }
+  const regionCurrency = { ...run.regionCurrency }
+  for (const c of extra) regionCurrency[c.regionId] = regionCurrencyBalance(run, c.regionId) - c.amount
   return {
     run: {
       ...run,
       coreEnergy: run.coreEnergy - cost,
+      regionCurrency,
       ownedUpgradeIds: [...run.ownedUpgradeIds, upgradeId],
     },
   }
@@ -1418,6 +1459,11 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
           typeof run.costScale === "number" && run.costScale > 0
             ? run.costScale
             : worldlineCostScale({ ...createInitialMeta(), ...meta }, config),
+        regionCurrency: Object.fromEntries(
+          Object.entries(run.regionCurrency && typeof run.regionCurrency === "object" ? run.regionCurrency : {}).filter(
+            ([, v]) => typeof v === "number" && Number.isFinite(v) && v >= 0,
+          ),
+        ),
         currentRegionId: (() => {
           const fallback = homeRegionId(config)
           const id = typeof run.currentRegionId === "string" ? run.currentRegionId : fallback

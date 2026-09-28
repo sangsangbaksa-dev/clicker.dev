@@ -1616,3 +1616,15 @@
     radial-gradient(ellipse at 50% 40%, #6b4a2e, #3d2716 60%, #1d120a 100%);
   box-shadow: 0 10px 24px rgb(0 0 0 / 0.55);
 }
+
+/* Region currencies */
+[data-clicker] .clicker-region-wallet { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+[data-clicker] .clicker-region-coin {
+  display: inline-flex; align-items: baseline; gap: 4px;
+  padding: 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  background: rgb(255 255 255 / 0.06); border: 1px solid rgb(255 255 255 / 0.12);
+}
+[data-clicker] .clicker-region-coin small { font-size: 10px; opacity: 0.7; font-weight: 500; }
+[data-clicker] .clicker-region-coin.is-here { border-color: rgb(90 220 255 / 0.7); box-shadow: 0 0 8px rgb(90 220 255 / 0.35); }
+[data-clicker] .clicker-upgrade-price.is-region { margin-left: 8px; }
+[data-clicker] .clicker-upgrade-price.is-short strong { color: #ff7a6b; }

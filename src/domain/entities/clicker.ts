@@ -67,6 +67,8 @@ export type RunState = {
   lastTickAt: number
   currentWorldLine: number
   currentRegionId: string
+  /** Per-region currency balances (region id → amount); resets with the run. */
+  regionCurrency?: Record<string, number>
   clickCount: number
   feverStarts: number
   respecCount: number
@@ -352,6 +354,8 @@ export type RegionActivityDef = {
 export type RegionDef = {
   id: string
   name: string
+  /** Local currency earned alongside CORE while standing here; late upgrades cost it. */
+  currency?: { name: string; icon: string }
   description: string
   bgAssetId: string
   unlockAtLifetimeEnergy: number

@@ -40,6 +40,7 @@ import {
   strikeBoss,
   MINE_MAX_CPS,
   type Rng,
+  accrueRegionCurrency,
 } from "@/domain/services/clicker-engine"
 import {
   awardAchievements,
@@ -145,7 +146,7 @@ export function clickerTick(save: SaveData, now: number): SaveData {
       ? { ...resumeAfterGap(synced.runState), lastTickAt: now }
       : synced.runState
   const next = processTick(run, synced.metaState, config, now)
-  return withAchievements(maybeAutoStartGaugeFever({ ...synced, runState: next.run, metaState: next.meta }))
+  return withAchievements(maybeAutoStartGaugeFever({ ...synced, runState: accrueRegionCurrency(run, next.run, config), metaState: next.meta }))
 }
 
 export function clickerStartGame(save: SaveData): SaveData {
@@ -186,7 +187,7 @@ export function clickerClick(save: SaveData, now: number): {
   const saveAfterClick = withAchievements(
     maybeAutoStartGaugeFever({
       ...save,
-      runState: next.run,
+      runState: accrueRegionCurrency(save.runState, next.run, config),
       metaState: next.meta,
     }),
   )
@@ -239,7 +240,7 @@ export function clickerResolveCrisis(save: SaveData, choice: CrisisChoice, now: 
   return { ...save, runState: next.run, metaState: next.meta }
 }
 
-/** Travel; `intro` is the region's cinematic when this is its first visit. */
+/** Travel; `intro` is the region's cinematic, played on every arrival. */
 export function clickerTravelRegion(
   save: SaveData,
   regionId: string,
@@ -247,14 +248,14 @@ export function clickerTravelRegion(
   const next = travelToRegion(save.runState, config, regionId)
   if (next.error) return { ok: false, status: 400, error: next.error }
   const visit = markRegionVisited(save.metaState, regionId)
-  const intro = visit.firstVisit ? (config.regions.find((r) => r.id === regionId)?.intro ?? null) : null
+  const intro = config.regions.find((r) => r.id === regionId)?.intro ?? null
   return ok({ save: { ...save, runState: next.run, metaState: visit.meta }, intro })
 }
 
 export function clickerRegionActivity(save: SaveData, regionId: string, now: number): UseCaseResult<SaveData> {
   const next = activateRegion(save.runState, save.metaState, config, regionId, now)
   if (next.error) return { ok: false, status: 400, error: next.error }
-  return ok({ ...save, runState: next.run, metaState: next.meta })
+  return ok({ ...save, runState: accrueRegionCurrency(save.runState, next.run, config), metaState: next.meta })
 }
 
 export function clickerRegionChallengeError(save: SaveData, regionId: string, now: number): string | undefined {
@@ -269,7 +270,7 @@ export function clickerClaimChallenge(
 ): UseCaseResult<{ save: SaveData; reward: number }> {
   const next = claimRegionChallenge(save.runState, save.metaState, config, regionId, score, now)
   if (next.error) return { ok: false, status: 400, error: next.error }
-  return ok({ save: withAchievements({ ...save, runState: next.run, metaState: next.meta }), reward: next.reward })
+  return ok({ save: withAchievements({ ...save, runState: accrueRegionCurrency(save.runState, next.run, config), metaState: next.meta }), reward: next.reward })
 }
 
 export function clickerReturnHome(save: SaveData): UseCaseResult<SaveData> {
@@ -342,13 +343,13 @@ export function clickerFinishTutorial(save: SaveData): SaveData {
 export function clickerSlayMonster(save: SaveData, regionId: string, now: number): UseCaseResult<{ save: SaveData; reward: number }> {
   const next = slayMonster(save.runState, save.metaState, config, regionId, now)
   if (next.error) return { ok: false, status: 400, error: next.error }
-  return ok({ save: withAchievements({ ...save, runState: next.run, metaState: next.meta }), reward: next.reward })
+  return ok({ save: withAchievements({ ...save, runState: accrueRegionCurrency(save.runState, next.run, config), metaState: next.meta }), reward: next.reward })
 }
 
 export function clickerDrill(save: SaveData, now: number): UseCaseResult<{ save: SaveData; reward: number }> {
   const next = drillStrike(save.runState, save.metaState, config, now)
   if (next.error) return { ok: false, status: 400, error: next.error }
-  return ok({ save: { ...save, runState: next.run, metaState: next.meta }, reward: next.reward })
+  return ok({ save: { ...save, runState: accrueRegionCurrency(save.runState, next.run, config), metaState: next.meta }, reward: next.reward })
 }
 
 export function clickerStartBoss(save: SaveData, now: number): UseCaseResult<SaveData> {
@@ -357,7 +358,7 @@ export function clickerStartBoss(save: SaveData, now: number): UseCaseResult<Sav
 
 export function clickerStrikeBoss(save: SaveData, now: number) {
   const next = strikeBoss(save.runState, save.metaState, config, now, rng)
-  return { save: { ...save, runState: next.run, metaState: next.meta }, damage: next.damage, critical: next.critical, defeated: next.defeated }
+  return { save: { ...save, runState: accrueRegionCurrency(save.runState, next.run, config), metaState: next.meta }, damage: next.damage, critical: next.critical, defeated: next.defeated }
 }
 
 /**

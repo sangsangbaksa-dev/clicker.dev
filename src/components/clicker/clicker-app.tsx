@@ -468,6 +468,8 @@ export function ClickerApp() {
     if (!regionId) return
     if (prevRegionId.current && prevRegionId.current !== regionId) {
       setRegionTransition(true)
+      // Arriving somewhere drops you straight onto the main screen.
+      setHubView("entrance")
       const timer = window.setTimeout(() => setRegionTransition(false), 280)
       prevRegionId.current = regionId
       return () => window.clearTimeout(timer)

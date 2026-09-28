@@ -2,12 +2,28 @@
 
 import { useState } from "react"
 import type { RunState, UpgradeCategory } from "@/domain/entities/clicker"
+import { formatNumber } from "@/domain/services/clicker-format"
 import type { ClickerGame } from "./types"
 
 export function ClickerUpgradesPanel({ game, run }: { game: ClickerGame; run: RunState }) {
   const [upgradeCat, setUpgradeCat] = useState<UpgradeCategory>("CLICK")
   return (
     <div className="clicker-upgrades">
+      {/* Region wallets: each world mints its own currency while you stand in it. */}
+      <div className="clicker-region-wallet" aria-label="월드 화폐">
+        {game.config.regions
+          .filter((r) => r.currency)
+          .map((r) => (
+            <span
+              key={r.id}
+              className={`clicker-region-coin${run.currentRegionId === r.id ? " is-here" : ""}`}
+              title={`${r.name}에서 CORE를 벌면 함께 획득`}
+            >
+              {r.currency!.icon} {formatNumber(run.regionCurrency?.[r.id] ?? 0)}
+              <small>{r.currency!.name}</small>
+            </span>
+          ))}
+      </div>
       <div className="clicker-buy clicker-upgrades-cats" role="tablist" aria-label="업그레이드 카테고리">
         {(
           [
@@ -87,6 +103,11 @@ export function ClickerUpgradesPanel({ game, run }: { game: ClickerGame; run: Ru
                   <span className="clicker-upgrade-price">
                     <strong>{u.costText}</strong> CORE
                   </span>
+                  {u.extraCosts.map((c) => (
+                    <span key={c.name} className={`clicker-upgrade-price is-region${c.enough ? "" : " is-short"}`} title={c.name}>
+                      {c.icon} <strong>{c.amountText}</strong> {c.name}
+                    </span>
+                  ))}
                   {/* The status badge already says "CORE 부족"; only show other reasons. */}
                   {u.reason && u.reason !== statusText ? (
                     <span className="clicker-upgrade-reason">{u.reason}</span>

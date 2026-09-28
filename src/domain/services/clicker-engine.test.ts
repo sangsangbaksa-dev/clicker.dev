@@ -557,3 +557,30 @@ test("upgrade purchase is rejected when CORE is short or already owned", () => {
   const again = buyUpgrade(rich.run, config, "reinforced_input")
   assert.equal(again.error, "이미 보유함")
 })
+
+test("region currency: earned where you stand, spent by late upgrades", async () => {
+  const eng = await import("./clicker-engine.ts")
+  const config = clickerConfig
+  const run0 = eng.createInitialRun(0, eng.createInitialMeta(), config)
+  const away = { ...run0, currentRegionId: "signal_relay" }
+  const earned = eng.accrueRegionCurrency(away, { ...away, lifetimeCoreEnergy: away.lifetimeCoreEnergy + 500 }, config)
+  assert.equal(eng.regionCurrencyBalance(earned, "signal_relay"), 500)
+  const home = eng.accrueRegionCurrency(run0, { ...run0, lifetimeCoreEnergy: run0.lifetimeCoreEnergy + 500 }, config)
+  assert.equal(eng.regionCurrencyBalance(home, "signal_relay"), 0)
+
+  const late = [...config.upgrades].sort((a, b) => b.cost - a.cost)[0]
+  const costs = eng.upgradeCurrencyCosts(run0, config, late)
+  assert.ok(costs.length >= 4, "late upgrades need every normally-unlocked world's currency")
+  assert.equal(eng.upgradeCurrencyCosts(run0, config, [...config.upgrades].sort((a, b) => a.cost - b.cost)[0]).length, 0)
+  const rich = {
+    ...run0,
+    coreEnergy: late.cost * 10,
+    feverStarts: 999,
+    producerLevels: late.unlockProducerId ? { [late.unlockProducerId]: 1 } : {},
+  }
+  assert.ok(eng.buyUpgrade(rich, config, late.id).error)
+  const wallet = Object.fromEntries(costs.map((c) => [c.regionId, c.amount]))
+  const bought = eng.buyUpgrade({ ...rich, regionCurrency: wallet }, config, late.id)
+  assert.equal(bought.error, undefined)
+  for (const c of costs) assert.equal(eng.regionCurrencyBalance(bought.run, c.regionId), 0)
+})
