@@ -34,7 +34,7 @@ import {
   markRegionVisited,
   activateSkill,
   finishClickerTutorial,
-  slayMonster,
+  strikeMonster,
   drillStrike,
   startBossFight,
   strikeBoss,
@@ -339,10 +339,20 @@ export function clickerFinishTutorial(save: SaveData): SaveData {
   return finishClickerTutorial(save)
 }
 
-export function clickerSlayMonster(save: SaveData, regionId: string, now: number): UseCaseResult<{ save: SaveData; reward: number }> {
-  const next = slayMonster(save.runState, save.metaState, config, regionId, now)
+export function clickerStrikeMonster(
+  save: SaveData,
+  regionId: string,
+  now: number,
+): UseCaseResult<{ save: SaveData; reward: number; damage: number; defeated: boolean }> {
+  const next = strikeMonster(save.runState, save.metaState, config, regionId, now)
   if (next.error) return { ok: false, status: 400, error: next.error }
-  return ok({ save: withAchievements({ ...save, runState: next.run, metaState: next.meta }), reward: next.reward })
+  const updated = { ...save, runState: next.run, metaState: next.meta }
+  return ok({
+    save: next.defeated ? withAchievements(updated) : updated,
+    reward: next.reward,
+    damage: next.damage,
+    defeated: next.defeated,
+  })
 }
 
 export function clickerDrill(save: SaveData, now: number): UseCaseResult<{ save: SaveData; reward: number }> {

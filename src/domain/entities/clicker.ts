@@ -99,6 +99,8 @@ export type RunState = {
   costScale: number
   /** Region id → absolute ms when its monster respawns (absent/past = alive). */
   monsterRespawnAt: Record<string, number>
+  /** Region id → damage the live monster has taken so far (absent = full HP). */
+  monsterDamage?: Record<string, number>
   /** Region core drilling: taps fill the gauge (0–1); a full gauge pays out and starts the cooldown. */
   drillGauge: number
   drillCooldownUntil: number

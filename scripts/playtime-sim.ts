@@ -43,7 +43,7 @@ import {
   activateRegion,
   claimRegionChallenge,
   regionChallengeError,
-  slayMonster,
+  strikeMonster,
 } from "../src/domain/services/clicker-engine.ts"
 import { autoDrillRate, awardAchievements, claimGoldenVein, VEIN_SPAWN_CHANCE } from "../src/domain/services/clicker-bonus.ts"
 
@@ -224,10 +224,13 @@ function bestRegion(): void {
 while (elapsed() < MAX_HOURS * 3600) {
   bestRegion()
   {
-    const m = slayMonster(save.runState, save.metaState, config, save.runState.currentRegionId, now)
-    if (!m.error) {
+    // Monsters take several taps now; the sim player taps until it drops.
+    for (let tap = 0; tap < 50; tap++) {
+      const m = strikeMonster(save.runState, save.metaState, config, save.runState.currentRegionId, now)
+      if (m.error) break
       save = { ...save, runState: m.run, metaState: m.meta }
       sources.monster = (sources.monster ?? 0) + m.reward
+      if (m.defeated) break
     }
   }
   const entered = enterClickerMine(save, now, config)

@@ -29,7 +29,7 @@ import { ClickerTitle } from "@/components/clicker/clicker-title"
 import { ClickerMonster } from "@/components/clicker/clicker-monster"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
 import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
-import { monsterAlive, reentryCooldownMs } from "@/domain/services/clicker-engine"
+import { monsterAlive, monsterHealth, reentryCooldownMs } from "@/domain/services/clicker-engine"
 import type { SfxName } from "@/components/clicker/clicker-sfx"
 import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
@@ -654,6 +654,7 @@ export function ClickerApp() {
   const monsterDef = regionDef?.monster
   const monsterIsAlive = monsterDef ? monsterAlive(run, run.currentRegionId, tickNow) : false
   const huntSpawn = run.monsterRespawnAt[run.currentRegionId] ?? 0
+  const monsterHp = monsterDef ? monsterHealth(run, game.save.metaState, game.config, run.currentRegionId) : null
   const drillCoolSec = Math.max(0, Math.ceil((run.drillCooldownUntil - tickNow) / 1000))
   const drillCoolTotalSec = reentryCooldownMs(run, game.config) / 1000
   const drawerTabs = (
@@ -864,7 +865,9 @@ export function ClickerApp() {
             kind={monsterDef.kind}
             name={monsterDef.name}
             alive={monsterIsAlive}
-            onSlay={(x, y) => game.slayMonster(run.currentRegionId, x, y)}
+            hp={monsterHp?.hp ?? 0}
+            maxHp={monsterHp?.maxHp ?? 1}
+            onStrike={(x, y) => game.strikeMonster(run.currentRegionId, x, y)}
           />
         ) : null}
         <nav className="clicker-stage-region" aria-label="현재 지역">

@@ -37,7 +37,7 @@ import {
   clickerTick,
   clickerUseSkill,
   clickerFinishTutorial,
-  clickerSlayMonster,
+  clickerStrikeMonster,
   clickerDrill,
   clickerStartBoss,
   clickerStrikeBoss,
@@ -641,18 +641,20 @@ export function useClicker() {
     persistNow(next)
   }, [commit, persistNow])
 
-  /** Background monster tapped. Returns the CORE it dropped (0 when refused). */
-  const slayMonster = useCallback(
+  /** Background monster tapped: deals click damage. Returns whether this tap killed it (null when refused). */
+  const strikeMonster = useCallback(
     (regionId: string, clientX: number, clientY: number) => {
-      if (!saveRef.current) return 0
-      const result = clickerSlayMonster(saveRef.current, regionId, now())
-      if (!result.ok) return 0
+      if (!saveRef.current) return null
+      const result = clickerStrikeMonster(saveRef.current, regionId, now())
+      if (!result.ok) return null
       commit(result.value.save)
-      playSfx("monsterDie")
+      const { defeated, reward, damage } = result.value
+      playSfx(defeated ? "monsterDie" : "tap")
       const id = ++floatId.current
-      setFloats((prev) => [...prev.slice(-12), { id, text: `+${formatNumber(result.value.reward)}`, critical: true, x: clientX, y: clientY }])
+      const text = defeated ? `+${formatNumber(reward)}` : `-${formatNumber(damage)}`
+      setFloats((prev) => [...prev.slice(-12), { id, text, critical: defeated, x: clientX, y: clientY }])
       window.setTimeout(() => setFloats((prev) => prev.filter((f) => f.id !== id)), 1000)
-      return result.value.reward
+      return defeated
     },
     [commit],
   )
@@ -856,7 +858,7 @@ export function useClicker() {
     claimChallenge,
     mineGate,
     finishTutorial,
-    slayMonster,
+    strikeMonster,
     drillVein,
     purchaseFx,
     startBoss,
