@@ -153,6 +153,8 @@ type Props = {
 const DRAGON_HP = 8
 const ATTACK_EVERY_MS = 4200
 const ATTACK_MS = 1100
+/** Windup is held (anticipation), the strike snaps in, then a short follow-through. */
+const ATTACK_BEATS = [0, 560, 860]
 /** Winged bosses fly; everything else stomps along the ground. */
 const FLYERS = new Set(["stormbird"])
 
@@ -201,8 +203,7 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
   useEffect(() => {
     if (!attacking || !frames) return
     setAttackStep(0)
-    const step = ATTACK_MS / frames.attack.length
-    const ids = frames.attack.map((_, i) => window.setTimeout(() => setAttackStep(i), i * step))
+    const ids = ATTACK_BEATS.slice(0, frames.attack.length).map((at, i) => window.setTimeout(() => setAttackStep(i), at))
     return () => ids.forEach((id) => window.clearTimeout(id))
   }, [attacking, frames])
   const current: Frame | undefined = frames
@@ -273,6 +274,16 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
       >
         <MonsterArt kind={kind} frame={current?.src} />
       </button>
+      {isDragon && !dying && pose === "step" ? (
+        <span key={`dust${tick}`} className="clicker-monster-dust" aria-hidden>
+          {Array.from({ length: 7 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)}
+        </span>
+      ) : null}
+      {isDragon && !dying && attacking && pose === "strike" && attackStep === 1 ? (
+        <span className={`clicker-monster-impact ${FLYERS.has(kind) ? "is-bolt" : `is-${kind}`}`} aria-hidden>
+          {Array.from({ length: 14 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)}
+        </span>
+      ) : null}
       {isDragon && hits > 0 && !dying && <span key={`n${hits}`} className="clicker-monster-dmg">-1</span>}
       {dying && isDragon && (
         <span className="clicker-monster-burst">

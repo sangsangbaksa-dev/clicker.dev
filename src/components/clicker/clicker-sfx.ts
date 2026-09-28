@@ -188,6 +188,40 @@ function bell(c: AudioContext, freq: number, gain: number, start: number, dur: n
   tone(c, "sine", freq * 2.76, freq * 2.76, gain * 0.18, start, dur * 0.5, { attack: 0.002, dest })
 }
 
+/** ±6% pitch drift so looping creature sounds never repeat exactly. */
+const vary = () => 0.94 + Math.random() * 0.12
+
+/** Creature voice: detuned saws with vibrato through two vowel formants. */
+function formantVoice(c: AudioContext, freq: number, start: number, dur: number, gain: number, formants: number[]) {
+  const g = envGain(c, gain, start, 0.08, dur)
+  g.connect(out(c))
+  const lfo = c.createOscillator()
+  const lfoGain = c.createGain()
+  lfo.frequency.value = 7
+  lfoGain.gain.value = freq * 0.06
+  lfo.connect(lfoGain)
+  for (const f of formants) {
+    const bp = c.createBiquadFilter()
+    bp.type = "bandpass"
+    bp.frequency.value = f
+    bp.Q.value = 5
+    bp.connect(g)
+    for (const d of [-9, 9]) {
+      const osc = c.createOscillator()
+      osc.type = "sawtooth"
+      osc.detune.value = d
+      osc.frequency.setValueAtTime(freq * 1.15, start)
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.8, start + dur)
+      lfoGain.connect(osc.frequency)
+      osc.connect(bp)
+      osc.start(start)
+      osc.stop(start + dur + 0.05)
+    }
+  }
+  lfo.start(start)
+  lfo.stop(start + dur + 0.05)
+}
+
 /** Pentatonic-ish step so repeated purchases climb a little instead of droning. */
 let purchaseStep = 0
 const PURCHASE_STEPS = [0, 2, 4, 7, 9, 12]
@@ -442,35 +476,48 @@ const CUES = {
     ;[523, 659, 784, 1046, 1318].forEach((f, i) => tone(c, "triangle", f, f, 0.05, t + 0.6 + i * 0.12, 0.8, { dest: e }))
   },
   /* ---------- Boss monsters (kept quiet: they loop in the background) ---------- */
-  /** Wingbeat: a soft airy whump on the downstroke. */
+  /** Wingbeat: a leathery whoosh that sweeps down, with a soft air thump. */
   wingFlap(c: AudioContext, t: number) {
-    noise(c, "lowpass", 600, 0.7, 0.05, t, 0.28, { sweepTo: 180, attack: 0.04 })
-    tone(c, "sine", 70, 45, 0.04, t + 0.03, 0.2, { attack: 0.02 })
+    const v = vary()
+    noise(c, "bandpass", 900 * v, 0.9, 0.045, t, 0.32, { sweepTo: 220 * v, attack: 0.06 })
+    noise(c, "lowpass", 260, 0.7, 0.04, t + 0.08, 0.22, { attack: 0.02 })
+    tone(c, "sine", 58 * v, 40, 0.035, t + 0.08, 0.2, { attack: 0.02 })
   },
-  /** Heavy footfall: sub thump plus a gravel crunch. */
+  /** Heavy footfall: sub impact, ground rumble tail and a scatter of pebbles. */
   stomp(c: AudioContext, t: number) {
-    tone(c, "sine", 75, 32, 0.12, t, 0.3, { attack: 0.002 })
-    noise(c, "lowpass", 380, 1, 0.05, t, 0.18, { sweepTo: 90 })
+    const v = vary()
+    tone(c, "sine", 82 * v, 30, 0.14, t, 0.34, { attack: 0.002 })
+    tone(c, "triangle", 160 * v, 60, 0.04, t, 0.08, { attack: 0.001 })
+    noise(c, "lowpass", 420, 1, 0.06, t, 0.35, { sweepTo: 70 })
+    for (let i = 0; i < 3; i++) noise(c, "bandpass", 2600 + i * 700, 6, 0.015, t + 0.05 + i * 0.045 * v, 0.03)
   },
-  /** Windup: rumbling growl as the boss rears back. */
+  /** Windup: throaty growl — a vowel-shaped saw stack with a slow wobble. */
   bossGrowl(c: AudioContext, t: number) {
-    tone(c, "sawtooth", 70, 95, 0.05, t, 0.45, { attack: 0.1, detune: 10 })
-    tone(c, "sawtooth", 72, 92, 0.04, t, 0.45, { attack: 0.1, detune: -10 })
-    noise(c, "bandpass", 300, 2, 0.04, t, 0.45, { attack: 0.1 })
+    const v = vary()
+    formantVoice(c, 68 * v, t, 0.5, 0.06, [320, 780])
+    noise(c, "bandpass", 260, 2, 0.035, t, 0.5, { attack: 0.12 })
   },
-  /** Weapon smash: cracking impact, sub boom, debris rattle. */
+  /** Weapon smash: crack transient, sub boom with cavern echo, debris rattle. */
   bossSmash(c: AudioContext, t: number) {
-    const e = echo(c, 0.16, 0.3, 0.3)
-    tone(c, "sine", 110, 28, 0.22, t, 0.6, { attack: 0.002, dest: e })
-    noise(c, "lowpass", 2400, 0.8, 0.14, t, 0.5, { sweepTo: 120 })
-    noise(c, "highpass", 3000, 0.7, 0.03, t + 0.08, 0.3)
+    const v = vary()
+    const e = echo(c, 0.19, 0.34, 0.32)
+    noise(c, "highpass", 1800, 0.7, 0.09, t, 0.05)
+    tone(c, "sine", 120 * v, 26, 0.26, t, 0.7, { attack: 0.002, dest: e })
+    tone(c, "square", 70 * v, 35, 0.03, t, 0.25, { attack: 0.002 })
+    noise(c, "lowpass", 2600, 0.8, 0.14, t, 0.55, { sweepTo: 110 })
+    for (let i = 0; i < 7; i++) noise(c, "bandpass", 1800 + ((i * 523) % 2600), 5, 0.02, t + 0.12 + i * 0.05 * v, 0.035)
   },
-  /** Dragon breath: roar under a crackling lightning torrent. */
+  /** Dragon breath: roaring voice under a crackling, buzzing lightning torrent. */
   dragonBreath(c: AudioContext, t: number) {
-    tone(c, "sawtooth", 140, 70, 0.07, t, 0.9, { attack: 0.05, detune: 14 })
-    tone(c, "sawtooth", 146, 66, 0.06, t, 0.9, { attack: 0.05, detune: -14 })
-    noise(c, "bandpass", 1800, 0.8, 0.09, t + 0.05, 0.8, { sweepTo: 600, attack: 0.03 })
-    for (let i = 0; i < 6; i++) noise(c, "highpass", 4000, 1, 0.04, t + 0.1 + i * 0.11, 0.05)
+    const v = vary()
+    formantVoice(c, 118 * v, t, 0.95, 0.06, [700, 1150])
+    tone(c, "sawtooth", 60 * v, 45, 0.05, t, 0.9, { attack: 0.05 })
+    noise(c, "bandpass", 2400, 0.9, 0.08, t + 0.04, 0.85, { sweepTo: 900, attack: 0.03 })
+    for (let i = 0; i < 10; i++) {
+      const at = t + 0.06 + i * 0.075 + Math.random() * 0.03
+      noise(c, "highpass", 3500 + Math.random() * 3000, 1, 0.05, at, 0.025)
+      tone(c, "square", 1400 + Math.random() * 900, 300, 0.012, at, 0.04, { attack: 0.001 })
+    }
   },
 } satisfies Record<string, (c: AudioContext, t: number) => void>
 
