@@ -116,6 +116,15 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
     if (timer.current != null) window.clearTimeout(timer.current)
   }, [])
 
+  // Hunting-ground respawns roll a new spot the instant the kill lands (so the
+  // *next* spawn has somewhere to appear), well before this monster is done
+  // dying in the old one. Only adopt the new spot once a live monster is
+  // actually there, so the death animation doesn't jump mid-flight.
+  const [displaySpot, setDisplaySpot] = useState(spot)
+  useEffect(() => {
+    if (alive && spot) setDisplaySpot(spot)
+  }, [alive, spot])
+
   if (!alive && !dying) return null
   const hit = (e: ReactPointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0 || dying) return
@@ -128,7 +137,7 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
   return (
     <div
       className={`clicker-monster-roam is-${kind}${spot ? " is-hunt" : ""}${DRAGON_ART[kind] ? " is-dragon" : ""}`}
-      style={spot ? { left: `${spot.left}%`, top: `${spot.top}%` } : undefined}
+      style={displaySpot ? { left: `${displaySpot.left}%`, top: `${displaySpot.top}%` } : undefined}
     >
       <button
         type="button"

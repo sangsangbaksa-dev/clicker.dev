@@ -859,7 +859,7 @@ export function ClickerApp() {
         <div className="clicker-vignette" />
         {!inMine && monsterDef && !regionDef?.boss ? (
           <ClickerMonster
-            key={regionDef?.huntMode ? `${run.currentRegionId}-${huntSpawn}` : run.currentRegionId}
+            key={run.currentRegionId}
             spot={regionDef?.huntMode ? huntSpot(huntSpawn) : undefined}
             kind={monsterDef.kind}
             name={monsterDef.name}
