@@ -242,10 +242,12 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
     e.stopPropagation()
     setHits((n) => n + 1)
     if (hp > 1) {
+      if (DRAGON_ART[kind]) playSfx("bossHurt")
       setHp(hp - 1)
       return
     }
     setHp(0)
+    if (DRAGON_ART[kind]) playSfx("bossDeath")
     setDying(true)
     onSlay(e.clientX, e.clientY)
     timer.current = window.setTimeout(() => setDying(false), 1100)

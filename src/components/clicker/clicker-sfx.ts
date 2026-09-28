@@ -507,6 +507,21 @@ const CUES = {
     noise(c, "lowpass", 2600, 0.8, 0.14, t, 0.55, { sweepTo: 110 })
     for (let i = 0; i < 7; i++) noise(c, "bandpass", 1800 + ((i * 523) % 2600), 5, 0.02, t + 0.12 + i * 0.05 * v, 0.035)
   },
+  /** Boss takes a tap: meaty thwack plus a short pained grunt. */
+  bossHurt(c: AudioContext, t: number) {
+    const v = vary()
+    noise(c, "bandpass", 1400 * v, 1.2, 0.07, t, 0.07)
+    tone(c, "sine", 180 * v, 90, 0.08, t, 0.12, { attack: 0.002 })
+    formantVoice(c, 95 * v, t + 0.03, 0.22, 0.035, [450, 900])
+  },
+  /** Boss falls: a long dying roar sliding down, then the body crashing and crumbling. */
+  bossDeath(c: AudioContext, t: number) {
+    const e = echo(c, 0.22, 0.4, 0.4)
+    formantVoice(c, 150, t, 1.2, 0.07, [650, 1100])
+    tone(c, "sine", 70, 24, 0.28, t + 0.7, 1.1, { attack: 0.003, dest: e })
+    noise(c, "lowpass", 1600, 0.8, 0.16, t + 0.7, 1.2, { sweepTo: 60 })
+    for (let i = 0; i < 12; i++) noise(c, "bandpass", 900 + ((i * 677) % 2400), 5, 0.025, t + 0.8 + i * 0.07, 0.05)
+  },
   /** Dragon breath: roaring voice under a crackling, buzzing lightning torrent. */
   dragonBreath(c: AudioContext, t: number) {
     const v = vary()
