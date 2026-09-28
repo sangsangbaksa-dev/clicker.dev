@@ -21,7 +21,7 @@ import {
   scaledCost,
   worldlineMultiplier,
   upgradeCurrencyCosts,
-  regionCurrencyBalance,
+  payRegionCurrency,
 } from "./clicker-engine"
 import { formatNumber } from "./clicker-format"
 
@@ -237,7 +237,7 @@ export function buildUpgradeViews(run: RunState, config: GameConfig): UpgradeVie
       reason = "CORE 부족"
     }
     const extra = upgradeCurrencyCosts(run, config, u)
-    const short = extra.find((c) => regionCurrencyBalance(run, c.regionId) < c.amount)
+    const short = extra.find((c) => !payRegionCurrency({ ...run.regionCurrency }, config, c.regionId, c.amount))
     if (status === "AVAILABLE" && short) {
       status = "POOR"
       reason = `${short.name} 부족`
@@ -252,7 +252,7 @@ export function buildUpgradeViews(run: RunState, config: GameConfig): UpgradeVie
         icon: c.icon,
         name: c.name,
         amountText: formatNumber(c.amount),
-        enough: regionCurrencyBalance(run, c.regionId) >= c.amount,
+        enough: payRegionCurrency({ ...run.regionCurrency }, config, c.regionId, c.amount),
       })),
       status,
       reason,

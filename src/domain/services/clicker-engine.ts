@@ -1002,9 +1002,12 @@ export function buyProducer(
   return { run: refreshObjective(next, meta, config), bought: n }
 }
 
-/** Late upgrades also cost each region's currency once that region is normally open by then. */
+/**
+ * Late upgrades also cost the currency of the newest region normally open by then — only that one,
+ * so each world's currency funds its own tier and older worlds never need re-grinding.
+ */
 const REGION_CURRENCY_UNLOCK_LEAD = 3
-const REGION_CURRENCY_COST_SHARE = 0.03
+const REGION_CURRENCY_COST_SHARE = 0.1
 
 export type CurrencyCost = { regionId: string; name: string; icon: string; amount: number }
 
@@ -1012,6 +1015,7 @@ export function upgradeCurrencyCosts(run: RunState, config: GameConfig, upgrade:
   const cost = scaledCost(run, upgrade.cost)
   return config.regions
     .filter((r) => r.currency && !r.isHome && r.unlockAtLifetimeEnergy * REGION_CURRENCY_UNLOCK_LEAD <= upgrade.cost)
+    .slice(-1)
     .map((r) => ({
       regionId: r.id,
       name: r.currency!.name,
@@ -1036,6 +1040,27 @@ export function accrueRegionCurrency(prev: RunState, next: RunState, config: Gam
   }
 }
 
+/**
+ * Spends `amount` of a region's currency; any shortfall is covered by newer worlds' currencies
+ * (newest last), so a player who has moved on is never sent back to grind an old world.
+ * Mutates `wallet` only when the whole amount can be paid.
+ */
+export function payRegionCurrency(wallet: Record<string, number>, config: GameConfig, regionId: string, amount: number): boolean {
+  const order = config.regions.filter((r) => r.currency && !r.isHome)
+  const start = order.findIndex((r) => r.id === regionId)
+  if (start < 0) return false
+  const sources = order.slice(start).map((r) => r.id)
+  if (sources.reduce((sum, id) => sum + (wallet[id] ?? 0), 0) < amount) return false
+  let left = amount
+  for (const id of sources) {
+    const take = Math.min(left, wallet[id] ?? 0)
+    wallet[id] = (wallet[id] ?? 0) - take
+    left -= take
+    if (left <= 0) break
+  }
+  return true
+}
+
 export function buyUpgrade(
   run: RunState,
   config: GameConfig,
@@ -1052,11 +1077,11 @@ export function buyUpgrade(
   }
   const cost = scaledCost(run, upgrade.cost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
-  const extra = upgradeCurrencyCosts(run, config, upgrade)
-  const short = extra.find((c) => regionCurrencyBalance(run, c.regionId) < c.amount)
-  if (short) return { run, error: `${short.name}이(가) 부족합니다.` }
   const regionCurrency = { ...run.regionCurrency }
-  for (const c of extra) regionCurrency[c.regionId] = regionCurrencyBalance(run, c.regionId) - c.amount
+  for (const c of upgradeCurrencyCosts(run, config, upgrade)) {
+    const paid = payRegionCurrency(regionCurrency, config, c.regionId, c.amount)
+    if (!paid) return { run, error: `${c.name}이(가) 부족합니다.` }
+  }
   return {
     run: {
       ...run,

@@ -570,7 +570,8 @@ test("region currency: earned where you stand, spent by late upgrades", async ()
 
   const late = [...config.upgrades].sort((a, b) => b.cost - a.cost)[0]
   const costs = eng.upgradeCurrencyCosts(run0, config, late)
-  assert.ok(costs.length >= 4, "late upgrades need every normally-unlocked world's currency")
+  assert.equal(costs.length, 1, "late upgrades cost only the newest world's currency")
+  assert.equal(costs[0].regionId, "core_heart")
   assert.equal(eng.upgradeCurrencyCosts(run0, config, [...config.upgrades].sort((a, b) => a.cost - b.cost)[0]).length, 0)
   const rich = {
     ...run0,
@@ -583,6 +584,16 @@ test("region currency: earned where you stand, spent by late upgrades", async ()
   const bought = eng.buyUpgrade({ ...rich, regionCurrency: wallet }, config, late.id)
   assert.equal(bought.error, undefined)
   for (const c of costs) assert.equal(eng.regionCurrencyBalance(bought.run, c.regionId), 0)
+
+  // An older world's shortfall is covered by newer worlds' currency.
+  const mid = config.upgrades.find((u) => eng.upgradeCurrencyCosts(run0, config, u)[0]?.regionId === "signal_relay")!
+  const need = eng.upgradeCurrencyCosts(run0, config, mid)[0].amount
+  const midRich = { ...rich, producerLevels: mid.unlockProducerId ? { [mid.unlockProducerId]: 1 } : {} }
+  const covered = eng.buyUpgrade({ ...midRich, regionCurrency: { signal_relay: 1, phase_vault: need } }, config, mid.id)
+  assert.equal(covered.error, undefined)
+  assert.equal(eng.regionCurrencyBalance(covered.run, "signal_relay"), 0)
+  assert.equal(eng.regionCurrencyBalance(covered.run, "phase_vault"), 1)
+  assert.ok(eng.buyUpgrade({ ...midRich, regionCurrency: { signal_relay: need - 1 } }, config, mid.id).error)
 })
 
 test("lair: enter, get knocked out → 3-minute shield; forge gear; kill pays out", async () => {

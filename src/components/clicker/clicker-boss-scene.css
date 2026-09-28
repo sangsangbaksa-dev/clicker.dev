@@ -27,23 +27,27 @@
   -webkit-user-drag: none;
 }
 /* The monster layer: the same art masked to the body, moving over a still backdrop.
-   Motion is split in two so it never snaps: the rig loops a slow idle forever, the body
-   eases between poses (rest / rear up / lunge) with long transitions on top of it. */
-.boss-scene-rig {
+   Motion is split across nested layers so it never snaps or jumps:
+   rig   — a slow idle loop that never stops (only pauses);
+   pose  — eases between rest / rear up / lunge / roar / collapse with transitions only,
+           so any change of state starts from wherever the body currently is;
+   flesh — the short flinch when struck (its own scale + filter, composed on top). */
+.boss-scene-rig,
+.boss-scene-pose,
+.boss-scene-flesh {
   position: absolute;
   inset: 0;
   transform-origin: var(--bx) calc(var(--by) + var(--bh) / 2);
-  animation: boss-breathe 7s ease-in-out infinite;
   will-change: transform;
+}
+.boss-scene-rig { animation: boss-breathe 7s ease-in-out infinite; }
+.boss-scene-pose {
+  transition: transform 1400ms cubic-bezier(0.37, 0, 0.63, 1), filter 1400ms ease-in-out;
 }
 .boss-scene-body {
   --mask: radial-gradient(ellipse calc(var(--bw) / 2) calc(var(--bh) / 2) at var(--bx) var(--by), #000 62%, transparent 100%);
   mask-image: var(--mask);
   -webkit-mask-image: var(--mask);
-  transform-origin: var(--bx) calc(var(--by) + var(--bh) / 2);
-  transform: none;
-  transition: transform 1400ms cubic-bezier(0.37, 0, 0.63, 1), filter 1400ms ease-in-out;
-  will-change: transform;
 }
 @keyframes boss-breathe {
   0%, 100% { transform: scale(1) translateY(0); }
@@ -67,14 +71,14 @@
 }
 
 /* Attack: a slow rear back (anticipation), then a heavy lunge, then a long settle. */
-.clicker-boss-scene.is-windup .boss-scene-body {
+.clicker-boss-scene.is-windup .boss-scene-pose {
   transform: scale(0.98, 1.035) translateY(-1.5%);
   transition: transform 1100ms cubic-bezier(0.45, 0, 0.55, 1), filter 1100ms ease-in-out;
   filter: brightness(1.12);
 }
-.clicker-boss-scene.is-strike .boss-scene-body {
-  transform: scale(1.07) translateY(1.5%);
-  transition: transform 380ms cubic-bezier(0.33, 0, 0.2, 1), filter 380ms ease-out;
+.clicker-boss-scene.is-strike .boss-scene-pose {
+  transform: scale(1.06) translateY(1.4%);
+  transition: transform 520ms cubic-bezier(0.3, 0, 0.15, 1), filter 520ms ease-out;
   filter: brightness(1.25) saturate(1.15);
 }
 .clicker-boss-scene.is-strike .boss-scene-box { animation: boss-quake 700ms ease-out; }
@@ -95,14 +99,16 @@
 @keyframes boss-flash { from { opacity: 1; } to { opacity: 0; } }
 
 /* Player hits: a soft red flare and a small give (scale is separate from the pose transform). */
-.boss-scene-box.hit-0 .boss-scene-body { animation: boss-flinch-a 520ms ease-out; }
-.boss-scene-box.hit-1 .boss-scene-body { animation: boss-flinch-b 520ms ease-out; }
+.boss-scene-box.hit-0 .boss-scene-flesh { animation: boss-flinch-a 560ms cubic-bezier(0.2, 0.7, 0.3, 1); }
+.boss-scene-box.hit-1 .boss-scene-flesh { animation: boss-flinch-b 560ms cubic-bezier(0.2, 0.7, 0.3, 1); }
 @keyframes boss-flinch-a {
-  0% { scale: 0.985; filter: brightness(1.6) sepia(0.8) hue-rotate(-40deg) saturate(3); }
+  0% { scale: 1; filter: none; }
+  18% { scale: 0.984; filter: brightness(1.5) sepia(0.7) hue-rotate(-40deg) saturate(2.6); }
   100% { scale: 1; filter: none; }
 }
 @keyframes boss-flinch-b {
-  0% { scale: 0.985; filter: brightness(1.6) sepia(0.8) hue-rotate(-40deg) saturate(3); }
+  0% { scale: 1; filter: none; }
+  18% { scale: 0.984; filter: brightness(1.5) sepia(0.7) hue-rotate(-40deg) saturate(2.6); }
   100% { scale: 1; filter: none; }
 }
 
@@ -117,9 +123,8 @@
   box-shadow: 0 0 12px 4px rgb(var(--tint) / 0.7);
   mix-blend-mode: screen;
   animation: boss-eye 5s ease-in-out infinite;
-  transition: scale 900ms ease-in-out, box-shadow 900ms ease-in-out;
 }
-@keyframes boss-eye { 50% { opacity: 0.6; } }
+@keyframes boss-eye { 50% { filter: brightness(0.6); } }
 .clicker-boss-scene.is-windup .boss-scene-eye,
 .clicker-boss-scene.is-strike .boss-scene-eye,
 .clicker-boss-scene.is-taunting .boss-scene-eye {
@@ -198,26 +203,33 @@
   to { transform: rotate(var(--a)) translateY(calc(-40px - (var(--i) * 37 % 70) * 1px)) scale(0.3); opacity: 0; }
 }
 
-/* Death: the monster flashes, collapses into the scene and goes dark until it returns. */
-.clicker-boss-scene.is-dying .boss-scene-body { animation: boss-die 2.4s ease-in-out forwards; }
-@keyframes boss-die {
-  0% { filter: brightness(3); transform: scale(1.05); }
-  30% { filter: brightness(1.5) saturate(0.4); transform: scale(1.02) rotate(-1deg); }
-  100% { filter: brightness(0.25) grayscale(1); transform: scale(0.96) translateY(4%); }
+/* Death: a white-hot flash, then the body slowly sags into the scene and goes dark — all
+   transitions from the current pose, and dormant holds the same pose so nothing jumps after. */
+.clicker-boss-scene.is-dying .boss-scene-pose,
+.clicker-boss-scene.is-dormant .boss-scene-pose {
+  transform: scale(0.96) translateY(4%) rotate(-0.6deg);
+  filter: brightness(0.3) grayscale(1);
+  transition: transform 2400ms cubic-bezier(0.5, 0, 0.3, 1), filter 2400ms ease-in;
 }
+.clicker-boss-scene.is-dying .boss-scene-flesh::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse calc(var(--bw) / 2) calc(var(--bh) / 2) at var(--bx) var(--by), rgb(255 255 255 / 0.9), transparent 70%);
+  mix-blend-mode: screen;
+  animation: boss-death-flash 1400ms ease-out forwards;
+}
+@keyframes boss-death-flash { from { opacity: 1; } to { opacity: 0; } }
 .clicker-boss-scene.is-dormant .boss-scene-rig,
 .clicker-boss-scene.is-dying .boss-scene-rig { animation-play-state: paused; }
-.clicker-boss-scene.is-dying .boss-scene-eye,
-.clicker-boss-scene.is-dormant .boss-scene-eye { animation: none; }
-.clicker-boss-scene.is-dormant .boss-scene-body { filter: brightness(0.3) grayscale(1); transform: scale(0.96) translateY(4%); }
+.boss-scene-eye { transition: scale 900ms ease-in-out, box-shadow 900ms ease-in-out, opacity 1200ms ease-in-out; }
 .clicker-boss-scene.is-dormant .boss-scene-eye,
-.clicker-boss-scene.is-dying .boss-scene-eye { opacity: 0; }
+.clicker-boss-scene.is-dying .boss-scene-eye { opacity: 0; animation-play-state: paused; }
 
 /* Victory roar after knocking the player out. */
-.clicker-boss-scene.is-taunting .boss-scene-body {
-  animation: none;
-  transform: scale(1.08) translateY(-2%);
-  transition: transform 300ms;
+.clicker-boss-scene.is-taunting .boss-scene-pose {
+  transform: scale(1.07) translateY(-2%);
+  transition: transform 800ms cubic-bezier(0.3, 0, 0.2, 1), filter 800ms ease-out;
   filter: brightness(1.3);
 }
 
@@ -296,5 +308,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .boss-scene-rig, .boss-scene-body, .boss-scene-eye, .boss-scene-weather *, .boss-scene-weather::before, .boss-scene-weather::after { animation: none !important; }
+  .boss-scene-rig, .boss-scene-flesh, .boss-scene-eye, .boss-scene-weather *, .boss-scene-weather::before, .boss-scene-weather::after { animation: none !important; }
 }

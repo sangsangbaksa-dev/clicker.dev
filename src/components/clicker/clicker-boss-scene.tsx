@@ -170,18 +170,24 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
       <div className={`boss-scene-box${hitKey ? ` hit-${hitKey % 2}` : ""}`}>
         <img className="boss-scene-base" src={scene.src} alt="" draggable={false} />
         {/* The monster: same painting, masked to its body, animated on its own. */}
-        {/* The rig carries the never-interrupted idle motion; attacks and flinches ease on top of it. */}
+        {/* Three nested layers so nothing ever snaps: the rig loops the idle forever, the pose
+            eases between rest / rear up / lunge / collapse, the flesh flinches under hits. The
+            eyes ride inside so they stay on the head through every move. */}
         <div className="boss-scene-rig">
-          <img className="boss-scene-body" src={scene.src} alt="" draggable={false} />
+          <div className="boss-scene-pose">
+            <div className="boss-scene-flesh">
+              <img className="boss-scene-body" src={scene.src} alt="" draggable={false} />
+              {scene.eyes.map((p, i) => (
+                <span key={i} className="boss-scene-eye" style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-hidden />
+              ))}
+            </div>
+          </div>
         </div>
         <div className="boss-scene-weather" aria-hidden>
           {Array.from({ length: 16 }, (_, i) => (
             <i key={i} style={{ "--i": i } as CSSProperties} />
           ))}
         </div>
-        {scene.eyes.map((p, i) => (
-          <span key={i} className="boss-scene-eye" style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-hidden />
-        ))}
         {phase === "strike" ? (
           <span className="boss-scene-impact" style={{ left: `${scene.strike.x}%`, top: `${scene.strike.y}%` }} aria-hidden>
             {Array.from({ length: 16 }, (_, i) => (
