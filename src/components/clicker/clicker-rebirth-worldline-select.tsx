@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, type CSSProperties } from "react"
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
 import {
   REBIRTH_CHROME_WORLDLINE_IDS,
@@ -58,7 +58,14 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onCho
   const chromeBuffs = buffs.filter((b) => (REBIRTH_CHROME_WORLDLINE_IDS as readonly string[]).includes(b.id))
   const extraBuffs = buffs.filter((b) => !(REBIRTH_CHROME_WORLDLINE_IDS as readonly string[]).includes(b.id))
 
+  const chooseTimer = useRef<number | null>(null)
+  useEffect(() => () => {
+    if (chooseTimer.current != null) window.clearTimeout(chooseTimer.current)
+  }, [])
+
   const choose = (buff: TranscendenceDef) => {
+    // One fold per visit: a second tap during the confirm flash would queue a second choice.
+    if (confirmId) return
     setConfirmId(buff.id)
     setFocusId(buff.id)
     const delay = reducedMotion ? SELECT_CONFIRM_REDUCED_MS : SELECT_CONFIRM_MS
@@ -66,7 +73,7 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onCho
       onChoose(buff)
       return
     }
-    window.setTimeout(() => onChoose(buff), delay)
+    chooseTimer.current = window.setTimeout(() => onChoose(buff), delay)
   }
 
   return (
