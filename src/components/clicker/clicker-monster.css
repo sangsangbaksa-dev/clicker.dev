@@ -504,3 +504,20 @@
 @keyframes clicker-boss-face-fly { 0% { scale: 1 1; } 25% { scale: -1 1; } 75% { scale: 1 1; } }
 /* The spectral titan is dark on a dark vault; lift it out of the fog. */
 .clicker-monster.is-golem .mon-dragon { filter: brightness(1.6) saturate(1.2) drop-shadow(0 0 18px rgb(60 230 220 / 0.55)); }
+
+/* Frame-animated bosses: the drawn poses do the flapping/stepping/striking, so the
+   body only drifts gently instead of the whole picture wobbling. */
+.clicker-monster-roam.is-flyer .clicker-monster,
+.clicker-monster-roam.is-hunt.is-flyer .clicker-monster,
+.clicker-monster-roam.is-flyer.is-attacking .clicker-monster {
+  animation: clicker-monster-spawn 520ms ease-out, clicker-boss-glide 3.4s ease-in-out 520ms infinite;
+}
+@keyframes clicker-boss-glide { 50% { transform: translateY(-10px); } }
+.clicker-monster-roam.is-walker .clicker-monster,
+.clicker-monster-roam.is-hunt.is-walker .clicker-monster,
+.clicker-monster-roam.is-walker.is-attacking .clicker-monster {
+  animation: clicker-monster-spawn 520ms ease-out, clicker-boss-footfall 640ms ease-in-out 520ms infinite;
+}
+@keyframes clicker-boss-footfall { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+/* The smash lands a moment later: jolt the whole stage. */
+.clicker-monster-roam.is-walker.is-attacking .clicker-monster-shadow { animation: clicker-boss-thump 0.37s ease-out 0.37s 2; }

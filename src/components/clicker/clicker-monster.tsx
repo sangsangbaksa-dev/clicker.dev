@@ -6,13 +6,36 @@ import "./clicker-monster.css"
 /** Inline SVG creature art, one per region monster kind. Parts carry classes the CSS animates. */
 /** Region monsters painted as giant bosses (Canva art, black keyed to alpha). */
 const DRAGON_ART: Record<string, string> = {
-  golem: "/clicker/monster/phase_titan.webp",
-  stormbird: "/clicker/monster/storm_dragon.webp",
-  worm: "/clicker/monster/behemoth.webp",
+  golem: "/clicker/monster/frames/titan_mid.webp",
+  stormbird: "/clicker/monster/frames/dragon_mid.webp",
+  worm: "/clicker/monster/frames/behemoth_mid.webp",
 }
 
-export function MonsterArt({ kind }: { kind: string }) {
-  const dragon = DRAGON_ART[kind]
+/**
+ * Hand-drawn pose frames per boss (Canva, same creature re-posed): a looping move cycle
+ * (wingbeats / footsteps) and an attack sequence played once per strike.
+ */
+const F = (n: string) => `/clicker/monster/frames/${n}.webp`
+const BOSS_FRAMES: Record<string, { move: string[]; moveMs: number; attack: string[] }> = {
+  stormbird: {
+    move: [F("dragon_mid"), F("dragon_up"), F("dragon_mid"), F("dragon_down")],
+    moveMs: 170,
+    attack: [F("dragon_up"), F("dragon_fire"), F("dragon_fire")],
+  },
+  golem: {
+    move: [F("titan_mid"), F("titan_step_l"), F("titan_mid"), F("titan_step_r")],
+    moveMs: 320,
+    attack: [F("titan_windup"), F("titan_smash"), F("titan_smash")],
+  },
+  worm: {
+    move: [F("behemoth_mid"), F("behemoth_step"), F("behemoth_mid"), F("behemoth_step2")],
+    moveMs: 300,
+    attack: [F("behemoth_windup"), F("behemoth_swing"), F("behemoth_swing")],
+  },
+}
+
+export function MonsterArt({ kind, frame }: { kind: string; frame?: string }) {
+  const dragon = frame ?? DRAGON_ART[kind]
   if (dragon) return <img className="mon-dragon" src={dragon} alt="" draggable={false} />
   switch (kind) {
     case "wisp":
@@ -149,6 +172,35 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
     }
   }, [alive, kind])
 
+  // Frame animation: loop the move cycle; while attacking, step through the attack poses.
+  const frames = BOSS_FRAMES[kind]
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    if (!frames) return
+    for (const src of [...frames.move, ...frames.attack]) {
+      const img = new Image()
+      img.src = src
+    }
+  }, [frames])
+  useEffect(() => {
+    if (!alive || !frames) return
+    const id = window.setInterval(() => setTick((t) => t + 1), frames.moveMs)
+    return () => window.clearInterval(id)
+  }, [alive, frames])
+  const [attackStep, setAttackStep] = useState(0)
+  useEffect(() => {
+    if (!attacking || !frames) return
+    setAttackStep(0)
+    const step = ATTACK_MS / frames.attack.length
+    const ids = frames.attack.map((_, i) => window.setTimeout(() => setAttackStep(i), i * step))
+    return () => ids.forEach((id) => window.clearTimeout(id))
+  }, [attacking, frames])
+  const frame = frames
+    ? attacking && !dying
+      ? frames.attack[attackStep]
+      : frames.move[tick % frames.move.length]
+    : undefined
+
   // Every fresh spawn comes back at full health.
   useEffect(() => {
     if (alive) setHp(maxHp)
@@ -190,17 +242,8 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
         aria-label={`${name} 공격`}
         onPointerDown={hit}
       >
-        <MonsterArt kind={kind} />
+        <MonsterArt kind={kind} frame={frame} />
       </button>
-      {isDragon && attacking && !dying ? (
-        FLYERS.has(kind) ? (
-          <span className="clicker-monster-fire" aria-hidden>
-            {Array.from({ length: 9 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)}
-          </span>
-        ) : (
-          <span className="clicker-monster-slash" aria-hidden />
-        )
-      ) : null}
       {isDragon && hits > 0 && !dying && <span key={`n${hits}`} className="clicker-monster-dmg">-1</span>}
       {dying && isDragon && (
         <span className="clicker-monster-burst">
