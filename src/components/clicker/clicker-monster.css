@@ -498,8 +498,8 @@
 }
 
 /* Only the art turns around; the HP bar and effects keep reading left-to-right. */
-.clicker-monster-roam.is-walker:not(.is-dying) .mon-dragon { animation: clicker-boss-face-walk 22s steps(1) infinite; }
-.clicker-monster-roam.is-flyer:not(.is-dying) .mon-dragon { animation: clicker-boss-face-fly 14s steps(1) infinite; }
+.clicker-monster-roam.is-walker:not(.is-dying) .mon-frames { animation: clicker-boss-face-walk 22s steps(1) infinite; }
+.clicker-monster-roam.is-flyer:not(.is-dying) .mon-frames { animation: clicker-boss-face-fly 14s steps(1) infinite; }
 @keyframes clicker-boss-face-walk { 0% { scale: 1 1; } 26% { scale: -1 1; } 78% { scale: 1 1; } }
 @keyframes clicker-boss-face-fly { 0% { scale: 1 1; } 25% { scale: -1 1; } 75% { scale: 1 1; } }
 /* The spectral titan is dark on a dark vault; lift it out of the fog. */
@@ -521,3 +521,77 @@
 @keyframes clicker-boss-footfall { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 /* The smash lands a moment later: jolt the whole stage. */
 .clicker-monster-roam.is-walker.is-attacking .clicker-monster-shadow { animation: clicker-boss-thump 0.37s ease-out 0.37s 2; }
+
+/* ---------- Frame-animated bosses ---------- */
+.clicker-monster .mon-frames {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  transition: transform 160ms cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+.clicker-monster .mon-frames .mon-dragon {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 35ms linear;
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+.clicker-monster .mon-frames .mon-dragon.is-on { opacity: 1; }
+/* The drawn poses carry the motion; the body just follows them. */
+.clicker-monster-roam.is-dragon .clicker-monster,
+.clicker-monster-roam.is-hunt.is-dragon .clicker-monster,
+.clicker-monster-roam.is-dragon.is-attacking .clicker-monster {
+  animation: clicker-monster-spawn 520ms ease-out;
+}
+.clicker-monster-roam.is-dragon .clicker-monster.is-hit {
+  animation: clicker-dragon-hit 300ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+/* Flyer: sink as the wings lift, surge up on the downstroke. */
+.clicker-monster-roam.is-flyer[data-pose="rise"] .mon-frames { transform: translateY(8px); }
+.clicker-monster-roam.is-flyer[data-pose="stroke"] .mon-frames { transform: translateY(-14px); }
+/* Walker: weight drops onto each planted foot. */
+.clicker-monster-roam.is-walker[data-pose="step"] .mon-frames { transform: translateY(5px) scale(1.015, 0.985); }
+.clicker-monster-roam.is-walker[data-pose="rest"] .mon-frames { transform: translateY(-3px); }
+/* Attack: anticipation (pull back), then a lunge into the strike. */
+.clicker-monster-roam[data-pose="windup"] .mon-frames {
+  transform: translateY(-6px) scale(0.96);
+  transition-duration: 320ms;
+}
+.clicker-monster-roam[data-pose="strike"] .mon-frames {
+  transform: translate(-3%, 4px) scale(1.06);
+  transition-duration: 90ms;
+}
+/* Strike impacts. */
+.clicker-monster-roam.is-walker[data-pose="strike"]::before,
+.clicker-monster-roam.is-flyer[data-pose="strike"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  animation: clicker-boss-flash 420ms ease-out forwards;
+}
+.clicker-monster-roam.is-walker[data-pose="strike"]::before {
+  background: radial-gradient(circle at 50% 60%, rgb(255 190 110 / 0.35), transparent 60%);
+}
+.clicker-monster-roam.is-flyer[data-pose="strike"]::before {
+  background: radial-gradient(ellipse at 25% 55%, rgb(140 220 255 / 0.45), transparent 55%);
+}
+@keyframes clicker-boss-flash { from { opacity: 1; } to { opacity: 0; } }
+/* Quake the boss itself (not the roaming wrapper, whose patrol must not reset). */
+.clicker-monster-roam.is-walker[data-pose="strike"] .clicker-monster {
+  animation: clicker-boss-quake 360ms ease-out;
+}
+@keyframes clicker-boss-quake {
+  20% { translate: 0 7px; }
+  40% { translate: -6px -3px; }
+  60% { translate: 4px 2px; }
+  100% { translate: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clicker-monster .mon-frames { transition: none; }
+  .clicker-monster-roam[data-pose] .mon-frames { transform: none; }
+  .clicker-monster-roam[data-pose="strike"] .clicker-monster { animation: none; }
+}

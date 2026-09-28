@@ -441,6 +441,37 @@ const CUES = {
     noise(c, "lowpass", 800, 1, 0.2, t, 1.8, { sweepTo: 80 })
     ;[523, 659, 784, 1046, 1318].forEach((f, i) => tone(c, "triangle", f, f, 0.05, t + 0.6 + i * 0.12, 0.8, { dest: e }))
   },
+  /* ---------- Boss monsters (kept quiet: they loop in the background) ---------- */
+  /** Wingbeat: a soft airy whump on the downstroke. */
+  wingFlap(c: AudioContext, t: number) {
+    noise(c, "lowpass", 600, 0.7, 0.05, t, 0.28, { sweepTo: 180, attack: 0.04 })
+    tone(c, "sine", 70, 45, 0.04, t + 0.03, 0.2, { attack: 0.02 })
+  },
+  /** Heavy footfall: sub thump plus a gravel crunch. */
+  stomp(c: AudioContext, t: number) {
+    tone(c, "sine", 75, 32, 0.12, t, 0.3, { attack: 0.002 })
+    noise(c, "lowpass", 380, 1, 0.05, t, 0.18, { sweepTo: 90 })
+  },
+  /** Windup: rumbling growl as the boss rears back. */
+  bossGrowl(c: AudioContext, t: number) {
+    tone(c, "sawtooth", 70, 95, 0.05, t, 0.45, { attack: 0.1, detune: 10 })
+    tone(c, "sawtooth", 72, 92, 0.04, t, 0.45, { attack: 0.1, detune: -10 })
+    noise(c, "bandpass", 300, 2, 0.04, t, 0.45, { attack: 0.1 })
+  },
+  /** Weapon smash: cracking impact, sub boom, debris rattle. */
+  bossSmash(c: AudioContext, t: number) {
+    const e = echo(c, 0.16, 0.3, 0.3)
+    tone(c, "sine", 110, 28, 0.22, t, 0.6, { attack: 0.002, dest: e })
+    noise(c, "lowpass", 2400, 0.8, 0.14, t, 0.5, { sweepTo: 120 })
+    noise(c, "highpass", 3000, 0.7, 0.03, t + 0.08, 0.3)
+  },
+  /** Dragon breath: roar under a crackling lightning torrent. */
+  dragonBreath(c: AudioContext, t: number) {
+    tone(c, "sawtooth", 140, 70, 0.07, t, 0.9, { attack: 0.05, detune: 14 })
+    tone(c, "sawtooth", 146, 66, 0.06, t, 0.9, { attack: 0.05, detune: -14 })
+    noise(c, "bandpass", 1800, 0.8, 0.09, t + 0.05, 0.8, { sweepTo: 600, attack: 0.03 })
+    for (let i = 0; i < 6; i++) noise(c, "highpass", 4000, 1, 0.04, t + 0.1 + i * 0.11, 0.05)
+  },
 } satisfies Record<string, (c: AudioContext, t: number) => void>
 
 export type SfxName = keyof typeof CUES
