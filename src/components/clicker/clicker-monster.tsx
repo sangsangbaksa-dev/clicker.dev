@@ -154,7 +154,7 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
   return (
     <div
       className={`clicker-monster-roam is-${kind}${spot ? " is-hunt" : ""}${isDragon ? " is-dragon" : ""}${dying ? " is-dying" : ""}`}
-      style={displaySpot ? { left: `${displaySpot.left}%`, top: `${displaySpot.top}%` } : undefined}
+      style={displaySpot && !DRAGON_ART[kind] ? { left: `${displaySpot.left}%`, top: `${displaySpot.top}%` } : undefined}
     >
       {isDragon && (
         <div className="clicker-monster-hp" aria-label={`${name} 체력 ${hp}/${maxHp}`}>

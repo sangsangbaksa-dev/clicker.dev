@@ -1146,15 +1146,18 @@ export function ClickerApp() {
               >
                 {/* The rig stands on a rock bed; each tap plunges it in and kicks up debris. */}
                 <span className="clicker-drill-ground" aria-hidden />
-                <img src="/clicker/drill/core_drill_rig.webp" alt="" draggable={false} />
+                <img src="/clicker/drill/oil_derrick.webp" alt="" draggable={false} />
                 <span className="clicker-drill-glow" aria-hidden />
                 <span className="clicker-drill-ground is-front" aria-hidden />
                 {drillHits ? (
+                  <>
+                  <span className="clicker-drill-gush" aria-hidden />
                   <span className="clicker-drill-debris" aria-hidden>
                     {[0, 1, 2, 3, 4, 5].map((i) => (
                       <i key={i} style={{ ["--i" as string]: i }} />
                     ))}
                   </span>
+                  </>
                 ) : null}
               </button>
               <div className={`clicker-drill-gauge${drillCoolSec > 0 ? " is-cooling" : ""}`} aria-hidden>

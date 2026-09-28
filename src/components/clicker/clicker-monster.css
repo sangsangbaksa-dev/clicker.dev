@@ -155,7 +155,7 @@
 }
 .clicker-monster-roam.is-dragon .clicker-monster,
 .clicker-monster-roam.is-hunt.is-dragon .clicker-monster {
-  width: clamp(240px, 62vw, 460px);
+  width: clamp(264px, 68vw, 506px);
   filter: drop-shadow(0 18px 28px rgb(0 0 0 / 0.7));
   animation: clicker-monster-spawn 520ms ease-out, clicker-dragon-hover 3.2s ease-in-out 520ms infinite;
 }
@@ -177,7 +177,7 @@
 }
 
 /* ---------- Bosses living in the scene: perched over the castle, lit like the backdrop ---------- */
-.clicker-monster-roam.is-dragon { display: grid; justify-items: center; }
+.clicker-monster-roam.is-dragon { left: 50%; top: 42%; animation: none; display: grid; justify-items: center; }
 .clicker-monster-roam.is-dragon .clicker-monster { order: 1; }
 .clicker-monster-roam.is-dragon .clicker-monster {
   position: relative;
@@ -306,4 +306,48 @@
   .clicker-monster-roam.is-dragon .clicker-monster.is-hit { animation: none; }
   .clicker-monster-roam.is-dragon .clicker-monster.is-dying { animation: clicker-fade-out 400ms forwards; }
   .clicker-monster-burst, .clicker-monster-dmg { display: none; }
+}
+
+/* Bosses patrol slowly around the center of the arena, turning at each end. */
+.clicker-monster-roam.is-dragon:not(.is-dying) {
+  animation: clicker-boss-patrol 22s ease-in-out infinite;
+}
+@keyframes clicker-boss-patrol {
+  0%, 4% { transform: translateX(0) scaleX(1); }
+  22% { transform: translateX(13vw) scaleX(1); }
+  26%, 30% { transform: translateX(14vw) scaleX(-1); }
+  48% { transform: translateX(0) scaleX(-1); }
+  52%, 56% { transform: translateX(0) scaleX(-1); }
+  74% { transform: translateX(-14vw) scaleX(-1); }
+  78%, 82% { transform: translateX(-14vw) scaleX(1); }
+  100% { transform: translateX(0) scaleX(1); }
+}
+/* Heavy footsteps: sink, lean, rise — plus slow breathing. */
+.clicker-monster-roam.is-dragon .clicker-monster,
+.clicker-monster-roam.is-hunt.is-dragon .clicker-monster {
+  transform-origin: 50% 100%;
+  animation: clicker-monster-spawn 520ms ease-out, clicker-boss-step 1.8s ease-in-out 520ms infinite;
+}
+.clicker-monster-roam.is-dragon .clicker-monster.is-hit,
+.clicker-monster-roam.is-hunt.is-dragon .clicker-monster.is-hit {
+  animation: clicker-dragon-hit 300ms cubic-bezier(0.2, 0.9, 0.3, 1.2), clicker-boss-step 1.8s ease-in-out 300ms infinite;
+}
+@keyframes clicker-boss-step {
+  0%, 100% { transform: translateY(0) rotate(0) scale(1, 1); }
+  18% { transform: translateY(4px) rotate(-1.2deg) scale(1.02, 0.98); }
+  45% { transform: translateY(-8px) rotate(0.4deg) scale(0.99, 1.02); }
+  68% { transform: translateY(4px) rotate(1.2deg) scale(1.02, 0.98); }
+  90% { transform: translateY(-6px) rotate(-0.3deg) scale(0.99, 1.015); }
+}
+/* Its shadow squashes as each foot lands. */
+.clicker-monster-roam.is-dragon .clicker-monster-shadow {
+  animation: clicker-boss-shadow-step 1.8s ease-in-out infinite;
+}
+@keyframes clicker-boss-shadow-step {
+  0%, 100%, 18%, 68% { scale: 1; opacity: 1; }
+  45%, 90% { scale: 0.86; opacity: 0.7; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clicker-monster-roam.is-dragon:not(.is-dying),
+  .clicker-monster-roam.is-dragon .clicker-monster { animation: none; }
 }

@@ -1573,3 +1573,46 @@
 [data-clicker] .clicker-drill.is-cooling img {
   filter: grayscale(0.7) brightness(0.6);
 }
+
+/* Oil-rig drilling: each tap pumps a gusher of crude laced with core energy up the derrick. */
+.clicker-drill-gush {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  z-index: 3;
+  width: 7%;
+  height: 105%;
+  translate: -50% 0;
+  transform-origin: 50% 100%;
+  border-radius: 50% 50% 20% 20% / 70% 70% 10% 10%;
+  background: linear-gradient(to top, #0b0a08 0%, #1d1a14 40%, rgb(40 220 255 / 0.85) 75%, transparent 100%);
+  filter: blur(1.5px) drop-shadow(0 0 10px rgb(60 220 255 / 0.6));
+  pointer-events: none;
+  animation: clicker-drill-gush 520ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+@keyframes clicker-drill-gush {
+  0% { transform: scale(0.4, 0); opacity: 1; }
+  35% { transform: scale(1, 1); opacity: 1; }
+  100% { transform: scale(1.8, 1.1); opacity: 0; }
+}
+.clicker-drill-debris i { background: radial-gradient(circle, #2a241a, #0b0a08 70%); }
+.clicker-drill.is-hit img { animation: clicker-derrick-pump 300ms ease-out; transform-origin: 50% 100%; }
+@keyframes clicker-derrick-pump {
+  0% { transform: none; }
+  30% { transform: translateY(5px) scale(1.02, 0.96); }
+  60% { transform: translateY(-3px) scale(0.99, 1.02); }
+  100% { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clicker-drill-gush { display: none; }
+}
+
+/* Oil-field version: a squatter derrick bolted into packed desert dirt. */
+[data-clicker] .clicker-drill-station .clicker-drill { width: clamp(210px, 30vh, 270px); }
+[data-clicker] .clicker-drill-station .clicker-drill img { height: 92%; margin-top: 4%; }
+[data-clicker] .clicker-drill-station .clicker-drill-ground {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgb(60 220 255 / 0.28), transparent 38%),
+    radial-gradient(ellipse at 50% 40%, #6b4a2e, #3d2716 60%, #1d120a 100%);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.55);
+}
