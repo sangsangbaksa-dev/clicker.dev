@@ -26,7 +26,7 @@ import { ClickerImageZoom } from "@/components/clicker/clicker-image-zoom"
 import { ClickerPurchaseFx } from "@/components/clicker/clicker-purchase-fx"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
-import { ClickerMonster } from "@/components/clicker/clicker-monster"
+import { ClickerBossScene } from "@/components/clicker/clicker-boss-scene"
 import { ClickerForge } from "@/components/clicker/clicker-forge"
 import { ARMORS, LAIR_BOSSES, WEAPONS, gearOf, shieldRemainingMs } from "@/domain/services/clicker-lair"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
@@ -899,18 +899,16 @@ export function ClickerApp() {
           src={stageBg}
         />
         <div className="clicker-vignette" />
-        {!inMine && monsterDef && !regionDef?.boss ? (
-          <ClickerMonster
+        {!inMine && monsterDef && !regionDef?.boss && LAIR_BOSSES[monsterDef.kind] ? (
+          <ClickerBossScene
             key={run.currentRegionId}
-            spot={regionDef?.huntMode ? huntSpot(huntSpawn) : undefined}
             kind={monsterDef.kind}
             name={monsterDef.name}
             alive={monsterIsAlive}
-            onSlay={(x, y) => game.slayMonster(run.currentRegionId, x, y)}
             battle={lair}
             shieldMs={shieldMs}
             tauntKey={tauntKey}
-            onEnter={LAIR_BOSSES[monsterDef.kind] ? game.enterLair : undefined}
+            onEnter={game.enterLair}
             onStrike={(x, y) => {
               playLaser(game.save!.settings.muted, false)
               return game.strikeLair(x, y)

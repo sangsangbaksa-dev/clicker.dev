@@ -1,0 +1,300 @@
+/* Lair boss scenes: a portrait painting that covers the stage, with the monster animated in place. */
+.clicker-boss-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  container-type: size;
+  pointer-events: none;
+}
+/* Cover the stage with the 9:16 painting (like object-fit: cover) so overlays stay pinned to the art. */
+.boss-scene-box {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100cqw, 56.25cqh);
+  aspect-ratio: 9 / 16;
+  translate: -50% -50%;
+}
+.boss-scene-base,
+.boss-scene-body {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+/* The monster layer: the same art masked to the body, moving over a still backdrop.
+   Motion is split in two so it never snaps: the rig loops a slow idle forever, the body
+   eases between poses (rest / rear up / lunge) with long transitions on top of it. */
+.boss-scene-rig {
+  position: absolute;
+  inset: 0;
+  transform-origin: var(--bx) calc(var(--by) + var(--bh) / 2);
+  animation: boss-breathe 7s ease-in-out infinite;
+  will-change: transform;
+}
+.boss-scene-body {
+  --mask: radial-gradient(ellipse calc(var(--bw) / 2) calc(var(--bh) / 2) at var(--bx) var(--by), #000 62%, transparent 100%);
+  mask-image: var(--mask);
+  -webkit-mask-image: var(--mask);
+  transform-origin: var(--bx) calc(var(--by) + var(--bh) / 2);
+  transform: none;
+  transition: transform 1400ms cubic-bezier(0.37, 0, 0.63, 1), filter 1400ms ease-in-out;
+  will-change: transform;
+}
+@keyframes boss-breathe {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.012, 1.02) translateY(-0.5%); }
+}
+/* Winged bosses: a long, gliding sway as the wings ride the storm. */
+.clicker-boss-scene.sway-wings .boss-scene-rig { animation: boss-wingbeat 8s ease-in-out infinite; }
+@keyframes boss-wingbeat {
+  0%, 100% { transform: scale(1, 1) translate(0, 0) rotate(0); }
+  25% { transform: scale(1.018, 1) translate(0.4%, 0.5%) rotate(0.3deg); }
+  50% { transform: scale(1, 1.02) translate(0, -0.9%) rotate(0); }
+  75% { transform: scale(1.018, 1) translate(-0.4%, 0.5%) rotate(-0.3deg); }
+}
+/* Walkers shift their weight slowly side to side. */
+.clicker-boss-scene.sway-heave .boss-scene-rig { animation: boss-heave 9s ease-in-out infinite; }
+@keyframes boss-heave {
+  0%, 100% { transform: rotate(0) scale(1); }
+  25% { transform: rotate(-0.5deg) scale(1.008, 1.014); }
+  50% { transform: rotate(0) scale(1, 1.004); }
+  75% { transform: rotate(0.5deg) scale(1.008, 1.014); }
+}
+
+/* Attack: a slow rear back (anticipation), then a heavy lunge, then a long settle. */
+.clicker-boss-scene.is-windup .boss-scene-body {
+  transform: scale(0.98, 1.035) translateY(-1.5%);
+  transition: transform 1100ms cubic-bezier(0.45, 0, 0.55, 1), filter 1100ms ease-in-out;
+  filter: brightness(1.12);
+}
+.clicker-boss-scene.is-strike .boss-scene-body {
+  transform: scale(1.07) translateY(1.5%);
+  transition: transform 380ms cubic-bezier(0.33, 0, 0.2, 1), filter 380ms ease-out;
+  filter: brightness(1.25) saturate(1.15);
+}
+.clicker-boss-scene.is-strike .boss-scene-box { animation: boss-quake 700ms ease-out; }
+@keyframes boss-quake {
+  20% { translate: calc(-50% - 5px) calc(-50% + 4px); }
+  45% { translate: calc(-50% + 4px) calc(-50% - 3px); }
+  70% { translate: calc(-50% - 2px) calc(-50% + 1px); }
+  100% { translate: -50% -50%; }
+}
+.clicker-boss-scene.is-strike::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 60%, rgb(var(--tint) / 0.35), transparent 65%);
+  animation: boss-flash 900ms ease-out forwards;
+}
+@keyframes boss-flash { from { opacity: 1; } to { opacity: 0; } }
+
+/* Player hits: a soft red flare and a small give (scale is separate from the pose transform). */
+.boss-scene-box.hit-0 .boss-scene-body { animation: boss-flinch-a 520ms ease-out; }
+.boss-scene-box.hit-1 .boss-scene-body { animation: boss-flinch-b 520ms ease-out; }
+@keyframes boss-flinch-a {
+  0% { scale: 0.985; filter: brightness(1.6) sepia(0.8) hue-rotate(-40deg) saturate(3); }
+  100% { scale: 1; filter: none; }
+}
+@keyframes boss-flinch-b {
+  0% { scale: 0.985; filter: brightness(1.6) sepia(0.8) hue-rotate(-40deg) saturate(3); }
+  100% { scale: 1; filter: none; }
+}
+
+/* Eyes burn, and blaze during an attack or a victory roar. */
+.boss-scene-eye {
+  position: absolute;
+  width: 2.2%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff, rgb(var(--tint)) 40%, transparent 70%);
+  box-shadow: 0 0 12px 4px rgb(var(--tint) / 0.7);
+  mix-blend-mode: screen;
+  animation: boss-eye 5s ease-in-out infinite;
+  transition: scale 900ms ease-in-out, box-shadow 900ms ease-in-out;
+}
+@keyframes boss-eye { 50% { opacity: 0.6; } }
+.clicker-boss-scene.is-windup .boss-scene-eye,
+.clicker-boss-scene.is-strike .boss-scene-eye,
+.clicker-boss-scene.is-taunting .boss-scene-eye {
+  scale: 1.8;
+  box-shadow: 0 0 26px 10px rgb(var(--tint) / 0.9);
+}
+
+/* Weather. */
+.boss-scene-weather { position: absolute; inset: 0; overflow: hidden; }
+.boss-scene-weather i { position: absolute; display: block; }
+/* Storm: drifting fog banks and irregular lightning flashes. */
+.clicker-boss-scene.is-storm .boss-scene-weather::before,
+.clicker-boss-scene.is-storm .boss-scene-weather::after {
+  content: "";
+  position: absolute;
+  inset: 55% -40% -10% -40%;
+  background: radial-gradient(ellipse at 30% 60%, rgb(160 190 220 / 0.22), transparent 60%),
+    radial-gradient(ellipse at 75% 40%, rgb(140 170 210 / 0.18), transparent 55%);
+  animation: boss-fog 18s linear infinite;
+}
+.clicker-boss-scene.is-storm .boss-scene-weather::after { inset: 65% -40% -10% -40%; animation-duration: 26s; animation-direction: reverse; }
+@keyframes boss-fog { from { transform: translateX(-12%); } to { transform: translateX(12%); } }
+.clicker-boss-scene.is-storm .boss-scene-weather i:nth-child(-n + 2) {
+  inset: 0;
+  background: radial-gradient(ellipse at calc(20% + var(--i) * 55%) 20%, rgb(200 235 255 / 0.55), transparent 55%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: boss-lightning 7s steps(1) infinite;
+  animation-delay: calc(var(--i) * 3.1s);
+}
+@keyframes boss-lightning { 0%, 91%, 93%, 95%, 100% { opacity: 0; } 92%, 94% { opacity: 1; } }
+/* Crystal: slow luminous motes drifting up. Lava: embers rising fast. */
+.clicker-boss-scene.is-crystal .boss-scene-weather i,
+.clicker-boss-scene.is-lava .boss-scene-weather i {
+  left: calc(4% + var(--i) * 6%);
+  bottom: -2%;
+  width: 0.9%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgb(var(--tint));
+  box-shadow: 0 0 8px 2px rgb(var(--tint) / 0.8);
+  animation: boss-mote calc(6s + (var(--i) * 7 % 5) * 1s) linear infinite;
+  animation-delay: calc(var(--i) * -0.9s);
+}
+.clicker-boss-scene.is-lava .boss-scene-weather i { width: 0.6%; animation-duration: calc(3s + (var(--i) * 7 % 4) * 0.6s); }
+@keyframes boss-mote {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translate(calc((var(--i) * 13 % 7 - 3) * 8px), -85cqh); opacity: 0; }
+}
+/* Lava: the chasm glow breathes. */
+.clicker-boss-scene.is-lava .boss-scene-weather::before {
+  content: "";
+  position: absolute;
+  inset: 55% 0 0 0;
+  background: radial-gradient(ellipse at 45% 90%, rgb(255 110 20 / 0.45), transparent 65%);
+  mix-blend-mode: screen;
+  animation: boss-magma 3s ease-in-out infinite;
+}
+@keyframes boss-magma { 50% { opacity: 0.45; } }
+
+/* Strike particles erupting where the blow lands. */
+.boss-scene-impact { position: absolute; }
+.boss-scene-impact i {
+  position: absolute;
+  width: 1.4%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgb(var(--tint));
+  box-shadow: 0 0 10px 3px rgb(var(--tint) / 0.9);
+  --a: calc(var(--i) * 22.5deg);
+  animation: boss-debris 650ms cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+}
+@keyframes boss-debris {
+  from { transform: rotate(var(--a)) translateY(0) scale(1.6); opacity: 1; }
+  to { transform: rotate(var(--a)) translateY(calc(-40px - (var(--i) * 37 % 70) * 1px)) scale(0.3); opacity: 0; }
+}
+
+/* Death: the monster flashes, collapses into the scene and goes dark until it returns. */
+.clicker-boss-scene.is-dying .boss-scene-body { animation: boss-die 2.4s ease-in-out forwards; }
+@keyframes boss-die {
+  0% { filter: brightness(3); transform: scale(1.05); }
+  30% { filter: brightness(1.5) saturate(0.4); transform: scale(1.02) rotate(-1deg); }
+  100% { filter: brightness(0.25) grayscale(1); transform: scale(0.96) translateY(4%); }
+}
+.clicker-boss-scene.is-dormant .boss-scene-rig,
+.clicker-boss-scene.is-dying .boss-scene-rig { animation-play-state: paused; }
+.clicker-boss-scene.is-dying .boss-scene-eye,
+.clicker-boss-scene.is-dormant .boss-scene-eye { animation: none; }
+.clicker-boss-scene.is-dormant .boss-scene-body { filter: brightness(0.3) grayscale(1); transform: scale(0.96) translateY(4%); }
+.clicker-boss-scene.is-dormant .boss-scene-eye,
+.clicker-boss-scene.is-dying .boss-scene-eye { opacity: 0; }
+
+/* Victory roar after knocking the player out. */
+.clicker-boss-scene.is-taunting .boss-scene-body {
+  animation: none;
+  transform: scale(1.08) translateY(-2%);
+  transition: transform 300ms;
+  filter: brightness(1.3);
+}
+
+/* Shield dome over the monster. */
+.boss-scene-shield {
+  position: absolute;
+  left: var(--bx);
+  top: var(--by);
+  width: calc(var(--bw) * 0.9);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  display: grid;
+  place-items: end center;
+  background: radial-gradient(circle, transparent 55%, rgb(120 210 255 / 0.18) 68%, rgb(170 235 255 / 0.55) 71%, transparent 74%);
+  box-shadow: inset 0 0 40px rgb(120 210 255 / 0.35);
+  animation: boss-shield 2.4s ease-in-out infinite;
+}
+.boss-scene-shield b {
+  margin-bottom: 6%;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: #e6f8ff;
+  background: rgb(0 20 40 / 0.7);
+  border: 1px solid rgb(140 220 255 / 0.6);
+}
+@keyframes boss-shield { 50% { scale: 1.03; filter: brightness(1.3); } }
+
+/* The tap target covers the monster's body. */
+.boss-scene-hitbox {
+  position: absolute;
+  left: calc(var(--bx) - var(--bw) / 2);
+  top: calc(var(--by) - var(--bh) / 2);
+  width: var(--bw);
+  height: var(--bh);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+.clicker-boss-scene.is-battle .boss-scene-hitbox { cursor: crosshair; }
+.clicker-boss-scene.is-shielded .boss-scene-hitbox { cursor: not-allowed; }
+
+/* Boss HP bar during a battle. */
+.boss-scene-hp {
+  position: absolute;
+  left: 50%;
+  top: 14%;
+  z-index: 3;
+  width: min(260px, 70%);
+  height: 16px;
+  translate: -50% 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgb(0 0 0 / 0.65);
+  border: 1px solid rgb(255 200 120 / 0.5);
+}
+.boss-scene-hp i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, #d4231a, #ff9b3d);
+  transition: width 220ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.boss-scene-hp span {
+  position: relative;
+  display: block;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 800;
+  color: #fff3dc;
+  text-align: center;
+  text-shadow: 0 1px 2px #000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boss-scene-rig, .boss-scene-body, .boss-scene-eye, .boss-scene-weather *, .boss-scene-weather::before, .boss-scene-weather::after { animation: none !important; }
+}
