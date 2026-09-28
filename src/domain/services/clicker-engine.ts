@@ -94,6 +94,7 @@ export function createInitialRun(now: number, meta: MetaState, config: GameConfi
     droneSwarmUntil: 0,
     costScale: scale,
     monsterRespawnAt: {},
+    monsterDamage: {},
     drillGauge: 0,
     drillCooldownUntil: 0,
     boss: null,
@@ -1411,6 +1412,7 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
           run.challengeCooldowns && typeof run.challengeCooldowns === "object" ? { ...run.challengeCooldowns } : {},
         monsterRespawnAt:
           run.monsterRespawnAt && typeof run.monsterRespawnAt === "object" ? { ...run.monsterRespawnAt } : {},
+        monsterDamage: run.monsterDamage && typeof run.monsterDamage === "object" ? { ...run.monsterDamage } : {},
         drillGauge: typeof run.drillGauge === "number" ? Math.min(1, Math.max(0, run.drillGauge)) : 0,
         drillCooldownUntil: typeof run.drillCooldownUntil === "number" ? run.drillCooldownUntil : 0,
         boss: null,
@@ -1436,19 +1438,56 @@ export function monsterAlive(run: RunState, regionId: string, now: number): bool
   return (run.monsterRespawnAt[regionId] ?? 0) <= now
 }
 
-/** Tap the region's roaming monster: it dies, drops CORE, and returns after `respawnSec`. */
-export function slayMonster(
+/**
+ * Taps a region monster takes to go down. Kills are paced by the 30s respawn, so a few
+ * seconds of tapping leaves hunting income as it was.
+ */
+export const MONSTER_HITS = 8
+
+/** The live monster's HP: its pool is a fixed number of hits at the current click damage. */
+export function monsterHealth(
+  run: RunState,
+  meta: MetaState,
+  config: GameConfig,
+  regionId: string,
+): { hp: number; maxHp: number } {
+  const maxHp = derivedClick(run, meta, config).click * MONSTER_HITS
+  const damage = run.monsterDamage?.[regionId] ?? 0
+  return { hp: Math.max(0, maxHp - damage), maxHp }
+}
+
+/**
+ * Tap the region's roaming monster: each tap deals the current click damage. The tap that
+ * empties its HP kills it; it drops CORE and returns at full HP after `respawnSec`.
+ */
+export function strikeMonster(
   run: RunState,
   meta: MetaState,
   config: GameConfig,
   regionId: string,
   now: number,
-): { run: RunState; meta: MetaState; reward: number; error?: string } {
+): { run: RunState; meta: MetaState; reward: number; damage: number; hp: number; maxHp: number; defeated: boolean; error?: string } {
+  const refuse = (error: string) => ({ run, meta, reward: 0, damage: 0, hp: 0, maxHp: 0, defeated: false, error })
   const region = config.regions.find((r) => r.id === regionId)
   const monster = region?.monster
-  if (!region || !monster) return { run, meta, reward: 0, error: "이 지역에는 몬스터가 없습니다." }
-  if (run.currentRegionId !== regionId) return { run, meta, reward: 0, error: `${region.name}에 있어야 합니다.` }
-  if (!monsterAlive(run, regionId, now)) return { run, meta, reward: 0, error: "아직 돌아오지 않았습니다." }
+  if (!region || !monster) return refuse("이 지역에는 몬스터가 없습니다.")
+  if (run.currentRegionId !== regionId) return refuse(`${region.name}에 있어야 합니다.`)
+  if (!monsterAlive(run, regionId, now)) return refuse("아직 돌아오지 않았습니다.")
+  const click = derivedClick(run, meta, config).click
+  const { hp: before, maxHp } = monsterHealth(run, meta, config, regionId)
+  const hp = Math.max(0, before - click)
+  // Tolerate float dust so the last hit always lands the kill.
+  if (hp > maxHp * 1e-9) {
+    return {
+      run: { ...run, monsterDamage: { ...run.monsterDamage, [regionId]: maxHp - hp } },
+      meta,
+      reward: 0,
+      damage: click,
+      hp,
+      maxHp,
+      defeated: false,
+    }
+  }
   const perSecond = productionSnapshot(run, meta, config, now).perSecond
   const skills = ownedSkills(run, config)
   const rewardMul = skills.reduce((m, n) => m * (n.monsterRewardMultiplier ?? 1), 1)
@@ -1456,16 +1495,23 @@ export function slayMonster(
   const respawnSec = Math.max(5, monster.respawnSec - skills.reduce((s, n) => s + (n.monsterRespawnReduce ?? 0) + (n.cooldownReduceSec ?? 0), 0))
   // Hunting grounds are the region's main income, so their kills pay a much bigger click floor.
   const clickFloor = region.huntMode ? 150 : 25
-  const reward = (perSecond * monster.rewardSeconds + derivedClick(run, meta, config).click * clickFloor) * rewardMul
+  const reward = (perSecond * monster.rewardSeconds + click * clickFloor) * rewardMul
+  const monsterDamage = { ...run.monsterDamage }
+  delete monsterDamage[regionId]
   return {
     run: {
       ...run,
       coreEnergy: run.coreEnergy + reward,
       lifetimeCoreEnergy: run.lifetimeCoreEnergy + reward,
       monsterRespawnAt: { ...run.monsterRespawnAt, [regionId]: now + respawnSec * 1000 },
+      monsterDamage,
     },
     meta: { ...meta, totalCoreEnergy: meta.totalCoreEnergy + reward, monstersSlain: (meta.monstersSlain ?? 0) + 1 },
     reward,
+    damage: click,
+    hp: 0,
+    maxHp,
+    defeated: true,
   }
 }
 

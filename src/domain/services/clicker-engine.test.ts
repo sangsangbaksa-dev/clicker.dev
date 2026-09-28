@@ -3,7 +3,9 @@ import test from "node:test"
 import { clickerConfig } from "../../data/clicker/catalog.ts"
 import {
   monsterAlive,
-  slayMonster,
+  strikeMonster,
+  monsterHealth,
+  MONSTER_HITS,
   startBossFight,
   strikeBoss,
   tickBoss,
@@ -530,20 +532,46 @@ test("true ending unlocks once the Core Heart guardian falls", () => {
   assert.equal(again.error, "이미 완료된 기록입니다.")
 })
 
-test("region monsters die on tap, pay CORE and respawn after 30s", () => {
+test("region monsters lose HP per tap, die on the last one, pay CORE and respawn after 30s", () => {
   const now = 20_000_000
   const meta = createInitialMeta()
   const start = createInitialRun(now, meta, config)
   assert.equal(config.regions.find((r) => r.id === start.currentRegionId)?.monster, undefined, "home has no monster")
   const home = "phase_vault"
-  const run = { ...start, currentRegionId: home }
+  let run = { ...start, currentRegionId: home }
   assert.equal(monsterAlive(run, home, now), true)
-  const slain = slayMonster(run, meta, config, home, now)
+  const full = monsterHealth(run, meta, config, home)
+  assert.equal(full.hp, full.maxHp)
+  for (let tap = 1; tap < MONSTER_HITS; tap++) {
+    const hit = strikeMonster(run, meta, config, home, now)
+    assert.equal(hit.error, undefined)
+    assert.equal(hit.defeated, false, `tap ${tap} should not kill`)
+    assert.equal(hit.reward, 0)
+    assert.ok(hit.hp < monsterHealth(run, meta, config, home).hp, "HP drops")
+    assert.equal(hit.run.coreEnergy, run.coreEnergy, "no CORE until it dies")
+    run = hit.run
+  }
+  const slain = strikeMonster(run, meta, config, home, now)
   assert.equal(slain.error, undefined)
+  assert.equal(slain.defeated, true)
+  assert.equal(slain.hp, 0)
   assert.ok(slain.reward > 0)
+  assert.equal(slain.meta.monstersSlain, 1)
   assert.equal(monsterAlive(slain.run, home, now + 29_000), false)
   assert.equal(monsterAlive(slain.run, home, now + 30_000), true)
-  assert.ok(slayMonster(slain.run, slain.meta, config, home, now + 1_000).error)
+  assert.ok(strikeMonster(slain.run, slain.meta, config, home, now + 1_000).error)
+  const back = monsterHealth(slain.run, slain.meta, config, home)
+  assert.equal(back.hp, back.maxHp, "respawns at full HP")
+})
+
+test("monster damage survives a save round trip", () => {
+  const now = 22_000_000
+  const meta = createInitialMeta()
+  const home = "phase_vault"
+  const run = { ...createInitialRun(now, meta, config), currentRegionId: home }
+  const hit = strikeMonster(run, meta, config, home, now)
+  const restored = sanitizeSave(JSON.parse(JSON.stringify({ ...createInitialSave(now, config), runState: hit.run })), config, now)
+  assert.equal(monsterHealth(restored.runState, meta, config, home).hp, hit.hp)
 })
 
 test("upgrade purchase is rejected when CORE is short or already owned", () => {

@@ -1,4 +1,4 @@
-/* Region monsters: roam across the stage background, die on tap, respawn later. */
+/* Region monsters: roam across the stage background, lose HP per tap, respawn later. */
 .clicker-monster-roam {
   position: absolute;
   left: 8%;
@@ -174,4 +174,37 @@
 }
 @keyframes clicker-dragon-hover {
   50% { transform: translateY(-12px) scale(1.02); }
+}
+
+/* HP bar over the monster; each tap chips it and flinches the body. */
+.clicker-monster-hp {
+  width: clamp(64px, 9vw, 110px);
+  height: 8px;
+  margin: 0 auto 6px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.6);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.25);
+  overflow: hidden;
+}
+.clicker-monster-hp > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff4d4d, #ffb347);
+  transition: width 160ms ease-out;
+}
+.clicker-monster-body { display: block; }
+.clicker-monster-body.is-hit { animation: clicker-monster-flinch 220ms ease-out; }
+@keyframes clicker-monster-flinch {
+  0% { transform: scale(1); filter: brightness(2.4); }
+  35% { transform: scale(0.9) rotate(-4deg); }
+  100% { transform: scale(1); filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clicker-monster-body.is-hit { animation: none; }
+  .clicker-monster-hp > span { transition: none; }
+}
+.clicker-monster-roam.is-dragon .clicker-monster-hp {
+  width: clamp(140px, 30vw, 240px);
+  height: 10px;
 }

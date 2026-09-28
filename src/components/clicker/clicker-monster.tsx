@@ -102,15 +102,19 @@ type Props = {
   alive: boolean
   /** Hunting grounds place each spawn somewhere new (percent of the stage). */
   spot?: { left: number; top: number }
-  onSlay: (clientX: number, clientY: number) => void
+  hp: number
+  maxHp: number
+  /** Deals one tap of damage; true when that tap killed it, null when refused. */
+  onStrike: (clientX: number, clientY: number) => boolean | null
 }
 
 /**
- * Region monster roaming the stage background. Tap it to kill it; it falls, drops CORE,
- * and comes back when the engine says it has respawned.
+ * Region monster roaming the stage background. Each tap chips its HP bar; the last one
+ * kills it, it falls, drops CORE, and comes back when the engine says it has respawned.
  */
-export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
+export function ClickerMonster({ kind, name, alive, spot, hp, maxHp, onStrike }: Props) {
   const [dying, setDying] = useState(false)
+  const [hitSeq, setHitSeq] = useState(0)
   const timer = useRef<number | null>(null)
   useEffect(() => () => {
     if (timer.current != null) window.clearTimeout(timer.current)
@@ -130,23 +134,42 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
     if (e.button !== 0 || dying) return
     e.preventDefault()
     e.stopPropagation()
+    const killed = onStrike(e.clientX, e.clientY)
+    if (killed == null) return
+    if (!killed) {
+      setHitSeq((n) => n + 1)
+      return
+    }
     setDying(true)
-    onSlay(e.clientX, e.clientY)
     timer.current = window.setTimeout(() => setDying(false), 650)
   }
+  const hpRatio = dying ? 0 : Math.max(0, Math.min(1, hp / maxHp))
   return (
     <div
       className={`clicker-monster-roam is-${kind}${spot ? " is-hunt" : ""}${DRAGON_ART[kind] ? " is-dragon" : ""}`}
       style={displaySpot ? { left: `${displaySpot.left}%`, top: `${displaySpot.top}%` } : undefined}
     >
+      <div
+        className="clicker-monster-hp"
+        role="meter"
+        aria-label={`${name} 체력`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(hpRatio * 100)}
+      >
+        <span style={{ width: `${hpRatio * 100}%` }} />
+      </div>
       <button
         type="button"
         data-sfx="off"
         className={`clicker-monster is-${kind}${dying ? " is-dying" : ""}`}
-        aria-label={`${name} 처치`}
+        aria-label={`${name} 공격`}
         onPointerDown={hit}
       >
-        <MonsterArt kind={kind} />
+        {/* Remounting on each hit restarts the flinch animation. */}
+        <span key={hitSeq} className={`clicker-monster-body${hitSeq > 0 ? " is-hit" : ""}`}>
+          <MonsterArt kind={kind} />
+        </span>
       </button>
     </div>
   )
