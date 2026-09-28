@@ -313,14 +313,14 @@
   animation: clicker-boss-patrol 22s ease-in-out infinite;
 }
 @keyframes clicker-boss-patrol {
-  0%, 4% { transform: translateX(0) scaleX(1); }
-  22% { transform: translateX(13vw) scaleX(1); }
-  26%, 30% { transform: translateX(14vw) scaleX(-1); }
-  48% { transform: translateX(0) scaleX(-1); }
-  52%, 56% { transform: translateX(0) scaleX(-1); }
-  74% { transform: translateX(-14vw) scaleX(-1); }
-  78%, 82% { transform: translateX(-14vw) scaleX(1); }
-  100% { transform: translateX(0) scaleX(1); }
+  0%, 4% { transform: translateX(0); }
+  22% { transform: translateX(13vw); }
+  26%, 30% { transform: translateX(14vw); }
+  48% { transform: translateX(0); }
+  52%, 56% { transform: translateX(0); }
+  74% { transform: translateX(-14vw); }
+  78%, 82% { transform: translateX(-14vw); }
+  100% { transform: translateX(0); }
 }
 /* Heavy footsteps: sink, lean, rise — plus slow breathing. */
 .clicker-monster-roam.is-dragon .clicker-monster,
@@ -357,14 +357,14 @@
   animation: clicker-boss-fly 14s ease-in-out infinite;
 }
 @keyframes clicker-boss-fly {
-  0% { transform: translate(0, 0) scaleX(1); }
-  20% { transform: translate(14vw, -7vh) scaleX(1); }
-  25% { transform: translate(16vw, -4vh) scaleX(-1); }
-  45% { transform: translate(2vw, -10vh) scaleX(-1); }
-  50% { transform: translate(-6vw, -5vh) scaleX(-1); }
-  70% { transform: translate(-16vw, -8vh) scaleX(-1); }
-  75% { transform: translate(-16vw, -4vh) scaleX(1); }
-  100% { transform: translate(0, 0) scaleX(1); }
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(14vw, -7vh); }
+  25% { transform: translate(16vw, -4vh); }
+  45% { transform: translate(2vw, -10vh); }
+  50% { transform: translate(-6vw, -5vh); }
+  70% { transform: translate(-16vw, -8vh); }
+  75% { transform: translate(-16vw, -4vh); }
+  100% { transform: translate(0, 0); }
 }
 /* Wingbeats: rise on the downstroke, sink between. */
 .clicker-monster-roam.is-flyer .clicker-monster,
@@ -496,3 +496,11 @@
   .clicker-monster-roam.is-dragon .clicker-monster { animation: none; }
   .clicker-monster-fire, .clicker-monster-slash { display: none; }
 }
+
+/* Only the art turns around; the HP bar and effects keep reading left-to-right. */
+.clicker-monster-roam.is-walker:not(.is-dying) .mon-dragon { animation: clicker-boss-face-walk 22s steps(1) infinite; }
+.clicker-monster-roam.is-flyer:not(.is-dying) .mon-dragon { animation: clicker-boss-face-fly 14s steps(1) infinite; }
+@keyframes clicker-boss-face-walk { 0% { scale: 1 1; } 26% { scale: -1 1; } 78% { scale: 1 1; } }
+@keyframes clicker-boss-face-fly { 0% { scale: 1 1; } 25% { scale: -1 1; } 75% { scale: 1 1; } }
+/* The spectral titan is dark on a dark vault; lift it out of the fog. */
+.clicker-monster.is-golem .mon-dragon { filter: brightness(1.6) saturate(1.2) drop-shadow(0 0 18px rgb(60 230 220 / 0.55)); }
