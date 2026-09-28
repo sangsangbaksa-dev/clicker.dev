@@ -111,6 +111,10 @@ type Props = {
  */
 /** Taps a giant boss takes before it falls; small critters still die in one. */
 const DRAGON_HP = 8
+const ATTACK_EVERY_MS = 4200
+const ATTACK_MS = 1100
+/** Winged bosses fly; everything else stomps along the ground. */
+const FLYERS = new Set(["stormbird"])
 
 export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
   const [dying, setDying] = useState(false)
@@ -130,6 +134,21 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
   useEffect(() => {
     if (alive && spot) setDisplaySpot(spot)
   }, [alive, spot])
+  // Bosses strike on a steady rhythm: dragons breathe fire, the rest swing their weapons.
+  const [attacking, setAttacking] = useState(false)
+  useEffect(() => {
+    if (!alive || !DRAGON_ART[kind]) return
+    let off: number | undefined
+    const id = window.setInterval(() => {
+      setAttacking(true)
+      off = window.setTimeout(() => setAttacking(false), ATTACK_MS)
+    }, ATTACK_EVERY_MS)
+    return () => {
+      window.clearInterval(id)
+      if (off) window.clearTimeout(off)
+    }
+  }, [alive, kind])
+
   // Every fresh spawn comes back at full health.
   useEffect(() => {
     if (alive) setHp(maxHp)
@@ -153,7 +172,7 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
   const isDragon = Boolean(DRAGON_ART[kind])
   return (
     <div
-      className={`clicker-monster-roam is-${kind}${spot ? " is-hunt" : ""}${isDragon ? " is-dragon" : ""}${dying ? " is-dying" : ""}`}
+      className={`clicker-monster-roam is-${kind}${spot ? " is-hunt" : ""}${isDragon ? ` is-dragon ${FLYERS.has(kind) ? "is-flyer" : "is-walker"}` : ""}${dying ? " is-dying" : ""}${attacking && !dying ? " is-attacking" : ""}`}
       style={displaySpot && !DRAGON_ART[kind] ? { left: `${displaySpot.left}%`, top: `${displaySpot.top}%` } : undefined}
     >
       {isDragon && (
@@ -173,6 +192,15 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
       >
         <MonsterArt kind={kind} />
       </button>
+      {isDragon && attacking && !dying ? (
+        FLYERS.has(kind) ? (
+          <span className="clicker-monster-fire" aria-hidden>
+            {Array.from({ length: 9 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)}
+          </span>
+        ) : (
+          <span className="clicker-monster-slash" aria-hidden />
+        )
+      ) : null}
       {isDragon && hits > 0 && !dying && <span key={`n${hits}`} className="clicker-monster-dmg">-1</span>}
       {dying && isDragon && (
         <span className="clicker-monster-burst">
