@@ -1421,7 +1421,7 @@
 }
 [data-clicker] .clicker-drill {
   position: relative;
-  width: clamp(170px, 28vh, 230px);
+  width: clamp(240px, 36vh, 320px);
   aspect-ratio: 1;
   padding: 0;
   border: 0;
@@ -1473,7 +1473,7 @@
 }
 [data-clicker] .clicker-drill-gauge {
   position: relative;
-  width: clamp(170px, 28vh, 230px);
+  width: clamp(240px, 36vh, 320px);
   height: 10px;
   overflow: hidden;
   border-radius: 999px;
