@@ -1148,7 +1148,7 @@ export function ClickerApp() {
               >
                 {/* The rig stands on a rock bed; each tap plunges it in and kicks up debris. */}
                 <span className="clicker-drill-ground" aria-hidden />
-                <img src="/clicker/drill/oil_derrick.webp" alt="" draggable={false} />
+                <img src="/clicker/drill/scifi_drill.webp" alt="" draggable={false} />
                 <span className="clicker-drill-glow" aria-hidden />
                 <span className="clicker-drill-ground is-front" aria-hidden />
                 {drillHits ? (
