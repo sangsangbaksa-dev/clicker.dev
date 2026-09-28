@@ -143,6 +143,16 @@ type Props = {
   /** Hunting grounds place each spawn somewhere new (percent of the stage). */
   spot?: { left: number; top: number }
   onSlay: (clientX: number, clientY: number) => void
+  /** Lair battle in progress: HP comes from the engine and attacks land on its timer. */
+  battle?: { bossHp: number; bossMaxHp: number; nextAttackAt: number } | null
+  /** Remaining shield after beating the player (ms); the boss can't be challenged meanwhile. */
+  shieldMs?: number
+  /** Bumped when the boss knocks the player out, to play its victory roar. */
+  tauntKey?: number
+  /** Tap outside a battle: walk into the lair. */
+  onEnter?: () => void
+  /** Tap during a battle; returns true on the killing blow. */
+  onStrike?: (clientX: number, clientY: number) => boolean
 }
 
 /**
@@ -158,10 +168,13 @@ const ATTACK_BEATS = [0, 560, 860]
 /** Winged bosses fly; everything else stomps along the ground. */
 const FLYERS = new Set(["stormbird"])
 
-export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
+export function ClickerMonster({ kind, name, alive, spot, onSlay, battle, shieldMs = 0, tauntKey = 0, onEnter, onStrike }: Props) {
   const [dying, setDying] = useState(false)
-  const maxHp = DRAGON_ART[kind] ? DRAGON_HP : 1
-  const [hp, setHp] = useState(maxHp)
+  const maxHp = battle ? battle.bossMaxHp : DRAGON_ART[kind] ? DRAGON_HP : 1
+  const [localHp, setHp] = useState(maxHp)
+  const hp = battle ? battle.bossHp : localHp
+  const shielded = shieldMs > 0 && !battle
+  const inBattle = Boolean(battle)
   const [hits, setHits] = useState(0)
   const timer = useRef<number | null>(null)
   useEffect(() => () => {
@@ -178,8 +191,32 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
   }, [alive, spot])
   // Bosses strike on a steady rhythm: dragons breathe fire, the rest swing their weapons.
   const [attacking, setAttacking] = useState(false)
+  // In a lair battle the swing is timed so the strike pose lands exactly when the
+  // engine deals the damage.
+  const nextAttackAt = battle?.nextAttackAt
   useEffect(() => {
-    if (!alive || !DRAGON_ART[kind]) return
+    if (!nextAttackAt) return
+    let off: number | undefined
+    const on = window.setTimeout(() => {
+      setAttacking(true)
+      off = window.setTimeout(() => setAttacking(false), ATTACK_MS)
+    }, Math.max(0, nextAttackAt - ATTACK_BEATS[1] - Date.now()))
+    return () => {
+      window.clearTimeout(on)
+      if (off) window.clearTimeout(off)
+    }
+  }, [nextAttackAt])
+  // Knocked the player out: rear up and roar in triumph.
+  const [taunting, setTaunting] = useState(false)
+  useEffect(() => {
+    if (!tauntKey) return
+    setTaunting(true)
+    playSfx("bossRoar")
+    const id = window.setTimeout(() => setTaunting(false), 1800)
+    return () => window.clearTimeout(id)
+  }, [tauntKey])
+  useEffect(() => {
+    if (!alive || !DRAGON_ART[kind] || inBattle) return
     let off: number | undefined
     const id = window.setInterval(() => {
       setAttacking(true)
@@ -189,7 +226,7 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
       window.clearInterval(id)
       if (off) window.clearTimeout(off)
     }
-  }, [alive, kind])
+  }, [alive, kind, inBattle])
 
   // Frame animation: loop the move cycle; while attacking, step through the attack poses.
   const frames = BOSS_FRAMES[kind]
@@ -207,7 +244,9 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
     return () => ids.forEach((id) => window.clearTimeout(id))
   }, [attacking, frames])
   const current: Frame | undefined = frames
-    ? attacking && !dying
+    ? taunting && !attacking
+      ? frames.attack[0]
+      : attacking && !dying
       ? frames.attack[attackStep]
       : frames.move[tick % frames.move.length]
     : undefined
@@ -240,6 +279,24 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
     if (e.button !== 0 || dying) return
     e.preventDefault()
     e.stopPropagation()
+    // Lair bosses are fought inside their lair: outside a battle a tap walks you in
+    // (the engine refuses while the shield is up).
+    if (DRAGON_ART[kind] && onEnter && !battle) {
+      if (shielded) playSfx("deny")
+      onEnter()
+      return
+    }
+    if (battle && onStrike) {
+      setHits((n) => n + 1)
+      if (onStrike(e.clientX, e.clientY)) {
+        playSfx("bossDeath")
+        setDying(true)
+        timer.current = window.setTimeout(() => setDying(false), 1100)
+      } else {
+        playSfx("bossHurt")
+      }
+      return
+    }
     setHits((n) => n + 1)
     if (hp > 1) {
       if (DRAGON_ART[kind]) playSfx("bossHurt")
@@ -255,7 +312,7 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
   const isDragon = Boolean(DRAGON_ART[kind])
   return (
     <div
-      className={`clicker-monster-roam is-${kind}${spot ? " is-hunt" : ""}${isDragon ? ` is-dragon ${FLYERS.has(kind) ? "is-flyer" : "is-walker"}` : ""}${dying ? " is-dying" : ""}${attacking && !dying ? " is-attacking" : ""}`}
+      className={`clicker-monster-roam is-${kind}${spot ? " is-hunt" : ""}${isDragon ? ` is-dragon ${FLYERS.has(kind) ? "is-flyer" : "is-walker"}` : ""}${dying ? " is-dying" : ""}${attacking && !dying ? " is-attacking" : ""}${shielded ? " is-shielded" : ""}${taunting ? " is-taunting" : ""}${battle ? " is-battle" : ""}`}
       data-pose={pose}
       style={displaySpot && !DRAGON_ART[kind] ? { left: `${displaySpot.left}%`, top: `${displaySpot.top}%` } : undefined}
     >
@@ -266,12 +323,17 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
         </div>
       )}
       {isDragon && <span className="clicker-monster-shadow" />}
+      {isDragon && shielded ? (
+        <span className="clicker-monster-shield" aria-label={`보호막 ${Math.ceil(shieldMs / 1000)}초`}>
+          <b>🛡 {Math.floor(Math.ceil(shieldMs / 1000) / 60)}:{String(Math.ceil(shieldMs / 1000) % 60).padStart(2, "0")}</b>
+        </span>
+      ) : null}
       <button
         key={dying ? "dead" : hits}
         type="button"
         data-sfx="off"
         className={`clicker-monster is-${kind}${dying ? " is-dying" : hits > 0 ? " is-hit" : ""}`}
-        aria-label={`${name} 공격`}
+        aria-label={battle ? `${name} 공격` : shielded ? `${name} · 보호막` : `${name} 토벌하러 들어가기`}
         onPointerDown={hit}
       >
         <MonsterArt kind={kind} frame={current?.src} />
@@ -286,7 +348,7 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
           {Array.from({ length: 14 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)}
         </span>
       ) : null}
-      {isDragon && hits > 0 && !dying && <span key={`n${hits}`} className="clicker-monster-dmg">-1</span>}
+      {isDragon && !battle && hits > 0 && !dying && <span key={`n${hits}`} className="clicker-monster-dmg">-1</span>}
       {dying && isDragon && (
         <span className="clicker-monster-burst">
           {Array.from({ length: 10 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)}

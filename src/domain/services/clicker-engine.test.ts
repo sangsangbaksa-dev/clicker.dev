@@ -584,3 +584,49 @@ test("region currency: earned where you stand, spent by late upgrades", async ()
   assert.equal(bought.error, undefined)
   for (const c of costs) assert.equal(eng.regionCurrencyBalance(bought.run, c.regionId), 0)
 })
+
+test("lair: enter, get knocked out → 3-minute shield; forge gear; kill pays out", async () => {
+  const eng = await import("./clicker-engine.ts")
+  const lair = await import("./clicker-lair.ts")
+  const config = clickerConfig
+  const meta = eng.createInitialMeta()
+  const base = { ...eng.createInitialRun(0, meta, config), currentRegionId: "phase_vault" }
+
+  const entered = lair.enterLair(base, config, 1000)
+  assert.equal(entered.error, undefined)
+  assert.equal(entered.run.lair?.playerHp, lair.BASE_PLAYER_HP)
+
+  // Nobody strikes back: the boss swings until the player drops, then shields.
+  const t = 1000 + lair.LAIR_ATTACK_EVERY_MS * 20
+  const beaten = lair.tickLair(entered.run, config, t)
+  assert.equal(beaten.lair, null)
+  assert.equal(lair.shieldRemainingMs(beaten, "phase_vault", t), lair.SHIELD_MS)
+  assert.ok(lair.enterLair(beaten, config, t + 1000).error, "shielded boss refuses a challenge")
+  assert.equal(lair.enterLair(beaten, config, t + lair.SHIELD_MS).error, undefined)
+
+  // A partial tick only chips HP.
+  const hurt = lair.tickLair(entered.run, config, 1000 + lair.LAIR_ATTACK_EVERY_MS)
+  assert.ok(hurt.lair && hurt.lair.playerHp < lair.BASE_PLAYER_HP)
+
+  // Forge the first weapon and armor from CORE + 원유.
+  const rich = { ...base, coreEnergy: 1e9, regionCurrency: { signal_relay: 1e6 } }
+  const w = lair.forgeGear(rich, config, "weapon")
+  assert.equal(w.error, undefined)
+  assert.equal(lair.gearOf(w.run).weapon, 1)
+  const a = lair.forgeGear(w.run, config, "armor")
+  assert.equal(lair.playerMaxHp(a.run), lair.BASE_PLAYER_HP + lair.ARMORS[1].hp)
+  assert.ok(lair.forgeGear(base, config, "weapon").error, "can't forge broke")
+
+  // Strike the boss down: it pays CORE and goes away to respawn.
+  let fight = lair.enterLair(a.run, config, 1000).run
+  let m = meta
+  let result = lair.strikeLair(fight, m, config, 1100)
+  while (!result.defeated) {
+    fight = result.run
+    m = result.meta
+    result = lair.strikeLair(fight, m, config, 1100)
+  }
+  assert.ok(result.reward > 0)
+  assert.equal(result.run.lair, null)
+  assert.equal(eng.monsterAlive(result.run, "phase_vault", 1200), false)
+})

@@ -46,6 +46,15 @@ export type EventBoost = {
   expiresAt: number
 }
 
+export type LairFight = {
+  regionId: string
+  bossHp: number
+  bossMaxHp: number
+  playerHp: number
+  playerMaxHp: number
+  nextAttackAt: number
+}
+
 export type RunState = {
   coreEnergy: number
   lifetimeCoreEnergy: number
@@ -69,6 +78,12 @@ export type RunState = {
   currentRegionId: string
   /** Per-region currency balances (region id → amount); resets with the run. */
   regionCurrency?: Record<string, number>
+  /** Forged gear tiers (index into WEAPONS / ARMORS). */
+  gear?: { weapon: number; armor: number }
+  /** Active lair battle against the current region's boss. */
+  lair?: LairFight | null
+  /** After beating the player, a boss is shielded until this time (region id → ms). */
+  monsterShieldUntil?: Record<string, number>
   clickCount: number
   feverStarts: number
   respecCount: number

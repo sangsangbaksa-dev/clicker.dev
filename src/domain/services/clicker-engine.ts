@@ -1464,6 +1464,17 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
             ([, v]) => typeof v === "number" && Number.isFinite(v) && v >= 0,
           ),
         ),
+        gear: {
+          weapon: Number.isInteger(run.gear?.weapon) ? Math.max(0, run.gear!.weapon) : 0,
+          armor: Number.isInteger(run.gear?.armor) ? Math.max(0, run.gear!.armor) : 0,
+        },
+        // A reload walks you back out of any lair fight; shields keep running.
+        lair: null,
+        monsterShieldUntil: Object.fromEntries(
+          Object.entries(run.monsterShieldUntil && typeof run.monsterShieldUntil === "object" ? run.monsterShieldUntil : {}).filter(
+            ([, v]) => typeof v === "number" && Number.isFinite(v),
+          ),
+        ),
         currentRegionId: (() => {
           const fallback = homeRegionId(config)
           const id = typeof run.currentRegionId === "string" ? run.currentRegionId : fallback

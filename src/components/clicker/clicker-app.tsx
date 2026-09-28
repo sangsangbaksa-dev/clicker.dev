@@ -27,6 +27,8 @@ import { ClickerPurchaseFx } from "@/components/clicker/clicker-purchase-fx"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
 import { ClickerMonster } from "@/components/clicker/clicker-monster"
+import { ClickerForge } from "@/components/clicker/clicker-forge"
+import { ARMORS, LAIR_BOSSES, WEAPONS, gearOf, shieldRemainingMs } from "@/domain/services/clicker-lair"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
 import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
 import { monsterAlive, reentryCooldownMs } from "@/domain/services/clicker-engine"
@@ -566,6 +568,34 @@ export function ClickerApp() {
     prevBossDefeated.current = bossDefeated
   }, [bossDefeated, bossFighting])
 
+  // Lair battle feedback: every boss hit flashes the screen red; being knocked out
+  // makes the boss roar in triumph and raise its shield.
+  const lairPlayerHp = game.save?.runState.lair?.playerHp
+  const lairRegion = game.save?.runState.currentRegionId ?? ""
+  const shieldUntil = game.save?.runState.monsterShieldUntil?.[lairRegion] ?? 0
+  const prevLairHp = useRef<number | undefined>(undefined)
+  const prevShield = useRef(shieldUntil)
+  const [hurtKey, setHurtKey] = useState(0)
+  const [tauntKey, setTauntKey] = useState(0)
+  useEffect(() => {
+    if (lairPlayerHp !== undefined && prevLairHp.current !== undefined && lairPlayerHp < prevLairHp.current) {
+      setHurtKey((k) => k + 1)
+      playSfx("playerHurt")
+    }
+    prevLairHp.current = lairPlayerHp
+  }, [lairPlayerHp])
+  const prevShieldRegion = useRef(lairRegion)
+  useEffect(() => {
+    const sameRegion = prevShieldRegion.current === lairRegion
+    prevShieldRegion.current = lairRegion
+    if (sameRegion && shieldUntil > prevShield.current) {
+      setHurtKey((k) => k + 1)
+      setTauntKey((k) => k + 1)
+      playSfx("playerHurt")
+    }
+    prevShield.current = shieldUntil
+  }, [shieldUntil, lairRegion])
+
   if (game.otherTabActive) {
     return (
       <ClickerOtherTab
@@ -656,6 +686,9 @@ export function ClickerApp() {
   const monsterDef = regionDef?.monster
   const monsterIsAlive = monsterDef ? monsterAlive(run, run.currentRegionId, tickNow) : false
   const huntSpawn = run.monsterRespawnAt[run.currentRegionId] ?? 0
+  const lair = run.lair && run.lair.regionId === run.currentRegionId ? run.lair : null
+  const shieldMs = shieldRemainingMs(run, run.currentRegionId, tickNow)
+  const gear = gearOf(run)
   const drillCoolSec = Math.max(0, Math.ceil((run.drillCooldownUntil - tickNow) / 1000))
   const drillCoolTotalSec = reentryCooldownMs(run, game.config) / 1000
   const drawerTabs = (
@@ -717,6 +750,13 @@ export function ClickerApp() {
             <em>
               +<CountUpNumber value={game.snapshot?.perSecond ?? 0} />/s
             </em>
+            {regionDef?.currency ? (
+              <span className="clicker-metric-coin" title={`${regionDef.name}에서 CORE를 벌 때마다 함께 쌓이는 월드 화폐`}>
+                {regionDef.currency.icon}{" "}
+                <CountUpNumber value={run.regionCurrency?.[regionDef.id] ?? 0} />
+                <small>{regionDef.currency.name}</small>
+              </span>
+            ) : null}
           </div>
         ) : (
           <div
@@ -867,8 +907,17 @@ export function ClickerApp() {
             name={monsterDef.name}
             alive={monsterIsAlive}
             onSlay={(x, y) => game.slayMonster(run.currentRegionId, x, y)}
+            battle={lair}
+            shieldMs={shieldMs}
+            tauntKey={tauntKey}
+            onEnter={LAIR_BOSSES[monsterDef.kind] ? game.enterLair : undefined}
+            onStrike={(x, y) => {
+              playLaser(game.save!.settings.muted, false)
+              return game.strikeLair(x, y)
+            }}
           />
         ) : null}
+        {hurtKey ? <div key={hurtKey} className="clicker-boss-hurt" aria-hidden /> : null}
         <nav className="clicker-stage-region" aria-label="현재 지역">
           {game.currentRegion ? (
             <span className="clicker-stage-region-slot">
@@ -1121,9 +1170,43 @@ export function ClickerApp() {
               }}
             />
           ) : regionDef?.huntMode && monsterDef ? (
-            <div className="clicker-region-station clicker-hunt-station" aria-live="polite">
-              <p className="clicker-region-station-kicker">{game.currentRegion?.name} · 사냥터</p>
-              <p className="clicker-drill-hint">배경에 나타나는 {monsterDef.name}을(를) 눌러 처치하세요 · 처치할 때마다 CORE 획득</p>
+            <div className={`clicker-region-station clicker-hunt-station${lair ? " is-battle" : ""}`} aria-live="polite">
+              <p className="clicker-region-station-kicker">{game.currentRegion?.name} · {lair ? "토벌 중" : "보스의 둥지"}</p>
+              {lair ? (
+                <>
+                  <div className="clicker-lair-player" aria-label={`내 체력 ${lair.playerHp}/${lair.playerMaxHp}`}>
+                    <span className="clicker-lair-player-label">
+                      ❤️ 내 체력 <b>{lair.playerHp}</b> / {lair.playerMaxHp}
+                    </span>
+                    <div className="clicker-lair-hpbar">
+                      <i style={{ width: `${(lair.playerHp / lair.playerMaxHp) * 100}%` }} />
+                    </div>
+                  </div>
+                  <p className="clicker-drill-hint">
+                    {WEAPONS[gear.weapon].icon} {WEAPONS[gear.weapon].name} (피해 {WEAPONS[gear.weapon].damage}) ·{" "}
+                    {ARMORS[gear.armor].icon} {ARMORS[gear.armor].name}
+                  </p>
+                  <button type="button" className="clicker-ghost clicker-lair-leave" onClick={game.leaveLair}>
+                    후퇴하기
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="clicker-primary clicker-lair-enter"
+                    disabled={!monsterIsAlive || shieldMs > 0}
+                    onClick={game.enterLair}
+                  >
+                    {shieldMs > 0
+                      ? `🛡 보호막 · ${Math.floor(Math.ceil(shieldMs / 1000) / 60)}:${String(Math.ceil(shieldMs / 1000) % 60).padStart(2, "0")}`
+                      : monsterIsAlive
+                        ? `⚔ ${monsterDef.name} 토벌하러 들어가기`
+                        : "보스가 돌아오는 중…"}
+                  </button>
+                  <ClickerForge game={game} run={run} />
+                </>
+              )}
             </div>
           ) : game.currentRegion && !game.currentRegion.isHome && !regionDef?.boss ? (
             // Away from home there is no mine: drill the region's core vein for CORE instead.

@@ -41,6 +41,10 @@ import {
   clickerDrill,
   clickerStartBoss,
   clickerStrikeBoss,
+  clickerEnterLair,
+  clickerLeaveLair,
+  clickerStrikeLair,
+  clickerForge,
   allowMineStrike,
   loadClickerGame,
   persistClickerGame,
@@ -658,6 +662,54 @@ export function useClicker() {
     [commit],
   )
 
+  /** Walk into the current region boss's lair. */
+  const enterLair = useCallback(() => {
+    if (!saveRef.current) return
+    const result = clickerEnterLair(saveRef.current, now())
+    if (!result.ok) return refuse(result.error)
+    commit(result.value)
+    playSfx("bossRoar")
+  }, [commit, refuse])
+
+  const leaveLair = useCallback(() => {
+    if (!saveRef.current) return
+    commit(clickerLeaveLair(saveRef.current))
+    playSfx("back")
+  }, [commit])
+
+  /** Strike in the lair. Returns true on the killing blow. */
+  const strikeLair = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!saveRef.current) return false
+      const result = clickerStrikeLair(saveRef.current, now())
+      if (result.damage <= 0) return false
+      commit(result.save)
+      const id = ++floatId.current
+      const text = result.defeated ? `+${formatNumber(result.reward)}` : `-${result.damage}`
+      setFloats((prev) => [...prev.slice(-12), { id, text, critical: result.defeated, x: clientX, y: clientY }])
+      window.setTimeout(() => setFloats((prev) => prev.filter((f) => f.id !== id)), result.defeated ? 1100 : 600)
+      if (result.defeated) {
+        playSfx("monsterDie")
+        persistNow(result.save)
+      }
+      return result.defeated
+    },
+    [commit, persistNow],
+  )
+
+  const forge = useCallback(
+    (slot: "weapon" | "armor") => {
+      if (!saveRef.current) return
+      const result = clickerForge(saveRef.current, slot)
+      if (!result.ok) return refuse(result.error)
+      commit(result.value)
+      persistNow(result.value)
+      playSfx("upgrade")
+      flash(slot === "weapon" ? "무기 제작 완료" : "방어구 제작 완료")
+    },
+    [commit, persistNow, refuse, flash],
+  )
+
   /** One tap on the region drill rig. Returns the payout when this tap bored the vein, else 0 (null when refused). */
   const drillVein = useCallback(
     (clientX: number, clientY: number) => {
@@ -858,6 +910,10 @@ export function useClicker() {
     mineGate,
     finishTutorial,
     slayMonster,
+    enterLair,
+    leaveLair,
+    strikeLair,
+    forge,
     drillVein,
     purchaseFx,
     startBoss,

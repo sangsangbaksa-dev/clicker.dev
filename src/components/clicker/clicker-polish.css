@@ -1617,3 +1617,87 @@
     radial-gradient(ellipse at 50% 40%, #1b2a33, #0c151b 60%, #05090c 100%);
   box-shadow: 0 0 18px rgb(60 220 255 / 0.25), 0 10px 24px rgb(0 0 0 / 0.6);
 }
+
+/* ---------- Lair battle HUD & forge ---------- */
+[data-clicker] .clicker-lair-enter { min-width: 240px; font-size: 15px; }
+[data-clicker] .clicker-lair-player { width: min(320px, 90%); margin: 0 auto; display: grid; gap: 4px; }
+[data-clicker] .clicker-lair-player-label { font-size: 13px; color: #ffe3e0; text-align: center; }
+[data-clicker] .clicker-lair-player-label b { font-size: 16px; color: #fff; }
+[data-clicker] .clicker-lair-hpbar {
+  position: relative; height: 14px; border-radius: 7px; overflow: hidden;
+  background: rgb(0 0 0 / 0.6); border: 1px solid rgb(120 255 170 / 0.45);
+}
+[data-clicker] .clicker-lair-hpbar i {
+  position: absolute; inset: 0 auto 0 0;
+  background: linear-gradient(90deg, #1fbf6a, #9cf5c0);
+  transition: width 260ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+[data-clicker] .clicker-hunt-station.is-battle .clicker-lair-player { animation: none; }
+[data-clicker] .clicker-lair-leave { margin-top: 4px; font-size: 12px; }
+[data-clicker] .clicker-forge { width: min(360px, 94%); margin: 6px auto 0; }
+[data-clicker] .clicker-forge-toggle { width: 100%; font-size: 12px; }
+[data-clicker] .clicker-forge-slots { display: grid; gap: 8px; margin-top: 8px; }
+[data-clicker] .clicker-forge-slot {
+  padding: 10px 12px; border-radius: 12px; text-align: left;
+  background: rgb(10 16 24 / 0.82); border: 1px solid rgb(255 180 110 / 0.35);
+}
+[data-clicker] .clicker-forge-slot p { margin: 0 0 4px; font-size: 12px; }
+[data-clicker] .clicker-forge-label { font-weight: 800; color: #ffcf8a; }
+[data-clicker] .clicker-forge-current { opacity: 0.8; }
+[data-clicker] .clicker-forge-cost { display: flex; flex-wrap: wrap; gap: 6px; }
+[data-clicker] .clicker-forge-cost span { padding: 1px 6px; border-radius: 6px; background: rgb(255 255 255 / 0.06); }
+[data-clicker] .clicker-forge-cost span.is-short { color: #ff7a6b; }
+[data-clicker] .clicker-forge-slot button { width: 100%; margin-top: 4px; }
+
+/* ---------- World currencies ---------- */
+[data-clicker] .clicker-region-wallet { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+[data-clicker] .clicker-region-coin {
+  display: inline-flex; align-items: baseline; gap: 4px;
+  padding: 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  background: rgb(255 255 255 / 0.06); border: 1px solid rgb(255 255 255 / 0.12);
+}
+[data-clicker] .clicker-region-coin small { font-size: 10px; opacity: 0.7; font-weight: 500; }
+[data-clicker] .clicker-region-coin.is-here { border-color: rgb(90 220 255 / 0.7); box-shadow: 0 0 8px rgb(90 220 255 / 0.35); }
+[data-clicker] .clicker-upgrade-price.is-region { margin-left: 8px; }
+[data-clicker] .clicker-upgrade-price.is-short strong { color: #ff7a6b; }
+/* Current world's currency, right beside CORE while you stand there. */
+[data-clicker] .clicker-metric-coin {
+  display: inline-flex; align-items: baseline; gap: 4px;
+  margin-left: 8px; padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 800; color: #dff8ff;
+  background: rgb(90 220 255 / 0.12); border: 1px solid rgb(90 220 255 / 0.45);
+}
+[data-clicker] .clicker-metric-coin small { font-size: 10px; font-weight: 500; opacity: 0.75; }
+
+/* Battle HUD sits above the boss so your HP stays readable mid-fight. */
+[data-clicker] .clicker-hunt-station { position: relative; z-index: 12; }
+[data-clicker] .clicker-hunt-station.is-battle {
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgb(6 10 16 / 0.72);
+  border: 1px solid rgb(255 120 110 / 0.35);
+  backdrop-filter: blur(4px);
+}
+/* Forge opens as a bottom sheet instead of shoving the arena around. */
+[data-clicker] .clicker-forge.is-open .clicker-forge-slots {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  z-index: 60;
+  width: min(420px, calc(100vw - 24px));
+  translate: -50% 0;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgb(8 12 18 / 0.96);
+  border: 1px solid rgb(255 180 110 / 0.4);
+  box-shadow: 0 -10px 40px rgb(0 0 0 / 0.6);
+}
+[data-clicker] .clicker-forge.is-open::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 59;
+  background: rgb(0 0 0 / 0.45);
+  pointer-events: none;
+}
+[data-clicker] .clicker-forge.is-open .clicker-forge-toggle { position: relative; z-index: 61; }

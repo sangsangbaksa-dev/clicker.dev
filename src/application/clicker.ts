@@ -57,6 +57,7 @@ import {
   type MineSessionSummary,
 } from "@/domain/services/clicker-mine-session"
 import { decodeClickerSave, encodeClickerSave } from "@/domain/services/clicker-save-codec"
+import { enterLair, forgeGear, leaveLair, strikeLair, tickLair } from "@/domain/services/clicker-lair"
 import { encodeSaveCode, parseSaveCode, type ParsedSaveCode } from "@/domain/services/clicker-save-transfer"
 import { backupClickerRaw, readClickerRaw, writeClickerRaw } from "@/infrastructure/persistence/clicker-save"
 
@@ -146,7 +147,7 @@ export function clickerTick(save: SaveData, now: number): SaveData {
       ? { ...resumeAfterGap(synced.runState), lastTickAt: now }
       : synced.runState
   const next = processTick(run, synced.metaState, config, now)
-  return withAchievements(maybeAutoStartGaugeFever({ ...synced, runState: accrueRegionCurrency(run, next.run, config), metaState: next.meta }))
+  return withAchievements(maybeAutoStartGaugeFever({ ...synced, runState: tickLair(accrueRegionCurrency(run, next.run, config), config, now), metaState: next.meta }))
 }
 
 export function clickerStartGame(save: SaveData): SaveData {
@@ -350,6 +351,31 @@ export function clickerDrill(save: SaveData, now: number): UseCaseResult<{ save:
   const next = drillStrike(save.runState, save.metaState, config, now)
   if (next.error) return { ok: false, status: 400, error: next.error }
   return ok({ save: { ...save, runState: accrueRegionCurrency(save.runState, next.run, config), metaState: next.meta }, reward: next.reward })
+}
+
+/* ---------- Lair battles & forge ---------- */
+
+export function clickerEnterLair(save: SaveData, now: number): UseCaseResult<SaveData> {
+  const next = enterLair(save.runState, config, now)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ ...save, runState: next.run })
+}
+
+export function clickerLeaveLair(save: SaveData): SaveData {
+  return { ...save, runState: leaveLair(save.runState) }
+}
+
+export function clickerStrikeLair(save: SaveData, now: number) {
+  const next = strikeLair(save.runState, save.metaState, config, now)
+  const runState = next.reward > 0 ? accrueRegionCurrency(save.runState, next.run, config) : next.run
+  const out = { ...save, runState, metaState: next.meta }
+  return { save: next.defeated ? withAchievements(out) : out, damage: next.damage, reward: next.reward, defeated: next.defeated }
+}
+
+export function clickerForge(save: SaveData, slot: "weapon" | "armor"): UseCaseResult<SaveData> {
+  const next = forgeGear(save.runState, config, slot)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ ...save, runState: next.run })
 }
 
 export function clickerStartBoss(save: SaveData, now: number): UseCaseResult<SaveData> {
