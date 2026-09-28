@@ -175,3 +175,135 @@
 @keyframes clicker-dragon-hover {
   50% { transform: translateY(-12px) scale(1.02); }
 }
+
+/* ---------- Bosses living in the scene: perched over the castle, lit like the backdrop ---------- */
+.clicker-monster-roam.is-dragon { display: grid; justify-items: center; }
+.clicker-monster-roam.is-dragon .clicker-monster { order: 1; }
+.clicker-monster-roam.is-dragon .clicker-monster {
+  position: relative;
+  z-index: 1;
+  /* Pull the art toward the backdrop's dusky palette, with a warm rim from the castle fires. */
+  filter: saturate(0.85) brightness(0.9) contrast(1.05)
+    drop-shadow(0 0 1px rgb(255 190 130 / 0.6))
+    drop-shadow(0 22px 26px rgb(8 4 20 / 0.75));
+}
+.clicker-monster-roam.is-dragon .mon-dragon {
+  /* Tail and claws melt into the haze instead of ending on a hard edge. */
+  mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+}
+.clicker-monster-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -4%;
+  width: 70%;
+  height: 16%;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(6 2 14 / 0.6), transparent);
+  filter: blur(4px);
+  animation: clicker-dragon-shadow 3.2s ease-in-out 520ms infinite;
+}
+@keyframes clicker-dragon-shadow { 50% { scale: 0.88; opacity: 0.7; } }
+
+/* Health bar above the boss. */
+.clicker-monster-hp {
+  position: relative;
+  z-index: 2;
+  width: min(220px, 50vw);
+  height: 14px;
+  order: 3;
+  margin-top: -4px;
+  border-radius: 7px;
+  background: rgb(0 0 0 / 0.6);
+  border: 1px solid rgb(255 200 120 / 0.45);
+  overflow: hidden;
+  pointer-events: none;
+}
+.clicker-monster-hp i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, #d4231a, #ff9b3d);
+  transition: width 220ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.clicker-monster-hp span {
+  position: relative;
+  display: block;
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 800;
+  color: #fff3dc;
+  text-align: center;
+  text-shadow: 0 1px 2px #000;
+}
+.clicker-monster-roam.is-dying .clicker-monster-hp { animation: clicker-fade-out 400ms ease-in forwards; }
+@keyframes clicker-fade-out { to { opacity: 0; } }
+
+/* Each tap: recoil, red flash, shake. */
+.clicker-monster-roam.is-dragon .clicker-monster.is-hit,
+.clicker-monster-roam.is-hunt.is-dragon .clicker-monster.is-hit {
+  animation: clicker-dragon-hit 260ms ease-out, clicker-dragon-hover 3.2s ease-in-out 260ms infinite;
+}
+@keyframes clicker-dragon-hit {
+  0% { transform: translate(0, 0) scale(1); filter: brightness(2.2) sepia(1) hue-rotate(-30deg) saturate(4); }
+  25% { transform: translate(-10px, 6px) scale(0.95, 1.04) rotate(-2deg); }
+  50% { transform: translate(8px, -2px) scale(1.03) rotate(1.5deg); }
+  75% { transform: translate(-4px, 0) rotate(-0.5deg); }
+  100% { transform: none; }
+}
+.clicker-monster-dmg {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  z-index: 3;
+  font-size: 26px;
+  font-weight: 900;
+  color: #ffdf6b;
+  text-shadow: 0 2px 0 #7a1a00, 0 0 10px rgb(255 80 0 / 0.8);
+  pointer-events: none;
+  animation: clicker-dmg-float 600ms ease-out forwards;
+}
+@keyframes clicker-dmg-float {
+  from { transform: translate(-50%, 0) scale(1.4); opacity: 1; }
+  to { transform: translate(-50%, -48px) scale(1); opacity: 0; }
+}
+
+/* Death: white flash, violent shake, then it collapses and sinks into the ground. */
+.clicker-monster-roam.is-dragon .clicker-monster.is-dying {
+  animation: clicker-dragon-die 1100ms ease-in forwards;
+}
+@keyframes clicker-dragon-die {
+  0% { transform: none; filter: brightness(4) drop-shadow(0 0 24px #fff); }
+  10% { transform: translate(-12px, 0) rotate(-3deg); filter: brightness(2.5); }
+  20% { transform: translate(12px, 0) rotate(3deg); }
+  30% { transform: translate(-8px, 4px) rotate(-2deg); filter: brightness(1.6) saturate(0.5); }
+  45% { transform: translate(0, 10px) rotate(6deg) scale(1.02); opacity: 1; }
+  100% { transform: translate(0, 90px) rotate(14deg) scale(0.85, 0.4); filter: brightness(0.2) grayscale(1) blur(3px); opacity: 0; }
+}
+.clicker-monster-roam.is-dying .clicker-monster-shadow { animation: clicker-fade-out 1000ms ease-in forwards; }
+.clicker-monster-burst {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  z-index: 3;
+  pointer-events: none;
+}
+.clicker-monster-burst i {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff6c8, #ff8a1f 60%, transparent 70%);
+  animation: clicker-burst 900ms ease-out forwards;
+  --a: calc(var(--i) * 36deg);
+}
+@keyframes clicker-burst {
+  from { transform: rotate(var(--a)) translateX(0) scale(1.4); opacity: 1; }
+  to { transform: rotate(var(--a)) translateX(150px) scale(0.2); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-monster-roam.is-dragon .clicker-monster.is-hit { animation: none; }
+  .clicker-monster-roam.is-dragon .clicker-monster.is-dying { animation: clicker-fade-out 400ms forwards; }
+  .clicker-monster-burst, .clicker-monster-dmg { display: none; }
+}

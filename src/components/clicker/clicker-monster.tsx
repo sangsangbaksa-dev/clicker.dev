@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
 import "./clicker-monster.css"
 
 /** Inline SVG creature art, one per region monster kind. Parts carry classes the CSS animates. */
@@ -109,8 +109,14 @@ type Props = {
  * Region monster roaming the stage background. Tap it to kill it; it falls, drops CORE,
  * and comes back when the engine says it has respawned.
  */
+/** Taps a giant boss takes before it falls; small critters still die in one. */
+const DRAGON_HP = 8
+
 export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
   const [dying, setDying] = useState(false)
+  const maxHp = DRAGON_ART[kind] ? DRAGON_HP : 1
+  const [hp, setHp] = useState(maxHp)
+  const [hits, setHits] = useState(0)
   const timer = useRef<number | null>(null)
   useEffect(() => () => {
     if (timer.current != null) window.clearTimeout(timer.current)
@@ -124,30 +130,55 @@ export function ClickerMonster({ kind, name, alive, spot, onSlay }: Props) {
   useEffect(() => {
     if (alive && spot) setDisplaySpot(spot)
   }, [alive, spot])
+  // Every fresh spawn comes back at full health.
+  useEffect(() => {
+    if (alive) setHp(maxHp)
+  }, [alive, maxHp])
 
   if (!alive && !dying) return null
   const hit = (e: ReactPointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0 || dying) return
     e.preventDefault()
     e.stopPropagation()
+    setHits((n) => n + 1)
+    if (hp > 1) {
+      setHp(hp - 1)
+      return
+    }
+    setHp(0)
     setDying(true)
     onSlay(e.clientX, e.clientY)
-    timer.current = window.setTimeout(() => setDying(false), 650)
+    timer.current = window.setTimeout(() => setDying(false), 1100)
   }
+  const isDragon = Boolean(DRAGON_ART[kind])
   return (
     <div
-      className={`clicker-monster-roam is-${kind}${spot ? " is-hunt" : ""}${DRAGON_ART[kind] ? " is-dragon" : ""}`}
+      className={`clicker-monster-roam is-${kind}${spot ? " is-hunt" : ""}${isDragon ? " is-dragon" : ""}${dying ? " is-dying" : ""}`}
       style={displaySpot ? { left: `${displaySpot.left}%`, top: `${displaySpot.top}%` } : undefined}
     >
+      {isDragon && (
+        <div className="clicker-monster-hp" aria-label={`${name} 체력 ${hp}/${maxHp}`}>
+          <i style={{ width: `${(hp / maxHp) * 100}%` }} />
+          <span>{name}</span>
+        </div>
+      )}
+      {isDragon && <span className="clicker-monster-shadow" />}
       <button
+        key={dying ? "dead" : hits}
         type="button"
         data-sfx="off"
-        className={`clicker-monster is-${kind}${dying ? " is-dying" : ""}`}
-        aria-label={`${name} 처치`}
+        className={`clicker-monster is-${kind}${dying ? " is-dying" : hits > 0 ? " is-hit" : ""}`}
+        aria-label={`${name} 공격`}
         onPointerDown={hit}
       >
         <MonsterArt kind={kind} />
       </button>
+      {isDragon && hits > 0 && !dying && <span key={`n${hits}`} className="clicker-monster-dmg">-1</span>}
+      {dying && isDragon && (
+        <span className="clicker-monster-burst">
+          {Array.from({ length: 10 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)}
+        </span>
+      )}
     </div>
   )
 }
