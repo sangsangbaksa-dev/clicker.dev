@@ -3,7 +3,7 @@
  * `?admin=1` (remembered in this browser). Set to `false` at launch — that removes admin
  * from every production build again.
  */
-export const CLICKER_PRELAUNCH = true
+export const CLICKER_PRELAUNCH = false
 
 /** localStorage key that remembers a pre-launch `?admin=1` visit. */
 export const CLICKER_ADMIN_REMEMBER_KEY = "clicker-admin"
