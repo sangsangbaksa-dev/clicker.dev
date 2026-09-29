@@ -31,7 +31,8 @@ export const CLICKER_REGIONS: RegionDef[] = [
       rewardSeconds: 60,
       cooldownSec: 150,
     },
-    bgAssetId: "/clicker/bg/region_signal_relay.webp",
+    // The drill site (a teal grade of the old foundry painting) — distinct from the intro still you land on.
+    bgAssetId: "/clicker/bg/region_signal_relay_drill.webp",
     intro: { video: "/clicker/region/signal_relay_intro.mp4", poster: "/clicker/bg/region_signal_relay.webp", still: "/clicker/region/signal_relay_still.webp" },
     unlockAtLifetimeEnergy: 1_000_000,
     productionMultiplier: 1.12,
