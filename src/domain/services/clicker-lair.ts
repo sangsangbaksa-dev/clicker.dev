@@ -13,11 +13,15 @@ export const LAIR_ATTACK_EVERY_MS = 4200
 export const SHIELD_MS = 3 * 60 * 1000
 export const BASE_PLAYER_HP = 100
 
-/** Per-boss fight numbers, keyed by monster kind. */
+/**
+ * Per-boss fight numbers, keyed by monster kind. Each boss is tuned to its own world's gear:
+ * with every slot at that world's tier the fight takes ~20-30s at 4-5 taps a second; one tier
+ * short and it takes 13+ taps a second, i.e. you forge first.
+ */
 export const LAIR_BOSSES: Record<string, { hp: number; damage: number }> = {
-  golem: { hp: 24, damage: 22 },
-  stormbird: { hp: 40, damage: 28 },
-  worm: { hp: 60, damage: 34 },
+  golem: { hp: 400, damage: 60 },
+  stormbird: { hp: 840, damage: 120 },
+  worm: { hp: 1500, damage: 220 },
 }
 
 export type GearCost = { core: number; currencies: Array<{ regionId: string; amount: number }> }

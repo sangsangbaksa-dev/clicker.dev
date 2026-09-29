@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { clickerConfig } from "../../data/clicker/catalog.ts"
-import { ARMORS, LAIR_ATTACK_EVERY_MS, LAIR_BOSSES, WEAPONS, forgeGear, gearOf, leaveLair, strikeLair, tickLair, enterLair } from "./clicker-lair.ts"
+import { ARMORS, LAIR_BOSSES, WEAPONS, forgeGear, gearOf, leaveLair, strikeLair, tickLair, enterLair } from "./clicker-lair.ts"
 import { createInitialMeta, createInitialRun } from "./clicker-engine.ts"
 
 test("lair: every region boss has fight stats", () => {
@@ -22,15 +22,26 @@ test("lair: gear tiers only get better and cost more", () => {
   }
 })
 
-test("lair: bosses are beatable at a comfortable click rate with tier-matched gear", () => {
+test("lair: each boss is beatable with its world's gear and walls you one tier short", async () => {
+  const lair = await import("./clicker-lair.ts")
   const tierFor: Record<string, number> = { golem: 2, stormbird: 3, worm: 4 }
-  for (const [kind, stats] of Object.entries(LAIR_BOSSES)) {
-    const tier = tierFor[kind]
+  /** Taps per second needed to kill the boss before it kills you, with every slot at `tier`. */
+  const tapsNeeded = (kind: string, tier: number) => {
+    const stats = LAIR_BOSSES[kind]
+    const gear = { gear: { weapon: tier, armor: tier, helmet: tier, amulet: tier } } as never
     const hits = Math.ceil(stats.hp / WEAPONS[tier].damage)
     const swing = Math.round(stats.damage * (1 - ARMORS[tier].reduction))
-    const survivableMs = Math.ceil((100 + ARMORS[tier].hp) / swing) * LAIR_ATTACK_EVERY_MS
-    assert.ok(hits / (survivableMs / 1000) <= 2, `${kind} needs ${hits} strikes in ${survivableMs}ms`)
+    const survivableMs = Math.ceil(lair.playerMaxHp(gear) / swing) * lair.lairAttackEveryMs(gear)
+    return hits / (survivableMs / 1000)
   }
+  for (const kind of Object.keys(LAIR_BOSSES)) {
+    const tier = tierFor[kind]
+    assert.ok(tapsNeeded(kind, tier) <= 6, `${kind} too hard with tier ${tier}: ${tapsNeeded(kind, tier).toFixed(1)}/s`)
+    assert.ok(tapsNeeded(kind, tier - 1) >= 10, `${kind} too easy one tier short: ${tapsNeeded(kind, tier - 1).toFixed(1)}/s`)
+  }
+  // Later worlds hit harder and take more to bring down.
+  assert.ok(LAIR_BOSSES.golem.hp < LAIR_BOSSES.stormbird.hp && LAIR_BOSSES.stormbird.hp < LAIR_BOSSES.worm.hp)
+  assert.ok(LAIR_BOSSES.golem.damage < LAIR_BOSSES.stormbird.damage && LAIR_BOSSES.stormbird.damage < LAIR_BOSSES.worm.damage)
 })
 
 test("lair: forging is refused mid-fight, leaving clears the fight, region change ends it", () => {

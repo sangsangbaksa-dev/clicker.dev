@@ -1805,6 +1805,9 @@ export function ClickerApp() {
             <button type="button" className="clicker-primary" onClick={() => game.adminGrant(Math.max(1e12, (game.save?.runState.coreEnergy ?? 0) * 100))}>
               CORE ×100
             </button>
+            <button type="button" className="clicker-primary" aria-label="치트 · 코어 하트 해금" onClick={() => game.adminUnlockRegion("core_heart")}>
+              코어 하트 해금
+            </button>
             <button type="button" className="clicker-primary" aria-label="치트 · FEVER 게이지 충전" onClick={game.adminFillFever}>
               FEVER 충전
             </button>

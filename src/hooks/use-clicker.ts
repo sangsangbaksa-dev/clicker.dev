@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   clickerAdminGrant,
   clickerAdminPatch,
+  clickerAdminUnlockRegion,
   clickerBuyActiveSkill,
   clickerBuyProducer,
   clickerBuyPotion,
@@ -507,6 +508,15 @@ export function useClicker() {
     commit(clickerAdminPatch(saveRef.current, { potions }))
   }, [commit])
 
+  const adminUnlockRegion = useCallback((regionId: string) => {
+    if (!isClickerAdminAllowed() || !saveRef.current) return
+    const next = clickerAdminUnlockRegion(saveRef.current, regionId)
+    commit(next)
+    persistNow(next)
+    const name = clickerGameConfig.regions.find((r) => r.id === regionId)?.name ?? regionId
+    flash(`관리자 · ${name} 해금`)
+  }, [commit, persistNow, flash])
+
   const adminUnlock = useCallback(() => {
     if (!isClickerAdminAllowed() || !saveRef.current) return
     const run = saveRef.current.runState
@@ -849,6 +859,7 @@ export function useClicker() {
   return {
     save,
     refuse,
+    adminUnlockRegion,
     notify: flash,
     hud,
     isCompleted,

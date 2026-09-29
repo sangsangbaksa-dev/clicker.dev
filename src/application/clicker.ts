@@ -41,6 +41,7 @@ import {
   MINE_MAX_CPS,
   type Rng,
   accrueRegionCurrency,
+  scaledCost,
 } from "@/domain/services/clicker-engine"
 import {
   awardAchievements,
@@ -305,6 +306,21 @@ export function clickerAdminGrant(save: SaveData, amount: number): SaveData {
 
 export function clickerAdminPatch(save: SaveData, patch: Partial<SaveData["runState"]>): SaveData {
   return { ...save, runState: { ...save.runState, ...patch } }
+}
+
+/** Admin: meet a region's unlock conditions (lifetime CORE and rebirths) without touching anything else. */
+export function clickerAdminUnlockRegion(save: SaveData, regionId: string): SaveData {
+  const region = config.regions.find((r) => r.id === regionId)
+  if (!region) return save
+  const run = save.runState
+  return {
+    ...save,
+    runState: {
+      ...run,
+      currentWorldLine: Math.max(run.currentWorldLine, (region.requiresRebirths ?? 0) + 1),
+      lifetimeCoreEnergy: Math.max(run.lifetimeCoreEnergy, scaledCost(run, region.unlockAtLifetimeEnergy)),
+    },
+  }
 }
 
 /** Golden vein hit: rolls surge / jackpot / laser rush from current production. */
