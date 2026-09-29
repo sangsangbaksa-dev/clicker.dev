@@ -461,3 +461,9 @@
 /* FEVER sits on the same row as the haul and the timer. */
 [data-clicker] .clicker-mine-hud { grid-template-columns: repeat(3, auto); }
 [data-clicker] .clicker-mine-hud:has(.clicker-mine-overdrive) { grid-template-columns: repeat(4, auto); }
+
+/* Potion rail starts below the HUD bar so it never covers the haul readout. */
+@media (max-width: 720px) {
+  [data-clicker] .clicker-mine-potions { top: 108px; gap: 6px; }
+  [data-clicker] .clicker-mine-potion { width: 46px; height: 46px; }
+}
