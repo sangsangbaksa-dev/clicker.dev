@@ -846,6 +846,7 @@ export function useClicker() {
 
   return {
     save,
+    refuse,
     hud,
     isCompleted,
     canCompleteEnding,

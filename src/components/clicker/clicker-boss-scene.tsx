@@ -148,6 +148,7 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
   const vars = {
     "--bx": `${b.x}%`,
     "--by": `${b.y}%`,
+    "--byn": b.y / 100,
     "--bw": `${b.w}%`,
     "--bh": `${b.h}%`,
     "--tint": scene.tint,
@@ -200,7 +201,7 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
         {shielded ? (
           <span className="boss-scene-shield" aria-hidden>
             <b>
-              🛡 {Math.floor(Math.ceil(shieldMs / 1000) / 60)}:{String(Math.ceil(shieldMs / 1000) % 60).padStart(2, "0")}
+              보호막 {Math.floor(Math.ceil(shieldMs / 1000) / 60)}:{String(Math.ceil(shieldMs / 1000) % 60).padStart(2, "0")}
             </b>
           </span>
         ) : null}

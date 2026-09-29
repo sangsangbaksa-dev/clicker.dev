@@ -439,6 +439,8 @@ export type RegionIntroDef = {
   video: string
   /** Still shown before the first frame and on load failure. */
   poster: string
+  /** A frame from the video: the world's landing view until the player picks an action. */
+  still: string
 }
 
 export type ObjectiveDef = {

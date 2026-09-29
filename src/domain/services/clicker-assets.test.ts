@@ -21,3 +21,14 @@ test("hoard instability is capped when income is near zero", async () => {
   const run = { coreEnergy: 1e12, regionCurrency: {} } as unknown as Parameters<typeof hoardInstabilityPerSecond>[0]
   assert.equal(hoardInstabilityPerSecond(run, 0), HOARD_MAX_RATE)
 })
+
+test("every world away from home has an entry video and a landing still on disk", async () => {
+  const { existsSync } = await import("node:fs")
+  const { clickerConfig } = await import("../../data/clicker/catalog.ts")
+  for (const region of clickerConfig.regions.filter((r) => !r.isHome)) {
+    assert.ok(region.intro, `${region.id} has no intro`)
+    for (const path of [region.intro.video, region.intro.still]) {
+      assert.ok(existsSync(`public${path}`), `${region.id}: missing ${path}`)
+    }
+  }
+})

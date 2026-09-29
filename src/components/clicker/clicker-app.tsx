@@ -79,7 +79,7 @@ function ClickerSkillHotkeys({ onSlot }: { onSlot: (slot: number) => void }) {
 /** Strike spectacle by worlds opened (0–5); FEVER adds one more step. */
 const FX_TIER_BY_WORLDS: MineFxTier[] = [0, 1, 2, 2, 3, 3]
 
-type TabId = "producers" | "upgrades" | "skills" | "shop" | "world" | "achievements" | "transcendence"
+type TabId = "producers" | "upgrades" | "skills" | "shop" | "forge" | "world" | "achievements" | "transcendence"
 
 function CountUpNumber({ value }: { value: number }) {
   const [shown, setShown] = useState(value)
@@ -296,8 +296,14 @@ export function ClickerApp() {
   const drawerMode =
     drawerHeight <= drawerSnaps.peek + 16 ? "peek" : drawerHeight >= drawerSnaps.full - 24 ? "full" : "half"
 
+  /** The forge opens with the third world (Phase Vault), where the first boss lairs are. */
+  const forgeUnlocked = Boolean(game.regions[2]?.unlocked)
   const selectTab = useCallback(
     (id: TabId) => {
+      if (id === "forge" && !forgeUnlocked) {
+        game.refuse("아직 해금되지 않았습니다!")
+        return
+      }
       if (id === "skills") {
         setSkillMapOpen(true)
         return
@@ -315,7 +321,7 @@ export function ClickerApp() {
           ?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" })
       })
     },
-    [drawerHeight, drawerSnaps, persistDrawerHeight],
+    [drawerHeight, drawerSnaps, persistDrawerHeight, forgeUnlocked, game],
   )
 
   const playSurface = game.save?.settings.playSurface ?? "hub"
@@ -477,6 +483,9 @@ export function ClickerApp() {
   const coreVisual = game.hud?.coreVisual ?? "idle"
   const mineVisual = coreVisual === "fever" || coreVisual === "crisis" ? coreVisual : "idle"
   const [skillNova, setSkillNova] = useState<{ key: number; color: string } | null>(null)
+  /** Away from home a world opens on its intro still; picking its action reveals the live scene. */
+  const [engagedRegion, setEngagedRegion] = useState<string | null>(null)
+  const [arrivedRegion, setArrivedRegion] = useState<string | null>(null)
   /** Cast a skill with its full-screen nova (button or number-key hotkey). */
   const castSkill = (id: string) => {
     bumpIcon(id)
@@ -730,11 +739,26 @@ export function ClickerApp() {
   const mineDurationMs = Math.max(1, run.mineSessionDurationMs || 10_000)
   const mineHaul = Math.max(0, run.coreEnergy - (run.mineSessionCoreAtEnter || 0))
   const mineCooldownSec = Math.ceil((game.mineGate?.cooldownLeftMs ?? 0) / 1000)
+  // Every arrival (travel or return) starts on the world's still again.
+  if (arrivedRegion !== run.currentRegionId) {
+    setArrivedRegion(run.currentRegionId)
+    setEngagedRegion(null)
+  }
+  const hereDef = game.config.regions.find((r) => r.id === run.currentRegionId)
+  const worldStill = !inMine && !hereDef?.isHome ? hereDef?.intro?.still : undefined
+  // A fight already under way (lair or guardian) always shows the live scene.
+  const worldEngaged =
+    !worldStill ||
+    engagedRegion === run.currentRegionId ||
+    Boolean(run.lair && run.lair.regionId === run.currentRegionId) ||
+    Boolean(hereDef?.boss && run.boss)
   const stageBg = inMine
     ? CLICKER_ASSETS.bgMine
     : game.currentRegion?.isHome
       ? CLICKER_ASSETS.bgMineEntrance
-      : (game.currentRegion?.bgAssetId ?? CLICKER_ASSETS.bgChamber)
+      : worldStill && !worldEngaged
+        ? worldStill
+        : (game.currentRegion?.bgAssetId ?? CLICKER_ASSETS.bgChamber)
   const transcendenceUnlocked = hud.canRebirth
   const rebirthRatio = Math.min(1, run.lifetimeCoreEnergy / hud.rebirthRequirement)
   const showTranscendenceTab = transcendenceUnlocked || rebirthRatio >= 0.25
@@ -761,6 +785,7 @@ export function ClickerApp() {
       ["upgrades", "UPGRADES", "업그레이드"],
       ["skills", "SKILLS", "스킬"],
       ["shop", "SHOP", "상점"],
+      ["forge", "FORGE", "대장간"],
       ["world", "WORLD", "지역"],
       ["achievements", "RECORDS", "업적"],
       ...(showTranscendenceTab ? ([["transcendence", "TRANSCENDENCE", "초월"]] as const) : []),
@@ -974,7 +999,7 @@ export function ClickerApp() {
           src={stageBg}
         />
         <div className="clicker-vignette" />
-        {!inMine && monsterDef && !regionDef?.boss && LAIR_BOSSES[monsterDef.kind] ? (
+        {!inMine && worldEngaged && monsterDef && !regionDef?.boss && LAIR_BOSSES[monsterDef.kind] ? (
           <ClickerBossScene
             key={run.currentRegionId}
             kind={monsterDef.kind}
@@ -1233,6 +1258,23 @@ export function ClickerApp() {
                 <span className="clicker-hub-enter-sub">재입장 {mineCooldownSec}초</span>
               ) : null}
             </button>
+          ) : worldStill && !worldEngaged && regionDef ? (
+            <div className="clicker-region-station clicker-world-gate">
+              <p className="clicker-region-station-kicker">{regionDef.name}</p>
+              <p className="clicker-world-gate-desc">{regionDef.description}</p>
+              <button
+                type="button"
+                className="clicker-primary clicker-world-gate-go"
+                disabled={regionIntroPlaying}
+                onClick={() => setEngagedRegion(run.currentRegionId)}
+              >
+                {regionDef.boss
+                  ? `${regionDef.boss.name}에게 맞서기`
+                  : regionDef.huntMode && monsterDef
+                    ? `${monsterDef.name} 사냥하기`
+                    : "코어 에너지 시추하기"}
+              </button>
+            </div>
           ) : regionDef?.boss ? (
             <ClickerBossFight
               def={regionDef.boss}
@@ -1252,15 +1294,14 @@ export function ClickerApp() {
                 <>
                   <div className="clicker-lair-player" aria-label={`내 체력 ${lair.playerHp}/${lair.playerMaxHp}`}>
                     <span className="clicker-lair-player-label">
-                      ❤️ 내 체력 <b>{lair.playerHp}</b> / {lair.playerMaxHp}
+                      내 체력 <b>{lair.playerHp}</b> / {lair.playerMaxHp}
                     </span>
                     <div className="clicker-lair-hpbar">
                       <i style={{ width: `${(lair.playerHp / lair.playerMaxHp) * 100}%` }} />
                     </div>
                   </div>
                   <p className="clicker-drill-hint">
-                    {WEAPONS[gear.weapon].icon} {WEAPONS[gear.weapon].name} (피해 {WEAPONS[gear.weapon].damage}) ·{" "}
-                    {ARMORS[gear.armor].icon} {ARMORS[gear.armor].name}
+                    {WEAPONS[gear.weapon].name} (피해 {WEAPONS[gear.weapon].damage}) · {ARMORS[gear.armor].name}
                   </p>
                   <button type="button" className="clicker-ghost clicker-lair-leave" onClick={game.leaveLair}>
                     후퇴하기
@@ -1275,12 +1316,11 @@ export function ClickerApp() {
                     onClick={game.enterLair}
                   >
                     {shieldMs > 0
-                      ? `🛡 보호막 · ${Math.floor(Math.ceil(shieldMs / 1000) / 60)}:${String(Math.ceil(shieldMs / 1000) % 60).padStart(2, "0")}`
+                      ? `보호막 · ${Math.floor(Math.ceil(shieldMs / 1000) / 60)}:${String(Math.ceil(shieldMs / 1000) % 60).padStart(2, "0")}`
                       : monsterIsAlive
-                        ? `⚔ ${monsterDef.name} 토벌하러 들어가기`
+                        ? `${monsterDef.name} 토벌하러 들어가기`
                         : "보스가 돌아오는 중…"}
                   </button>
-                  <ClickerForge game={game} run={run} />
                 </>
               )}
             </div>
@@ -1417,8 +1457,8 @@ export function ClickerApp() {
               <button
                 key={id}
                 type="button"
-                className="clicker-hub-dock-btn"
-                aria-label={`${ko} 화면 열기`}
+                className={`clicker-hub-dock-btn${id === "forge" && !forgeUnlocked ? " is-locked" : ""}`}
+                aria-label={id === "forge" && !forgeUnlocked ? `${ko} · 잠김` : `${ko} 화면 열기`}
                 onClick={() => selectTab(id)}
               >
                 <strong>{ko}</strong>
@@ -1568,6 +1608,7 @@ export function ClickerApp() {
         {tab === "upgrades" ? <ClickerUpgradesPanel game={game} run={run} /> : null}
 
         {tab === "shop" ? <ClickerShopPanel {...panelProps} /> : null}
+        {tab === "forge" && forgeUnlocked ? <ClickerForge game={game} run={run} /> : null}
 
 
         {tab === "world" ? <ClickerWorldPanel game={game} run={run} onBack={() => selectTab("producers")} /> : null}

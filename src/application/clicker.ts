@@ -241,7 +241,7 @@ export function clickerResolveCrisis(save: SaveData, choice: CrisisChoice, now: 
   return { ...save, runState: next.run, metaState: next.meta }
 }
 
-/** Travel. Arrivals no longer play the region cinematic; `intro` stays null. */
+/** Travel. Every arrival plays the region's entry cinematic (when it has one). */
 export function clickerTravelRegion(
   save: SaveData,
   regionId: string,
@@ -249,7 +249,7 @@ export function clickerTravelRegion(
   const next = travelToRegion(save.runState, config, regionId)
   if (next.error) return { ok: false, status: 400, error: next.error }
   const visit = markRegionVisited(save.metaState, regionId)
-  const intro: RegionIntroDef | null = null
+  const intro: RegionIntroDef | null = config.regions.find((r) => r.id === regionId)?.intro ?? null
   return ok({ save: { ...save, runState: next.run, metaState: visit.meta }, intro })
 }
 

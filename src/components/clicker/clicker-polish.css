@@ -1923,3 +1923,53 @@
 @media (hover: none) {
   [data-clicker] .clicker-skill-key { display: none; }
 }
+
+/* World landing: the intro still with a single call to action. */
+[data-clicker] .clicker-world-gate { text-align: center; }
+[data-clicker] .clicker-world-gate-desc {
+  margin: 4px 0 12px;
+  font-size: 12px;
+  color: rgb(220 236 255 / 0.8);
+}
+[data-clicker] .clicker-world-gate-go {
+  min-height: 48px;
+  padding: 0 22px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 0 0 22px rgb(120 220 255 / 0.45);
+  animation: clicker-world-gate-pulse 2.4s ease-in-out infinite;
+}
+@keyframes clicker-world-gate-pulse {
+  50% { box-shadow: 0 0 34px rgb(160 235 255 / 0.75); }
+}
+
+/* Locked dock entries (the forge before the third world) read as dimmed with a lock. */
+[data-clicker] .clicker-hub-dock-btn.is-locked { opacity: 0.5; filter: grayscale(0.7); }
+[data-clicker] .clicker-hub-dock-btn.is-locked strong::after { content: " · 잠김"; font-size: 0.75em; font-weight: 600; }
+[data-clicker] .clicker-forge-summary { margin: 0 0 10px; font-size: 13px; color: #dff4ff; }
+[data-clicker] .clicker-forge-summary b { color: #ffe08a; }
+[data-clicker] .clicker-forge-panel { width: 100%; margin: 0; }
+
+/* Bigger drill rig (~1.6×), still bounded by the stage height so it never runs into the dock. */
+[data-clicker] .clicker-drill-station .clicker-drill { width: clamp(300px, 52vh, 460px); }
+@media (max-width: 520px) {
+  [data-clicker] .clicker-drill-station .clicker-drill { width: clamp(210px, calc(100svh - 430px), 330px); }
+}
+
+/* Achievement mark: a small diamond (outline until earned, gold once unlocked) instead of a star glyph. */
+[data-clicker] .clicker-achievement-mark {
+  width: 11px;
+  height: 11px;
+  margin: 4px 3px 0;
+  flex: none;
+  rotate: 45deg;
+  border: 2px solid rgb(180 210 230 / 0.45);
+  border-radius: 2px;
+  font-size: 0;
+}
+[data-clicker] .clicker-achievement.is-unlocked .clicker-achievement-mark {
+  background: #ffd36b;
+  border-color: #ffe7a6;
+  box-shadow: 0 0 8px rgb(255 211 107 / 0.7);
+}
