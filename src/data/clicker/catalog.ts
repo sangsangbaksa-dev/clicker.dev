@@ -1504,7 +1504,7 @@ const baseConfig: GameConfig = {
     { id: "first_node", title: "Solar Node 복구", line: "광산 입구의 첫 노드가 꺼져 있습니다. 채굴한 CORE로 다시 켜세요.", kind: "PRODUCER", producerId: "solar_node", target: 1, nextId: "auto_start" },
     { id: "auto_start", title: "자동 생산 정착", line: "노드가 스스로 숨 쉬기 시작합니다. 생산자를 늘려 흐름을 키우세요.", kind: "ENERGY", target: 1200, nextId: "first_fever" },
     { id: "first_fever", title: "첫 FEVER", line: "게이지가 가득 차면 CORE가 과열됩니다. 그때 몰아서 채굴하세요.", kind: "FEVER", target: 1, nextId: "build_identity" },
-    { id: "build_identity", title: "네트워크 확장", line: "배경의 크리처를 눌러 보세요. 쓰러뜨리면 CORE를 떨어뜨립니다.", kind: "ENERGY", target: 60000, nextId: "skill_spark" },
+    { id: "build_identity", title: "네트워크 확장", line: "생산자와 강화를 늘려 CORE를 모으세요. 네트워크가 넓어질수록 수입이 빨라집니다.", kind: "ENERGY", target: 60000, nextId: "skill_spark" },
     { id: "skill_spark", title: "회로 각성", line: "스킬 회로는 잃어버린 능력의 조각입니다. 첫 회로를 밝히세요.", kind: "SKILL", target: 1, nextId: "shop_memory" },
     { id: "shop_memory", title: "보급품 회수", line: "상점에서 물약을 하나 사 두세요. 광산에서 FEVER를 바로 열 수 있습니다.", kind: "POTION", target: 1, nextId: "network_hum" },
     { id: "network_hum", title: "맥동의 확장", line: "중계 복도가 응답합니다. 지역마다 다른 활동과 도전이 기다립니다.", kind: "ENERGY", target: 250000, nextId: "deep_pulse" },

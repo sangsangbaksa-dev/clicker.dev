@@ -28,7 +28,6 @@ export const CLICKER_TUTORIAL_STEPS: TutorialStep[] = [
   },
   { id: "mine", title: "광산 입장", body: "Enter Mine을 누르면 제한 시간 동안 광석을 캘 수 있습니다. 누를수록 CORE가 쌓입니다." },
   { id: "build", title: "생산과 강화", body: "아래 메뉴에서 생산자를 사면 CORE가 자동으로 들어옵니다. 강화와 스킬 회로로 더 빨라집니다." },
-  { id: "monster", title: "크리처", body: "배경에 숨어 있는 크리처를 누르면 쓰러지며 CORE를 떨어뜨립니다. 30초 뒤 다시 나타납니다." },
   { id: "world", title: "지역", body: "지역마다 다른 활동과 도전이 있습니다. 새 지역이 열리면 상단에서 바로 이동하세요." },
 ]
 
