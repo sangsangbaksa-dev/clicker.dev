@@ -22,10 +22,10 @@ test("hoard instability is capped when income is near zero", async () => {
   assert.equal(hoardInstabilityPerSecond(run, 0), HOARD_MAX_RATE)
 })
 
-test("every world away from home has an entry video and a landing still on disk", async () => {
+test("every world (home included) has an entry video and a landing still on disk", async () => {
   const { existsSync } = await import("node:fs")
   const { clickerConfig } = await import("../../data/clicker/catalog.ts")
-  for (const region of clickerConfig.regions.filter((r) => !r.isHome)) {
+  for (const region of clickerConfig.regions) {
     assert.ok(region.intro, `${region.id} has no intro`)
     for (const path of [region.intro.video, region.intro.still]) {
       assert.ok(existsSync(`public${path}`), `${region.id}: missing ${path}`)

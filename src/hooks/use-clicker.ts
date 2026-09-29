@@ -460,7 +460,9 @@ export function useClicker() {
     if (!result.ok) return refuse(result.error)
     commit(result.value)
     playSfx("travel")
-    flash("Core Mine으로 돌아왔습니다")
+    const home = clickerGameConfig.regions.find((r) => r.isHome)
+    if (home?.intro) setRegionIntro({ regionId: home.id, name: home.name, description: home.description ?? "", ...home.intro })
+    else flash("Core Mine으로 돌아왔습니다")
   }, [commit, flash, refuse])
 
   const rebirth = useCallback((buffId: string) => {

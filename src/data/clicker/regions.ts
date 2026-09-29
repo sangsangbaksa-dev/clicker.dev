@@ -16,6 +16,12 @@ export const CLICKER_REGIONS: RegionDef[] = [
     bgAssetId: "/clicker/bg/region_core_chamber.webp",
     unlockAtLifetimeEnergy: 0,
     isHome: true,
+    // Rendered by scripts/clicker-home-intro.py from the home art; plays on every return home.
+    intro: {
+      video: "/clicker/region/core_chamber_intro.mp4",
+      poster: "/clicker/mine/mine_entrance_hub_closed_door_v1.webp",
+      still: "/clicker/mine/mine_entrance_hub_closed_door_v1.webp",
+    },
     clickMultiplier: 1.05,
   },
   {
