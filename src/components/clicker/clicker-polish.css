@@ -1758,3 +1758,38 @@
 @media (min-width: 521px) {
   [data-clicker] .clicker-hub-dock-btn strong { white-space: nowrap; font-size: clamp(11px, 2.2vw, 15px); }
 }
+
+/* No clipped labels: tabs wrap instead of scrolling off-screen; toasts sit above the dock. */
+[data-clicker] .clicker-tabs {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+[data-clicker] .clicker-tabs button {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+@media (max-width: 520px) {
+  [data-clicker] .clicker-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding-inline: 8px;
+    width: auto !important;
+    max-width: calc(100% - 16px);
+    box-sizing: border-box;
+  }
+  [data-clicker] .clicker-tabs button {
+    padding: 7px 2px !important;
+    min-height: 0 !important;
+    font-size: 10px;
+    letter-spacing: 0;
+  }
+  .clicker-story-beat {
+    z-index: 30;
+  }
+}
+[data-clicker] .clicker-drawer,
+.clicker-panel,
+.clicker-manage {
+  overflow-x: hidden;
+}
