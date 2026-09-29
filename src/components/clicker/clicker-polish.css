@@ -965,13 +965,14 @@
 }
 
 [data-clicker] .clicker-mine-result-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
   margin: 14px 0 0;
 }
 
 [data-clicker] .clicker-mine-result-stats div {
+  flex: 0 1 132px;
   padding: 8px 4px;
   border: 1px solid var(--edge);
   border-radius: 10px;
