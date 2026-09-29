@@ -319,3 +319,13 @@
 @media (prefers-reduced-motion: reduce) {
   .boss-scene-rig, .boss-scene-flesh, .boss-scene-eye, .boss-scene-weather *, .boss-scene-weather::before, .boss-scene-weather::after { animation: none !important; }
 }
+
+.boss-scene-ambient {
+  position: absolute;
+  inset: -8%;
+  width: 116%;
+  height: 116%;
+  object-fit: cover;
+  filter: blur(28px) brightness(0.38) saturate(1.2);
+  pointer-events: none;
+}

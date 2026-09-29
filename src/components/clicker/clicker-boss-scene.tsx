@@ -166,6 +166,8 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
     .join(" ")
   return (
     <div className={`clicker-boss-scene ${state}`} style={vars}>
+      {/* Blurred copy of the painting fills the letterbox on wide screens. */}
+      <img className="boss-scene-ambient" src={scene.src} alt="" draggable={false} aria-hidden />
       {/* Hits alternate between two identical animations so each tap restarts it without remounting the art. */}
       <div className={`boss-scene-box${hitKey ? ` hit-${hitKey % 2}` : ""}`}>
         <img className="boss-scene-base" src={scene.src} alt="" draggable={false} />

@@ -306,7 +306,7 @@ export function useClicker() {
       ...prev.slice(-12),
       {
         id,
-        text: `+${result.energy.toFixed(result.energy >= 100 ? 0 : 1)}`,
+        text: `+${formatNumber(result.energy)}`,
         critical: result.critical,
         strike: result.quake ? "quake" : result.lightning ? "lightning" : result.echo ? "echo" : undefined,
         x: clientX ?? 0,
