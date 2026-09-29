@@ -316,7 +316,7 @@ export function useClicker() {
     window.setTimeout(() => {
       setFloats((prev) => prev.filter((f) => f.id !== id))
     }, 700)
-    return { critical: result.critical }
+    return { critical: result.critical, lightning: result.lightning, quake: result.quake, echo: result.echo }
   }, [commit])
 
   const buyPotion = useCallback((id: string) => {

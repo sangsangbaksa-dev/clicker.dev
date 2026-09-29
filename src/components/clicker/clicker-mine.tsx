@@ -16,7 +16,32 @@ import "./clicker-mine.css"
 /** Strikes per second while Space is held down. */
 const SPACE_HOLD_CPS = 7
 
-export type MineStrikeResult = { critical: boolean }
+export type MineStrikeResult = { critical: boolean; lightning?: boolean; quake?: boolean; echo?: boolean }
+
+/** Strike spectacle grows with progress: 0 = first mine, 4 = late game (FEVER adds one). */
+export type MineFxTier = 0 | 1 | 2 | 3 | 4
+
+type Bolt = { id: number; d: string; big: boolean }
+type Ring = { id: number; x: number; y: number; big: boolean }
+
+/** Chance a plain strike also calls down a bolt, per tier. */
+const BOLT_CHANCE = [0, 0.08, 0.2, 0.38, 0.6]
+
+/** A jagged lightning path between two points. */
+function boltPath(x0: number, y0: number, x1: number, y1: number, jag: number, segments = 9): string {
+  const dx = x1 - x0
+  const dy = y1 - y0
+  const len = Math.hypot(dx, dy) || 1
+  const nx = -dy / len
+  const ny = dx / len
+  let d = `M${x0.toFixed(1)} ${y0.toFixed(1)}`
+  for (let i = 1; i < segments; i++) {
+    const t = i / segments
+    const off = (Math.random() - 0.5) * jag * (1 - Math.abs(t - 0.5))
+    d += `L${(x0 + dx * t + nx * off).toFixed(1)} ${(y0 + dy * t + ny * off).toFixed(1)}`
+  }
+  return `${d}L${x1.toFixed(1)} ${y1.toFixed(1)}`
+}
 
 type Spark = {
   id: number
@@ -25,6 +50,8 @@ type Spark = {
   critical: boolean
   dx: number
   dy: number
+  /** Prism sparks (top tier) carry their own hue. */
+  hue?: number
 }
 
 type Laser = {
@@ -53,6 +80,12 @@ type Props = {
   autoRate?: number
   /** Golden vein hit — returns the reward label to flash in the scene. */
   onVein?: (clientX: number, clientY: number) => string | null
+  /** How flashy strikes are (grows with progress). */
+  fxTier?: MineFxTier
+  /** An active skill is running: every strike calls down lightning. */
+  storm?: boolean
+  /** Bumped when a skill is cast; plays a full-screen burst in `color`. */
+  nova?: { key: number; color: string } | null
 }
 
 type Vein = { x: number; y: number; expiresAt: number }
@@ -89,6 +122,9 @@ export function ClickerMine({
   onOreBroken: _onOreBroken,
   autoRate = 0,
   onVein,
+  fxTier = 0,
+  storm = false,
+  nova = null,
 }: Props) {
   const [box, setBox] = useState<Box | null>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
@@ -97,6 +133,9 @@ export function ClickerMine({
   const [sparks, setSparks] = useState<Spark[]>([])
   const [lasers, setLasers] = useState<Laser[]>([])
   const [impacts, setImpacts] = useState<Impact[]>([])
+  const [bolts, setBolts] = useState<Bolt[]>([])
+  const [rings, setRings] = useState<Ring[]>([])
+  const [flash, setFlash] = useState(0)
   const [vein, setVein] = useState<Vein | null>(null)
   const [veinLabel, setVeinLabel] = useState<string | null>(null)
   const seq = useRef(0)
@@ -128,7 +167,7 @@ export function ClickerMine({
     }
   }, [])
 
-  const fireLaser = useCallback((x: number, y: number, critical: boolean, drill = false) => {
+  const fireLaser = useCallback((x: number, y: number, critical: boolean, drill = false, tier: MineFxTier = 0) => {
     const el = mineRef.current
     if (!el) return
     const { width, height } = el.getBoundingClientRect()
@@ -147,23 +186,62 @@ export function ClickerMine({
       setImpacts((prev) => prev.filter((i) => i.id !== id))
     }, life)
 
-    const burst = Array.from({ length: critical ? 7 : 4 }, () => ({
+    const burst = Array.from({ length: (critical ? 7 : 4) + tier * 2 }, () => ({
       id: ++seq.current,
       x: x + (Math.random() - 0.5) * 10,
       y: y + (Math.random() - 0.5) * 10,
       critical,
       dx: (Math.random() - 0.5) * 60,
-      dy: -12 - Math.random() * 30,
+      dy: -12 - Math.random() * (30 + tier * 10),
+      hue: tier >= 4 ? Math.floor(Math.random() * 360) : undefined,
     }))
     setSparks((prev) => [...prev.slice(-24), ...burst])
     later(() => setSparks((prev) => prev.filter((s) => !burst.some((b) => b.id === s.id))), 480)
   }, [])
 
   // Latest values for the drill interval without re-arming it every render.
-  const live = useRef({ broken, box, muted, onMine, onPop, playLaser })
+  const live = useRef({ broken, box, muted, onMine, onPop, playLaser, fxTier, storm })
   useEffect(() => {
-    live.current = { broken, box, muted, onMine, onPop, playLaser }
+    live.current = { broken, box, muted, onMine, onPop, playLaser, fxTier, storm }
   })
+
+  /** Lightning, shockwaves, arcs and prism sparks on top of the laser, scaled by tier. */
+  const fireFx = useCallback((x: number, y: number, hit: MineStrikeResult, tier: MineFxTier, stormOn: boolean) => {
+    if (reduceMotion.current) return
+    const el = mineRef.current
+    if (!el) return
+    const { width } = el.getBoundingClientRect()
+    const b = live.current.box
+    const newBolts: Bolt[] = []
+    const newRings: Ring[] = []
+    if (hit.lightning || stormOn || Math.random() < BOLT_CHANCE[tier] * (hit.critical ? 1.6 : 1)) {
+      const sx = x + (Math.random() - 0.5) * width * 0.35
+      newBolts.push({ id: ++seq.current, d: boltPath(sx, -10, x, y, 70 + tier * 12, 11), big: Boolean(hit.lightning) })
+      if (hit.lightning) {
+        newBolts.push({ id: ++seq.current, d: boltPath(sx + 30, -10, x, y, 90, 10), big: true })
+      }
+    }
+    // Chain arcs across the crystal (tier 3+ crits, every hit at 4, and every lightning proc).
+    if (b && (hit.lightning || (tier >= 3 && hit.critical) || tier >= 4)) {
+      const arcs = hit.lightning ? 4 : tier >= 4 ? 2 : 1
+      for (let i = 0; i < arcs; i++) {
+        const tx = b.left + b.width * (0.15 + Math.random() * 0.7)
+        const ty = b.top + b.height * (0.15 + Math.random() * 0.7)
+        newBolts.push({ id: ++seq.current, d: boltPath(x, y, tx, ty, 26, 7), big: false })
+      }
+    }
+    if (hit.quake || (tier >= 2 && hit.critical) || tier >= 3) newRings.push({ id: ++seq.current, x, y, big: Boolean(hit.quake) })
+    if (hit.echo) newRings.push({ id: ++seq.current, x: x + 18, y: y - 14, big: false })
+    if (newBolts.length) {
+      setBolts((prev) => [...prev.slice(-10), ...newBolts])
+      later(() => setBolts((prev) => prev.filter((v) => !newBolts.includes(v))), 260)
+    }
+    if (newRings.length) {
+      setRings((prev) => [...prev.slice(-6), ...newRings])
+      later(() => setRings((prev) => prev.filter((v) => !newRings.includes(v))), 520)
+    }
+    if (hit.lightning || hit.quake || (tier >= 4 && hit.critical)) setFlash((n) => n + 1)
+  }, [])
 
   /** One strike at a point in mine-local px — shared by taps and the assist drill. */
   const hitAt = useCallback(
@@ -179,11 +257,12 @@ export function ClickerMine({
         cur.playLaser(cur.muted, critical)
         cur.onPop()
       }
-      fireLaser(x, y, critical, drill)
+      fireLaser(x, y, critical, drill, cur.fxTier)
+      fireFx(x, y, strike, cur.fxTier, cur.storm)
       setHitSeq((n) => n + 1)
 
     },
-    [fireLaser],
+    [fireLaser, fireFx],
   )
 
   const strike = useCallback(
@@ -288,7 +367,7 @@ export function ClickerMine({
     <div
       ref={mineRef}
       data-visual={visual}
-      className={`clicker-mine clicker-mine-single${pop ? " is-pop" : ""}${shake ? " is-shake" : ""}`}
+      className={`clicker-mine clicker-mine-single is-tier-${fxTier}${storm ? " is-storm" : ""}${pop ? " is-pop" : ""}${shake ? " is-shake" : ""}`}
     >
       <div className="clicker-mine-plate" style={{ backgroundImage: `url(${plate})` }} aria-hidden />
 
@@ -346,6 +425,24 @@ export function ClickerMine({
         ))}
       </svg>
 
+      <svg className="clicker-mine-bolts" aria-hidden>
+        {bolts.map((bolt) => (
+          <g key={bolt.id} className={`clicker-mine-bolt${bolt.big ? " is-big" : ""}`}>
+            <path d={bolt.d} className="clicker-mine-bolt-glow" />
+            <path d={bolt.d} className="clicker-mine-bolt-core" />
+          </g>
+        ))}
+      </svg>
+      <div className="clicker-mine-rings" aria-hidden>
+        {rings.map((ring) => (
+          <span key={ring.id} className={`clicker-mine-ring${ring.big ? " is-big" : ""}`} style={{ left: ring.x, top: ring.y }} />
+        ))}
+      </div>
+      {flash > 0 ? <span key={`flash-${flash}`} className="clicker-mine-flash" aria-hidden /> : null}
+      {nova ? (
+        <span key={`nova-${nova.key}`} className="clicker-mine-nova" style={{ "--nova": nova.color } as CSSProperties} aria-hidden />
+      ) : null}
+
       <div className="clicker-mine-impacts" aria-hidden>
         {impacts.map((hit) => (
           <span
@@ -360,13 +457,14 @@ export function ClickerMine({
         {sparks.map((spark) => (
           <span
             key={spark.id}
-            className={`clicker-spark${spark.critical ? " is-crit" : ""}`}
+            className={`clicker-spark${spark.critical ? " is-crit" : ""}${spark.hue === undefined ? "" : " is-prism"}`}
             style={
               {
                 left: `${spark.x}px`,
                 top: `${spark.y}px`,
                 "--spark-dx": `${spark.dx}px`,
                 "--spark-dy": `${spark.dy}px`,
+                ...(spark.hue === undefined ? {} : { "--spark-hue": `${spark.hue}deg` }),
               } as CSSProperties
             }
           />

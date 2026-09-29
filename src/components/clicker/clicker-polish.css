@@ -1905,3 +1905,21 @@
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
+
+/* Number-key hotkey badge on each skill button. */
+[data-clicker] .clicker-skill-item { position: relative; }
+[data-clicker] .clicker-skill-key {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 5px;
+  font: 800 10px/16px system-ui, sans-serif;
+  color: #0b141c;
+  background: rgb(200 240 255 / 0.9);
+  pointer-events: none;
+}
+@media (hover: none) {
+  [data-clicker] .clicker-skill-key { display: none; }
+}

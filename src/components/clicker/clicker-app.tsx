@@ -14,7 +14,7 @@ import { useClicker } from "@/hooks/use-clicker"
 import { useClickerBgm, worldBgm } from "@/hooks/use-clicker-bgm"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEnding } from "@/components/clicker/clicker-ending"
-import { ClickerMine } from "@/components/clicker/clicker-mine"
+import { ClickerMine, type MineFxTier } from "@/components/clicker/clicker-mine"
 import { ClickerCinematic, preloadCinematic } from "@/components/clicker/clicker-cinematic"
 import { ClickerRegionChallenge } from "@/components/clicker/clicker-region-challenge"
 import { MineArt } from "@/data/clicker/mine-assets"
@@ -49,6 +49,34 @@ import "./clicker-polish.css"
 
 /** Next inlines NODE_ENV — production builds dead-code-eliminate admin JSX. */
 const CLICKER_ADMIN_UI = process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_CLICKER_ADMIN === "1"
+
+/** Nova colour each active skill paints across the mine when cast. */
+const SKILL_NOVA_COLOR: Record<string, string> = {
+  overclock: "rgb(255 120 60 / 0.9)",
+  core_pulse: "rgb(120 240 255 / 0.9)",
+  stabilizer: "rgb(120 255 190 / 0.85)",
+  laser_focus: "rgb(255 90 140 / 0.9)",
+  time_warp: "rgb(190 140 255 / 0.9)",
+  grid_boost: "rgb(255 220 110 / 0.9)",
+}
+
+/** Number keys 1–9 cast owned skills in bar order (ignored while typing). */
+function ClickerSkillHotkeys({ onSlot }: { onSlot: (slot: number) => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || !/^Digit[1-9]$/.test(e.code)) return
+      const t = e.target
+      if (t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return
+      onSlot(Number(e.code.slice(5)) - 1)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [onSlot])
+  return null
+}
+
+/** Strike spectacle by worlds opened (0–5); FEVER adds one more step. */
+const FX_TIER_BY_WORLDS: MineFxTier[] = [0, 1, 2, 2, 3, 3]
 
 type TabId = "producers" | "upgrades" | "skills" | "shop" | "world" | "achievements" | "transcendence"
 
@@ -439,6 +467,14 @@ export function ClickerApp() {
 
   const coreVisual = game.hud?.coreVisual ?? "idle"
   const mineVisual = coreVisual === "fever" || coreVisual === "crisis" ? coreVisual : "idle"
+  const [skillNova, setSkillNova] = useState<{ key: number; color: string } | null>(null)
+  /** Cast a skill with its full-screen nova (button or number-key hotkey). */
+  const castSkill = (id: string) => {
+    bumpIcon(id)
+    flashStage()
+    game.useSkill(id)
+    setSkillNova((prev) => ({ key: (prev?.key ?? 0) + 1, color: SKILL_NOVA_COLOR[id] ?? "rgb(150 230 255 / 0.85)" }))
+  }
 
   useEffect(() => {
     const next = game.hud?.coreVisual
@@ -699,6 +735,10 @@ export function ClickerApp() {
   const visibleSkillNodes = game.skillNodes
   const regionDef = game.config.regions.find((r) => r.id === run.currentRegionId)
   const monsterDef = regionDef?.monster
+  const worldsOpen = game.config.regions.filter((r) => !r.isHome && run.lifetimeCoreEnergy >= r.unlockAtLifetimeEnergy).length
+  const fxTier = Math.min(4, FX_TIER_BY_WORLDS[Math.min(worldsOpen, 5)] + (coreVisual === "fever" ? 1 : 0)) as MineFxTier
+  const skillStorm = run.activeBuffs.some((b) => b.expiresAt > tickNow)
+  const ownedSkills = game.config.activeSkills.filter((skill) => (run.skillItems[skill.id] ?? 0) > 0)
   const monsterIsAlive = monsterDef ? monsterAlive(run, run.currentRegionId, tickNow) : false
   const huntSpawn = run.monsterRespawnAt[run.currentRegionId] ?? 0
   const lair = run.lair && run.lair.regionId === run.currentRegionId ? run.lair : null
@@ -1162,6 +1202,9 @@ export function ClickerApp() {
                 playLaser={playLaser}
                 autoRate={game.drill?.rate ?? 0}
                 onOreBroken={game.oreBroken}
+                fxTier={fxTier}
+                storm={skillStorm}
+                nova={skillNova}
               />
             </div>
           ) : atHomeHub ? (
@@ -1377,10 +1420,15 @@ export function ClickerApp() {
         ) : null}
       </div>
 
+      <ClickerSkillHotkeys
+        onSlot={(n) => {
+          const skill = ownedSkills[n]
+          if (!skill || (run.skillCooldowns[skill.id] ?? 0) > 0 || game.hud?.crisisActive) return
+          castSkill(skill.id)
+        }}
+      />
       <div className="clicker-actions">
-        {game.config.activeSkills
-          .filter((skill) => (run.skillItems[skill.id] ?? 0) > 0)
-          .map((skill) => {
+        {ownedSkills.map((skill, slot) => {
           const cd = run.skillCooldowns[skill.id] ?? 0
           const charges = run.skillItems[skill.id] ?? 0
           const skillTip = `${skill.name} — ${skill.description}`
@@ -1399,13 +1447,10 @@ export function ClickerApp() {
                 disabled={cd > 0 || hud.crisisActive}
                 aria-label={`${skillTip} · ${skillStatus}`}
                 title={skillTip}
-                onClick={() => {
-                  bumpIcon(skill.id)
-                  flashStage()
-                  game.useSkill(skill.id)
-                }}
+                onClick={() => castSkill(skill.id)}
               >
                 <img key={`${skill.id}-${popIcons[skill.id] ?? 0}`} src={skill.assetId} alt="" />
+                {slot < 9 ? <kbd className="clicker-skill-key">{slot + 1}</kbd> : null}
                 <span>
                   {skill.name}
                   <br />

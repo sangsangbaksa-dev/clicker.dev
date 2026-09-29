@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Render the clicker BGM loops (hub / mine / chamber and one theme per world) as seamless MP3 files (plays on iOS Safari too).
 
-Each track is composed on a bar grid so the loop point lands on a downbeat, and the
-reverb tail is folded back onto the start so the seam is inaudible. Every track has
-a clear lead melody on top (bell / square lead / horn) over pads, bass and drums.
+The score is dark and grand to match the art: minor keys and Phrygian, low brass themes
+over choir, organ, cellos, sub drones, tolling bells and war drums. Each track is composed
+on a bar grid so the loop point lands on a downbeat, and the reverb tail is folded back
+onto the start so the seam is inaudible.
 
     pip install numpy soundfile
     python3 scripts/clicker-bgm.py
@@ -212,99 +213,6 @@ def chord(root: str, quality: str, octave: int = 3) -> list[float]:
     return [base * 2 ** (s / 12) for s in steps]
 
 
-def hub() -> np.ndarray:
-    """A minor, 84 BPM, 8 bars — calm mine entrance with a clear bell melody."""
-    tr = Track(84, 8)
-    prog = [("A", "m"), ("F", "M"), ("C", "M"), ("G", "M")] * 2
-    for bar, (root, q) in enumerate(prog):
-        b = bar * 4
-        tr.add(b, pad(chord(root, q, 3), 4 * tr.beat, 1200), 0.22, 0)
-        tr.add(b, bass(hz(f"{root}2"), 2 * tr.beat * 0.95), 0.32)
-        tr.add(b + 2, bass(hz(f"{root}2"), 2 * tr.beat * 0.95), 0.26)
-        # Soft arpeggio under the melody.
-        for i, f in enumerate(chord(root, q, 4) * 2):
-            tr.add(b + i * 0.5, pluck(f, 0.4), 0.07, (-0.4 if i % 2 else 0.4))
-    melody = [
-        ("E5", 0, 1), ("C5", 1, 0.5), ("D5", 1.5, 0.5), ("E5", 2, 1.5), ("A4", 3.5, 0.5),
-        ("F5", 4, 1), ("E5", 5, 0.5), ("C5", 5.5, 0.5), ("A4", 6, 2),
-        ("G4", 8, 0.5), ("C5", 8.5, 0.5), ("E5", 9, 1), ("G5", 10, 1.5), ("E5", 11.5, 0.5),
-        ("D5", 12, 1), ("B4", 13, 1), ("D5", 14, 2),
-        ("E5", 16, 1), ("A5", 17, 1), ("G5", 18, 0.5), ("E5", 18.5, 0.5), ("C5", 19, 1),
-        ("F5", 20, 1), ("E5", 21, 0.5), ("D5", 21.5, 0.5), ("C5", 22, 2),
-        ("C5", 24, 0.5), ("D5", 24.5, 0.5), ("E5", 25, 1), ("G5", 26, 1), ("C6", 27, 1),
-        ("B5", 28, 1), ("G5", 29, 1), ("A5", 30, 2),
-    ]
-    for note, beat, length in melody:
-        tr.add(beat, bell(hz(note), max(1.4, length * tr.beat + 0.9)), 0.42, 0.1)
-    for bar in range(8):
-        tr.add(bar * 4, kick(0.3), 0.18)
-        tr.add(bar * 4 + 2.5, kick(0.3), 0.1)
-    return tr.render(reverb=0.35, room=2.4)
-
-
-def mine() -> np.ndarray:
-    """E minor, 124 BPM, 16 bars — driving drill rhythm with a bright lead hook."""
-    tr = Track(124, 16)
-    prog = [("E", "m"), ("C", "M"), ("G", "M"), ("D", "M")] * 4
-    for bar, (root, q) in enumerate(prog):
-        b = bar * 4
-        tr.add(b, pad(chord(root, q, 3), 4 * tr.beat, 1600, 0.15), 0.08)
-        for e in range(8):
-            octave = 1 if e % 2 == 0 else 2
-            tr.add(b + e * 0.5, bass(hz(f"{root}{octave + 1}"), tr.beat * 0.45), 0.3)
-        for s in range(16):
-            f = chord(root, q, 4)[[0, 1, 2, 1][s % 4]] * (2 if s % 8 >= 4 else 1)
-            tr.add(b + s * 0.25, pluck(f, 0.18), 0.03, 0.5 if s % 2 else -0.5)
-        for beat in range(4):
-            tr.add(b + beat, kick(), 0.5)
-            tr.add(b + beat + 0.5, hat(), 0.18, 0.3)
-        tr.add(b + 1, snare(), 0.3)
-        tr.add(b + 3, snare(), 0.3)
-    hook = [
-        ("B4", 0, 0.5), ("E5", 0.5, 0.5), ("G5", 1, 1), ("F#5", 2, 0.5), ("E5", 2.5, 0.5), ("D5", 3, 1),
-        ("E5", 4, 0.5), ("G5", 4.5, 0.5), ("C6", 5, 1), ("B5", 6, 1), ("G5", 7, 1),
-        ("D5", 8, 0.5), ("G5", 8.5, 0.5), ("B5", 9, 1), ("A5", 10, 0.5), ("G5", 10.5, 0.5), ("F#5", 11, 1),
-        ("A5", 12, 1), ("F#5", 13, 0.5), ("D5", 13.5, 0.5), ("E5", 14, 2),
-    ]
-    answer = [
-        ("G5", 0, 1), ("B5", 1, 1), ("E6", 2, 1.5), ("D6", 3.5, 0.5),
-        ("C6", 4, 1), ("B5", 5, 0.5), ("G5", 5.5, 0.5), ("E5", 6, 2),
-        ("D5", 8, 0.5), ("F#5", 8.5, 0.5), ("A5", 9, 1), ("D6", 10, 1), ("C6", 11, 1),
-        ("B5", 12, 1.5), ("A5", 13.5, 0.5), ("B5", 14, 2),
-    ]
-    for start, phrase in ((0, hook), (16, hook), (32, answer), (48, hook)):
-        for note, beat, length in phrase:
-            tr.add(start + beat, lead(hz(note), length * tr.beat * 0.92), 0.3, -0.1)
-            tr.add(start + beat + 0.75, lead(hz(note), length * tr.beat * 0.6, 2200), 0.05, 0.6)  # echo
-    return tr.render(reverb=0.22, room=1.4)
-
-
-def chamber() -> np.ndarray:
-    """D minor, 70 BPM, 8 bars — rebirth / ending: choir, timpani and a horn theme."""
-    tr = Track(70, 8)
-    prog = [("D", "m"), ("A#", "M"), ("F", "M"), ("A", "M")] * 2
-    for bar, (root, q) in enumerate(prog):
-        b = bar * 4
-        tr.add(b, choir(chord(root, q, 3), 4 * tr.beat + 0.6), 0.2)
-        tr.add(b, bass(hz(f"{root}2"), 4 * tr.beat * 0.95), 0.28)
-        tr.add(b, timpani(hz(f"{root}2")), 0.35)
-        tr.add(b + 3.5, timpani(hz(f"{root}2"), 0.6), 0.18)
-    theme = [
-        ("D4", 0, 1), ("A4", 1, 1), ("F4", 2, 1.5), ("E4", 3.5, 0.5),
-        ("D4", 4, 1), ("F4", 5, 1), ("A#4", 6, 2),
-        ("A4", 8, 1), ("C5", 9, 1), ("F5", 10, 1.5), ("E5", 11.5, 0.5),
-        ("C#5", 12, 1), ("E5", 13, 1), ("A4", 14, 2),
-        ("D5", 16, 1.5), ("C5", 17.5, 0.5), ("A#4", 18, 1), ("A4", 19, 1),
-        ("A#4", 20, 1), ("D5", 21, 1), ("F5", 22, 2),
-        ("E5", 24, 1), ("F5", 25, 1), ("G5", 26, 1), ("A5", 27, 1),
-        ("E5", 28, 1.5), ("C#5", 29.5, 0.5), ("D5", 30, 2),
-    ]
-    for note, beat, length in theme:
-        tr.add(beat, horn(hz(note), length * tr.beat * 0.97), 0.44, 0.05)
-        tr.add(beat, horn(hz(note) / 2, length * tr.beat * 0.97), 0.12, -0.2)
-    return tr.render(reverb=0.38, room=3.0)
-
-
 # ---------- world instruments ----------
 
 def glass(f: float, dur: float) -> np.ndarray:
@@ -418,147 +326,271 @@ def play(tr: "Track", melody, voice, gain: float, pan: float = 0.0, stretch: flo
         tr.add(beat, voice(hz(note), length * tr.beat * stretch + tail), gain, pan)
 
 
-# ---------- world themes ----------
+# ---------- dark, grand palette ----------
 
-def relay() -> np.ndarray:
-    """Signal Relay — F# minor, 104 BPM, 8 bars: pulsing data arps and a bright synth lead."""
-    tr = Track(104, 8)
-    prog = [("F#", "m"), ("D", "M"), ("A", "M"), ("E", "M")] * 2
+def organ(freqs: list[float], dur: float, cutoff: float = 2400) -> np.ndarray:
+    """Cathedral organ: drawbar partials with a slow chorus."""
+    n = int(dur * SR)
+    t = np.arange(n) / SR
+    x = np.zeros(n)
+    for f in freqs:
+        for k, amp in ((0.5, 0.6), (1, 1.0), (2, 0.55), (3, 0.3), (4, 0.22), (6, 0.1)):
+            for det in (-0.0015, 0.0015):
+                x += amp * np.sin(2 * np.pi * f * k * (1 + det) * t + RNG.random() * 6)
+    x /= len(freqs) * 5
+    x *= 1 + 0.06 * np.sin(2 * np.pi * 0.35 * t)
+    return lowpass(x, cutoff) * env(n, 0.35, min(0.9, dur / 3))
+
+
+def low_strings(freqs: list[float], dur: float, trem: float = 0.0) -> np.ndarray:
+    """Cellos and basses: darker, slower bow than `strings`."""
+    n = int(dur * SR)
+    t = np.arange(n) / SR
+    x = np.zeros(n)
+    for f in freqs:
+        for det in (-0.004, -0.001, 0.002, 0.005):
+            x += saw(f * (1 + det), t + RNG.random())
+    x /= len(freqs) * 4
+    if trem:
+        x *= 0.6 + 0.4 * np.sin(2 * np.pi * trem * t) ** 2
+    return lowpass(lowpass(x, 1300), 1300) * env(n, 0.25, min(0.6, dur / 3))
+
+
+def brass(f: float, dur: float) -> np.ndarray:
+    """Low brass: the horn doubled an octave down with a harder bite."""
+    return horn(f, dur) * 0.75 + horn(f / 2, dur) * 0.55
+
+
+def toll(f: float, dur: float = 4.0) -> np.ndarray:
+    """Great bell: inharmonic partials, long decay — marks the downbeat."""
+    n = int(dur * SR)
+    t = np.arange(n) / SR
+    x = sum(a * np.sin(2 * np.pi * f * r * t) * np.exp(-t * d) for r, a, d in ((0.5, 0.8, 0.7), (1, 1.0, 0.9), (1.19, 0.5, 1.3), (1.56, 0.35, 1.6), (2.0, 0.4, 1.4), (2.74, 0.25, 2.2)))
+    return x * env(n, 0.004, 0.2)
+
+
+def drone(f: float, dur: float) -> np.ndarray:
+    """Sub drone with a slow filter breath."""
+    n = int(dur * SR)
+    t = np.arange(n) / SR
+    x = np.sin(2 * np.pi * f * t) + 0.5 * saw(f, t) + 0.3 * saw(f * 1.5, t)
+    x *= 0.8 + 0.2 * np.sin(2 * np.pi * 0.12 * t)
+    return lowpass(lowpass(x, 260), 260) * env(n, 1.2, 1.2)
+
+
+def war_drums(tr: "Track", b: float, pattern: str, gain: float = 0.5):
+    """Taiko pattern over one bar: 'X' = big hit, 'x' = ghost, '.' = rest (16th grid)."""
+    for i, c in enumerate(pattern):
+        if c == "X":
+            tr.add(b + i * 0.25, taiko(), gain, float(RNG.uniform(-0.2, 0.2)))
+        elif c == "x":
+            tr.add(b + i * 0.25, taiko(0.5), gain * 0.4, float(RNG.uniform(-0.5, 0.5)))
+
+
+def minor_chord(root: str, q: str, octave: int) -> list[float]:
+    return chord(root, q, octave)
+
+
+# ---------- themes (all dark and grand) ----------
+
+def hub() -> np.ndarray:
+    """Core Mine hub — D minor, 64 BPM, 8 bars: tolling bell, choir, organ and a low horn lament."""
+    tr = Track(64, 8)
+    prog = [("D", "m"), ("A#", "M"), ("G", "m"), ("A", "M")] * 2
     for bar, (root, q) in enumerate(prog):
         b = bar * 4
-        pumped = pad(chord(root, q, 3), 4 * tr.beat, 1500, 0.05)
-        beat_n = int(tr.beat * SR)
-        duck = np.tile(np.clip(np.linspace(0.2, 1.3, beat_n), 0, 1), 5)[: len(pumped)]
-        tr.add(b, pumped * duck, 0.16)
+        tr.add(b, choir(chord(root, q, 3), 4 * tr.beat + 0.8), 0.24)
+        tr.add(b, organ(chord(root, q, 2), 4 * tr.beat), 0.14)
+        tr.add(b, drone(hz(f"{root}1"), 4 * tr.beat), 0.3)
+        tr.add(b, toll(hz(f"{root}3")), 0.16, -0.2)
+        tr.add(b, taiko(1.4), 0.3)
+        tr.add(b + 2.5, taiko(0.6), 0.12)
+    theme = [
+        ("D4", 0, 2), ("F4", 2, 1), ("E4", 3, 1),
+        ("D4", 4, 1.5), ("C4", 5.5, 0.5), ("A#3", 6, 2),
+        ("G3", 8, 1), ("A#3", 9, 1), ("D4", 10, 1.5), ("C4", 11.5, 0.5),
+        ("A3", 12, 1), ("C#4", 13, 1), ("E4", 14, 2),
+        ("F4", 16, 2), ("E4", 18, 1), ("D4", 19, 1),
+        ("A#3", 20, 1), ("D4", 21, 1), ("F4", 22, 2),
+        ("G4", 24, 1.5), ("F4", 25.5, 0.5), ("E4", 26, 1), ("D4", 27, 1),
+        ("C#4", 28, 1.5), ("E4", 29.5, 0.5), ("D4", 30, 2),
+    ]
+    play(tr, theme, brass, 0.42, 0.05, 0.97)
+    return tr.render(reverb=0.45, room=3.4)
+
+
+def mine() -> np.ndarray:
+    """Mine run — C minor, 112 BPM, 16 bars: driving cello ostinato, war drums, brass stabs, choir."""
+    tr = Track(112, 16)
+    prog = [("C", "m"), ("G#", "M"), ("D#", "M"), ("A#", "M")] * 2 + [("F", "m"), ("G#", "M"), ("G", "M"), ("G", "M")] * 2
+    for bar, (root, q) in enumerate(prog):
+        b = bar * 4
+        lo = hz(f"{root}2")
         for e in range(8):
-            tr.add(b + e * 0.5, bass(hz(f"{root}2") * (2 if e % 4 == 3 else 1), tr.beat * 0.42), 0.3)
-        tones = chord(root, q, 4) + [chord(root, q, 5)[0]]
-        for s in range(16):
-            tr.add(b + s * 0.25, arp(tones[[0, 1, 2, 3, 2, 1, 0, 2][s % 8]], 0.16), 0.05, 0.45 if s % 2 else -0.45)
-        for beat in range(4):
-            tr.add(b + beat, kick(0.3), 0.42)
-            tr.add(b + beat + 0.5, hat(), 0.14, 0.35)
-            tr.add(b + beat + 0.75, hat(0.03), 0.07, -0.35)
-        tr.add(b + 1, snare(0.18), 0.22)
-        tr.add(b + 3, snare(0.18), 0.22)
-        for k in range(3):
-            tr.add(b + int(RNG.integers(0, 16)) * 0.25, blip(hz(f"{root}6") * 2 ** (RNG.integers(0, 12) / 12)), 0.05, float(RNG.uniform(-0.8, 0.8)))
+            f = lo * (2 if e % 4 == 2 else 1)
+            tr.add(b + e * 0.5, low_strings([f], tr.beat * 0.48), 0.26, -0.2 if e % 2 else 0.2)
+        tr.add(b, choir(chord(root, q, 3), 4 * tr.beat + 0.3), 0.14)
+        tr.add(b, bass(lo / 2, 4 * tr.beat * 0.97), 0.3)
+        war_drums(tr, b, "X..x..X.X.x.X..." if bar % 4 != 3 else "X..x..X.X.XxXXXX", 0.5)
+        tr.add(b + 1, snare(0.25), 0.2)
+        tr.add(b + 3, snare(0.25), 0.22)
+        for beat in (0, 1.5, 3):
+            tr.add(b + beat, brass(hz(f"{root}3"), tr.beat * 0.4), 0.18, 0.15)
     theme = [
-        ("C#5", 0, 0.5), ("F#5", 0.5, 0.5), ("A5", 1, 1), ("G#5", 2, 0.5), ("F#5", 2.5, 0.5), ("E5", 3, 1),
-        ("F#5", 4, 1), ("A5", 5, 0.5), ("D6", 5.5, 1.5), ("C#6", 7, 1),
-        ("C#6", 8, 0.5), ("B5", 8.5, 0.5), ("A5", 9, 1), ("E5", 10, 1.5), ("C#5", 11.5, 0.5),
-        ("E5", 12, 1), ("G#5", 13, 1), ("B5", 14, 2),
-        ("C#6", 16, 1), ("A5", 17, 0.5), ("F#5", 17.5, 0.5), ("C#6", 18, 1), ("E6", 19, 1),
-        ("D6", 20, 1.5), ("C#6", 21.5, 0.5), ("A5", 22, 2),
-        ("A5", 24, 0.5), ("B5", 24.5, 0.5), ("C#6", 25, 1), ("E6", 26, 1), ("C#6", 27, 1),
-        ("B5", 28, 1), ("G#5", 29, 1), ("F#5", 30, 2),
-    ]
-    play(tr, theme, lambda f, d: lead(f, d, 4200), 0.24, -0.05, 0.9)
-    play(tr, [(n, b + 0.75, l) for n, b, l in theme], lambda f, d: lead(f, d, 2400), 0.05, 0.6, 0.6)
-    return tr.render(reverb=0.24, room=1.6)
-
-
-def vault() -> np.ndarray:
-    """Phase Vault — C# minor, 76 BPM, 8 bars: crystal bells over a drowned choir and the sea."""
-    tr = Track(76, 8)
-    prog = [("C#", "m"), ("A", "M"), ("F#", "m"), ("G#", "M")] * 2
-    for bar, (root, q) in enumerate(prog):
-        b = bar * 4
-        tr.add(b, choir(chord(root, q, 3), 4 * tr.beat + 0.8), 0.2)
-        tr.add(b, bass(hz(f"{root}2"), 4 * tr.beat * 0.97), 0.26)
-        for i, f in enumerate(chord(root, q, 5)):
-            tr.add(b + 0.5 + i * 1.25, glass(f, 2.6), 0.07, (-0.6, 0.0, 0.6)[i])
-        tr.add(b, tom(hz(f"{root}2") * 2, 0.8), 0.16)
-        tr.add(b + 2.5, tom(hz(f"{root}2") * 1.5, 0.6), 0.1)
-    sea = swell(tr.bars * 4 * tr.beat, 600, 1 / (2 * 4 * tr.beat), 0.75)
-    tr.add(0, sea, 0.14, -0.3)
-    tr.add(0, np.roll(sea, len(sea) // 2), 0.12, 0.3)
-    theme = [
-        ("G#5", 0, 1), ("C#6", 1, 1), ("E6", 2, 1.5), ("D#6", 3.5, 0.5),
-        ("C#6", 4, 1), ("E6", 5, 1), ("A5", 6, 2),
-        ("F#5", 8, 1), ("A5", 9, 1), ("C#6", 10, 1.5), ("B5", 11.5, 0.5),
-        ("G#5", 12, 1), ("B#5", 13, 1), ("D#6", 14, 2),
-        ("E6", 16, 1.5), ("D#6", 17.5, 0.5), ("C#6", 18, 1), ("G#5", 19, 1),
-        ("A5", 20, 1), ("C#6", 21, 1), ("E6", 22, 2),
-        ("F#6", 24, 1), ("E6", 25, 1), ("C#6", 26, 1), ("A5", 27, 1),
-        ("G#5", 28, 1.5), ("B5", 29.5, 0.5), ("C#6", 30, 2),
-    ]
-    NOTE["B#"] = 12  # B#5 == C6
-    play(tr, theme, glass, 0.4, 0.1, 1.0, 1.6)
-    play(tr, [(n[:-1] + str(int(n[-1]) - 1), b, l) for n, b, l in theme], lambda f, d: bell(f, d), 0.08, -0.2, 1.0, 0.8)
-    return tr.render(reverb=0.45, room=3.2)
-
-
-def storm() -> np.ndarray:
-    """Storm Spire — D minor, 140 BPM, 16 bars: tremolo strings, galloping bass, thunder, horns."""
-    tr = Track(140, 16)
-    prog = [("D", "m"), ("A#", "M"), ("F", "M"), ("C", "M"), ("D", "m"), ("A#", "M"), ("G", "m"), ("A", "M")] * 2
-    for bar, (root, q) in enumerate(prog):
-        b = bar * 4
-        tr.add(b, strings(chord(root, q, 3) + [chord(root, q, 4)[0]], 4 * tr.beat, trem=11), 0.2)
-        for beat in range(4):
-            f = hz(f"{root}2")
-            tr.add(b + beat, bass(f, tr.beat * 0.3), 0.32)
-            tr.add(b + beat + 0.5, bass(f, tr.beat * 0.2), 0.24)
-            tr.add(b + beat + 0.75, bass(f, tr.beat * 0.2), 0.24)
-            tr.add(b + beat, kick(0.3), 0.5 if beat % 2 == 0 else 0.35)
-            tr.add(b + beat + 0.5, hat(), 0.12, 0.3)
-        tr.add(b + 1, snare(), 0.32)
-        tr.add(b + 3, snare(), 0.32)
-        if bar % 4 == 3:
-            for k, fq in enumerate((220, 180, 150, 120)):
-                tr.add(b + 3 + k * 0.25, tom(fq), 0.3, (-0.4, -0.1, 0.1, 0.4)[k])
-        if bar % 8 == 0:
-            tr.add(b, thunder(3.5), 0.3, float(RNG.uniform(-0.5, 0.5)))
-    wind = swell(tr.bars * 4 * tr.beat, 1400, 1 / (4 * 4 * tr.beat), 0.6)
-    tr.add(0, wind, 0.06, 0.4)
-    call = [
-        ("D5", 0, 1.5), ("A4", 1.5, 0.5), ("D5", 2, 1), ("F5", 3, 1),
-        ("A#5", 4, 1.5), ("A5", 5.5, 0.5), ("F5", 6, 2),
-        ("A5", 8, 1.5), ("G5", 9.5, 0.5), ("F5", 10, 1), ("E5", 11, 1),
-        ("C5", 12, 1), ("E5", 13, 1), ("G5", 14, 2),
-        ("F5", 16, 1.5), ("E5", 17.5, 0.5), ("D5", 18, 1), ("A5", 19, 1),
-        ("A#5", 20, 1), ("D6", 21, 1), ("C6", 22, 2),
-        ("A#5", 24, 1), ("A5", 25, 1), ("G5", 26, 1), ("A#5", 27, 1),
-        ("A5", 28, 2), ("C#5", 30, 2),
+        ("C4", 0, 1), ("D#4", 1, 1), ("G4", 2, 1.5), ("F4", 3.5, 0.5),
+        ("D#4", 4, 1), ("C4", 5, 1), ("G#3", 6, 2),
+        ("A#3", 8, 1), ("D#4", 9, 1), ("G4", 10, 1), ("A#4", 11, 1),
+        ("G#4", 12, 1.5), ("G4", 13.5, 0.5), ("F4", 14, 2),
     ]
     rise = [
-        ("A5", 0, 1), ("D6", 1, 1), ("F6", 2, 1.5), ("E6", 3.5, 0.5),
-        ("D6", 4, 1), ("C6", 5, 1), ("A#5", 6, 2),
-        ("C6", 8, 1), ("F6", 9, 1), ("E6", 10, 1), ("C6", 11, 1),
-        ("A5", 12, 1), ("C6", 13, 1), ("G5", 14, 2),
-        ("A5", 16, 1), ("D6", 17, 1), ("F6", 18, 1.5), ("E6", 19.5, 0.5),
-        ("D6", 20, 1), ("A#5", 21, 1), ("D6", 22, 2),
-        ("G6", 24, 1), ("F6", 25, 1), ("E6", 26, 1), ("D6", 27, 1),
-        ("C#6", 28, 2), ("E6", 30, 2),
+        ("F4", 0, 1), ("G#4", 1, 1), ("C5", 2, 1.5), ("A#4", 3.5, 0.5),
+        ("G#4", 4, 1), ("G4", 5, 1), ("F4", 6, 2),
+        ("G4", 8, 1), ("B4", 9, 1), ("D5", 10, 1), ("F5", 11, 1),
+        ("D#5", 12, 1), ("D5", 13, 1), ("B4", 14, 2),
     ]
-    play(tr, call, horn, 0.42, 0.05, 0.97)
-    play(tr, [(n, b + 32, l) for n, b, l in rise], horn, 0.38, 0.05, 0.97)
-    play(tr, [(n, b + 32, l) for n, b, l in rise], lambda f, d: lead(f, d, 3000), 0.08, -0.4, 0.9)
+    for start, phrase in ((0, theme), (16, theme), (32, rise), (48, rise)):
+        play(tr, [(n, bt + start, l) for n, bt, l in phrase], brass, 0.38, 0.0, 0.95)
     return tr.render(reverb=0.3, room=2.2)
 
 
+def chamber() -> np.ndarray:
+    """Rebirth chamber / ending — B-flat minor, 56 BPM, 8 bars: organ, full choir, timpani and a funeral brass hymn."""
+    tr = Track(56, 8)
+    prog = [("A#", "m"), ("F#", "M"), ("C#", "M"), ("F", "M"), ("A#", "m"), ("D#", "m"), ("F", "M"), ("A#", "m")]
+    for bar, (root, q) in enumerate(prog):
+        b = bar * 4
+        tr.add(b, organ(chord(root, q, 3) + [hz(f"{root}2")], 4 * tr.beat + 0.5, 2000), 0.2)
+        tr.add(b, choir(chord(root, q, 3), 4 * tr.beat + 0.8), 0.24)
+        tr.add(b, drone(hz(f"{root}1"), 4 * tr.beat), 0.26)
+        tr.add(b, timpani(hz(f"{root}2"), 1.6), 0.36)
+        if bar % 2 == 1:
+            for k in range(6):
+                tr.add(b + 3 + k * 0.16, timpani(hz(f"{root}2"), 0.4), 0.08 + k * 0.03)
+        tr.add(b, toll(hz(f"{root}2"), 5), 0.14, 0.3)
+    hymn = [
+        ("A#3", 0, 2), ("C#4", 2, 1), ("C4", 3, 1),
+        ("A#3", 4, 2), ("F3", 6, 2),
+        ("G#3", 8, 1.5), ("A#3", 9.5, 0.5), ("C4", 10, 2),
+        ("A3", 12, 2), ("C4", 14, 2),
+        ("C#4", 16, 2), ("D#4", 18, 1), ("F4", 19, 1),
+        ("F#4", 20, 1.5), ("F4", 21.5, 0.5), ("D#4", 22, 2),
+        ("C#4", 24, 1), ("C4", 25, 1), ("A#3", 26, 1), ("A3", 27, 1),
+        ("A#3", 28, 4),
+    ]
+    play(tr, hymn, brass, 0.44, 0.0, 0.98)
+    return tr.render(reverb=0.5, room=3.8)
+
+
+def relay() -> np.ndarray:
+    """Signal Relay — F# minor, 92 BPM, 8 bars: a cold machine pulse under war drums and brass."""
+    tr = Track(92, 8)
+    prog = [("F#", "m"), ("D", "M"), ("B", "m"), ("C#", "M")] * 2
+    for bar, (root, q) in enumerate(prog):
+        b = bar * 4
+        tones = chord(root, q, 3)
+        for s16 in range(16):
+            tr.add(b + s16 * 0.25, arp(tones[[0, 2, 1, 2][s16 % 4]] / 2, 0.14), 0.05, 0.4 if s16 % 2 else -0.4)
+        tr.add(b, low_strings(chord(root, q, 2), 4 * tr.beat), 0.2)
+        tr.add(b, drone(hz(f"{root}1"), 4 * tr.beat), 0.3)
+        war_drums(tr, b, "X.....x.X...x...", 0.45)
+        tr.add(b + 2, snare(0.3), 0.18)
+        if bar % 4 == 0:
+            tr.add(b, toll(hz(f"{root}3")), 0.12)
+    theme = [
+        ("F#3", 0, 1.5), ("A3", 1.5, 0.5), ("C#4", 2, 2),
+        ("D4", 4, 1), ("C#4", 5, 1), ("A3", 6, 2),
+        ("B3", 8, 1.5), ("D4", 9.5, 0.5), ("F#4", 10, 2),
+        ("E#4", 12, 1), ("C#4", 13, 1), ("G#3", 14, 2),
+        ("F#3", 16, 1), ("A3", 17, 1), ("C#4", 18, 1), ("F#4", 19, 1),
+        ("E4", 20, 1.5), ("D4", 21.5, 0.5), ("C#4", 22, 2),
+        ("B3", 24, 1), ("D4", 25, 1), ("E#4", 26, 1), ("G#4", 27, 1),
+        ("F#4", 28, 4),
+    ]
+    NOTE["E#"] = 5
+    play(tr, theme, brass, 0.4, 0.05, 0.96)
+    return tr.render(reverb=0.36, room=2.6)
+
+
+def vault() -> np.ndarray:
+    """Phase Vault — C# minor, 60 BPM, 8 bars: a drowned cathedral — choir, sea, cold bells, low brass."""
+    tr = Track(60, 8)
+    prog = [("C#", "m"), ("A", "M"), ("F#", "m"), ("G#", "M")] * 2
+    for bar, (root, q) in enumerate(prog):
+        b = bar * 4
+        tr.add(b, choir(chord(root, q, 3), 4 * tr.beat + 0.8), 0.26)
+        tr.add(b, organ(chord(root, q, 2), 4 * tr.beat, 1500), 0.12)
+        tr.add(b, drone(hz(f"{root}1"), 4 * tr.beat), 0.3)
+        for i, f in enumerate(chord(root, q, 5)):
+            tr.add(b + 1 + i * 0.75, glass(f, 3.0), 0.035, (-0.6, 0.0, 0.6)[i])
+        tr.add(b, taiko(1.3), 0.26)
+    sea = swell(tr.bars * 4 * tr.beat, 400, 1 / (2 * 4 * tr.beat), 0.8)
+    tr.add(0, sea, 0.18, -0.3)
+    tr.add(0, np.roll(sea, len(sea) // 2), 0.16, 0.3)
+    theme = [
+        ("C#4", 0, 2), ("E4", 2, 1), ("D#4", 3, 1),
+        ("C#4", 4, 2), ("A3", 6, 2),
+        ("F#3", 8, 1), ("A3", 9, 1), ("C#4", 10, 2),
+        ("B#3", 12, 2), ("G#3", 14, 2),
+        ("E4", 16, 2), ("F#4", 18, 1), ("E4", 19, 1),
+        ("C#4", 20, 2), ("E4", 22, 2),
+        ("F#4", 24, 1), ("E4", 25, 1), ("D#4", 26, 1), ("B#3", 27, 1),
+        ("C#4", 28, 4),
+    ]
+    NOTE["B#"] = 12
+    play(tr, theme, brass, 0.4, 0.05, 0.98)
+    return tr.render(reverb=0.52, room=4.0)
+
+
+def storm() -> np.ndarray:
+    """Storm Spire — D minor, 126 BPM, 16 bars: tremolo low strings, war drums, thunder and battle brass."""
+    tr = Track(126, 16)
+    prog = [("D", "m"), ("A#", "M"), ("C", "M"), ("A", "M"), ("D", "m"), ("F", "M"), ("G", "m"), ("A", "M")] * 2
+    for bar, (root, q) in enumerate(prog):
+        b = bar * 4
+        tr.add(b, low_strings(chord(root, q, 2) + [chord(root, q, 3)[0]], 4 * tr.beat, trem=12), 0.24)
+        tr.add(b, choir(chord(root, q, 3), 4 * tr.beat + 0.3), 0.12)
+        for beat in range(4):
+            f = hz(f"{root}1")
+            tr.add(b + beat, bass(f, tr.beat * 0.3), 0.3)
+            tr.add(b + beat + 0.5, bass(f, tr.beat * 0.2), 0.22)
+            tr.add(b + beat + 0.75, bass(f, tr.beat * 0.2), 0.22)
+        war_drums(tr, b, "X.x.X.x.X.x.XxXx" if bar % 4 == 3 else "X...x.X.X...x.X.", 0.55)
+        tr.add(b + 1, snare(), 0.26)
+        tr.add(b + 3, snare(), 0.26)
+        if bar % 8 == 0:
+            tr.add(b, thunder(4), 0.34, float(RNG.uniform(-0.5, 0.5)))
+    tr.add(0, swell(tr.bars * 4 * tr.beat, 900, 1 / (4 * 4 * tr.beat), 0.6), 0.08, 0.4)
+    call = [
+        ("D4", 0, 1.5), ("A3", 1.5, 0.5), ("D4", 2, 1), ("F4", 3, 1),
+        ("A#4", 4, 1.5), ("A4", 5.5, 0.5), ("G4", 6, 2),
+        ("C5", 8, 1.5), ("A#4", 9.5, 0.5), ("A4", 10, 1), ("G4", 11, 1),
+        ("C#4", 12, 1), ("E4", 13, 1), ("A4", 14, 2),
+        ("D5", 16, 1.5), ("C5", 17.5, 0.5), ("A4", 18, 1), ("F4", 19, 1),
+        ("C5", 20, 1), ("A4", 21, 1), ("F4", 22, 2),
+        ("A#4", 24, 1), ("A4", 25, 1), ("G4", 26, 1), ("A#4", 27, 1),
+        ("A4", 28, 2), ("C#5", 30, 2),
+    ]
+    play(tr, call, brass, 0.4, 0.05, 0.96)
+    play(tr, [(n[:-1] + str(int(n[-1]) + 1), bt + 32, l) for n, bt, l in call], brass, 0.36, -0.05, 0.96)
+    return tr.render(reverb=0.34, room=2.6)
+
+
 def fault() -> np.ndarray:
-    """Deep Fault — E Phrygian, 86 BPM, 8 bars: taiko, molten bass, embers and a low horn."""
-    tr = Track(86, 8)
+    """Deep Fault — E Phrygian, 76 BPM, 8 bars: molten drones, war drums, embers and a low chant."""
+    tr = Track(76, 8)
     prog = [("E", "m"), ("F", "M"), ("E", "m"), ("D", "M"), ("E", "m"), ("F", "M"), ("G", "M"), ("F", "M")]
     for bar, (root, q) in enumerate(prog):
         b = bar * 4
-        tr.add(b, pad(chord(root, q, 2) + chord(root, q, 3), 4 * tr.beat, 700, 0.3), 0.18)
-        tr.add(b, dist_bass(hz(f"{root}1"), 1.5 * tr.beat), 0.3)
-        tr.add(b + 1.5, dist_bass(hz(f"{root}1"), 0.5 * tr.beat), 0.24)
-        tr.add(b + 2, dist_bass(hz(f"{root}1"), 2 * tr.beat * 0.95), 0.28)
-        tr.add(b, taiko(), 0.55)
-        tr.add(b + 1.5, taiko(0.6), 0.25, -0.3)
-        tr.add(b + 2, taiko(), 0.45)
-        tr.add(b + 3, tom(110, 0.4), 0.22, 0.4)
-        tr.add(b + 3.5, tom(90, 0.4), 0.22, -0.4)
-        tr.add(b + 1, snare(0.3), 0.12)
-        tr.add(b + 3, snare(0.3), 0.14)
+        tr.add(b, choir(chord(root, q, 2) + chord(root, q, 3), 4 * tr.beat + 0.6), 0.22)
+        tr.add(b, dist_bass(hz(f"{root}1"), 2 * tr.beat), 0.3)
+        tr.add(b + 2, dist_bass(hz(f"{root}1"), 2 * tr.beat * 0.95), 0.26)
+        tr.add(b, drone(hz(f"{root}1"), 4 * tr.beat), 0.3)
+        war_drums(tr, b, "X..X..X.X.x.X.xx", 0.6)
+        tr.add(b, toll(hz(f"{root}2"), 4), 0.12, -0.3)
     total = tr.bars * 4 * tr.beat
-    tr.add(0, swell(total, 180, 1 / (2 * 4 * tr.beat), 0.5), 0.2)
-    tr.add(0, crackle(total, 14), 0.2, -0.4)
-    tr.add(0, crackle(total, 10), 0.18, 0.4)
+    tr.add(0, swell(total, 160, 1 / (2 * 4 * tr.beat), 0.5), 0.22)
+    tr.add(0, crackle(total, 12), 0.18, -0.4)
+    tr.add(0, crackle(total, 9), 0.16, 0.4)
     theme = [
         ("E3", 0, 1.5), ("F3", 1.5, 0.5), ("G3", 2, 1), ("B3", 3, 1),
         ("C4", 4, 1.5), ("B3", 5.5, 0.5), ("A3", 6, 2),
@@ -569,39 +601,37 @@ def fault() -> np.ndarray:
         ("G3", 24, 1), ("B3", 25, 1), ("D4", 26, 1), ("C4", 27, 1),
         ("B3", 28, 1.5), ("F3", 29.5, 0.5), ("E3", 30, 2),
     ]
-    play(tr, theme, horn, 0.5, 0.0, 0.97)
-    play(tr, [(n[:-1] + str(int(n[-1]) + 1), b, l) for n, b, l in theme], lambda f, d: lead(f, d, 1600), 0.07, 0.3, 0.9)
-    return tr.render(reverb=0.32, room=2.6)
+    play(tr, theme, brass, 0.46, 0.0, 0.97)
+    return tr.render(reverb=0.36, room=3.0)
 
 
 def heart() -> np.ndarray:
-    """Core Heart — B minor, 66 BPM, 8 bars: a heartbeat under choir, bells and a rising horn."""
-    tr = Track(66, 8)
+    """Core Heart — B minor, 58 BPM, 8 bars: a slow heartbeat under organ, full choir and a rising brass anthem."""
+    tr = Track(58, 8)
     prog = [("B", "m"), ("G", "M"), ("D", "M"), ("A", "M"), ("B", "m"), ("G", "M"), ("E", "m"), ("F#", "M")]
     for bar, (root, q) in enumerate(prog):
         b = bar * 4
-        tr.add(b, choir(chord(root, q, 3) + [chord(root, q, 4)[0]], 4 * tr.beat + 0.8), 0.22)
-        tr.add(b, strings(chord(root, q, 4), 4 * tr.beat), 0.07)
-        tr.add(b, bass(hz(f"{root}2"), 4 * tr.beat * 0.97), 0.26)
+        tr.add(b, choir(chord(root, q, 3) + [chord(root, q, 4)[0]], 4 * tr.beat + 0.8), 0.26)
+        tr.add(b, organ(chord(root, q, 2) + [hz(f"{root}1")], 4 * tr.beat, 1800), 0.16)
+        tr.add(b, low_strings(chord(root, q, 2), 4 * tr.beat), 0.12)
         tr.add(b, heartbeat(), 0.6)
         tr.add(b + 2, heartbeat(), 0.5)
         if bar % 2 == 1:
-            tr.add(b + 3, timpani(hz(f"{root}2"), 1.4), 0.3)
-        for i, f in enumerate(chord(root, q, 5)):
-            tr.add(b + 1 + i * 0.5, bell(f, 1.6), 0.05, (-0.5, 0.0, 0.5)[i])
+            for k in range(8):
+                tr.add(b + 2 + k * 0.25, timpani(hz(f"{root}2"), 0.5), 0.06 + k * 0.03)
+        tr.add(b, toll(hz(f"{root}2"), 5), 0.12, 0.25)
     theme = [
-        ("F#4", 0, 1), ("B4", 1, 1), ("D5", 2, 1.5), ("C#5", 3.5, 0.5),
-        ("B4", 4, 1), ("D5", 5, 1), ("G5", 6, 2),
-        ("F#5", 8, 1.5), ("E5", 9.5, 0.5), ("D5", 10, 1), ("A4", 11, 1),
-        ("C#5", 12, 1), ("E5", 13, 1), ("A5", 14, 2),
-        ("B5", 16, 1.5), ("A5", 17.5, 0.5), ("F#5", 18, 1), ("D5", 19, 1),
-        ("G5", 20, 1), ("F#5", 21, 1), ("D5", 22, 2),
-        ("E5", 24, 1), ("G5", 25, 1), ("B5", 26, 1), ("A5", 27, 1),
-        ("A#5", 28, 1.5), ("C#6", 29.5, 0.5), ("B5", 30, 2),
+        ("B3", 0, 2), ("D4", 2, 1), ("C#4", 3, 1),
+        ("B3", 4, 1), ("D4", 5, 1), ("G4", 6, 2),
+        ("F#4", 8, 1.5), ("E4", 9.5, 0.5), ("D4", 10, 2),
+        ("C#4", 12, 1), ("E4", 13, 1), ("A4", 14, 2),
+        ("B4", 16, 2), ("A4", 18, 1), ("F#4", 19, 1),
+        ("G4", 20, 1), ("F#4", 21, 1), ("D4", 22, 2),
+        ("E4", 24, 1), ("G4", 25, 1), ("B4", 26, 1), ("A4", 27, 1),
+        ("A#4", 28, 2), ("B4", 30, 2),
     ]
-    play(tr, theme, horn, 0.4, 0.05, 0.97)
-    play(tr, theme, lambda f, d: bell(f * 2, d), 0.14, -0.25, 1.0, 1.0)
-    return tr.render(reverb=0.42, room=3.4)
+    play(tr, theme, brass, 0.44, 0.05, 0.97)
+    return tr.render(reverb=0.5, room=3.8)
 
 
 TRACKS = {
