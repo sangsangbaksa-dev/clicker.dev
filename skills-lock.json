@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "skills": {
+    "impeccable": {
+      "source": "smithery.ai",
+      "sourceUrl": "https://smithery.ai/skills/seflless/impeccable",
+      "sourceType": "well-known",
+      "computedHash": "4f735ffb55d9e958e11419c66e1a420f2d8c06b53eaf09bbd8f7fb5779798895",
+      "wellKnownDigest": "sha256:bca10c67f4a3c1ae0324bca9e412d88716561c37609dd2ef09f0606b181de976"
+    },
+    "taste-check": {
+      "source": "smithery.ai",
+      "sourceUrl": "https://smithery.ai/skills/microck/taste-check",
+      "sourceType": "well-known",
+      "computedHash": "c0dd795df711277d1a5cadfe69bc1e33d3eaddeaba4aab58e4514d949a6a5e4b",
+      "wellKnownDigest": "sha256:e76fa355380e8bd1d0e247dbc54dd56deeb587ddc11496402a68953f52e04a6b"
+    }
+  }
+}
