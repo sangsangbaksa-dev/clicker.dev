@@ -1842,3 +1842,27 @@
     bottom: calc(154px + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* Desktop: CORE figures on the left, world wallet pills in their own column (they overlapped). */
+@media (min-width: 521px) {
+  [data-clicker] .clicker-top > .clicker-metric:first-child:has(.clicker-metric-coins) {
+    flex: 2.6 1 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 14px;
+    align-content: center;
+  }
+  [data-clicker] .clicker-top > .clicker-metric:first-child > :not(.clicker-metric-coins) { grid-column: 1; }
+  [data-clicker] .clicker-top > .clicker-metric:first-child > .clicker-metric-coins {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    align-self: center;
+    justify-content: flex-start;
+    position: static;
+  }
+  [data-clicker] .clicker-hub-dock { width: min(680px, calc(100% - 24px)); }
+  [data-clicker] .clicker-hunt-station:not(.is-battle) { position: absolute; }
+}
+@media (min-width: 521px) {
+  [data-clicker]:is(.is-region-hub, .is-entrance-hub):not(.is-view-manage) .clicker-story-beat { top: 92px; bottom: auto; }
+}
