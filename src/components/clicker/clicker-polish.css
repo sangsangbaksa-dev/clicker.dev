@@ -1801,3 +1801,12 @@
   max-width: 100%;
   box-sizing: border-box;
 }
+
+/* Mobile world screens: nothing overlaps the header, goal card or dock. */
+@media (max-width: 520px) {
+  [data-clicker] .clicker-hunt-station:not(.is-battle) { position: absolute; }
+  [data-clicker] .clicker-drill-station .clicker-drill { width: clamp(120px, calc(100svh - 640px), 240px); }
+  [data-clicker]:is(.is-region-hub, .is-entrance-hub) .clicker-story-beat {
+    bottom: calc(206px + env(safe-area-inset-bottom, 0px));
+  }
+}
