@@ -99,6 +99,13 @@
       "computedHash": "7b31199cce0f9a1b17acdf880469b0f9ddf9eb63577b1fde567def461d888287",
       "wellKnownDigest": "sha256:6c6f32dfe6d79994031ba2a9e0dfa8ae14da23cc3fb28e09d3820b5ee8bf93ab"
     },
+    "react-best-practices": {
+      "source": "smithery.ai",
+      "sourceUrl": "https://smithery.ai/skills/redpanda-data/react-best-practices",
+      "sourceType": "well-known",
+      "computedHash": "d414cb27352a49128431cd2559eb4e5440febf1abfc858fb51103416d6d0520c",
+      "wellKnownDigest": "sha256:b4d6a1e0ca3e589122fe6dadadb8d59bcce300b74e9ccb02dde92f9ef601831a"
+    },
     "taste-check": {
       "source": "smithery.ai",
       "sourceUrl": "https://smithery.ai/skills/microck/taste-check",
