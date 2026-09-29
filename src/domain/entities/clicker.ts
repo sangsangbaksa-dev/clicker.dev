@@ -78,6 +78,8 @@ export type RunState = {
   currentRegionId: string
   /** Per-region currency balances (region id → amount); resets with the run. */
   regionCurrency?: Record<string, number>
+  /** Last automatic core collapse (instability hit 100): when, and how much CORE it took. */
+  lastCollapse?: { at: number; loss: number }
   /** Forged gear tiers (index into WEAPONS / ARMORS / HELMETS / AMULETS). */
   gear?: { weapon: number; armor: number; helmet?: number; amulet?: number }
   /** Active lair battle against the current region's boss. */

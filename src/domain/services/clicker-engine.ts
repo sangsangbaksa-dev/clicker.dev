@@ -411,6 +411,25 @@ export function hoardInstabilityPerSecond(run: RunState, perSecond: number): num
   return Math.min(HOARD_MAX_RATE, HOARD_INSTABILITY_RATE * Math.log2(minutes / HOARD_FREE_MINUTES))
 }
 
+/**
+ * At 100 instability the core collapses on its own — no choice to make: half of the CORE held
+ * is lost and instability falls back to a calm level. The UI warns at INSTABILITY_WARNING.
+ */
+export const CRISIS_CORE_LOSS = 0.5
+export const CRISIS_RESET_INSTABILITY = 30
+export const INSTABILITY_WARNING = 70
+
+export function collapseCore(run: RunState, now: number): RunState {
+  const loss = run.coreEnergy * CRISIS_CORE_LOSS
+  return {
+    ...run,
+    crisisActive: false,
+    coreEnergy: run.coreEnergy - loss,
+    instability: CRISIS_RESET_INSTABILITY,
+    lastCollapse: { at: now, loss },
+  }
+}
+
 export function instabilityLevel(value: number): InstabilityLevel {
   if (value >= 100) return "CRISIS"
   if (value >= 70) return "HIGH"
@@ -960,7 +979,7 @@ export function processTick(
     lifetimeCoreEnergy: next.lifetimeCoreEnergy + gained,
   }
   if (!next.crisisActive) next = applyInstabilityDelta(next, hoardInstabilityPerSecond(next, snapshot.perSecond) * dt)
-  if (next.instability >= 100 && !next.crisisActive) next.crisisActive = true
+  if (next.instability >= 100 || next.crisisActive) next = collapseCore(next, now)
   next = tickBoss(next, config, now)
   next = refreshSkillPoints(next, config)
   next = refreshObjective(next, meta, config)

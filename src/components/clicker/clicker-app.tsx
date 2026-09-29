@@ -32,7 +32,7 @@ import { ClickerForge } from "@/components/clicker/clicker-forge"
 import { ARMORS, LAIR_BOSSES, WEAPONS, gearOf, shieldRemainingMs } from "@/domain/services/clicker-lair"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
 import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
-import { drillCooldownMs, isRegionUnlocked, monsterAlive } from "@/domain/services/clicker-engine"
+import { INSTABILITY_WARNING, drillCooldownMs, isRegionUnlocked, monsterAlive } from "@/domain/services/clicker-engine"
 import type { SfxName } from "@/components/clicker/clicker-sfx"
 import { CLICKER_ADMIN_REMEMBER_KEY, CLICKER_PRELAUNCH, isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
@@ -229,7 +229,6 @@ export function ClickerApp() {
   const [drawerDragging, setDrawerDragging] = useState(false)
   const drawerDraggingRef = useRef(false)
   const drawerDrag = useRef({ startY: 0, startH: 0, moved: false })
-  const crisisRef = useRef<HTMLDivElement | null>(null)
   const storyBeatRef = useRef<HTMLDivElement | null>(null)
   const adminRef = useRef<HTMLElement | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -251,7 +250,6 @@ export function ClickerApp() {
   })
 
 
-  useClickerDialogFocus(crisisRef, Boolean(game.hud?.crisisActive))
   useClickerDialogFocus(storyBeatRef, Boolean(storyBeat))
   useClickerDialogFocus(adminRef, CLICKER_ADMIN_UI && adminAllowed && adminOpen)
 
@@ -582,12 +580,25 @@ export function ClickerApp() {
     prevFeverActive.current = feverActive
   }, [feverActive])
 
-  const crisisActive = Boolean(game.hud?.crisisActive)
-  const prevCrisisActive = useRef(crisisActive)
+  // Instability: one warning on the way up past 70%, then at 100% the core collapses on its own.
+  const instabilityValue = game.hud?.instability.value ?? 0
+  const prevInstability = useRef(instabilityValue)
   useEffect(() => {
-    if (crisisActive && !prevCrisisActive.current) playSfx("crisis")
-    prevCrisisActive.current = crisisActive
-  }, [crisisActive])
+    if (instabilityValue >= INSTABILITY_WARNING && prevInstability.current < INSTABILITY_WARNING) {
+      playSfx("timerWarn")
+      game.notify(`경고 · 불안정 ${Math.round(instabilityValue)}% — 100%가 되면 CORE의 절반을 잃습니다`)
+    }
+    prevInstability.current = instabilityValue
+  }, [instabilityValue, game])
+  const collapseAt = game.save?.runState.lastCollapse?.at ?? 0
+  const prevCollapseAt = useRef(collapseAt)
+  useEffect(() => {
+    if (collapseAt && collapseAt !== prevCollapseAt.current) {
+      playSfx("crisis")
+      game.notify(`코어 붕괴 · CORE ${formatNumber(game.save?.runState.lastCollapse?.loss ?? 0)} 손실 (50%)`)
+    }
+    prevCollapseAt.current = collapseAt
+  }, [collapseAt, game])
 
   // Mine session: countdown ticks for the last 3 seconds, then the end cue.
   const inMineSurface = game.save?.settings.playSurface === "mine"
@@ -917,7 +928,7 @@ export function ClickerApp() {
         )}
         <div
           className="clicker-metric"
-          aria-label={`불안정 ${Math.round(hud.instability.value)}퍼센트 · ${hud.instability.label}${hud.crisisActive ? " · 위기 선택 필요" : ""}`}
+          aria-label={`불안정 ${Math.round(hud.instability.value)}퍼센트 · ${hud.instability.label}`}
         >
           <span>불안정</span>
           <div className={`clicker-bar ${instClass}`} aria-hidden>
@@ -1378,48 +1389,6 @@ export function ClickerApp() {
             >
               <strong className="clicker-combo-main">{hud.comboText}</strong>
               {hud.comboRemainText ? <span className="clicker-combo-remain">{hud.comboRemainText}</span> : null}
-            </div>
-          ) : null}
-          {hud.crisisActive ? (
-            <div
-              ref={crisisRef}
-              className="clicker-crisis"
-              role="alertdialog"
-              aria-labelledby="clicker-crisis-title"
-              aria-describedby="clicker-crisis-body"
-            >
-              <p className="clicker-crisis-kicker">불안정 · 위기</p>
-              <h2 id="clicker-crisis-title">CORE CRISIS · 위기</h2>
-              <p id="clicker-crisis-body">구조가 불안정합니다. 하나를 고르면 위기가 해소됩니다.</p>
-              <div className="clicker-crisis-actions">
-                <button
-                  className="clicker-primary"
-                  type="button"
-                  aria-label="안정화 — 안전 · 보유 CORE 일부 손실"
-                  onClick={() => game.resolveCrisis("STABILIZE")}
-                >
-                  <strong>안정화</strong>
-                  <span>안전 · 보유 CORE 일부 손실</span>
-                </button>
-                <button
-                  className="clicker-danger"
-                  type="button"
-                  aria-label="위험 감수 — 보상 가능 · 결과 불확실"
-                  onClick={() => game.resolveCrisis("RISK_IT")}
-                >
-                  <strong>위험 감수</strong>
-                  <span>보상 가능 · 결과 불확실</span>
-                </button>
-                <button
-                  className="clicker-danger"
-                  type="button"
-                  aria-label="비상 오버클럭 — 즉시 생산 분출 · 변동 큼"
-                  onClick={() => game.resolveCrisis("EMERGENCY_OVERCLOCK")}
-                >
-                  <strong>비상 오버클럭</strong>
-                  <span>즉시 생산 분출 · 변동 큼</span>
-                </button>
-              </div>
             </div>
           ) : null}
         </div>

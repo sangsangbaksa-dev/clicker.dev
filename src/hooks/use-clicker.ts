@@ -849,6 +849,7 @@ export function useClicker() {
   return {
     save,
     refuse,
+    notify: flash,
     hud,
     isCompleted,
     canCompleteEnding,

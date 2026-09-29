@@ -710,3 +710,20 @@ test("fever: its timer and bonuses hold while you are outside the mine", async (
   const ran = eng.processTick(inside, meta, config, now + 1000).run
   assert.ok(ran.fever.remainingTime < inside.fever.remainingTime)
 })
+
+test("instability 100: the core collapses on its own — half the CORE is lost, no choice", async () => {
+  const eng = await import("./clicker-engine.ts")
+  const config = clickerConfig
+  const meta = eng.createInitialMeta()
+  const now = 7_000_000
+  const run = { ...eng.createInitialRun(now, meta, config), coreEnergy: 1_000, instability: 100, lastTickAt: now }
+  const after = eng.processTick(run, meta, config, now + 100).run
+  assert.equal(after.crisisActive, false)
+  assert.equal(after.instability, eng.CRISIS_RESET_INSTABILITY)
+  assert.equal(after.lastCollapse?.at, now + 100)
+  assert.ok(Math.abs((after.lastCollapse?.loss ?? 0) - after.coreEnergy) < 1e-6, "loss equals what is left: exactly half")
+  // An old save stuck in a crisis resolves the same way on its next tick.
+  const stuck = eng.processTick({ ...run, instability: 50, crisisActive: true }, meta, config, now + 100).run
+  assert.equal(stuck.crisisActive, false)
+  assert.equal(stuck.instability, eng.CRISIS_RESET_INSTABILITY)
+})
