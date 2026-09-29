@@ -41,8 +41,8 @@ export const BOSS_SCENES: Record<string, SceneDef> = {
   },
   golem: {
     src: "/clicker/boss/phase_vault.webp",
-    body: { x: 50, y: 38, w: 92, h: 60 },
-    eyes: [{ x: 48, y: 16 }, { x: 56, y: 16 }],
+    body: { x: 52, y: 37, w: 94, h: 62 },
+    eyes: [{ x: 49.5, y: 20.6 }, { x: 56.7, y: 21.1 }],
     strike: { x: 50, y: 80 },
     weather: "crystal",
     tint: "80 245 225",
