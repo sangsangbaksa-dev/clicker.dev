@@ -32,6 +32,9 @@ export function worldBgm(regionId: string | undefined): Track {
   return (regionId && WORLD_BGM[regionId]) || "hub"
 }
 
+/** Master level under the player's volume slider: the score sits well below SFX. */
+const BGM_LEVEL = 0.5
+
 /** Scene changes crossfade over this long instead of cutting. */
 const FADE_MS = 900
 /** Fever lifts the mix, crisis sits it back; neither changes pitch. */
@@ -114,7 +117,7 @@ export function useClickerBgm(
         const level =
           target > levels[key] ? Math.min(target, levels[key] + delta) : Math.max(target, levels[key] - delta)
         levels[key] = level
-        setLevel(key, audio, Math.min(1, level * gain))
+        setLevel(key, audio, Math.min(1, level * gain) * BGM_LEVEL)
         if (level === 0 && !audio.paused) audio.pause()
         if (level !== target) moving = true
       }

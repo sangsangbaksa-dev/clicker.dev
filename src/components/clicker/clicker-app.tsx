@@ -34,7 +34,7 @@ import { ClickerBossFight } from "@/components/clicker/clicker-boss"
 import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
 import { drillCooldownMs, isRegionUnlocked, monsterAlive } from "@/domain/services/clicker-engine"
 import type { SfxName } from "@/components/clicker/clicker-sfx"
-import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
+import { CLICKER_ADMIN_REMEMBER_KEY, CLICKER_PRELAUNCH, isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import { playLaser, playSfx, unlockSfx } from "@/components/clicker/clicker-sfx"
 import { ClickerAchievementsPanel } from "@/components/clicker/panels/achievements-panel"
@@ -48,7 +48,8 @@ import "./clicker.css"
 import "./clicker-polish.css"
 
 /** Next inlines NODE_ENV — production builds dead-code-eliminate admin JSX. */
-const CLICKER_ADMIN_UI = process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_CLICKER_ADMIN === "1"
+const CLICKER_ADMIN_UI =
+  process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_CLICKER_ADMIN === "1" || CLICKER_PRELAUNCH
 
 /** Nova colour each active skill paints across the mine when cast. */
 const SKILL_NOVA_COLOR: Record<string, string> = {
@@ -379,6 +380,14 @@ export function ClickerApp() {
       setAdminAllowed(false)
       setAdminOpen(false)
       return
+    }
+    // Before launch, one `?admin=1` visit keeps the panel in this browser.
+    try {
+      if (CLICKER_PRELAUNCH && new URLSearchParams(window.location.search).get("admin") === "1") {
+        window.localStorage.setItem(CLICKER_ADMIN_REMEMBER_KEY, "1")
+      }
+    } catch {
+      /* storage blocked — the query still works for this visit */
     }
     setAdminAllowed(isClickerAdminAllowed())
   }, [])

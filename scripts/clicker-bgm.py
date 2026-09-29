@@ -419,38 +419,58 @@ def hub() -> np.ndarray:
     return tr.render(reverb=0.45, room=3.4)
 
 
+def cello(f: float, dur: float) -> np.ndarray:
+    """Solo cello: one bowed voice with a slow, aching vibrato."""
+    n = int(dur * SR)
+    t = np.arange(n) / SR
+    vib = 1 + 0.007 * np.sin(2 * np.pi * 5.0 * t) * np.clip(t * 1.2, 0, 1)
+    phase = np.cumsum(f * vib) / SR
+    x = sum(np.sin(2 * np.pi * phase * k) / k ** 1.4 for k in range(1, 9))
+    bow = np.clip(t / 0.25, 0, 1) * (0.85 + 0.15 * np.sin(2 * np.pi * 0.6 * t))
+    return lowpass(x * bow, 1800) * env(n, 0.12, 0.35, 0.9)
+
+
 def mine() -> np.ndarray:
-    """Mine run — C minor, 112 BPM, 16 bars: driving cello ostinato, war drums, brass stabs, choir."""
-    tr = Track(112, 16)
-    prog = [("C", "m"), ("G#", "M"), ("D#", "M"), ("A#", "M")] * 2 + [("F", "m"), ("G#", "M"), ("G", "M"), ("G", "M")] * 2
+    """Mine run — A minor, 84 BPM, 16 bars: a lone cello and horn lament over a slow heartbeat drum."""
+    tr = Track(84, 16)
+    prog = [("A", "m"), ("F", "M"), ("C", "M"), ("E", "M"), ("D", "m"), ("A", "m"), ("E", "M"), ("A", "m")] * 2
     for bar, (root, q) in enumerate(prog):
         b = bar * 4
-        lo = hz(f"{root}2")
-        for e in range(8):
-            f = lo * (2 if e % 4 == 2 else 1)
-            tr.add(b + e * 0.5, low_strings([f], tr.beat * 0.48), 0.26, -0.2 if e % 2 else 0.2)
-        tr.add(b, choir(chord(root, q, 3), 4 * tr.beat + 0.3), 0.14)
-        tr.add(b, bass(lo / 2, 4 * tr.beat * 0.97), 0.3)
-        war_drums(tr, b, "X..x..X.X.x.X..." if bar % 4 != 3 else "X..x..X.X.XxXXXX", 0.5)
-        tr.add(b + 1, snare(0.25), 0.2)
-        tr.add(b + 3, snare(0.25), 0.22)
-        for beat in (0, 1.5, 3):
-            tr.add(b + beat, brass(hz(f"{root}3"), tr.beat * 0.4), 0.18, 0.15)
-    theme = [
-        ("C4", 0, 1), ("D#4", 1, 1), ("G4", 2, 1.5), ("F4", 3.5, 0.5),
-        ("D#4", 4, 1), ("C4", 5, 1), ("G#3", 6, 2),
-        ("A#3", 8, 1), ("D#4", 9, 1), ("G4", 10, 1), ("A#4", 11, 1),
-        ("G#4", 12, 1.5), ("G4", 13.5, 0.5), ("F4", 14, 2),
+        tr.add(b, choir(chord(root, q, 3), 4 * tr.beat + 0.6), 0.16)
+        tr.add(b, low_strings(chord(root, q, 2), 4 * tr.beat), 0.13)
+        tr.add(b, drone(hz(f"{root}1"), 4 * tr.beat), 0.2)
+        # Falling bell arpeggio, like water dripping in the dark.
+        tones = sorted(chord(root, q, 4), reverse=True) + [chord(root, q, 3)[2]]
+        for i, f in enumerate(tones):
+            tr.add(b + 0.5 + i, bell(f, 2.2), 0.05, (-0.5, -0.15, 0.15, 0.5)[i])
+        # Slow heartbeat drum, not a march.
+        tr.add(b, taiko(1.3), 0.3)
+        tr.add(b + 0.4, taiko(0.7), 0.12)
+        tr.add(b + 2, taiko(1.1), 0.18)
+    lament = [
+        ("E4", 0, 1.5), ("C4", 1.5, 0.5), ("A3", 2, 2),
+        ("A3", 4, 1), ("C4", 5, 1), ("F4", 6, 1.5), ("E4", 7.5, 0.5),
+        ("E4", 8, 1), ("D4", 9, 1), ("C4", 10, 1), ("G3", 11, 1),
+        ("G#3", 12, 2), ("B3", 14, 2),
+        ("A3", 16, 1), ("F4", 17, 1.5), ("E4", 18.5, 0.5), ("D4", 19, 1),
+        ("C4", 20, 1.5), ("B3", 21.5, 0.5), ("A3", 22, 2),
+        ("B3", 24, 1), ("D4", 25, 1), ("G#3", 26, 2),
+        ("A3", 28, 4),
     ]
-    rise = [
-        ("F4", 0, 1), ("G#4", 1, 1), ("C5", 2, 1.5), ("A#4", 3.5, 0.5),
-        ("G#4", 4, 1), ("G4", 5, 1), ("F4", 6, 2),
-        ("G4", 8, 1), ("B4", 9, 1), ("D5", 10, 1), ("F5", 11, 1),
-        ("D#5", 12, 1), ("D5", 13, 1), ("B4", 14, 2),
+    answer = [
+        ("A4", 0, 2), ("G4", 2, 1), ("E4", 3, 1),
+        ("F4", 4, 1.5), ("E4", 5.5, 0.5), ("D4", 6, 1), ("C4", 7, 1),
+        ("E4", 8, 2), ("G4", 10, 1), ("E4", 11, 1),
+        ("D4", 12, 1), ("B3", 13, 1), ("G#3", 14, 2),
+        ("F4", 16, 2), ("E4", 18, 1), ("D4", 19, 1),
+        ("C4", 20, 1), ("E4", 21, 1), ("A4", 22, 2),
+        ("G#4", 24, 1.5), ("E4", 25.5, 0.5), ("B3", 26, 2),
+        ("A3", 28, 4),
     ]
-    for start, phrase in ((0, theme), (16, theme), (32, rise), (48, rise)):
-        play(tr, [(n, bt + start, l) for n, bt, l in phrase], brass, 0.38, 0.0, 0.95)
-    return tr.render(reverb=0.3, room=2.2)
+    play(tr, lament, cello, 0.44, -0.1, 0.98)
+    play(tr, [(n, bt + 32, l) for n, bt, l in answer], horn, 0.36, 0.1, 0.97)
+    play(tr, [(n[:-1] + str(int(n[-1]) - 1), bt + 32, l) for n, bt, l in answer], cello, 0.2, -0.2, 0.98)
+    return tr.render(reverb=0.46, room=3.4)
 
 
 def chamber() -> np.ndarray:
