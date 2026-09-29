@@ -8,12 +8,33 @@
       "computedHash": "ecf1e9025cf25d7a812e8c194362eae4d76b8f9e28d4469ac9b9276aeb4291b5",
       "wellKnownDigest": "sha256:7c04e3e4801b486d89b2e4052e48a47d57f88b1252f30d00c2c6bd4325deaa58"
     },
+    "8-bit-pixel-art-patterns": {
+      "source": "smithery.ai",
+      "sourceUrl": "https://smithery.ai/skills/theorcdev/8-bit-pixel-art-patterns",
+      "sourceType": "well-known",
+      "computedHash": "f10de184d10cb8e460350eeaa694669a78737af92a900e4a5e4729302bba58c2",
+      "wellKnownDigest": "sha256:79d9b027df236b4da11a0851c37a8eb5f98f9c34106e4415b5f96ac927b40165"
+    },
+    "accessibility": {
+      "source": "smithery.ai",
+      "sourceUrl": "https://smithery.ai/skills/davila7/accessibility",
+      "sourceType": "well-known",
+      "computedHash": "a16b37abf64fe636f19f43b22aa1a09a4d5271e2d2972dfb9333f7bc7fa0355d",
+      "wellKnownDigest": "sha256:dc165ca3e9e38c14fd2a34f34471f5877a0b2c98fc5c77b226f2bc1c59150381"
+    },
     "develop-web-game": {
       "source": "smithery.ai",
       "sourceUrl": "https://smithery.ai/skills/davila7/develop-web-game",
       "sourceType": "well-known",
       "computedHash": "068c4a3f0eda395d11a5b1dddc384b0a39812e047ead0958cf009e8e8b7fdb11",
       "wellKnownDigest": "sha256:b2809cf7391df3647ed8f98216d5fef1a3d3f9e3930877fd0922bdbfc1c6a260"
+    },
+    "fixing-motion-performance": {
+      "source": "smithery.ai",
+      "sourceUrl": "https://smithery.ai/skills/ibelick/fixing-motion-performance",
+      "sourceType": "well-known",
+      "computedHash": "426dcf33f23419643f2aab71e2253e1a5b5684a808fabb8a4ad135e489ed7a0f",
+      "wellKnownDigest": "sha256:32132b9c34ee3bb845f92c2c2c3c28fc9df9a3b1640aec641f7a47110b843ea6"
     },
     "game-art": {
       "source": "smithery.ai",
@@ -70,6 +91,13 @@
       "sourceType": "well-known",
       "computedHash": "03bb463f3adc9b84b53df66927d5535e31bc062e5270348893f052ed9fe1e030",
       "wellKnownDigest": "sha256:d26247252fdb139513fa0d8d541c87bedc8615abd7d698a35fa59faf00b18022"
+    },
+    "nextjs-best-practices": {
+      "source": "smithery.ai",
+      "sourceUrl": "https://smithery.ai/skills/davila7/nextjs-best-practices",
+      "sourceType": "well-known",
+      "computedHash": "7b31199cce0f9a1b17acdf880469b0f9ddf9eb63577b1fde567def461d888287",
+      "wellKnownDigest": "sha256:6c6f32dfe6d79994031ba2a9e0dfa8ae14da23cc3fb28e09d3820b5ee8bf93ab"
     },
     "taste-check": {
       "source": "smithery.ai",
