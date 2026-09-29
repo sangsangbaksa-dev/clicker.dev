@@ -63,6 +63,7 @@ import {
 import type { ClickerSettings, CrisisChoice, RegionIntroDef, SaveData } from "@/domain/entities/clicker"
 import { productionSnapshot } from "@/domain/services/clicker-engine"
 import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
+import { GEAR, gearOf, type GearSlot } from "@/domain/services/clicker-lair"
 import { achievementProgress, autoDrillRate, baseDrillRate } from "@/domain/services/clicker-bonus"
 import { formatNumber } from "@/domain/services/clicker-format"
 import type { MineSessionStart, MineSessionSummary } from "@/domain/services/clicker-mine-session"
@@ -698,14 +699,15 @@ export function useClicker() {
   )
 
   const forge = useCallback(
-    (slot: "weapon" | "armor") => {
+    (slot: GearSlot) => {
       if (!saveRef.current) return
       const result = clickerForge(saveRef.current, slot)
       if (!result.ok) return refuse(result.error)
       commit(result.value)
       persistNow(result.value)
       playSfx("upgrade")
-      flash(slot === "weapon" ? "무기 제작 완료" : "방어구 제작 완료")
+      const tier = GEAR[slot][gearOf(result.value.runState)[slot]]
+      flash(`제작 완료 · ${tier.name}`)
     },
     [commit, persistNow, refuse, flash],
   )

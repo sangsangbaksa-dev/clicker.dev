@@ -57,7 +57,7 @@ import {
   type MineSessionSummary,
 } from "@/domain/services/clicker-mine-session"
 import { decodeClickerSave, encodeClickerSave } from "@/domain/services/clicker-save-codec"
-import { enterLair, forgeGear, leaveLair, strikeLair, tickLair } from "@/domain/services/clicker-lair"
+import { enterLair, forgeGear, leaveLair, strikeLair, tickLair, type GearSlot } from "@/domain/services/clicker-lair"
 import { encodeSaveCode, parseSaveCode, type ParsedSaveCode } from "@/domain/services/clicker-save-transfer"
 import { backupClickerRaw, readClickerRaw, writeClickerRaw } from "@/infrastructure/persistence/clicker-save"
 
@@ -372,7 +372,7 @@ export function clickerStrikeLair(save: SaveData, now: number) {
   return { save: next.defeated ? withAchievements(out) : out, damage: next.damage, reward: next.reward, defeated: next.defeated }
 }
 
-export function clickerForge(save: SaveData, slot: "weapon" | "armor"): UseCaseResult<SaveData> {
+export function clickerForge(save: SaveData, slot: GearSlot): UseCaseResult<SaveData> {
   const next = forgeGear(save.runState, config, slot)
   if (next.error) return { ok: false, status: 400, error: next.error }
   return ok({ ...save, runState: next.run })

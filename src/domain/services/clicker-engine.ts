@@ -1551,6 +1551,8 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         gear: {
           weapon: Number.isInteger(run.gear?.weapon) ? Math.max(0, run.gear!.weapon) : 0,
           armor: Number.isInteger(run.gear?.armor) ? Math.max(0, run.gear!.armor) : 0,
+          helmet: Number.isInteger(run.gear?.helmet) ? Math.max(0, run.gear!.helmet!) : 0,
+          amulet: Number.isInteger(run.gear?.amulet) ? Math.max(0, run.gear!.amulet!) : 0,
         },
         // A reload walks you back out of any lair fight; shields keep running.
         lair: null,

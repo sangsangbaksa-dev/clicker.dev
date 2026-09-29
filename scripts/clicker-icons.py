@@ -38,7 +38,7 @@ VARIANTS = {
         ("producer_horizon_engine", "producer_horizon_engine", False, 0),
     ],
 }
-PLAIN = ["potion", "skill", "buff", "currency"]
+PLAIN = ["potion", "skill", "buff", "currency", "gear"]
 
 
 def hue_rotate(rgb: np.ndarray, degrees: float) -> np.ndarray:
@@ -74,13 +74,21 @@ def matte(rgb: np.ndarray) -> np.ndarray:
     return np.minimum(np.maximum(lum_a, core), edge)
 
 
+def gear_matte(rgb: np.ndarray) -> np.ndarray:
+    """Forge art reaches into the corners (diagonal blades), so no edge fade — luminance only."""
+    lum = rgb.max(axis=2)
+    corners = np.concatenate([lum[:12, :12].ravel(), lum[:12, -12:].ravel(), lum[-12:, :12].ravel(), lum[-12:, -12:].ravel()])
+    floor = float(np.percentile(corners, 90))
+    return np.clip((lum - floor - 0.01) / 0.08, 0, 1)
+
+
 def build(src: Path, dst: Path, mirror: bool, hue: float) -> None:
     im = Image.open(src).convert("RGB").resize((SIZE, SIZE), Image.LANCZOS)
     if mirror:
         im = im.transpose(Image.FLIP_LEFT_RIGHT)
     rgb = np.asarray(im, dtype=np.float64) / 255
     rgb = hue_rotate(rgb, hue)
-    alpha = matte(rgb)
+    alpha = gear_matte(rgb) if src.parent.name == "gear" else matte(rgb)
     out = np.dstack([rgb, alpha]) * 255
     Image.fromarray(out.round().astype(np.uint8), "RGBA").save(dst, "WEBP", quality=86, method=6)
 

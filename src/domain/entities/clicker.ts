@@ -78,8 +78,8 @@ export type RunState = {
   currentRegionId: string
   /** Per-region currency balances (region id → amount); resets with the run. */
   regionCurrency?: Record<string, number>
-  /** Forged gear tiers (index into WEAPONS / ARMORS). */
-  gear?: { weapon: number; armor: number }
+  /** Forged gear tiers (index into WEAPONS / ARMORS / HELMETS / AMULETS). */
+  gear?: { weapon: number; armor: number; helmet?: number; amulet?: number }
   /** Active lair battle against the current region's boss. */
   lair?: LairFight | null
   /** After beating the player, a boss is shielded until this time (region id → ms). */

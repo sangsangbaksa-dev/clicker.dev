@@ -834,8 +834,8 @@ export function ClickerApp() {
     >
       <header className="clicker-top">
         {!inMine ? (
-          <div className="clicker-metric" aria-label={`CORE 에너지 ${formatNumber(run.coreEnergy)} · 초당 ${formatNumber(game.snapshot?.perSecond ?? 0)}`}>
-            <span>CORE 에너지</span>
+          <div className="clicker-metric" aria-label={`코어 광석 ${formatNumber(run.coreEnergy)} · 초당 ${formatNumber(game.snapshot?.perSecond ?? 0)}`}>
+            <span>코어 광석</span>
             <strong>
               <CountUpNumber value={run.coreEnergy} />
             </strong>
@@ -1423,34 +1423,6 @@ export function ClickerApp() {
             </div>
           ) : null}
         </div>
-        {!inMine ? (
-          <aside
-            className="clicker-goal"
-            aria-label={`현재 목표 · ${hud.currentGoal.title} · ${hud.currentGoal.progressText}`}
-          >
-            <p className="clicker-goal-kicker">현재 목표</p>
-            <h2 className="clicker-goal-title">{hud.currentGoal.title}</h2>
-            <p className="clicker-goal-progress">{hud.currentGoal.progressText}</p>
-            <div className="clicker-bar clicker-goal-bar" aria-hidden>
-              <i style={{ width: `${Math.round(hud.currentGoal.ratio * 100)}%` }} />
-            </div>
-            {hud.currentGoal.line ? <p className="clicker-goal-line">{hud.currentGoal.line}</p> : null}
-          </aside>
-        ) : null}
-        {!inMine ? (
-        <div
-          className="clicker-goal-compact"
-          role="status"
-          aria-label={`현재 목표 · ${hud.currentGoal.title} · ${hud.currentGoal.progressText}`}
-        >
-          <span className="clicker-goal-compact-kicker">목표</span>
-          <strong className="clicker-goal-compact-title">{hud.currentGoal.title}</strong>
-          <span className="clicker-goal-compact-progress">{hud.currentGoal.progressText}</span>
-          <div className="clicker-bar clicker-goal-compact-bar" aria-hidden>
-            <i style={{ width: `${Math.round(hud.currentGoal.ratio * 100)}%` }} />
-          </div>
-        </div>
-        ) : null}
         {!inMine ? (
           <nav className="clicker-hub-dock" aria-label="관리 화면으로 이동">
             {drawerTabs.map(([id, label, ko]) => (

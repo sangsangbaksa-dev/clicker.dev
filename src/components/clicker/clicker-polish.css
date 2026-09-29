@@ -1951,10 +1951,16 @@
 [data-clicker] .clicker-forge-summary b { color: #ffe08a; }
 [data-clicker] .clicker-forge-panel { width: 100%; margin: 0; }
 
-/* Bigger drill rig (~1.6×), still bounded by the stage height so it never runs into the dock. */
-[data-clicker] .clicker-drill-station .clicker-drill { width: clamp(300px, 52vh, 460px); }
+/* Drill rig: larger than before but kept clear of the header, with no blue haze — no glow
+   disc behind it, no cyan halo, no gush jet on taps. */
+[data-clicker] .clicker-drill-station .clicker-drill {
+  width: clamp(260px, 42vh, 360px);
+  background: none;
+}
+[data-clicker] .clicker-drill-station .clicker-drill img { filter: drop-shadow(0 10px 22px rgb(0 0 0 / 0.6)); }
+[data-clicker] .clicker-drill-gush { display: none; }
 @media (max-width: 520px) {
-  [data-clicker] .clicker-drill-station .clicker-drill { width: clamp(210px, calc(100svh - 430px), 330px); }
+  [data-clicker] .clicker-drill-station .clicker-drill { width: clamp(190px, calc(100svh - 480px), 280px); }
 }
 
 /* Achievement mark: a small diamond (outline until earned, gold once unlocked) instead of a star glyph. */
@@ -1973,3 +1979,22 @@
   border-color: #ffe7a6;
   box-shadow: 0 0 8px rgb(255 211 107 / 0.7);
 }
+
+/* Forge slots: current item → next item, each with its painted icon. */
+[data-clicker] .clicker-forge-panel .clicker-forge-slots { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+[data-clicker] .clicker-forge-label small { margin-left: 4px; font-weight: 600; opacity: 0.6; }
+[data-clicker] .clicker-forge-items { display: flex; align-items: center; gap: 8px; margin: 6px 0 8px; }
+[data-clicker] .clicker-forge-item { display: flex; align-items: center; gap: 8px; flex: 1 1 0; min-width: 0; margin: 0; }
+[data-clicker] .clicker-forge-item img {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  object-fit: contain;
+  border-radius: 10px;
+  background: radial-gradient(circle, rgb(255 190 110 / 0.14), transparent 70%);
+}
+[data-clicker] .clicker-forge-item figcaption { display: grid; gap: 2px; min-width: 0; font-size: 12px; }
+[data-clicker] .clicker-forge-item figcaption b { font-size: 12.5px; }
+[data-clicker] .clicker-forge-item figcaption span { opacity: 0.75; }
+[data-clicker] .clicker-forge-item.is-next figcaption b { color: #ffe08a; }
+[data-clicker] .clicker-forge-arrow { flex: none; opacity: 0.6; }
