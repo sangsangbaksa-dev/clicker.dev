@@ -13,6 +13,9 @@ import { VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/domain/services/clicker-b
 import { playSfx } from "@/components/clicker/clicker-sfx"
 import "./clicker-mine.css"
 
+/** Strikes per second while Space is held down. */
+const SPACE_HOLD_CPS = 7
+
 export type MineStrikeResult = { critical: boolean }
 
 type Spark = {
@@ -206,6 +209,41 @@ export function ClickerMine({
     }, 1000 / autoRate)
     return () => window.clearInterval(id)
   }, [autoRate, hitAt])
+
+  // Holding Space mines at a steady 7 strikes a second (first strike on press).
+  useEffect(() => {
+    let timer = 0
+    const hitRandom = () => {
+      const b = live.current.box
+      if (!b) return
+      hitAt(b.left + b.width * (0.25 + Math.random() * 0.5), b.top + b.height * (0.2 + Math.random() * 0.55), false)
+    }
+    const stop = () => {
+      if (timer) window.clearInterval(timer)
+      timer = 0
+    }
+    const typing = (t: EventTarget | null) =>
+      t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))
+    const onDown = (e: KeyboardEvent) => {
+      if (e.code !== "Space" || e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return
+      e.preventDefault()
+      if (timer || e.repeat) return
+      hitRandom()
+      timer = window.setInterval(hitRandom, 1000 / SPACE_HOLD_CPS)
+    }
+    const onUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") stop()
+    }
+    window.addEventListener("keydown", onDown)
+    window.addEventListener("keyup", onUp)
+    window.addEventListener("blur", stop)
+    return () => {
+      stop()
+      window.removeEventListener("keydown", onDown)
+      window.removeEventListener("keyup", onUp)
+      window.removeEventListener("blur", stop)
+    }
+  }, [hitAt])
 
   // Golden vein: maybe one per session, a few seconds in, briefly clickable.
   useEffect(() => {

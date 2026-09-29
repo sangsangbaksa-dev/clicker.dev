@@ -21,7 +21,10 @@ import {
   scaledCost,
   worldlineMultiplier,
   upgradeCurrencyCosts,
-  payRegionCurrency,
+  purchaseCurrencyCosts,
+  feverPaused,
+  payCurrencyCosts,
+  type CurrencyCost,
 } from "./clicker-engine"
 import { formatNumber } from "./clicker-format"
 
@@ -70,6 +73,7 @@ export function buildHud(
 ): MainHudViewModel {
   const prod = snapshot ?? productionSnapshot(run, meta, config, now)
   const feverOn = run.fever.phase === "FEVER" || run.fever.phase === "IGNITION"
+  const feverHeld = feverPaused(run)
   const feverCooling = run.fever.phase === "COOL_DOWN"
   const obj = config.objectives.find((o) => o.id === run.currentObjectiveId) ?? config.objectives[0]
   let current = 0
@@ -101,7 +105,9 @@ export function buildHud(
       remainingSeconds: feverOn || feverCooling ? Math.max(0, run.fever.remainingTime) : 0,
       combo: run.fever.combo,
       finisherReady: run.fever.finisherReady,
-      phaseLabel: feverOn
+      phaseLabel: feverHeld
+        ? "FEVER 일시정지"
+        : feverOn
         ? run.fever.finisherReady
           ? "피니셔 준비"
           : `FEVER ×${Math.max(1, run.fever.combo)}`
@@ -133,7 +139,7 @@ export function buildHud(
       })(),
       ratio: target <= 0 ? 1 : clampRatio(current / target),
     },
-    coreVisual: run.crisisActive || run.instability >= 90 ? "crisis" : feverOn ? "fever" : "idle",
+    coreVisual: run.crisisActive || run.instability >= 90 ? "crisis" : feverOn && !feverHeld ? "fever" : "idle",
     crisisActive: run.crisisActive,
     canRebirth: canRebirth(run, meta, config),
     rebirthRequirement: rebirthRequirement(meta, config),
@@ -212,7 +218,7 @@ export type UpgradeView = {
   category: UpgradeCategory
   costText: string
   /** Region currencies this upgrade also needs (late game). */
-  extraCosts: Array<{ regionId: string; icon: string; name: string; amountText: string; enough: boolean }>
+  extraCosts: CurrencyCostView[]
   status: "AVAILABLE" | "OWNED" | "LOCKED" | "POOR"
   reason: string
   assetId: string
@@ -236,8 +242,7 @@ export function buildUpgradeViews(run: RunState, config: GameConfig): UpgradeVie
       status = "POOR"
       reason = "CORE 부족"
     }
-    const extra = upgradeCurrencyCosts(run, config, u)
-    const short = extra.find((c) => !payRegionCurrency({ ...run.regionCurrency }, config, c.regionId, c.amount))
+    const { views: extraCosts, short } = currencyCostViews(run, config, upgradeCurrencyCosts(run, config, u))
     if (status === "AVAILABLE" && short) {
       status = "POOR"
       reason = `${short.name} 부족`
@@ -248,18 +253,29 @@ export function buildUpgradeViews(run: RunState, config: GameConfig): UpgradeVie
       description: u.description,
       category: u.category,
       costText: formatNumber(scaledCost(run, u.cost)),
-      extraCosts: extra.map((c) => ({
-        regionId: c.regionId,
-        icon: c.icon,
-        name: c.name,
-        amountText: formatNumber(c.amount),
-        enough: payRegionCurrency({ ...run.regionCurrency }, config, c.regionId, c.amount),
-      })),
+      extraCosts,
       status,
       reason,
       assetId: u.assetId ?? "",
     }
   })
+}
+
+export type CurrencyCostView = { regionId: string; icon: string; name: string; amountText: string; enough: boolean }
+
+/** World-currency lines for a price, plus the first one the wallet cannot cover (all costs together). */
+function currencyCostViews(run: RunState, config: GameConfig, costs: CurrencyCost[]): { views: CurrencyCostView[]; short?: CurrencyCost } {
+  const { short } = payCurrencyCosts(run, config, costs)
+  return {
+    short,
+    views: costs.map((c) => ({
+      regionId: c.regionId,
+      icon: c.icon,
+      name: c.name,
+      amountText: formatNumber(c.amount),
+      enough: !payCurrencyCosts(run, config, [c]).short && c.regionId !== short?.regionId,
+    })),
+  }
 }
 
 export type PotionShopView = {
@@ -268,6 +284,9 @@ export type PotionShopView = {
   description: string
   assetId: string
   shopCostText: string
+  extraCosts: CurrencyCostView[]
+  /** Why it cannot be bought right now ("" when it can). */
+  shortReason: string
   owned: number
   canBuy: boolean
   durationSeconds: number
@@ -280,6 +299,9 @@ export type ActiveSkillShopView = {
   description: string
   assetId: string
   shopCostText: string
+  extraCosts: CurrencyCostView[]
+  /** Why it cannot be bought right now ("" when it can). */
+  shortReason: string
   owned: number
   canBuy: boolean
   effectSummary: string
@@ -296,6 +318,9 @@ export type SkillNodeView = {
   requires: string[]
   status: "OWNED" | "AVAILABLE" | "POOR" | "LOCKED"
   canBuy: boolean
+  extraCosts: CurrencyCostView[]
+  /** Why an unlocked circuit cannot be bought yet ("" when it can). */
+  shortReason: string
   /** Shown only once every prerequisite is owned. */
   visible: boolean
   assetId: string
@@ -311,6 +336,9 @@ export function buildSkillNodeViews(run: RunState, config: GameConfig): SkillNod
     else if (!prereqsMet) status = "LOCKED"
     else if (run.coreEnergy < scaledCost(run, node.cost)) status = "POOR"
     else status = "AVAILABLE"
+    const { views: extraCosts, short } = currencyCostViews(run, config, purchaseCurrencyCosts(run, config, node.cost))
+    if (status === "AVAILABLE" && short) status = "POOR"
+    const shortReason = status !== "POOR" ? "" : run.coreEnergy < scaledCost(run, node.cost) ? "CORE 부족" : `${short?.name ?? "화폐"} 부족`
     return {
       id: node.id,
       name: node.name,
@@ -321,6 +349,8 @@ export function buildSkillNodeViews(run: RunState, config: GameConfig): SkillNod
       requires,
       status,
       canBuy: status === "AVAILABLE",
+      extraCosts,
+      shortReason,
       visible: isSkillNodeVisible(run, node),
       assetId: node.assetId ?? "",
     }
@@ -375,6 +405,16 @@ function activeSkillEffectSummary(skill: {
   return parts.join(" · ") || "효과 없음"
 }
 
+function shopCurrency(run: RunState, config: GameConfig, shopCost: number) {
+  const { views, short } = currencyCostViews(run, config, purchaseCurrencyCosts(run, config, shopCost))
+  const coreShort = run.coreEnergy < scaledCost(run, shopCost)
+  return {
+    extraCosts: views,
+    canBuy: !coreShort && !short,
+    shortReason: coreShort ? "CORE 부족" : short ? `${short.name} 부족` : "",
+  }
+}
+
 export function buildPotionShopViews(run: RunState, config: GameConfig): PotionShopView[] {
   return [...config.potions]
     .sort((a, b) => a.shopCost - b.shopCost)
@@ -384,8 +424,8 @@ export function buildPotionShopViews(run: RunState, config: GameConfig): PotionS
       description: potion.description,
       assetId: potion.assetId,
       shopCostText: formatNumber(scaledCost(run, potion.shopCost)),
+      ...shopCurrency(run, config, potion.shopCost),
       owned: run.potions[potion.id] ?? 0,
-      canBuy: run.coreEnergy >= scaledCost(run, potion.shopCost),
       durationSeconds: potion.duration,
       effectSummary: potionEffectSummary(potion),
     }))
@@ -520,8 +560,8 @@ export function buildActiveSkillShopViews(run: RunState, config: GameConfig): Ac
       description: skill.description,
       assetId: skill.assetId,
       shopCostText: formatNumber(scaledCost(run, skill.shopCost)),
+      ...shopCurrency(run, config, skill.shopCost),
       owned: run.skillItems[skill.id] ?? 0,
-      canBuy: run.coreEnergy >= scaledCost(run, skill.shopCost),
       effectSummary: activeSkillEffectSummary(skill),
       cooldownSeconds: skill.cooldown,
     }))

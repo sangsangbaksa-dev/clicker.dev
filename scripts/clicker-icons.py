@@ -38,7 +38,7 @@ VARIANTS = {
         ("producer_horizon_engine", "producer_horizon_engine", False, 0),
     ],
 }
-PLAIN = ["potion", "skill", "buff"]
+PLAIN = ["potion", "skill", "buff", "currency"]
 
 
 def hue_rotate(rgb: np.ndarray, degrees: float) -> np.ndarray:

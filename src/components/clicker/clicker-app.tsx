@@ -11,6 +11,7 @@ import {
 import { CLICKER_ASSETS, clickerConfig } from "@/data/clicker/catalog"
 import { formatNumber } from "@/domain/services/clicker-format"
 import { useClicker } from "@/hooks/use-clicker"
+import { useClickerBgm, worldBgm } from "@/hooks/use-clicker-bgm"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine } from "@/components/clicker/clicker-mine"
@@ -206,6 +207,19 @@ export function ClickerApp() {
   const [skillMapOpen, setSkillMapOpen] = useState(false)
   /** Ending sequence after the guardian falls: two videos, then the story cards. */
   const [endingPhase, setEndingPhase] = useState<"fall" | "awaken" | null>(null)
+
+  useClickerBgm(game.hud?.coreVisual, {
+    // Cinematics carry their own soundtrack.
+    scene: enteringMine || game.regionIntro || endingPhase
+      ? "silent"
+      : pendingRebirth || endingOpen
+        ? "chamber"
+        : game.save?.settings.playSurface === "mine"
+          ? "mine"
+          : worldBgm(game.save?.runState.currentRegionId),
+    muted: game.otherTabActive || (game.save?.settings.musicMuted ?? false),
+    volume: game.save?.settings.musicVolume ?? 0,
+  })
 
 
   useClickerDialogFocus(crisisRef, Boolean(game.hud?.crisisActive))

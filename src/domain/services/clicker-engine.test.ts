@@ -108,7 +108,8 @@ test("fever starts from gauge or potion and ends after duration", () => {
   run = { ...run, fever: { ...run.fever, gauge: 100 } }
   const fromGauge = startFever(run, meta, config, "GAUGE", null)
   assert.equal(fromGauge.run.fever.phase, "FEVER")
-  let later = { run: fromGauge.run, meta }
+  // FEVER only counts down inside a mine session.
+  let later = { run: { ...fromGauge.run, mineSessionEndsAt: now + 60_000 }, meta }
   for (let t = 1; t <= 25; t++) {
     later = processTick(later.run, later.meta, config, now + t * 1000)
   }
@@ -570,8 +571,8 @@ test("region currency: earned where you stand, spent by late upgrades", async ()
 
   const late = [...config.upgrades].sort((a, b) => b.cost - a.cost)[0]
   const costs = eng.upgradeCurrencyCosts(run0, config, late)
-  assert.equal(costs.length, 1, "late upgrades cost only the newest world's currency")
-  assert.equal(costs[0].regionId, "core_heart")
+  assert.deepEqual(costs.map((c) => c.regionId), ["core_heart", "deep_fault"], "late upgrades cost the two newest worlds' currencies")
+  assert.ok(costs[0].amount > costs[1].amount, "the newest world takes the bigger share")
   assert.equal(eng.upgradeCurrencyCosts(run0, config, [...config.upgrades].sort((a, b) => a.cost - b.cost)[0]).length, 0)
   const rich = {
     ...run0,
@@ -594,6 +595,30 @@ test("region currency: earned where you stand, spent by late upgrades", async ()
   assert.equal(eng.regionCurrencyBalance(covered.run, "signal_relay"), 0)
   assert.equal(eng.regionCurrencyBalance(covered.run, "phase_vault"), 1)
   assert.ok(eng.buyUpgrade({ ...midRich, regionCurrency: { signal_relay: need - 1 } }, config, mid.id).error)
+})
+
+test("world currencies: skill circuits and shop items charge them too", async () => {
+  const eng = await import("./clicker-engine.ts")
+  const config = clickerConfig
+  const run0 = eng.createInitialRun(0, eng.createInitialMeta(), config)
+  const node = [...config.skillNodes].filter((n) => !n.requires?.length).sort((a, b) => b.cost - a.cost)[0]
+  const pricey = config.skillNodes.find((n) => eng.purchaseCurrencyCosts(run0, config, n.cost).length === 2)!
+  assert.ok(pricey, "some circuit costs two world currencies")
+  const costs = eng.purchaseCurrencyCosts(run0, config, pricey.cost)
+  const rich = { ...run0, coreEnergy: pricey.cost * 10, ownedSkillNodeIds: pricey.requires ?? [] }
+  assert.match(eng.buySkillNode(rich, config, pricey.id).error ?? "", /부족/)
+  const wallet = Object.fromEntries(costs.map((c) => [c.regionId, c.amount]))
+  const bought = eng.buySkillNode({ ...rich, regionCurrency: wallet }, config, pricey.id)
+  assert.equal(bought.error, undefined)
+  for (const c of costs) assert.equal(eng.regionCurrencyBalance(bought.run, c.regionId), 0)
+  assert.equal(eng.purchaseCurrencyCosts(run0, config, node.cost).length <= 2, true)
+
+  const potion = [...config.potions].sort((a, b) => b.shopCost - a.shopCost)[0]
+  const potionCosts = eng.purchaseCurrencyCosts(run0, config, potion.shopCost)
+  if (potionCosts.length) {
+    const poor = eng.buyPotion({ ...run0, coreEnergy: potion.shopCost * 10 }, config, potion.id)
+    assert.match(poor.error ?? "", /부족/)
+  }
 })
 
 test("lair: enter, get knocked out → 3-minute shield; forge gear; kill pays out", async () => {
@@ -663,4 +688,25 @@ test("instability: hoarding CORE and world currency pushes it up", async () => {
   const more = eng.hoardInstabilityPerSecond({ ...run0, coreEnergy: 10 * 60 * 8, regionCurrency: { signal_relay: 10 * 60 * 56 } }, 10)
   assert.ok(some > 0)
   assert.ok(more > some, "world currency counts toward the hoard")
+})
+
+test("fever: its timer and bonuses hold while you are outside the mine", async () => {
+  const eng = await import("./clicker-engine.ts")
+  const config = clickerConfig
+  const meta = eng.createInitialMeta()
+  const now = 5_000_000
+  const base = eng.createInitialRun(now, meta, config)
+  const charged = { ...base, fever: { ...base.fever, gauge: config.feverGaugeMax } }
+  const lit = eng.startFever(charged, meta, config, "GAUGE", null)
+  assert.equal(lit.error, undefined)
+  const outside = { ...lit.run, mineSessionEndsAt: 0, lastTickAt: now }
+  assert.ok(eng.feverPaused(outside))
+  const held = eng.processTick(outside, meta, config, now + 1000).run
+  assert.equal(held.fever.remainingTime, outside.fever.remainingTime)
+  assert.equal(held.fever.phase, outside.fever.phase)
+
+  const inside = { ...outside, mineSessionEndsAt: now + 60_000 }
+  assert.ok(!eng.feverPaused(inside))
+  const ran = eng.processTick(inside, meta, config, now + 1000).run
+  assert.ok(ran.fever.remainingTime < inside.fever.remainingTime)
 })

@@ -1871,9 +1871,9 @@
 /* World-currency glyphs: painted icons sized to the chip's text line. */
 [data-clicker] .clicker-currency-icon {
   display: inline-block;
-  width: 1.35em;
-  height: 1.35em;
-  vertical-align: -0.32em;
+  width: 1.55em;
+  height: 1.55em;
+  vertical-align: -0.42em;
   object-fit: contain;
   filter: drop-shadow(0 0 3px rgb(0 0 0 / 0.55));
   flex: none;
@@ -1891,3 +1891,17 @@
 }
 [data-clicker] .clicker-skillmap-node.is-final.is-locked img { filter: grayscale(0.7) brightness(0.55); }
 [data-clicker] .clicker-skillmap-node.is-final.is-owned { box-shadow: 0 0 26px rgb(255 224 138 / 0.95); }
+
+/* World-currency prices next to CORE on shop cards and in the skill-map detail. */
+[data-clicker] .clicker-shop-meta-row { flex-wrap: wrap; row-gap: 4px; }
+[data-clicker] .clicker-shop-price.is-region { margin-left: 8px; }
+[data-clicker] .clicker-shop-price.is-short strong,
+[data-clicker] .clicker-skillmap-costs .is-short { color: #ff7a6b; }
+[data-clicker] .clicker-skillmap-costs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 6px 0 0;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}

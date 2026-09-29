@@ -1,6 +1,16 @@
 "use client"
 
+import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
+import type { CurrencyCostView } from "@/domain/services/clicker-view"
 import type { PanelProps } from "./types"
+
+function CurrencyCosts({ costs }: { costs: CurrencyCostView[] }) {
+  return costs.map((c) => (
+    <span key={c.regionId} className={`clicker-shop-price is-region${c.enough ? "" : " is-short"}`} title={c.name}>
+      <CurrencyIcon regionId={c.regionId} /> <strong>{c.amountText}</strong>
+    </span>
+  ))
+}
 
 export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) {
   return (
@@ -8,7 +18,7 @@ export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) 
       <h3 className="clicker-shop-section">물약 · FEVER</h3>
       {game.potionShop.map((item) => {
         const statusClass = item.canBuy ? "is-affordable" : "is-poor"
-        const statusLabel = item.canBuy ? "구매 가능" : "CORE 부족"
+        const statusLabel = item.canBuy ? "구매 가능" : item.shortReason
         return (
           <article
             key={item.id}
@@ -34,6 +44,7 @@ export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) 
                 <span className="clicker-shop-price">
                   <strong>{item.shopCostText}</strong> CORE
                 </span>
+                <CurrencyCosts costs={item.extraCosts} />
               </div>
             </div>
             <button
@@ -46,7 +57,7 @@ export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) 
                 bumpIcon(item.id)
               }}
             >
-              {item.canBuy ? `구매 · ${item.shopCostText}` : "CORE 부족"}
+              {item.canBuy ? `구매 · ${item.shopCostText}` : item.shortReason}
             </button>
           </article>
         )
@@ -54,7 +65,7 @@ export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) 
       <h3 className="clicker-shop-section">액티브 스킬</h3>
       {game.activeSkillShop.map((item) => {
         const statusClass = item.canBuy ? "is-affordable" : "is-poor"
-        const statusLabel = item.canBuy ? "구매 가능" : "CORE 부족"
+        const statusLabel = item.canBuy ? "구매 가능" : item.shortReason
         return (
           <article
             key={item.id}
@@ -76,6 +87,7 @@ export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) 
                 <span className="clicker-shop-price">
                   <strong>{item.shopCostText}</strong> CORE
                 </span>
+                <CurrencyCosts costs={item.extraCosts} />
               </div>
             </div>
             <button
@@ -88,7 +100,7 @@ export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) 
                 bumpIcon(item.id)
               }}
             >
-              {item.canBuy ? `구매 · ${item.shopCostText}` : "CORE 부족"}
+              {item.canBuy ? `구매 · ${item.shopCostText}` : item.shortReason}
             </button>
           </article>
         )

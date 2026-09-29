@@ -11,6 +11,7 @@ import {
 import type { SkillNodeView } from "@/domain/services/clicker-view"
 import { formatNumber } from "@/domain/services/clicker-format"
 import { useClickerEscape } from "@/components/clicker/clicker-a11y"
+import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 
 type TreeNode = SkillNodeView & SkillCell
 
@@ -227,6 +228,15 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
             </small>
             <strong>{selected.name}</strong>
             <p>{selected.description}</p>
+            {selected.status !== "OWNED" && selected.extraCosts.length ? (
+              <p className="clicker-skillmap-costs">
+                {selected.extraCosts.map((c) => (
+                  <span key={c.regionId} className={c.enough ? "" : "is-short"} title={c.name}>
+                    <CurrencyIcon regionId={c.regionId} /> {c.amountText}
+                  </span>
+                ))}
+              </p>
+            ) : null}
           </div>
           <button
             className="clicker-primary"
@@ -238,7 +248,9 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
               ? "활성"
               : selected.status === "LOCKED"
                 ? "선행 회로 필요"
-                : `${formatNumber(selected.cost)} CORE`}
+                : selected.status === "POOR" && selected.shortReason !== "CORE 부족"
+                  ? selected.shortReason
+                  : `${formatNumber(selected.cost)} CORE`}
           </button>
         </aside>
       ) : null}

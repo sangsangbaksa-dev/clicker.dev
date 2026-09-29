@@ -4,15 +4,33 @@ import { useEffect, useRef } from "react"
 import type { CoreVisual } from "@/domain/services/clicker-view"
 import { sharedAudioContext } from "@/components/clicker/clicker-sfx"
 
-/** Hub / mine loops plus the chamber cue for rebirth and ending. */
+/** Hub / mine loops, one theme per world, plus the chamber cue for rebirth and ending. */
 const BGM_SRC = {
   hub: "/clicker/audio/bgm_hub_v2.mp3",
   mine: "/clicker/audio/bgm_mine_v2.mp3",
   chamber: "/clicker/audio/bgm_chamber_v2.mp3",
+  relay: "/clicker/audio/bgm_world_relay.mp3",
+  vault: "/clicker/audio/bgm_world_vault.mp3",
+  storm: "/clicker/audio/bgm_world_storm.mp3",
+  fault: "/clicker/audio/bgm_world_fault.mp3",
+  heart: "/clicker/audio/bgm_world_heart.mp3",
 } as const
 
 type Track = keyof typeof BGM_SRC
 export type BgmScene = Track | "silent"
+
+/** Each world's hub theme; worlds not listed (the starting chamber) use the hub loop. */
+const WORLD_BGM: Record<string, Track> = {
+  signal_relay: "relay",
+  phase_vault: "vault",
+  storm_spire: "storm",
+  deep_fault: "fault",
+  core_heart: "heart",
+}
+
+export function worldBgm(regionId: string | undefined): Track {
+  return (regionId && WORLD_BGM[regionId]) || "hub"
+}
 
 /** Scene changes crossfade over this long instead of cutting. */
 const FADE_MS = 900
@@ -37,7 +55,7 @@ export function useClickerBgm(
   useEffect(() => {
     const tracks: Partial<Record<Track, HTMLAudioElement>> = {}
     const gains: Partial<Record<Track, GainNode>> = {}
-    const levels: Record<Track, number> = { hub: 0, mine: 0, chamber: 0 }
+    const levels = Object.fromEntries(Object.keys(BGM_SRC).map((k) => [k, 0])) as Record<Track, number>
     let unlocked = false
     let hidden = document.visibilityState === "hidden"
     let raf = 0

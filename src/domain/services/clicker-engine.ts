@@ -432,6 +432,15 @@ function feverActive(fever: FeverState): boolean {
   return fever.phase === "FEVER" || fever.phase === "IGNITION"
 }
 
+/** FEVER only runs inside a mine session; outside, its timer and bonuses are on hold. */
+export function feverPaused(run: RunState): boolean {
+  return feverActive(run.fever) && run.mineSessionEndsAt <= 0
+}
+
+function feverRunning(run: RunState): boolean {
+  return feverActive(run.fever) && !feverPaused(run)
+}
+
 export function currentRegionDef(run: RunState, config: GameConfig) {
   return (
     config.regions.find((r) => r.id === run.currentRegionId) ??
@@ -472,7 +481,7 @@ export function derivedClick(run: RunState, meta: MetaState, config: GameConfig)
     config.baseCritChance +
     upgrades.reduce((s, u) => s + (u.criticalChanceAdd ?? 0), 0) +
     skills.reduce((s, n) => s + (n.criticalChanceAdd ?? 0), 0)
-  if (feverActive(run.fever)) {
+  if (feverRunning(run)) {
     critChance += config.feverCritChanceAdd
     if (run.fever.potionId) {
       const potion = config.potions.find((p) => p.id === run.fever.potionId)
@@ -500,7 +509,7 @@ export function derivedClick(run: RunState, meta: MetaState, config: GameConfig)
 }
 
 function feverMultipliers(run: RunState, meta: MetaState, config: GameConfig) {
-  if (!feverActive(run.fever)) {
+  if (!feverRunning(run)) {
     return { click: 1, production: 1, intensity: 1 }
   }
   const upgrades = ownedUpgrades(run, config)
@@ -726,7 +735,7 @@ export function processClick(
   if (quake) energy += hit * strikes.quakeMultiplier
 
   const feverState = { ...run.fever }
-  if (feverActive(feverState)) {
+  if (feverRunning(run)) {
     feverState.combo = Math.min(feverState.combo + 1, config.feverComboCap)
     if (isCritical) feverState.critsThisFever += 1
     feverState.finisherReady =
@@ -768,7 +777,7 @@ export function processClick(
       comboMultiplier: combo.multiplier,
       feverBonus: fever.click,
       instabilityDelta: 0,
-      fx: isCritical ? "CRITICAL" : feverActive(feverState) ? "FEVER_CLICK" : "CLICK",
+      fx: isCritical ? "CRITICAL" : feverRunning(run) ? "FEVER_CLICK" : "CLICK",
       lightning,
       quake,
       echo,
@@ -781,10 +790,13 @@ export function buyPotion(run: RunState, config: GameConfig, potionId: string): 
   if (!potion) return { run, error: "물약을 찾을 수 없습니다." }
   const cost = scaledCost(run, potion.shopCost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
+  const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, potion.shopCost))
+  if (short) return { run, error: `${short.name}이(가) 부족합니다.` }
   return {
     run: {
       ...run,
       coreEnergy: run.coreEnergy - cost,
+      regionCurrency,
       potions: { ...run.potions, [potionId]: (run.potions[potionId] ?? 0) + 1 },
     },
   }
@@ -799,10 +811,13 @@ export function buyActiveSkillItem(
   if (!skill) return { run, error: "스킬을 찾을 수 없습니다." }
   const cost = scaledCost(run, skill.shopCost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
+  const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, skill.shopCost))
+  if (short) return { run, error: `${short.name}이(가) 부족합니다.` }
   return {
     run: {
       ...run,
       coreEnergy: run.coreEnergy - cost,
+      regionCurrency,
       skillItems: { ...run.skillItems, [skillId]: (run.skillItems[skillId] ?? 0) + 1 },
     },
   }
@@ -898,7 +913,7 @@ export function processTick(
   }
   next.skillCooldowns = cooldowns
 
-  if (next.fever.phase === "FEVER" || next.fever.phase === "IGNITION") {
+  if (feverRunning(next)) {
     next.fever = { ...next.fever, remainingTime: next.fever.remainingTime - dt }
     const potion = next.fever.potionId
       ? config.potions.find((p) => p.id === next.fever.potionId)
@@ -1022,25 +1037,50 @@ export function buyProducer(
 }
 
 /**
- * Late upgrades also cost the currency of the newest region normally open by then — only that one,
- * so each world's currency funds its own tier and older worlds never need re-grinding.
+ * Advanced purchases (upgrades, skill circuits, shop items) also cost world currencies: a share
+ * of the price in the newest world normally open by then, and a smaller share in the world
+ * before it. Older-world shortfalls are covered by newer wallets (see `payRegionCurrency`), so a
+ * player who has moved on is never sent back to grind.
  */
 const REGION_CURRENCY_UNLOCK_LEAD = 3
-const REGION_CURRENCY_COST_SHARE = 0.1
+/** Newest world first. */
+const REGION_CURRENCY_COST_SHARES = [0.1, 0.05]
 
 export type CurrencyCost = { regionId: string; name: string; icon: string; amount: number }
 
-export function upgradeCurrencyCosts(run: RunState, config: GameConfig, upgrade: UpgradeDef): CurrencyCost[] {
-  const cost = scaledCost(run, upgrade.cost)
+export function purchaseCurrencyCosts(run: RunState, config: GameConfig, baseCost: number): CurrencyCost[] {
+  const cost = scaledCost(run, baseCost)
   return config.regions
-    .filter((r) => r.currency && !r.isHome && r.unlockAtLifetimeEnergy * REGION_CURRENCY_UNLOCK_LEAD <= upgrade.cost)
-    .slice(-1)
-    .map((r) => ({
+    .filter((r) => r.currency && !r.isHome && r.unlockAtLifetimeEnergy * REGION_CURRENCY_UNLOCK_LEAD <= baseCost)
+    .slice(-REGION_CURRENCY_COST_SHARES.length)
+    .reverse()
+    .map((r, i) => ({
       regionId: r.id,
       name: r.currency!.name,
       icon: r.currency!.icon,
-      amount: Math.ceil(cost * REGION_CURRENCY_COST_SHARE),
+      amount: Math.ceil(cost * REGION_CURRENCY_COST_SHARES[i]),
     }))
+}
+
+export function upgradeCurrencyCosts(run: RunState, config: GameConfig, upgrade: UpgradeDef): CurrencyCost[] {
+  return purchaseCurrencyCosts(run, config, upgrade.cost)
+}
+
+/**
+ * Pays every currency cost from a copy of the wallet, oldest world first so its shortfall can
+ * still draw on the newer wallets. Returns the new wallet, or the first currency that ran short.
+ */
+export function payCurrencyCosts(
+  run: RunState,
+  config: GameConfig,
+  costs: CurrencyCost[],
+): { wallet: Record<string, number>; short?: CurrencyCost } {
+  const wallet = { ...run.regionCurrency }
+  const order = config.regions.map((r) => r.id)
+  for (const c of [...costs].sort((a, b) => order.indexOf(a.regionId) - order.indexOf(b.regionId))) {
+    if (!payRegionCurrency(wallet, config, c.regionId, c.amount)) return { wallet: { ...run.regionCurrency }, short: c }
+  }
+  return { wallet }
 }
 
 export function regionCurrencyBalance(run: RunState, regionId: string): number {
@@ -1096,11 +1136,8 @@ export function buyUpgrade(
   }
   const cost = scaledCost(run, upgrade.cost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
-  const regionCurrency = { ...run.regionCurrency }
-  for (const c of upgradeCurrencyCosts(run, config, upgrade)) {
-    const paid = payRegionCurrency(regionCurrency, config, c.regionId, c.amount)
-    if (!paid) return { run, error: `${c.name}이(가) 부족합니다.` }
-  }
+  const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, upgradeCurrencyCosts(run, config, upgrade))
+  if (short) return { run, error: `${short.name}이(가) 부족합니다.` }
   return {
     run: {
       ...run,
@@ -1130,10 +1167,13 @@ export function buySkillNode(
   }
   const cost = scaledCost(run, node.cost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
+  const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, node.cost))
+  if (short) return { run, error: `${short.name}이(가) 부족합니다.` }
   return {
     run: {
       ...run,
       coreEnergy: run.coreEnergy - cost,
+      regionCurrency,
       ownedSkillNodeIds: [...run.ownedSkillNodeIds, nodeId],
     },
   }
@@ -1554,7 +1594,7 @@ export function slayMonster(
   const skills = ownedSkills(run, config)
   const rewardMul = skills.reduce((m, n) => m * (n.monsterRewardMultiplier ?? 1), 1)
   // Same cooldown cuts as the mine re-entry and the drill, plus hunting-specific ones.
-  const respawnSec = Math.max(5, monster.respawnSec - skills.reduce((s, n) => s + (n.monsterRespawnReduce ?? 0) + (n.cooldownReduceSec ?? 0), 0))
+  const respawnSec = Math.max(5, monster.respawnSec - skills.reduce((s, n) => s + (n.monsterRespawnReduce ?? 0), 0))
   // Hunting grounds are the region's main income, so their kills pay a much bigger click floor.
   const clickFloor = region.huntMode ? 150 : 25
   const reward = (perSecond * monster.rewardSeconds + derivedClick(run, meta, config).click * clickFloor) * rewardMul
