@@ -6,15 +6,24 @@
   overflow: hidden;
   container-type: size;
   pointer-events: none;
+  /* The painting replaces the region backdrop entirely — no blue stage showing round it. */
+  background: #04060a;
 }
-/* Cover the stage with the 9:16 painting (like object-fit: cover) so overlays stay pinned to the art. */
+/* The 9:16 painting covers a portrait stage; on a wide stage it is zoomed at most a little past
+   fit-to-height (so the monster stays in frame instead of a blown-up patch of sky), and its
+   side edges fade into black. Overlays stay pinned to the art. */
 .boss-scene-box {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: max(100cqw, 56.25cqh);
+  width: clamp(56.25cqh, 100cqw, 72cqh);
   aspect-ratio: 9 / 16;
   translate: -50% -50%;
+}
+.boss-scene-base {
+  --edge: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+  -webkit-mask-image: var(--edge);
+  mask-image: var(--edge);
 }
 .boss-scene-base,
 .boss-scene-body {
