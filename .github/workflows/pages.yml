@@ -2,9 +2,8 @@ name: GitHub Pages
 
 # 클리커를 정적 사이트로 빌드해 https://<owner>.github.io/<repo>/ 에 배포한다.
 # 저장소 Settings → Pages → Source를 "GitHub Actions"로 한 번 설정해야 한다.
+# 정식 배포는 Vercel(main)이 맡으므로 이 워크플로는 수동 실행만 한다.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
