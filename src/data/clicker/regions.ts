@@ -20,7 +20,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
   },
   {
     id: "signal_relay",
-    currency: { name: "원유", icon: "🛢️" },
+    currency: { name: "코어 에너지", icon: "🔋" },
     name: "Signal Relay",
     description: "코어에서 뻗어 나간 중계 복도. 잔향이 벽면을 타고 흐릅니다.",
     challenge: {

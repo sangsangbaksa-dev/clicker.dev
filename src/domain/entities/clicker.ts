@@ -240,6 +240,10 @@ export type UpgradeDef = {
   finisherReward?: number
   unlockProducerId?: string
   unlockFeverStarts?: number
+  /** Region drill: seconds cut from the cooldown between bores. */
+  drillCooldownReduceSec?: number
+  /** Region drill: fewer taps needed to fill the gauge. */
+  drillTapsReduce?: number
 }
 
 export type PotionDef = {

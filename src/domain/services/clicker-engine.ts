@@ -393,6 +393,20 @@ export function applyInstabilityDelta(run: RunState, delta: number): RunState {
   return { ...run, instability: clamp(run.instability + delta, 0, 100) }
 }
 
+/**
+ * Hoarding destabilises the core: CORE plus every world currency held, measured in minutes of
+ * current production, pushes instability up (logarithmically, so it is a nudge to spend, not a
+ * trap). Under ~2 minutes of income held, nothing happens.
+ */
+export const HOARD_FREE_MINUTES = 2
+export const HOARD_INSTABILITY_RATE = 0.04
+export function hoardInstabilityPerSecond(run: RunState, perSecond: number): number {
+  const held = run.coreEnergy + Object.values(run.regionCurrency ?? {}).reduce((s, v) => s + (v > 0 ? v : 0), 0)
+  const minutes = held / Math.max(perSecond * 60, 1)
+  if (!(minutes > HOARD_FREE_MINUTES)) return 0
+  return HOARD_INSTABILITY_RATE * Math.log2(minutes / HOARD_FREE_MINUTES)
+}
+
 export function instabilityLevel(value: number): InstabilityLevel {
   if (value >= 100) return "CRISIS"
   if (value >= 70) return "HIGH"
@@ -926,6 +940,7 @@ export function processTick(
     coreEnergy: next.coreEnergy + gained,
     lifetimeCoreEnergy: next.lifetimeCoreEnergy + gained,
   }
+  if (!next.crisisActive) next = applyInstabilityDelta(next, hoardInstabilityPerSecond(next, snapshot.perSecond) * dt)
   if (next.instability >= 100 && !next.crisisActive) next.crisisActive = true
   next = tickBoss(next, config, now)
   next = refreshSkillPoints(next, config)
@@ -1555,6 +1570,23 @@ export function slayMonster(
 
 /** Taps needed to fill the drill gauge. */
 export const DRILL_TAPS = 25
+const DRILL_MIN_TAPS = 8
+const DRILL_MIN_COOLDOWN_MS = 5_000
+
+function ownedUpgradeSum(run: RunState, config: GameConfig, field: "drillCooldownReduceSec" | "drillTapsReduce"): number {
+  return config.upgrades.reduce((s, u) => s + (run.ownedUpgradeIds.includes(u.id) ? (u[field] ?? 0) : 0), 0)
+}
+
+/** Taps to fill the drill gauge; drill-speed upgrades lower it. */
+export function drillTaps(run: RunState, config: GameConfig): number {
+  return Math.max(DRILL_MIN_TAPS, DRILL_TAPS - ownedUpgradeSum(run, config, "drillTapsReduce"))
+}
+
+/** Cooldown after a bore: the shared re-entry cooldown minus drill coolant upgrades. */
+export function drillCooldownMs(run: RunState, config: GameConfig): number {
+  const cut = ownedUpgradeSum(run, config, "drillCooldownReduceSec") * 1000
+  return Math.max(DRILL_MIN_COOLDOWN_MS, reentryCooldownMs(run, config) - cut)
+}
 
 /**
  * One tap on the region drill rig. Fills the gauge; the tap that fills it bores the vein:
@@ -1569,7 +1601,7 @@ export function drillStrike(
   if (run.drillCooldownUntil > now) {
     return { run, meta, reward: 0, error: `시추 장비 냉각 중 · ${Math.ceil((run.drillCooldownUntil - now) / 1000)}초` }
   }
-  const gauge = Math.min(1, run.drillGauge + 1 / DRILL_TAPS)
+  const gauge = Math.min(1, run.drillGauge + 1 / drillTaps(run, config))
   if (gauge < 1 - 1e-9) return { run: { ...run, drillGauge: gauge }, meta, reward: 0 }
   const perSecond = productionSnapshot(run, meta, config, now).perSecond
   const reward = perSecond * 90 + derivedClick(run, meta, config).click * 60
@@ -1577,7 +1609,7 @@ export function drillStrike(
     run: {
       ...run,
       drillGauge: 0,
-      drillCooldownUntil: now + reentryCooldownMs(run, config),
+      drillCooldownUntil: now + drillCooldownMs(run, config),
       coreEnergy: run.coreEnergy + reward,
       lifetimeCoreEnergy: run.lifetimeCoreEnergy + reward,
     },

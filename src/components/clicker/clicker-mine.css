@@ -457,3 +457,7 @@
   filter: grayscale(0.8);
   cursor: default;
 }
+
+/* FEVER sits on the same row as the haul and the timer. */
+[data-clicker] .clicker-mine-hud { grid-template-columns: repeat(3, auto); }
+[data-clicker] .clicker-mine-hud:has(.clicker-mine-overdrive) { grid-template-columns: repeat(4, auto); }

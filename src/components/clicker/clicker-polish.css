@@ -1707,3 +1707,54 @@
 [data-clicker] .clicker-drill-ground,
 [data-clicker] .clicker-drill-glow,
 [data-clicker] .clicker-stage-region { display: none !important; }
+
+/* Drill station labels sit above the rig on a dark pill so the art never cuts through them. */
+[data-clicker] .clicker-drill-station .clicker-region-station-kicker,
+[data-clicker] .clicker-drill-station .clicker-drill-hint {
+  position: relative;
+  z-index: 4;
+  width: fit-content;
+  max-width: calc(100% - 24px);
+  margin-inline: auto;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgb(2 6 12 / 0.72);
+  color: #e8f6ff;
+  line-height: 1.35;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  text-align: center;
+}
+[data-clicker] .clicker-drill-station .clicker-drill-gauge { position: relative; z-index: 4; }
+
+/* Nothing gets cut: the dock wraps instead of scrolling off the edge, the goal bar stays under
+   its title, and the drill gauge sits clear of the rig with room to show its full width. */
+@media (min-width: 521px) {
+  /* One row that always fits: buttons share the width instead of scrolling off the edge. */
+  [data-clicker] .clicker-hub-dock { overflow: visible; }
+  [data-clicker] .clicker-hub-dock-btn { flex: 1 1 0; min-width: 0; padding-inline: 4px; }
+  [data-clicker] .clicker-hub-dock-btn span { font-size: 8px; letter-spacing: 0.02em; white-space: nowrap; }
+}
+/* Short screens: the drill title would run into the goal card — drop it (the station is labelled). */
+@media (max-height: 820px) {
+  [data-clicker] .clicker-drill-station .clicker-region-station-kicker { display: none; }
+}
+[data-clicker] .clicker-goal-compact { align-content: start; height: auto; }
+[data-clicker] .clicker-drill-station .clicker-drill-gauge {
+  flex: none;
+  width: min(320px, calc(100% - 32px));
+  max-width: none;
+  margin: 6px auto 0;
+  box-sizing: border-box;
+}
+
+/* World currency wallet: every opened world's coin, current world first and highlighted. */
+[data-clicker] .clicker-metric { flex-wrap: wrap; row-gap: 4px; }
+[data-clicker] .clicker-metric > span:first-child { white-space: nowrap; }
+[data-clicker] .clicker-metric-coins { display: flex; flex-wrap: wrap; gap: 4px; flex-basis: 100%; justify-content: center; }
+[data-clicker] .clicker-metric-coins .clicker-metric-coin { margin-left: 0; white-space: nowrap; opacity: 0.7; }
+[data-clicker] .clicker-metric-coins .clicker-metric-coin.is-here { opacity: 1; box-shadow: 0 0 8px rgb(90 220 255 / 0.35); }
+@media (min-width: 521px) {
+  [data-clicker] .clicker-hub-dock-btn strong { white-space: nowrap; font-size: clamp(11px, 2.2vw, 15px); }
+}

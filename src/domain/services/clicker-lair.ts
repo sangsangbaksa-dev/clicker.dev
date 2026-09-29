@@ -29,7 +29,7 @@ const cc = (regionId: string, amount: number) => ({ regionId, amount })
 /** Tier 0 is what you start with; each tier after that is forged in order. */
 export const WEAPONS: WeaponTier[] = [
   { name: "채굴 곡괭이", icon: "⛏️", damage: 1, cost: { core: 0, currencies: [] } },
-  { name: "원유 강철검", icon: "🗡️", damage: 2, cost: { core: 400, currencies: [cc("signal_relay", 250)] } },
+  { name: "코어 강철검", icon: "🗡️", damage: 2, cost: { core: 400, currencies: [cc("signal_relay", 250)] } },
   { name: "위상 수정 대검", icon: "⚔️", damage: 4, cost: { core: 6_000, currencies: [cc("signal_relay", 1_500), cc("phase_vault", 2_500)] } },
   { name: "뇌운 창", icon: "🔱", damage: 7, cost: { core: 150_000, currencies: [cc("phase_vault", 30_000), cc("storm_spire", 45_000)] } },
   { name: "용암 파쇄 망치", icon: "🔨", damage: 12, cost: { core: 2_500_000, currencies: [cc("storm_spire", 500_000), cc("deep_fault", 700_000)] } },
@@ -37,7 +37,7 @@ export const WEAPONS: WeaponTier[] = [
 
 export const ARMORS: ArmorTier[] = [
   { name: "작업복", icon: "🧥", hp: 0, reduction: 0, cost: { core: 0, currencies: [] } },
-  { name: "원유 가죽 갑옷", icon: "🦺", hp: 40, reduction: 0.1, cost: { core: 350, currencies: [cc("signal_relay", 300)] } },
+  { name: "코어 가죽 갑옷", icon: "🦺", hp: 40, reduction: 0.1, cost: { core: 350, currencies: [cc("signal_relay", 300)] } },
   { name: "위상 수정 흉갑", icon: "🛡️", hp: 90, reduction: 0.2, cost: { core: 5_000, currencies: [cc("signal_relay", 1_200), cc("phase_vault", 2_000)] } },
   { name: "뇌운 판금", icon: "🪖", hp: 160, reduction: 0.3, cost: { core: 120_000, currencies: [cc("phase_vault", 25_000), cc("storm_spire", 40_000)] } },
   { name: "용암 요새 갑주", icon: "🏰", hp: 260, reduction: 0.4, cost: { core: 2_000_000, currencies: [cc("storm_spire", 400_000), cc("deep_fault", 600_000)] } },

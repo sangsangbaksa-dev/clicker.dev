@@ -619,7 +619,7 @@ test("lair: enter, get knocked out → 3-minute shield; forge gear; kill pays ou
   const hurt = lair.tickLair(entered.run, config, 1000 + lair.LAIR_ATTACK_EVERY_MS)
   assert.ok(hurt.lair && hurt.lair.playerHp < lair.BASE_PLAYER_HP)
 
-  // Forge the first weapon and armor from CORE + 원유.
+  // Forge the first weapon and armor from CORE + 코어 에너지.
   const rich = { ...base, coreEnergy: 1e9, regionCurrency: { signal_relay: 1e6 } }
   const w = lair.forgeGear(rich, config, "weapon")
   assert.equal(w.error, undefined)
@@ -640,4 +640,27 @@ test("lair: enter, get knocked out → 3-minute shield; forge gear; kill pays ou
   assert.ok(result.reward > 0)
   assert.equal(result.run.lair, null)
   assert.equal(eng.monsterAlive(result.run, "phase_vault", 1200), false)
+})
+
+test("drill upgrades: fewer taps per bore and a shorter cooldown", async () => {
+  const eng = await import("./clicker-engine.ts")
+  const run0 = eng.createInitialRun(0, eng.createInitialMeta(), clickerConfig)
+  assert.equal(eng.drillTaps(run0, clickerConfig), eng.DRILL_TAPS)
+  const base = eng.drillCooldownMs(run0, clickerConfig)
+  const tuned = { ...run0, ownedUpgradeIds: ["drill_bit", "drill_coolant"] }
+  assert.equal(eng.drillTaps(tuned, clickerConfig), eng.DRILL_TAPS - 5)
+  assert.equal(eng.drillCooldownMs(tuned, clickerConfig), base - 5000)
+  const maxed = { ...run0, ownedUpgradeIds: clickerConfig.upgrades.map((u) => u.id) }
+  assert.ok(eng.drillTaps(maxed, clickerConfig) >= 8)
+  assert.ok(eng.drillCooldownMs(maxed, clickerConfig) >= 5000)
+})
+
+test("instability: hoarding CORE and world currency pushes it up", async () => {
+  const eng = await import("./clicker-engine.ts")
+  const run0 = eng.createInitialRun(0, eng.createInitialMeta(), clickerConfig)
+  assert.equal(eng.hoardInstabilityPerSecond({ ...run0, coreEnergy: 100 }, 10), 0)
+  const some = eng.hoardInstabilityPerSecond({ ...run0, coreEnergy: 10 * 60 * 8 }, 10)
+  const more = eng.hoardInstabilityPerSecond({ ...run0, coreEnergy: 10 * 60 * 8, regionCurrency: { signal_relay: 10 * 60 * 56 } }, 10)
+  assert.ok(some > 0)
+  assert.ok(more > some, "world currency counts toward the hoard")
 })

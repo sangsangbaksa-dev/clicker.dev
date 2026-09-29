@@ -55,6 +55,13 @@ export function producerUpgradeTiers(producers: ProducerDef[], existing: Upgrade
 }
 
 export const EXTRA_UPGRADES: UpgradeDef[] = [
+  // Region drill: shorter cooldown between bores, and fewer taps per bore (faster drilling).
+  { id: "drill_coolant", name: "Drill Coolant", description: "시추 냉각 -5초", category: "UTILITY", cost: 3_000_000, drillCooldownReduceSec: 5 },
+  { id: "drill_bit", name: "Diamond Bit", description: "시추 속도 증가 · 필요 탭 -5", category: "UTILITY", cost: 6_000_000, drillTapsReduce: 5 },
+  { id: "drill_cryo", name: "Cryo Loop", description: "시추 냉각 -7초", category: "UTILITY", cost: 60_000_000, drillCooldownReduceSec: 7 },
+  { id: "drill_turbine", name: "Turbine Head", description: "시추 속도 증가 · 필요 탭 -5", category: "UTILITY", cost: 150_000_000, drillTapsReduce: 5 },
+  { id: "drill_superconduct", name: "Superconductor", description: "시추 냉각 -8초", category: "UTILITY", cost: 3_000_000_000, drillCooldownReduceSec: 8 },
+  { id: "drill_plasma", name: "Plasma Bore", description: "시추 속도 증가 · 필요 탭 -5", category: "UTILITY", cost: 8_000_000_000, drillTapsReduce: 5 },
   { id: "grip_tape", name: "Grip Tape", description: "채굴 ×1.3", category: "CLICK", cost: 800, clickMultiplier: 1.3 },
   { id: "lens_polish", name: "Lens Polish", description: "채굴 ×1.4", category: "CLICK", cost: 8_000, clickMultiplier: 1.4 },
   { id: "beam_split", name: "Beam Split", description: "채굴 ×1.6", category: "CLICK", cost: 120_000, clickMultiplier: 1.6 },

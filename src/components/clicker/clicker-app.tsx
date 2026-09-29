@@ -31,7 +31,7 @@ import { ClickerForge } from "@/components/clicker/clicker-forge"
 import { ARMORS, LAIR_BOSSES, WEAPONS, gearOf, shieldRemainingMs } from "@/domain/services/clicker-lair"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
 import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
-import { monsterAlive, reentryCooldownMs } from "@/domain/services/clicker-engine"
+import { drillCooldownMs, isRegionUnlocked, monsterAlive } from "@/domain/services/clicker-engine"
 import type { SfxName } from "@/components/clicker/clicker-sfx"
 import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
@@ -690,7 +690,7 @@ export function ClickerApp() {
   const shieldMs = shieldRemainingMs(run, run.currentRegionId, tickNow)
   const gear = gearOf(run)
   const drillCoolSec = Math.max(0, Math.ceil((run.drillCooldownUntil - tickNow) / 1000))
-  const drillCoolTotalSec = reentryCooldownMs(run, game.config) / 1000
+  const drillCoolTotalSec = drillCooldownMs(run, game.config) / 1000
   const drawerTabs = (
     [
       ["producers", "PRODUCERS", "생산자"],
@@ -733,6 +733,9 @@ export function ClickerApp() {
     setEnteringMine(true)
   }
   const drawerClassMode = managing ? "full" : drawerMode
+  const heldCurrencies = game.config.regions
+    .filter((r) => r.currency && ((run.regionCurrency?.[r.id] ?? 0) > 0 || r.id === regionDef?.id || isRegionUnlocked(run, game.config, r.id)))
+    .sort((x, y) => Number(y.id === regionDef?.id) - Number(x.id === regionDef?.id))
 
   return (
     <div
@@ -750,11 +753,19 @@ export function ClickerApp() {
             <em>
               +<CountUpNumber value={game.snapshot?.perSecond ?? 0} />/s
             </em>
-            {regionDef?.currency ? (
-              <span className="clicker-metric-coin" title={`${regionDef.name}에서 CORE를 벌 때마다 함께 쌓이는 월드 화폐`}>
-                {regionDef.currency.icon}{" "}
-                <CountUpNumber value={run.regionCurrency?.[regionDef.id] ?? 0} />
-                <small>{regionDef.currency.name}</small>
+            {heldCurrencies.length ? (
+              // Every world currency the player has opened so far, the current world's first.
+              <span className="clicker-metric-coins">
+                {heldCurrencies.map((r) => (
+                  <span
+                    key={r.id}
+                    className={`clicker-metric-coin${r.id === regionDef?.id ? " is-here" : ""}`}
+                    title={`${r.name}에서 CORE를 벌 때마다 함께 쌓이는 월드 화폐`}
+                  >
+                    {r.currency!.icon} <CountUpNumber value={run.regionCurrency?.[r.id] ?? 0} />
+                    <small>{r.currency!.name}</small>
+                  </span>
+                ))}
               </span>
             ) : null}
           </div>
