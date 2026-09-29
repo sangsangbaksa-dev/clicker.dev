@@ -1701,3 +1701,9 @@
   pointer-events: none;
 }
 [data-clicker] .clicker-forge.is-open .clicker-forge-toggle { position: relative; z-index: 61; }
+
+/* Clean stage: no ground plate / blue glow under the drill, no region chip row
+   (travel lives in the 지역 tab). */
+[data-clicker] .clicker-drill-ground,
+[data-clicker] .clicker-drill-glow,
+[data-clicker] .clicker-stage-region { display: none !important; }
