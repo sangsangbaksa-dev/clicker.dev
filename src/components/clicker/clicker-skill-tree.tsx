@@ -50,7 +50,8 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
   const treeNodes = useMemo<TreeNode[]>(
     () =>
       nodes
-        .filter((node) => layout.cells[node.id] && node.status !== "LOCKED")
+        // The final upgrade on the hub always shows, so the goal is visible from the start.
+        .filter((node) => layout.cells[node.id] && (node.status !== "LOCKED" || node.id === layout.centerId))
         .map((node) => ({ ...node, ...layout.cells[node.id] })),
     [layout, nodes],
   )
@@ -141,6 +142,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
   const edges = useMemo(() => {
     const lines: Array<{ d: string; color: string; lit: boolean }> = []
     for (const node of treeNodes) {
+      if (node.id === layout.centerId) continue
       const parents: SkillCell[] = node.requires.length
         ? node.requires.map((id) => byId.get(id)).filter((n): n is TreeNode => Boolean(n))
         : [layout.hub]
@@ -149,7 +151,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
       }
     }
     return lines
-  }, [byId, layout.hub, treeNodes])
+  }, [byId, layout.centerId, layout.hub, treeNodes])
 
   const owned = treeNodes.filter((n) => n.status === "OWNED").length
 
@@ -203,7 +205,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
             <button
               key={node.id}
               type="button"
-              className={`clicker-skillmap-node is-${node.status.toLowerCase()}${selectedId === node.id ? " is-selected" : ""}${node.tier >= 5 ? " is-apex" : ""}`}
+              className={`clicker-skillmap-node is-${node.status.toLowerCase()}${selectedId === node.id ? " is-selected" : ""}${node.tier >= 5 ? " is-apex" : ""}${node.id === layout.centerId ? " is-final" : ""}`}
               style={{ left: (node.col + 0.5) * CELL, top: (node.row + 0.5) * CELL, "--branch-color": SKILL_BRANCH_COLOR[node.branch] } as CSSProperties}
               aria-label={`${node.name} · ${statusLabel(node.status)} · ${formatNumber(node.cost)} CORE`}
               onClick={() => {
@@ -232,7 +234,11 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
             disabled={!selected.canBuy}
             onClick={() => onBuy(selected.id)}
           >
-            {selected.status === "OWNED" ? "활성" : `${formatNumber(selected.cost)} CORE`}
+            {selected.status === "OWNED"
+              ? "활성"
+              : selected.status === "LOCKED"
+                ? "선행 회로 필요"
+                : `${formatNumber(selected.cost)} CORE`}
           </button>
         </aside>
       ) : null}

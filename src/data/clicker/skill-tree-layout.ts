@@ -5,12 +5,17 @@ export type SkillCell = { col: number; row: number }
 export type SkillTreeLayout = {
   cells: Record<string, SkillCell>
   hub: SkillCell
+  /** The node drawn on the hub itself (the tree's final upgrade), if it is in the tree. */
+  centerId?: string
   cols: number
   rows: number
 }
 
 /** Five branches around the hub, one per pentagon corner, clockwise from the top. */
 export const SKILL_BRANCH_ORDER: SkillBranch[] = ["FOCUS", "AUTOMATION", "RESONANCE", "HUNT", "TRANSCENDENCE"]
+
+/** The last upgrade of the whole tree; it sits on the hub, the goal every branch points at. */
+export const SKILL_FINAL_NODE_ID = "trans_heart"
 
 type LayoutNode = Pick<SkillNodeDef, "id" | "branch" | "requires">
 
@@ -23,12 +28,15 @@ const FAN = (30 * Math.PI) / 180
 const MIN_GAP = 1.2
 
 /**
- * Radial layout: the five branch roots sit on a pentagon around the hub and each branch
+ * Radial layout: the five branch roots sit on a regular pentagon around the hub (the final
+ * upgrade sits on the hub itself) and each branch
  * fans outward — depth sets the ring, leaf order sets the angle within the branch's wedge.
  * A short relaxation pass then pushes apart anything that landed too close. Deterministic,
  * and positions never depend on what is owned.
  */
-export function layoutSkillTree(nodes: LayoutNode[]): SkillTreeLayout {
+export function layoutSkillTree(allNodes: LayoutNode[]): SkillTreeLayout {
+  const centerId = allNodes.some((n) => n.id === SKILL_FINAL_NODE_ID) ? SKILL_FINAL_NODE_ID : undefined
+  const nodes = allNodes.filter((n) => n.id !== centerId)
   const byId = new Map(nodes.map((n) => [n.id, n]))
   const depth = new Map<string, number>()
   const depthOf = (id: string): number => {
@@ -62,8 +70,10 @@ export function layoutSkillTree(nodes: LayoutNode[]): SkillTreeLayout {
     }
     for (const root of roots) walk(root.id)
     const mid = (leaves - 1) / 2
+    const rootIds = new Set(roots.map((r) => r.id))
     for (const [id, v] of slot) {
-      const angle = theta + (leaves > 1 ? ((v - mid) / mid) * FAN : 0)
+      // Roots sit exactly on their corner so the first ring is a regular pentagon.
+      const angle = theta + (leaves > 1 && !rootIds.has(id) ? ((v - mid) / mid) * FAN : 0)
       const r = RING0 + depthOf(id) * RING_STEP
       pos.set(id, { x: Math.cos(angle) * r, y: Math.sin(angle) * r })
     }
@@ -115,9 +125,12 @@ export function layoutSkillTree(nodes: LayoutNode[]): SkillTreeLayout {
   const minY = Math.min(...ys) - pad
   const cells: Record<string, SkillCell> = {}
   for (const [id, p] of pos) cells[id] = { col: p.x - minX, row: p.y - minY }
+  const hub = { col: -minX, row: -minY }
+  if (centerId) cells[centerId] = hub
   return {
     cells,
-    hub: { col: -minX, row: -minY },
+    hub,
+    centerId,
     cols: Math.max(...xs) - minX + pad + 1,
     rows: Math.max(...ys) - minY + pad + 1,
   }

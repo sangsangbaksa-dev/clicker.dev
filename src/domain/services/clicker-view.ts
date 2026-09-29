@@ -212,7 +212,7 @@ export type UpgradeView = {
   category: UpgradeCategory
   costText: string
   /** Region currencies this upgrade also needs (late game). */
-  extraCosts: Array<{ icon: string; name: string; amountText: string; enough: boolean }>
+  extraCosts: Array<{ regionId: string; icon: string; name: string; amountText: string; enough: boolean }>
   status: "AVAILABLE" | "OWNED" | "LOCKED" | "POOR"
   reason: string
   assetId: string
@@ -249,6 +249,7 @@ export function buildUpgradeViews(run: RunState, config: GameConfig): UpgradeVie
       category: u.category,
       costText: formatNumber(scaledCost(run, u.cost)),
       extraCosts: extra.map((c) => ({
+        regionId: c.regionId,
         icon: c.icon,
         name: c.name,
         amountText: formatNumber(c.amount),

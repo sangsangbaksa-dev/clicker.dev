@@ -1866,3 +1866,27 @@
 @media (min-width: 521px) {
   [data-clicker]:is(.is-region-hub, .is-entrance-hub):not(.is-view-manage) .clicker-story-beat { top: 92px; bottom: auto; }
 }
+
+/* World-currency glyphs: painted icons sized to the chip's text line. */
+[data-clicker] .clicker-currency-icon {
+  display: inline-block;
+  width: 1.35em;
+  height: 1.35em;
+  vertical-align: -0.32em;
+  object-fit: contain;
+  filter: drop-shadow(0 0 3px rgb(0 0 0 / 0.55));
+  flex: none;
+}
+[data-clicker] .clicker-metric-coin,
+[data-clicker] .clicker-region-coin { align-items: center; }
+
+/* The tree's final upgrade sits on the hub emblem, framed by it. */
+[data-clicker] .clicker-skillmap-node.is-final {
+  width: 64px;
+  height: 64px;
+  z-index: 2;
+  border-color: #ffd36a;
+  box-shadow: 0 0 18px rgb(255 205 100 / 0.7), inset 0 0 10px rgb(255 205 100 / 0.4);
+}
+[data-clicker] .clicker-skillmap-node.is-final.is-locked img { filter: grayscale(0.7) brightness(0.55); }
+[data-clicker] .clicker-skillmap-node.is-final.is-owned { box-shadow: 0 0 26px rgb(255 224 138 / 0.95); }

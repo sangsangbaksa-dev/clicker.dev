@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { clickerConfig as config } from "../../data/clicker/catalog.ts"
-import { layoutSkillTree, connectorPath } from "../../data/clicker/skill-tree-layout.ts"
+import { layoutSkillTree, connectorPath, SKILL_FINAL_NODE_ID } from "../../data/clicker/skill-tree-layout.ts"
 import {
   applyRebirth,
   buySkillNode,
@@ -34,6 +34,7 @@ test("skill graph: 130+ unique nodes, known prereqs, tier never below a prereq, 
   for (const node of config.skillNodes) {
     const cell = layout.cells[node.id]
     assert.ok(cell, `layout missing for ${node.id}`)
+    if (node.id === layout.centerId) continue
     for (const other of placed) assert.ok(Math.hypot(other.col - cell.col, other.row - cell.row) > 1, `${node.id} overlaps another node`)
     placed.push(cell)
     assert.ok(node.tier >= 1 && node.tier <= 5, node.id)
@@ -47,6 +48,21 @@ test("skill graph: 130+ unique nodes, known prereqs, tier never below a prereq, 
   }
   for (const branch of ["FOCUS", "AUTOMATION", "RESONANCE", "TRANSCENDENCE", "HUNT"]) {
     assert.ok(config.skillNodes.some((n) => n.branch === branch && n.tier === 5), `${branch} has no capstone`)
+  }
+})
+
+test("skill map: branch roots form a regular pentagon and the final upgrade sits on the hub", () => {
+  const layout = layoutSkillTree(config.skillNodes)
+  assert.equal(layout.centerId, SKILL_FINAL_NODE_ID)
+  assert.deepEqual(layout.cells[SKILL_FINAL_NODE_ID], layout.hub)
+  const roots = config.skillNodes.filter((n) => !n.requires?.length).map((n) => layout.cells[n.id])
+  assert.equal(roots.length, 5)
+  const polar = roots.map((c) => ({ r: Math.hypot(c.col - layout.hub.col, c.row - layout.hub.row), a: Math.atan2(c.row - layout.hub.row, c.col - layout.hub.col) }))
+  for (const p of polar) assert.ok(Math.abs(p.r - polar[0].r) < 1e-9, "roots not equidistant from the hub")
+  const angles = polar.map((p) => (p.a + 2 * Math.PI) % (2 * Math.PI)).sort((a, b) => a - b)
+  for (let i = 0; i < 5; i++) {
+    const gap = ((angles[(i + 1) % 5] - angles[i] + 2 * Math.PI) % (2 * Math.PI)) || 2 * Math.PI
+    assert.ok(Math.abs(gap - (2 * Math.PI) / 5) < 1e-9, "roots not evenly spaced")
   }
 })
 

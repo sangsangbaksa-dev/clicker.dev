@@ -5,6 +5,7 @@ import type { RunState } from "@/domain/entities/clicker"
 import { formatNumber } from "@/domain/services/clicker-format"
 import { scaledCost, regionCurrencyBalance } from "@/domain/services/clicker-engine"
 import { ARMORS, WEAPONS, forgeError, gearOf, playerMaxHp, type GearTier } from "@/domain/services/clicker-lair"
+import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 import type { ClickerGame } from "./panels/types"
 
 /** Forge: craft the next weapon (damage per strike) or armor (HP, damage cut) from CORE + world currencies. */
@@ -89,7 +90,7 @@ function ForgeSlot({
               const region = game.config.regions.find((r) => r.id === c.regionId)
               return (
                 <span key={c.regionId} className={regionCurrencyBalance(run, c.regionId) >= c.amount ? "" : "is-short"}>
-                  {region?.currency?.icon} {formatNumber(c.amount)} {region?.currency?.name}
+                  <CurrencyIcon regionId={c.regionId} /> {formatNumber(c.amount)} {region?.currency?.name}
                 </span>
               )
             })}

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import type { RunState, UpgradeCategory } from "@/domain/entities/clicker"
 import { formatNumber } from "@/domain/services/clicker-format"
+import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 import type { ClickerGame } from "./types"
 
 export function ClickerUpgradesPanel({ game, run }: { game: ClickerGame; run: RunState }) {
@@ -19,7 +20,7 @@ export function ClickerUpgradesPanel({ game, run }: { game: ClickerGame; run: Ru
               className={`clicker-region-coin${run.currentRegionId === r.id ? " is-here" : ""}`}
               title={`${r.name}에서 CORE를 벌면 함께 획득`}
             >
-              {r.currency!.icon} {formatNumber(run.regionCurrency?.[r.id] ?? 0)}
+              <CurrencyIcon regionId={r.id} /> {formatNumber(run.regionCurrency?.[r.id] ?? 0)}
               <small>{r.currency!.name}</small>
             </span>
           ))}
@@ -105,7 +106,7 @@ export function ClickerUpgradesPanel({ game, run }: { game: ClickerGame; run: Ru
                   </span>
                   {u.extraCosts.map((c) => (
                     <span key={c.name} className={`clicker-upgrade-price is-region${c.enough ? "" : " is-short"}`} title={c.name}>
-                      {c.icon} <strong>{c.amountText}</strong> {c.name}
+                      <CurrencyIcon regionId={c.regionId} /> <strong>{c.amountText}</strong> {c.name}
                     </span>
                   ))}
                   {/* The status badge already says "CORE 부족"; only show other reasons. */}

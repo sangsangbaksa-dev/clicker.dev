@@ -42,6 +42,7 @@ import { ClickerUpgradesPanel } from "@/components/clicker/panels/upgrades-panel
 import { ClickerShopPanel } from "@/components/clicker/panels/shop-panel"
 import { ClickerWorldPanel } from "@/components/clicker/panels/world-panel"
 import { ClickerTranscendencePanel } from "@/components/clicker/panels/transcendence-panel"
+import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 import "./clicker.css"
 import "./clicker-polish.css"
 
@@ -762,7 +763,7 @@ export function ClickerApp() {
                     className={`clicker-metric-coin${r.id === regionDef?.id ? " is-here" : ""}`}
                     title={`${r.name}에서 CORE를 벌 때마다 함께 쌓이는 월드 화폐`}
                   >
-                    {r.currency!.icon} <CountUpNumber value={run.regionCurrency?.[r.id] ?? 0} />
+                    <CurrencyIcon regionId={r.id} /> <CountUpNumber value={run.regionCurrency?.[r.id] ?? 0} />
                     <small>{r.currency!.name}</small>
                   </span>
                 ))}
