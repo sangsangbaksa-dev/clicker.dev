@@ -1805,8 +1805,40 @@
 /* Mobile world screens: nothing overlaps the header, goal card or dock. */
 @media (max-width: 520px) {
   [data-clicker] .clicker-hunt-station:not(.is-battle) { position: absolute; }
-  [data-clicker] .clicker-drill-station .clicker-drill { width: clamp(120px, calc(100svh - 640px), 240px); }
-  [data-clicker]:is(.is-region-hub, .is-entrance-hub) .clicker-story-beat {
-    bottom: calc(206px + env(safe-area-inset-bottom, 0px));
+  [data-clicker] .clicker-drill-station .clicker-drill { width: clamp(140px, calc(100svh - 520px), 240px); }
+  [data-clicker]:is(.is-region-hub, .is-entrance-hub):not(.is-view-manage) .clicker-story-beat {
+    top: 228px;
+    bottom: auto;
+  }
+}
+
+/* Compact mobile header: FEVER · 불안정 · WORLD LINE share one row; CORE card spans the width. */
+@media (max-width: 520px) {
+  [data-clicker] .clicker-top > .clicker-metric:not(:first-child) {
+    flex: 1 1 26%;
+    min-width: 0;
+    padding: 5px 8px;
+  }
+  [data-clicker] .clicker-top > .clicker-metric:not(:first-child) > span { font-size: 9px; letter-spacing: 0.08em; }
+  [data-clicker] .clicker-top > .clicker-metric:not(:first-child) strong { font-size: 15px; }
+  [data-clicker] .clicker-top > .clicker-metric:not(:first-child) em {
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  [data-clicker] .clicker-top > .clicker-metric:first-child { flex: 1 1 60%; }
+  [data-clicker] .clicker-top > .clicker-save-pulse { display: none; }
+  [data-clicker] .clicker-metric-coins { gap: 4px; }
+  [data-clicker] .clicker-metric-coin { padding: 2px 7px; font-size: 11px; }
+  [data-clicker] .clicker-metric-coin small { display: none; }
+}
+
+/* Seven hub buttons fit two rows (4 + 3) instead of three. */
+@media (max-width: 520px) {
+  [data-clicker] .clicker-hub-dock:has(.clicker-hub-dock-btn:nth-child(7)) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  [data-clicker] .clicker-hub-dock:has(.clicker-hub-dock-btn:nth-child(7)) .clicker-hub-dock-btn span { font-size: 8px; letter-spacing: 0.02em; }
+  [data-clicker].is-region-hub:has(.clicker-hub-dock-btn:nth-child(7)) .clicker-region-station {
+    bottom: calc(154px + env(safe-area-inset-bottom, 0px));
   }
 }

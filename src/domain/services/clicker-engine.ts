@@ -400,11 +400,15 @@ export function applyInstabilityDelta(run: RunState, delta: number): RunState {
  */
 export const HOARD_FREE_MINUTES = 2
 export const HOARD_INSTABILITY_RATE = 0.04
+/** Ceiling on hoard-driven instability: 100 takes at least ~10 minutes. */
+export const HOARD_MAX_RATE = 0.16
+
 export function hoardInstabilityPerSecond(run: RunState, perSecond: number): number {
   const held = run.coreEnergy + Object.values(run.regionCurrency ?? {}).reduce((s, v) => s + (v > 0 ? v : 0), 0)
   const minutes = held / Math.max(perSecond * 60, 1)
   if (!(minutes > HOARD_FREE_MINUTES)) return 0
-  return HOARD_INSTABILITY_RATE * Math.log2(minutes / HOARD_FREE_MINUTES)
+  // Capped so a stalled economy (near-zero income) never races to CRISIS.
+  return Math.min(HOARD_MAX_RATE, HOARD_INSTABILITY_RATE * Math.log2(minutes / HOARD_FREE_MINUTES))
 }
 
 export function instabilityLevel(value: number): InstabilityLevel {

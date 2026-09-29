@@ -15,3 +15,9 @@ test("every catalog image path points at a real file in public/", () => {
   const missing = [...paths].filter((p) => !existsSync(`public${p}`))
   assert.deepEqual(missing, [])
 })
+
+test("hoard instability is capped when income is near zero", async () => {
+  const { hoardInstabilityPerSecond, HOARD_MAX_RATE } = await import("./clicker-engine.ts")
+  const run = { coreEnergy: 1e12, regionCurrency: {} } as unknown as Parameters<typeof hoardInstabilityPerSecond>[0]
+  assert.equal(hoardInstabilityPerSecond(run, 0), HOARD_MAX_RATE)
+})
