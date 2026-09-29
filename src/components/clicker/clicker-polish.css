@@ -1793,3 +1793,11 @@
 .clicker-manage {
   overflow-x: hidden;
 }
+
+/* Tutorial card is placed by the overlay grid; drop the base absolute-centering offset. */
+[data-clicker] .clicker-tutorial .clicker-tutorial-card {
+  inset: auto;
+  transform: none;
+  max-width: 100%;
+  box-sizing: border-box;
+}
