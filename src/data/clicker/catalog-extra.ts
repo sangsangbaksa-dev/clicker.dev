@@ -150,9 +150,9 @@ export const EXTRA_SKILL_NODES: SkillNodeDef[] = NODE_SPECS.map(([id, branch, ti
 }))
 
 export const EXTRA_POTIONS: PotionDef[] = [
-  { id: "spark", name: "Spark Tonic", description: "8초 · 채굴 ×1.5", duration: 8, clickMultiplier: 1.5, productionMultiplier: 1.1, criticalChanceAdd: 0.02, instabilityPerSecond: 0, shopCost: 60_000, assetId: "/clicker/potion/potion_spark.webp" },
-  { id: "keen", name: "Keen Elixir", description: "15초 · 치명타 +15% · 채굴 ×2", duration: 15, clickMultiplier: 2, productionMultiplier: 1.3, criticalChanceAdd: 0.15, instabilityPerSecond: 0, shopCost: 4_000_000, assetId: "/clicker/potion/potion_keen.webp" },
-  { id: "golden", name: "Golden Draught", description: "60초 · 생산 ×4", duration: 60, clickMultiplier: 1.2, productionMultiplier: 4, criticalChanceAdd: 0, instabilityPerSecond: 0, shopCost: 120_000_000, assetId: "/clicker/potion/potion_golden.webp" },
+  { id: "spark", name: "Spark Tonic", description: "8초 · 채굴 ×1.5 · 생산 ×1.3 · 치명타 +2%", duration: 8, clickMultiplier: 1.5, productionMultiplier: 1.3, criticalChanceAdd: 0.02, instabilityPerSecond: 0, shopCost: 60_000, assetId: "/clicker/potion/potion_spark.webp" },
+  { id: "keen", name: "Keen Elixir", description: "15초 · 채굴 ×2.6 · 치명타 +15% · 생산 ×1.5", duration: 15, clickMultiplier: 2.6, productionMultiplier: 1.5, criticalChanceAdd: 0.15, instabilityPerSecond: 0, shopCost: 4_000_000, assetId: "/clicker/potion/potion_keen.webp" },
+  { id: "golden", name: "Golden Draught", description: "60초 · 자동 생산 ×4.5 · 채굴 ×1.5", duration: 60, clickMultiplier: 1.5, productionMultiplier: 4.5, criticalChanceAdd: 0, instabilityPerSecond: 0, shopCost: 120_000_000, assetId: "/clicker/potion/potion_golden.webp" },
 ]
 
 export const EXTRA_ACTIVE_SKILLS: ActiveSkillDef[] = [

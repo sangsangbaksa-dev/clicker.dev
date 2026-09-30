@@ -774,3 +774,18 @@ test("mine re-entry waits 10s and pays less per session so CORE per minute is un
   const full = processClick({ ...inMine, mineSessionEndsAt: 0 }, meta, config, now + 100, () => 0.99).result.energyGained
   assert.ok(Math.abs(hit - full * share) < 1e-9)
 })
+
+test("pricier potions are stronger: boost-seconds rise with price", () => {
+  const potions = [...config.potions].sort((a, b) => a.shopCost - b.shopCost)
+  const power = (p: (typeof potions)[number]) => p.duration * (p.clickMultiplier - 1 + (p.productionMultiplier - 1))
+  for (let i = 1; i < potions.length; i++) {
+    assert.ok(power(potions[i]) > power(potions[i - 1]), `${potions[i].id} should beat ${potions[i - 1].id}`)
+  }
+})
+
+test("world unlocks: first world x7, the rest x3, Core Heart unchanged, still in order", () => {
+  const worlds = config.regions.filter((r) => !r.isHome)
+  for (let i = 1; i < worlds.length; i++) assert.ok(worlds[i].unlockAtLifetimeEnergy > worlds[i - 1].unlockAtLifetimeEnergy)
+  const at = (id: string) => config.regions.find((r) => r.id === id)!.unlockAtLifetimeEnergy
+  assert.equal(at("signal_relay") / at("phase_vault"), 7 / 24)
+})
