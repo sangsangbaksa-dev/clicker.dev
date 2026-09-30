@@ -19,3 +19,12 @@ With the seam on the image horizontal midpoint (640/1280), `cover` crops equal a
 Comparison still (wrong 68px cyan-band shift vs seam shift): `compare_wrong_vs_seam_reframe.jpg`.
 
 Reproduce: `python3 scripts/reframe-mine-entrance-door.py --from-git` (requires Pillow, ffmpeg, git history at `0ca36cd`).
+
+## Door-walk v12 (1080p)
+
+| Asset | Seam x | Frame center |
+|-------|--------|--------------|
+| Still `mine_entrance_hub_closed_door_v2.webp` (1280×720) | 640 | 640 |
+| Video f000 `mine_enter_door_walk_v12.mp4` (1920×1080) | 959 | 960 |
+
+Δ at 1080p scale: **1px** (within ±2px tolerance vs still). Shipped encode: H.264 CRF 19 (~5.1 MB), audio copy from source.
