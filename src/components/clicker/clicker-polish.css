@@ -1305,7 +1305,7 @@
 [data-clicker] .clicker-skillmap-detail img { width: 56px; height: 56px; }
 [data-clicker] .clicker-skillmap-detail small { font-size: 11px; color: #8fb5c2; }
 [data-clicker] .clicker-skillmap-detail strong { display: block; font-size: 15px; }
-[data-clicker] .clicker-skillmap-detail p { margin: 2px 0 0; font-size: 13px; color: #bfe3ef; }
+[data-clicker] .clicker-skillmap-detail p { margin: 2px 0 0; font-size: 13px; color: #bfe3ef; word-break: keep-all; overflow-wrap: anywhere; }
 
 /* ---------- Tutorial ---------- */
 [data-clicker] .clicker-tutorial {

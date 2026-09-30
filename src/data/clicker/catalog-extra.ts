@@ -7,6 +7,7 @@ import type {
   SkillNodeDef,
   UpgradeDef,
 } from "../../domain/entities/clicker"
+import { nameSkillNode } from "./skill-names.ts"
 
 /**
  * Catalog additions: more producers, per-producer upgrade tiers, side circuits, potions and
@@ -190,7 +191,7 @@ export function finalizeCatalog(base: GameConfig): GameConfig {
     upgrades: upgrades
       .map((x) => ({ ...x, cost: x.cost * c, assetId: x.assetId ?? `/clicker/upgrade/${x.id}.webp` }))
       .sort((a, b) => a.cost - b.cost),
-    skillNodes: [...base.skillNodes, ...EXTRA_SKILL_NODES].map((n) => ({
+    skillNodes: [...base.skillNodes, ...EXTRA_SKILL_NODES].map(nameSkillNode).map((n) => ({
       ...n,
       cost: n.cost * c,
       startingEnergy: n.startingEnergy === undefined ? undefined : n.startingEnergy * u,
