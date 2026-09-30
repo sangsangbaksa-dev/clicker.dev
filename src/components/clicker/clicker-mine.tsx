@@ -281,24 +281,54 @@ export function ClickerMine({
     [hitAt],
   )
 
-  // Assist drill: auto strikes on random points of the crystal.
+  // Every strike that isn't a tap (Space, the assist drill) lands where the mouse cursor is — and
+  // only if the cursor is on the ore; anywhere else it's void.
+  const cursor = useRef<{ x: number; y: number } | null>(null)
+  useEffect(() => {
+    const track = (e: PointerEvent) => {
+      cursor.current = { x: e.clientX, y: e.clientY }
+    }
+    const lose = () => {
+      cursor.current = null
+    }
+    window.addEventListener("pointermove", track, { passive: true })
+    window.addEventListener("pointerdown", track, { passive: true, capture: true })
+    document.documentElement.addEventListener("mouseleave", lose)
+    window.addEventListener("blur", lose)
+    return () => {
+      window.removeEventListener("pointermove", track)
+      window.removeEventListener("pointerdown", track, { capture: true })
+      document.documentElement.removeEventListener("mouseleave", lose)
+      window.removeEventListener("blur", lose)
+    }
+  }, [])
+  /** The cursor in mine-local px when it is over the ore's hitbox, else null. */
+  const aimAtCursor = useCallback((): { x: number; y: number } | null => {
+    const el = mineRef.current
+    const c = cursor.current
+    if (!el || !c) return null
+    const target = document.elementFromPoint(c.x, c.y)
+    if (!target?.closest(".clicker-mine-crystal, .clicker-mine-vein-gold") || !el.contains(target)) return null
+    const rect = el.getBoundingClientRect()
+    return { x: c.x - rect.left, y: c.y - rect.top }
+  }, [])
+
+  // Assist drill: auto strikes at the cursor while it rests on the crystal.
   useEffect(() => {
     if (autoRate <= 0) return
     const id = window.setInterval(() => {
-      const b = live.current.box
-      if (!b) return
-      hitAt(b.left + b.width * (0.25 + Math.random() * 0.5), b.top + b.height * (0.2 + Math.random() * 0.55), true)
+      const at = aimAtCursor()
+      if (at) hitAt(at.x, at.y, true)
     }, 1000 / autoRate)
     return () => window.clearInterval(id)
-  }, [autoRate, hitAt])
+  }, [autoRate, hitAt, aimAtCursor])
 
-  // Holding Space mines at a steady 7 strikes a second (first strike on press).
+  // Holding Space mines at a steady 7 strikes a second (first strike on press), at the cursor.
   useEffect(() => {
     let timer = 0
-    const hitRandom = () => {
-      const b = live.current.box
-      if (!b) return
-      hitAt(b.left + b.width * (0.25 + Math.random() * 0.5), b.top + b.height * (0.2 + Math.random() * 0.55), false)
+    const hitCursor = () => {
+      const at = aimAtCursor()
+      if (at) hitAt(at.x, at.y, false)
     }
     const stop = () => {
       if (timer) window.clearInterval(timer)
@@ -310,8 +340,8 @@ export function ClickerMine({
       if (e.code !== "Space" || e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return
       e.preventDefault()
       if (timer || e.repeat) return
-      hitRandom()
-      timer = window.setInterval(hitRandom, 1000 / SPACE_HOLD_CPS)
+      hitCursor()
+      timer = window.setInterval(hitCursor, 1000 / SPACE_HOLD_CPS)
     }
     const onUp = (e: KeyboardEvent) => {
       if (e.code === "Space") stop()
@@ -325,7 +355,7 @@ export function ClickerMine({
       window.removeEventListener("keyup", onUp)
       window.removeEventListener("blur", stop)
     }
-  }, [hitAt])
+  }, [hitAt, aimAtCursor])
 
   // Golden vein: maybe one per session, a few seconds in, briefly clickable.
   useEffect(() => {
@@ -417,7 +447,7 @@ export function ClickerMine({
           {veinLabel}
         </p>
       ) : null}
-      {autoRate > 0 ? <span className="clicker-mine-drill-tag">보조 드릴 · {autoRate}/s</span> : null}
+      {autoRate > 0 ? <span className="clicker-mine-drill-tag">보조 드릴 · {autoRate}/s · 커서 조준</span> : null}
 
       <svg className="clicker-mine-lasers" aria-hidden>
         {lasers.map((laser) => (
