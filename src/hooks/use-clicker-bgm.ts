@@ -2,63 +2,43 @@
 
 import { useEffect, useRef } from "react"
 import type { CoreVisual } from "@/domain/services/clicker-view"
+import {
+  bgmFadeStep,
+  bgmOutputLevel,
+  bgmPlayerGain,
+  bgmTrackFadeTarget,
+  type BgmScene,
+  type BgmTrackId,
+} from "@/domain/services/clicker-bgm"
 import { sharedAudioContext } from "@/components/clicker/clicker-sfx"
+import {
+  allBgmTrackIds,
+  CLICKER_BGM_URL,
+  warmBgmTracks,
+  warmBgmUrl,
+} from "@/infrastructure/audio/clicker-bgm-catalog"
 
-/** Hub / mine loops, one theme per world, plus the chamber cue for rebirth and ending. */
-const BGM_SRC = {
-  hub: "/clicker/audio/bgm_hub_v2.mp3",
-  mine: "/clicker/audio/bgm_mine_v2.mp3",
-  chamber: "/clicker/audio/bgm_chamber_v2.mp3",
-  relay: "/clicker/audio/bgm_world_relay.mp3",
-  vault: "/clicker/audio/bgm_world_vault.mp3",
-  storm: "/clicker/audio/bgm_world_storm.mp3",
-  fault: "/clicker/audio/bgm_world_fault.mp3",
-  heart: "/clicker/audio/bgm_world_heart.mp3",
-} as const
+export type { BgmScene } from "@/domain/services/clicker-bgm"
+export { worldBgmTrack as worldBgm } from "@/domain/services/clicker-bgm"
 
-type Track = keyof typeof BGM_SRC
-export type BgmScene = Track | "silent"
-
-/** Each world's hub theme; worlds not listed (the starting chamber) use the hub loop. */
-const WORLD_BGM: Record<string, Track> = {
-  signal_relay: "relay",
-  phase_vault: "vault",
-  storm_spire: "storm",
-  deep_fault: "fault",
-  core_heart: "heart",
-}
-
-export function worldBgm(regionId: string | undefined): Track {
-  return (regionId && WORLD_BGM[regionId]) || "hub"
-}
-
-/** Master level under the player's volume slider: the score sits well below SFX. */
-const BGM_LEVEL = 0.5
-
-/** Scene changes crossfade over this long instead of cutting. */
-const FADE_MS = 900
-/** Fever lifts the mix, crisis sits it back; neither changes pitch. */
-const VISUAL_GAIN: Partial<Record<CoreVisual, number>> = { fever: 1.2, crisis: 0.75 }
+type Track = BgmTrackId
 
 /**
  * Looping BGM with crossfades between scenes. Fades out while the tab is hidden and
  * retries play on gesture until the browser allows it. Tracks load lazily on first use.
- *
- * Levels go through a Web Audio gain node once a gesture has unlocked the shared context:
- * iOS Safari ignores `HTMLMediaElement.volume`, so without it the volume slider, the
- * crossfades and the fever/crisis mix would all play at full volume on iPhone.
  */
 export function useClickerBgm(
   visual: CoreVisual | undefined,
   { scene, muted, volume }: { scene: BgmScene; muted: boolean; volume: number },
 ) {
-  const stateRef = useRef({ scene, gain: 0 })
+  const stateRef = useRef({ scene, muted, volume, visual })
   const kickRef = useRef<() => void>(() => {})
 
   useEffect(() => {
     const tracks: Partial<Record<Track, HTMLAudioElement>> = {}
     const gains: Partial<Record<Track, GainNode>> = {}
-    const levels = Object.fromEntries(Object.keys(BGM_SRC).map((k) => [k, 0])) as Record<Track, number>
+    const levels = Object.fromEntries(allBgmTrackIds().map((k) => [k, 0])) as Record<Track, number>
+    const playPending = new Set<Track>()
     let unlocked = false
     let hidden = document.visibilityState === "hidden"
     let raf = 0
@@ -67,15 +47,16 @@ export function useClickerBgm(
     const track = (key: Track) => {
       let audio = tracks[key]
       if (!audio) {
-        audio = new Audio(BGM_SRC[key])
+        audio = new Audio(CLICKER_BGM_URL[key])
         audio.loop = true
         audio.volume = 0
+        audio.preload = "auto"
         tracks[key] = audio
+        void warmBgmUrl(CLICKER_BGM_URL[key])
       }
       return audio
     }
 
-    /** Route a track through a gain node (once). Falls back to element volume. */
     const wire = (key: Track, audio: HTMLAudioElement) => {
       if (gains[key]) return
       const c = sharedAudioContext()
@@ -98,28 +79,41 @@ export function useClickerBgm(
       else audio.volume = value
     }
 
+    const tryPlay = (key: Track, audio: HTMLAudioElement) => {
+      if (!unlocked || audio.paused === false || playPending.has(key)) return
+      wire(key, audio)
+      playPending.add(key)
+      void audio
+        .play()
+        .catch(() => {
+          /* autoplay / not-ready — next gesture retries */
+        })
+        .finally(() => {
+          playPending.delete(key)
+        })
+    }
+
+    const resumeContext = () => {
+      const c = sharedAudioContext()
+      if (c && c.state !== "running" && c.state !== "closed") void c.resume().catch(() => {})
+    }
+
     const step = (t: number) => {
       const dt = last ? t - last : 16
       last = t
-      const { scene: current, gain } = stateRef.current
+      const { scene: current, muted: isMuted, volume: vol, visual: vis } = stateRef.current
+      const playerGain = bgmPlayerGain(vol, isMuted, vis, hidden)
       let moving = false
-      for (const key of Object.keys(levels) as Track[]) {
-        const target = !hidden && gain > 0 && current === key ? 1 : 0
+      for (const key of allBgmTrackIds()) {
+        const target = bgmTrackFadeTarget(key, current, hidden, playerGain)
         if (target === 0 && levels[key] === 0 && !tracks[key]) continue
         const audio = track(key)
-        if (target > 0 && audio.paused && unlocked) {
-          wire(key, audio)
-          void audio.play().catch(() => {
-            /* autoplay / not-ready — next gesture retries */
-          })
-        }
-        const delta = dt / FADE_MS
-        const level =
-          target > levels[key] ? Math.min(target, levels[key] + delta) : Math.max(target, levels[key] - delta)
-        levels[key] = level
-        setLevel(key, audio, Math.min(1, level * gain) * BGM_LEVEL)
-        if (level === 0 && !audio.paused) audio.pause()
-        if (level !== target) moving = true
+        if (target > 0) tryPlay(key, audio)
+        const nextLevel = bgmFadeStep(levels[key], target, dt)
+        levels[key] = nextLevel
+        setLevel(key, audio, bgmOutputLevel(nextLevel, playerGain))
+        if (nextLevel === 0 && !audio.paused) audio.pause()
+        if (nextLevel !== target) moving = true
       }
       raf = moving ? window.requestAnimationFrame(step) : 0
       if (!moving) last = 0
@@ -130,35 +124,48 @@ export function useClickerBgm(
     }
     kickRef.current = kick
 
-    // Keep listening: a failed first play (or mute-on-gesture) must keep retrying.
-    // Capture phase: mine ore buttons stopPropagation() on pointerdown.
     const onGesture = () => {
       unlocked = true
+      resumeContext()
+      warmBgmTracks(allBgmTrackIds())
       kick()
     }
-    // rAF stalls in background tabs, so pause directly instead of fading.
+
     const onVisibility = () => {
       hidden = document.visibilityState === "hidden"
       if (hidden) {
-        for (const key of Object.keys(levels) as Track[]) {
+        for (const key of allBgmTrackIds()) {
           levels[key] = 0
-          tracks[key]?.pause()
+          const audio = tracks[key]
+          if (audio) {
+            setLevel(key, audio, 0)
+            audio.pause()
+          }
         }
-      } else if (Object.keys(gains).length > 0) {
-        // Coming back on iOS leaves the context "interrupted"; wired tracks stay silent until resumed.
-        sharedAudioContext()
+      } else {
+        resumeContext()
+        for (const key of allBgmTrackIds()) {
+          const audio = tracks[key]
+          if (audio && gains[key]) tryPlay(key, audio)
+        }
       }
       kick()
+    }
+
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) onVisibility()
     }
 
     window.addEventListener("pointerdown", onGesture, true)
     window.addEventListener("keydown", onGesture, true)
     document.addEventListener("visibilitychange", onVisibility)
+    window.addEventListener("pageshow", onPageShow)
     kick()
     return () => {
       window.removeEventListener("pointerdown", onGesture, true)
       window.removeEventListener("keydown", onGesture, true)
       document.removeEventListener("visibilitychange", onVisibility)
+      window.removeEventListener("pageshow", onPageShow)
       if (raf) window.cancelAnimationFrame(raf)
       for (const audio of Object.values(tracks)) {
         audio.pause()
@@ -170,8 +177,8 @@ export function useClickerBgm(
   }, [])
 
   useEffect(() => {
-    const gain = muted ? 0 : volume * (visual ? (VISUAL_GAIN[visual] ?? 1) : 1)
-    stateRef.current = { scene, gain }
+    stateRef.current = { scene, muted, volume, visual }
+    warmBgmTracks(scene === "silent" ? ["hub"] : [scene])
     kickRef.current()
   }, [visual, scene, muted, volume])
 }
