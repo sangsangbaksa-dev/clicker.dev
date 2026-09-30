@@ -52,7 +52,7 @@ def smooth(t: float) -> float:
 
 def frames():
     hall = load(PUBLIC / "bg" / "region_core_chamber.webp")
-    gate = load(PUBLIC / "mine" / "mine_entrance_hub_closed_door_v1.webp")
+    gate = load(PUBLIC / "mine" / "mine_entrance_hub_closed_door_v2.webp")
     # Cyan lights on the gate: the bright, blue-dominant pixels flicker awake.
     lights = ((gate[..., 2] > 0.45) & (gate[..., 2] > gate[..., 0] * 1.4)).astype(np.float32)[..., None]
     rng = np.random.default_rng(11)

@@ -52,6 +52,9 @@ const CLICKER_ADMIN_UI =
   process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_CLICKER_ADMIN === "1" || CLICKER_PRELAUNCH
 
 /** Nova colour each active skill paints across the mine when cast. */
+/** Spark Strike unlocks lightning; before it the mine shows no bolts. */
+const LIGHTNING_SKILL_ID = "storm_spark"
+
 const SKILL_NOVA_COLOR: Record<string, string> = {
   overclock: "rgb(255 120 60 / 0.9)",
   core_pulse: "rgb(120 240 255 / 0.9)",
@@ -1249,6 +1252,7 @@ export function ClickerApp() {
                 onOreBroken={game.oreBroken}
                 fxTier={fxTier}
                 storm={skillStorm}
+                lightning={run.ownedSkillNodeIds.includes(LIGHTNING_SKILL_ID)}
                 nova={skillNova}
               />
             </div>

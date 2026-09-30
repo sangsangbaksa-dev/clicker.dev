@@ -19,8 +19,8 @@ export const CLICKER_REGIONS: RegionDef[] = [
     // Rendered by scripts/clicker-home-intro.py from the home art; plays on every return home.
     intro: {
       video: "/clicker/region/core_chamber_intro.mp4",
-      poster: "/clicker/mine/mine_entrance_hub_closed_door_v1.webp",
-      still: "/clicker/mine/mine_entrance_hub_closed_door_v1.webp",
+      poster: "/clicker/mine/mine_entrance_hub_closed_door_v2.webp",
+      still: "/clicker/mine/mine_entrance_hub_closed_door_v2.webp",
     },
     clickMultiplier: 1.05,
   },

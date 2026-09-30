@@ -84,6 +84,8 @@ type Props = {
   fxTier?: MineFxTier
   /** An active skill is running: every strike calls down lightning. */
   storm?: boolean
+  /** The lightning skill is owned; until then strikes show no bolts or arcs. */
+  lightning?: boolean
   /** Bumped when a skill is cast; plays a full-screen burst in `color`. */
   nova?: { key: number; color: string } | null
 }
@@ -124,6 +126,7 @@ export function ClickerMine({
   onVein,
   fxTier = 0,
   storm = false,
+  lightning = false,
   nova = null,
 }: Props) {
   const [box, setBox] = useState<Box | null>(null)
@@ -200,13 +203,13 @@ export function ClickerMine({
   }, [])
 
   // Latest values for the drill interval without re-arming it every render.
-  const live = useRef({ broken, box, muted, onMine, onPop, playLaser, fxTier, storm })
+  const live = useRef({ broken, box, muted, onMine, onPop, playLaser, fxTier, storm, lightning })
   useEffect(() => {
-    live.current = { broken, box, muted, onMine, onPop, playLaser, fxTier, storm }
+    live.current = { broken, box, muted, onMine, onPop, playLaser, fxTier, storm, lightning }
   })
 
   /** Lightning, shockwaves, arcs and prism sparks on top of the laser, scaled by tier. */
-  const fireFx = useCallback((x: number, y: number, hit: MineStrikeResult, tier: MineFxTier, stormOn: boolean) => {
+  const fireFx = useCallback((x: number, y: number, hit: MineStrikeResult, tier: MineFxTier, stormOn: boolean, boltsOn: boolean) => {
     if (reduceMotion.current) return
     const el = mineRef.current
     if (!el) return
@@ -214,7 +217,7 @@ export function ClickerMine({
     const b = live.current.box
     const newBolts: Bolt[] = []
     const newRings: Ring[] = []
-    if (hit.lightning || stormOn || Math.random() < BOLT_CHANCE[tier] * (hit.critical ? 1.6 : 1)) {
+    if (hit.lightning || (boltsOn && (stormOn || Math.random() < BOLT_CHANCE[tier] * (hit.critical ? 1.6 : 1)))) {
       const sx = x + (Math.random() - 0.5) * width * 0.35
       newBolts.push({ id: ++seq.current, d: boltPath(sx, -10, x, y, 70 + tier * 12, 11), big: Boolean(hit.lightning) })
       if (hit.lightning) {
@@ -222,7 +225,7 @@ export function ClickerMine({
       }
     }
     // Chain arcs across the crystal (tier 3+ crits, every hit at 4, and every lightning proc).
-    if (b && (hit.lightning || (tier >= 3 && hit.critical) || tier >= 4)) {
+    if (b && (hit.lightning || (boltsOn && ((tier >= 3 && hit.critical) || tier >= 4)))) {
       const arcs = hit.lightning ? 4 : tier >= 4 ? 2 : 1
       for (let i = 0; i < arcs; i++) {
         const tx = b.left + b.width * (0.15 + Math.random() * 0.7)
@@ -258,7 +261,7 @@ export function ClickerMine({
         cur.onPop()
       }
       fireLaser(x, y, critical, drill, cur.fxTier)
-      fireFx(x, y, strike, cur.fxTier, cur.storm)
+      fireFx(x, y, strike, cur.fxTier, cur.storm, cur.lightning)
       setHitSeq((n) => n + 1)
 
     },
