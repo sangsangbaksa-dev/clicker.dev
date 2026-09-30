@@ -9,14 +9,12 @@
   /* The painting replaces the region backdrop entirely — no blue stage showing round it. */
   background: #04060a;
 }
-/* The 9:16 painting covers a portrait stage; on a wide stage it is zoomed at most a little past
-   fit-to-height (so the monster stays in frame instead of a blown-up patch of sky), and its
-   side edges fade into black. Overlays stay pinned to the art. */
+/* The 9:16 painting always fills the stage edge to edge. On a wide stage it is taller than the
+   stage, so the camera frames the monster's body and crops sky and ground instead of leaving
+   dark bars at the sides. Overlays stay pinned to the art. */
 .boss-scene-box {
-  /* As wide as the stage allows (up to fit-width at 100cqh), framed on the monster's body:
-     the box is taller than the stage then, so the camera centres the body and only the
-     ground crops away — never leaving a gap above or below. */
-  --w: clamp(56.25cqh, 100cqw, 100cqh);
+  /* Cover: at least full width, and at least full height on a portrait stage. */
+  --w: max(56.25cqh, 100cqw);
   --h: calc(var(--w) * 16 / 9);
   position: absolute;
   left: 50%;
@@ -24,11 +22,6 @@
   width: var(--w);
   aspect-ratio: 9 / 16;
   translate: -50% 0;
-}
-.boss-scene-base {
-  --edge: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
-  -webkit-mask-image: var(--edge);
-  mask-image: var(--edge);
 }
 .boss-scene-base,
 .boss-scene-body {

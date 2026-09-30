@@ -31,9 +31,9 @@ type SceneDef = {
 export const BOSS_SCENES: Record<string, SceneDef> = {
   stormbird: {
     src: "/clicker/boss/storm_spire.webp",
-    body: { x: 50, y: 30, w: 96, h: 54 },
-    eyes: [{ x: 46, y: 15 }, { x: 53, y: 15 }],
-    strike: { x: 50, y: 70 },
+    body: { x: 50, y: 30, w: 98, h: 56 },
+    eyes: [{ x: 44.1, y: 23 }, { x: 52.6, y: 23 }],
+    strike: { x: 48.8, y: 30 },
     weather: "storm",
     tint: "120 220 255",
     attackSfx: "dragonBreath",
@@ -62,6 +62,9 @@ export const BOSS_SCENES: Record<string, SceneDef> = {
 }
 
 const ATTACK_EVERY_MS = 4200
+/** How far below the eye line (% of the art's height) a wide stage centres the camera. */
+const FRAME_BELOW_EYES = 8
+
 /** Anticipation (rear up), strike, recover — the strike beat lands when the engine deals damage. */
 const WINDUP_MS = 1100
 const STRIKE_MS = 900
@@ -145,10 +148,12 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
   }
 
   const b = scene.body
+  // Camera target on a wide stage: just below the eye line, so the head is always in frame.
+  const eyeY = scene.eyes.reduce((sum, e) => sum + e.y, 0) / Math.max(1, scene.eyes.length)
   const vars = {
     "--bx": `${b.x}%`,
     "--by": `${b.y}%`,
-    "--byn": b.y / 100,
+    "--byn": Math.min(b.y, eyeY + FRAME_BELOW_EYES) / 100,
     "--bw": `${b.w}%`,
     "--bh": `${b.h}%`,
     "--tint": scene.tint,
