@@ -54,12 +54,15 @@ test("relic vault: opens on the fourth worldline, costs world currency, stays fo
   assert.ok(cost > 0)
   assert.ok(buyRelic(save.runState, meta, config, relic.id).error, "no currency, no relic")
 
-  const run = { ...save.runState, regionCurrency: { [relic.regionId]: cost } }
+  const run = { ...save.runState, currentWorldLine: RELIC_UNLOCK_REBIRTHS + 1, regionCurrency: { [relic.regionId]: cost } }
   const bought = buyRelic(run, meta, config, relic.id)
   assert.equal(bought.error, undefined)
   assert.equal(relicLevel(bought.meta, relic.id), 1)
   assert.equal(bought.run.regionCurrency[relic.regionId], 0)
   assert.ok(relicCost(bought.meta, config, relic) > cost, "each level costs more")
+  const rich = { ...bought.run, regionCurrency: { [relic.regionId]: Number.MAX_VALUE } }
+  assert.ok(relicError(rich, bought.meta, config, relic.id), "one level per worldline from the fourth")
+  assert.equal(relicError({ ...rich, currentWorldLine: RELIC_UNLOCK_REBIRTHS + 2 }, bought.meta, config, relic.id), undefined)
 
   const before = derivedClick(run, meta, config).click
   const after = derivedClick(run, bought.meta, config).click

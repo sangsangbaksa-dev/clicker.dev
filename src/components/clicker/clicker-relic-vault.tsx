@@ -30,7 +30,7 @@ export function ClickerRelicVault({ game, run, meta }: { game: ClickerGame; run:
   return (
     <div className="clicker-forge clicker-forge-panel clicker-relic-vault">
       <p className="clicker-forge-summary">
-        유물 보관소 · 유물은 <b>환생해도 사라지지 않습니다</b>. 각 월드의 화폐로 강화하세요.
+        유물 보관소 · 유물은 <b>환생해도 사라지지 않습니다</b>. 각 월드의 화폐로 강화하세요. 세계선마다 한 단계씩 더 강화할 수 있습니다.
       </p>
       <div className="clicker-forge-slots">
         {game.config.relics.map((relic) => {

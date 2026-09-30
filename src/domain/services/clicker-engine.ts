@@ -395,6 +395,11 @@ export function relicVaultOpen(meta: MetaState): boolean {
   return meta.rebirthCount >= RELIC_UNLOCK_REBIRTHS
 }
 
+/** Highest level a relic can reach this worldline: 1 on the fourth, one more each worldline after. */
+export function relicLevelCap(run: RunState, relic: RelicDef): number {
+  return Math.max(0, Math.min(relic.maxLevel, run.currentWorldLine - RELIC_UNLOCK_REBIRTHS))
+}
+
 /** A relic's effect at `level`: multipliers compound, additions stack. */
 export function relicEffectAt(relic: RelicDef, level: number): RelicDef["perLevel"] {
   const out: Record<string, number> = {}
@@ -429,6 +434,7 @@ export function relicError(run: RunState, meta: MetaState, config: GameConfig, r
   if (!relic) return "유물이 없습니다."
   if (!relicVaultOpen(meta)) return `유물 보관소는 세계선 ${RELIC_UNLOCK_REBIRTHS + 1}부터 열립니다.`
   if (relicLevel(meta, relicId) >= relic.maxLevel) return "최대 레벨입니다."
+  if (relicLevel(meta, relicId) >= relicLevelCap(run, relic)) return "다음 세계선에서 더 강화할 수 있습니다."
   const wallet = { ...run.regionCurrency }
   if (!payRegionCurrency(wallet, config, relic.regionId, relicCost(meta, config, relic))) {
     const region = config.regions.find((r) => r.id === relic.regionId)
