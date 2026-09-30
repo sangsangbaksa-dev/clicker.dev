@@ -174,7 +174,8 @@ function step(dt: number): void {
   }
 }
 
-const runLog: string[] = []
+// Lines print as they happen, so a run cut short still reports how far it got.
+const runLog = { push: (line: string) => console.log(line) }
 const sources: Record<string, number> = {}
 const credit = (key: string, before: number) => {
   sources[key] = (sources[key] ?? 0) + (save.runState.lifetimeCoreEnergy - before)
@@ -305,5 +306,4 @@ while (elapsed() < MAX_HOURS * 3600) {
 }
 
 console.log(`clicks/s ${CLICKS_PER_SEC} · mine sessions ${mineCycles}`)
-for (const line of runLog) console.log(line)
 console.log(`total ${fmt(elapsed())}${heartReached ? " · Core Heart open" : " · NOT FINISHED"}`)
