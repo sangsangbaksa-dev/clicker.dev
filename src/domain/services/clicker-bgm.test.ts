@@ -2,9 +2,11 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 import {
   bgmFadeStep,
+  bgmMayTouchTrack,
   bgmOutputLevel,
   bgmPlayerGain,
   bgmTrackFadeTarget,
+  bgmTracksToWarm,
   resolveBgmScene,
   worldBgmTrack,
 } from "./clicker-bgm.ts"
@@ -39,6 +41,17 @@ test("bgmFadeStep approaches target over fadeMs", () => {
 test("bgmOutputLevel applies master headroom", () => {
   assert.equal(bgmOutputLevel(1, 1), 0.5)
   assert.equal(bgmOutputLevel(0, 1), 0)
+})
+
+test("bgmMayTouchTrack blocks cold load and muted sessions", () => {
+  assert.equal(bgmMayTouchTrack(false, false), false)
+  assert.equal(bgmMayTouchTrack(true, true), false)
+  assert.equal(bgmMayTouchTrack(true, false), true)
+})
+
+test("bgmTracksToWarm skips silent scenes", () => {
+  assert.deepEqual(bgmTracksToWarm("silent"), [])
+  assert.deepEqual(bgmTracksToWarm("mine"), ["mine"])
 })
 
 test("resolveBgmScene picks mine, chamber, silent, and world themes", () => {

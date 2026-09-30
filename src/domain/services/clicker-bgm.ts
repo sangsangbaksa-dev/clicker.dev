@@ -79,6 +79,20 @@ export type BgmOverlayState = {
   currentRegionId: string | undefined
 }
 
+/**
+ * Whether the runtime may create or fetch BGM media (no mp3 until the first pointer/key
+ * gesture, and never while background music is muted in settings).
+ */
+export function bgmMayTouchTrack(hasUserGesture: boolean, musicMuted: boolean): boolean {
+  return hasUserGesture && !musicMuted
+}
+
+/** Scene preload is allowed under the same policy (silent scenes need no fetch). */
+export function bgmTracksToWarm(scene: BgmScene): BgmTrackId[] {
+  if (scene === "silent") return []
+  return [scene]
+}
+
 /** Cinematics silence the score; rebirth/ending use the chamber bed. */
 export function resolveBgmScene(overlay: BgmOverlayState): BgmScene {
   if (overlay.enteringMine || overlay.regionIntro || overlay.endingPhase) return "silent"
