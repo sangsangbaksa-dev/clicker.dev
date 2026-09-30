@@ -21,6 +21,7 @@ import {
   eventBoostMultiplier,
   pruneEventBoosts,
 } from "./clicker-bonus.ts"
+import { clearMinePause, resumeMine } from "./clicker-mine-pause.ts"
 
 /** Base timed-mine length before skill-tree extensions. Balance PROVISIONAL. */
 export const MINE_SESSION_BASE_MS = 10_000
@@ -84,6 +85,7 @@ export function createInitialRun(now: number, meta: MetaState, config: GameConfi
     feverStarts: 0,
     respecCount: 0,
     mineSessionEndsAt: 0,
+    minePausedRemainMs: 0,
     mineCooldownUntil: 0,
     mineSessionCoreAtEnter: 0,
     mineSessionDurationMs: 0,
@@ -220,6 +222,9 @@ export function enterClickerMine(
   if (save.settings.playSurface === "mine" && save.runState.mineSessionEndsAt > now) {
     return { save }
   }
+  if ((save.runState.minePausedRemainMs ?? 0) > 0) {
+    return { save: resumeMine(save, now) }
+  }
   if (!regionHasMine(save.runState, config)) return { save, error: MINE_HOME_ONLY_ERROR }
   const { cost, error } = mineEntryCheck(save, now)
   if (error) return { save, error }
@@ -232,13 +237,13 @@ export function enterClickerMine(
     save: {
       ...save,
       settings: { ...save.settings, playSurface: "mine" },
-      runState: {
+      runState: clearMinePause({
         ...save.runState,
         coreEnergy: coreAfterCost,
         mineSessionEndsAt: now + durationMs,
         mineSessionCoreAtEnter: coreAfterCost,
         mineSessionDurationMs: durationMs,
-      },
+      }),
     },
   }
 }
@@ -279,13 +284,13 @@ export function exitClickerMine(save: SaveData, now: number, config?: GameConfig
   return {
     ...save,
     settings: { ...save.settings, playSurface: "hub" },
-    runState: {
+    runState: clearMinePause({
       ...save.runState,
       mineSessionEndsAt: 0,
       mineCooldownUntil: now + reentryCooldownMs(save.runState, config),
       mineSessionCoreAtEnter: 0,
       mineSessionDurationMs: 0,
-    },
+    }),
   }
 }
 
@@ -1587,6 +1592,7 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         activeBuffs: Array.isArray(run.activeBuffs) ? (run.activeBuffs as TimedBuff[]) : [],
         lastTickAt: typeof run.lastTickAt === "number" ? run.lastTickAt : now,
         mineSessionEndsAt: typeof run.mineSessionEndsAt === "number" ? run.mineSessionEndsAt : 0,
+        minePausedRemainMs: typeof run.minePausedRemainMs === "number" ? run.minePausedRemainMs : 0,
         mineCooldownUntil: typeof run.mineCooldownUntil === "number" ? run.mineCooldownUntil : 0,
         mineSessionCoreAtEnter:
           typeof run.mineSessionCoreAtEnter === "number" ? run.mineSessionCoreAtEnter : 0,
