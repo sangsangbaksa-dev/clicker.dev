@@ -2,6 +2,9 @@
  * Clicker UI facade: types and read-only helpers for components and hooks.
  * Domain rules stay in domain; this module is the outward-facing import surface.
  */
+export { spawnMineOres } from "@/application/spawn-mine-ores"
+export { ORE_ART } from "@/infrastructure/ore-art"
+export { oreHitBox, oreStrikePoint, type OreNode } from "@/domain/services/ore-node"
 export { formatNumber } from "@/domain/services/clicker-format"
 export {
   bulkAffordable,
