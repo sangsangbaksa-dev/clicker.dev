@@ -135,7 +135,8 @@ const NODE_SPECS: NodeSpec[] = [
   ["hunt_slayer", "HUNT", 4, "Slayer", 16_000_000_000, "hunt_lure", { monsterRewardMultiplier: 2.5 }, "크리처 보상 ×2.5"],
   ["hunt_bane", "HUNT", 4, "Warden's Bane", 29_000_000_000, "hunt_slayer", { bossDamageMultiplier: 1.5 }, "수호자 피해 ×1.5"],
   ["hunt_apex", "HUNT", 5, "Apex Predator", 150_000_000_000, "hunt_bane", { bossDamageMultiplier: 2, monsterRewardMultiplier: 3 }, "수호자 피해 ×2 · 크리처 보상 ×3"],
-  ["trans_heart", "TRANSCENDENCE", 5, "Heart Key", 200_000_000_000, "trans_convergence", { clickMultiplier: 2, productionMultiplier: 2 }, "채굴·생산 ×2"],
+  // The tree's final key: one purchase that redraws the whole economy.
+  ["trans_heart", "TRANSCENDENCE", 5, "Heart Key", 1_000_000_000_000, "trans_convergence", { clickMultiplier: 10, productionMultiplier: 10, criticalMultiplier: 2, droneStrikesPerSecond: 5 }, "채굴·생산 ×10 · 치명타 배율 ×2 · 드론 +5회/초"],
 ]
 
 export const EXTRA_SKILL_NODES: SkillNodeDef[] = NODE_SPECS.map(([id, branch, tier, name, cost, requires, effect, description]) => ({

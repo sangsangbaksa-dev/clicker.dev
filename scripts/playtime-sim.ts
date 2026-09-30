@@ -142,7 +142,6 @@ function shop(): void {
     }
     for (const n of config.skillNodes) {
       if (run.ownedSkillNodeIds.includes(n.id) || !isSkillNodeVisible(run, n)) continue
-      if (n.branch === "TRANSCENDENCE" && !canRebirth(run, save.metaState, config)) continue
       const next = { ...save, runState: { ...run, ownedSkillNodeIds: [...run.ownedSkillNodeIds, n.id] } }
       // Nodes that open a path are worth a little extra: they reveal what lies behind.
       const opens = config.skillNodes.some((c) => c.requires?.includes(n.id))
