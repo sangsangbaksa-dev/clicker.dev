@@ -1,7 +1,7 @@
 "use client"
 
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
-import type { CurrencyCostView } from "@/application/clicker-display"
+import type { CurrencyCostView } from "@/application/clicker-ui"
 import type { PanelProps } from "./types"
 
 function CurrencyCosts({ costs }: { costs: CurrencyCostView[] }) {

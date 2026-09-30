@@ -1,8 +1,8 @@
 "use client"
 
 import { useRef } from "react"
-import { formatNumber } from "@/application/clicker-display"
-import type { MineSessionSummary } from "@/domain/services/clicker-mine-session"
+import { formatNumber } from "@/application/clicker-ui"
+import type { MineSessionSummary } from "@/application/clicker-ui"
 import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
 
 type Props = {

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useLayoutEffect, useRef, type RefObject } from "react"
-import { isConfirmReady } from "@/domain/services/clicker-confirm-guard"
+import { isConfirmReady } from "@/application/clicker-ui"
 
 /** Soft Esc dismiss — no focus trap, respects prior preventDefault. */
 export function useClickerEscape(enabled: boolean, onEscape: () => void) {

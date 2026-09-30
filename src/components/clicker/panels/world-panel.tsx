@@ -1,8 +1,8 @@
 "use client"
 
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
-import { formatNumber } from "@/application/clicker-display"
-import type { RunState } from "@/domain/entities/clicker"
+import { formatNumber } from "@/application/clicker-ui"
+import type { RunState } from "@/application/clicker-ui"
 import type { ClickerGame } from "./types"
 
 export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; run: RunState; onBack: () => void }) {

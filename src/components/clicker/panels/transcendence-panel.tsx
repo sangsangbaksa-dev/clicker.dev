@@ -1,8 +1,8 @@
 "use client"
 
-import { formatNumber } from "@/application/clicker-display"
+import { formatNumber } from "@/application/clicker-ui"
 import { ClickerRebirthWorldlineSelect } from "@/components/clicker/clicker-rebirth-worldline-select"
-import type { MetaState, TranscendenceDef } from "@/domain/entities/clicker"
+import type { MetaState, TranscendenceDef } from "@/application/clicker-ui"
 import type { PanelProps } from "./types"
 
 export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon, onSelectTab, onChoose }: PanelProps & {

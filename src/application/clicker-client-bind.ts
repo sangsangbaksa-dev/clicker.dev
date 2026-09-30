@@ -21,3 +21,9 @@ export function clickerTabLock(): ClickerTabLockPort {
   if (!tabLock) throw new Error("Clicker tab lock is not bound")
   return tabLock
 }
+
+/** Test-only: clear bindings so each test can install fakes. */
+export function resetClickerClientBindings(): void {
+  persistence = null
+  tabLock = null
+}

@@ -1,4 +1,4 @@
-import { clickerTabLock } from "@/application/clicker-client-bind"
+import { clickerTabLock } from "./clicker-client-bind.ts"
 
 export function clickerCreateTabId(): string {
   return clickerTabLock().createTabId()

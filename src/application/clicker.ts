@@ -423,4 +423,4 @@ export function allowMineStrike(window: number[], now: number): boolean {
 
 export { mineSessionStart as clickerMineSessionStart }
 
-export { config as clickerGameConfig }
+export { config as clickerGameConfig, createInitialSave }

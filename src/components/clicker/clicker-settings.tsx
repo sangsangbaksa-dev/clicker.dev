@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
-import { formatNumber } from "@/application/clicker-display"
-import type { ParsedSaveCode } from "@/domain/services/clicker-save-transfer"
+import { formatNumber } from "@/application/clicker-ui"
+import type { ParsedSaveCode } from "@/application/clicker-ui"
 
 type Props = {
   muted: boolean

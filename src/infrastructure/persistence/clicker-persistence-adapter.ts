@@ -1,5 +1,5 @@
-import type { ClickerPersistencePort } from "@/application/ports/clicker-persistence"
-import { backupClickerRaw, clearClickerRaw, readClickerRaw, writeClickerRaw } from "@/infrastructure/persistence/clicker-save"
+import type { ClickerPersistencePort } from "../../application/ports/clicker-persistence.ts"
+import { backupClickerRaw, clearClickerRaw, readClickerRaw, writeClickerRaw } from "./clicker-save.ts"
 
 export const browserClickerPersistence: ClickerPersistencePort = {
   readRaw: readClickerRaw,

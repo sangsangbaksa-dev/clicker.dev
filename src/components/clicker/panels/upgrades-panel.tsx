@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import type { RunState, UpgradeCategory } from "@/domain/entities/clicker"
-import { formatNumber } from "@/application/clicker-display"
+import type { RunState, UpgradeCategory } from "@/application/clicker-ui"
+import { formatNumber } from "@/application/clicker-ui"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 import type { ClickerGame } from "./types"
 

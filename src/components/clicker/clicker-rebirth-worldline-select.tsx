@@ -7,7 +7,7 @@ import {
   RebirthPhaseArt,
 } from "@/data/clicker/rebirth-assets"
 import { rebirthVariantFor } from "@/data/clicker/rebirth-motion"
-import type { TranscendenceDef } from "@/domain/entities/clicker"
+import type { TranscendenceDef } from "@/application/clicker-ui"
 import "./clicker-rebirth-worldline-select.css"
 
 type Props = {

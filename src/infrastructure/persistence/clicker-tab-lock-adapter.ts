@@ -1,11 +1,11 @@
-import type { ClickerTabLockPort } from "@/application/ports/clicker-tab-lock"
+import type { ClickerTabLockPort } from "../../application/ports/clicker-tab-lock.ts"
 import {
   browserLeaseStorage,
   canWriteClickerSave,
   claimClickerLease,
   createClickerTabId,
   isLeaseTakenByOther,
-} from "@/infrastructure/persistence/clicker-tab-lock"
+} from "./clicker-tab-lock.ts"
 
 export const browserClickerTabLock: ClickerTabLockPort = {
   createTabId: createClickerTabId,

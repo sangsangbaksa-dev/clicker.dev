@@ -1,6 +1,6 @@
-import { bindClickerPersistence, bindClickerTabLock } from "@/application/clicker-client-bind"
-import { browserClickerPersistence } from "@/infrastructure/persistence/clicker-persistence-adapter"
-import { browserClickerTabLock } from "@/infrastructure/persistence/clicker-tab-lock-adapter"
+import { bindClickerPersistence, bindClickerTabLock } from "../../application/clicker-client-bind.ts"
+import { browserClickerPersistence } from "./clicker-persistence-adapter.ts"
+import { browserClickerTabLock } from "./clicker-tab-lock-adapter.ts"
 
 bindClickerPersistence(browserClickerPersistence)
 bindClickerTabLock(browserClickerTabLock)

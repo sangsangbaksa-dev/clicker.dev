@@ -8,7 +8,7 @@ import {
   connectorPath,
   type SkillCell,
 } from "@/data/clicker/skill-tree-layout"
-import { formatNumber, type SkillNodeView } from "@/application/clicker-display"
+import { formatNumber, type SkillNodeView } from "@/application/clicker-ui"
 import { useClickerEscape } from "@/components/clicker/clicker-a11y"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 
