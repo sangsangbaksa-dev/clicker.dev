@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
-import { formatNumber } from "@/domain/services/clicker-format"
+import { formatNumber } from "@/application/clicker-display"
 import type { ParsedSaveCode } from "@/domain/services/clicker-save-transfer"
 
 type Props = {

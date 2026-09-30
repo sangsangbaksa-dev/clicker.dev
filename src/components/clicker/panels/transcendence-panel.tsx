@@ -1,6 +1,6 @@
 "use client"
 
-import { formatNumber } from "@/domain/services/clicker-format"
+import { formatNumber } from "@/application/clicker-display"
 import { ClickerRebirthWorldlineSelect } from "@/components/clicker/clicker-rebirth-worldline-select"
 import type { MetaState, TranscendenceDef } from "@/domain/entities/clicker"
 import type { PanelProps } from "./types"

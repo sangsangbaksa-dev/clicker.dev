@@ -1,6 +1,6 @@
 "use client"
 
-import { formatNumber } from "@/domain/services/clicker-format"
+import { formatNumber } from "@/application/clicker-display"
 import type { MetaState } from "@/domain/entities/clicker"
 import type { ClickerGame } from "./types"
 

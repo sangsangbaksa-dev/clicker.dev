@@ -1,7 +1,7 @@
 "use client"
 
 import type { RunState } from "@/domain/entities/clicker"
-import { formatNumber } from "@/domain/services/clicker-format"
+import { formatNumber } from "@/application/clicker-display"
 import { scaledCost, regionCurrencyBalance } from "@/domain/services/clicker-engine"
 import {
   AMULETS,

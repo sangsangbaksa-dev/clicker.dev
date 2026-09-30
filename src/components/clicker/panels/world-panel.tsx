@@ -1,7 +1,7 @@
 "use client"
 
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
-import { formatNumber } from "@/domain/services/clicker-format"
+import { formatNumber } from "@/application/clicker-display"
 import type { RunState } from "@/domain/entities/clicker"
 import type { ClickerGame } from "./types"
 

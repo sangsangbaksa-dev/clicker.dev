@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
 import { CLICKER_COMPLETION_EPILOGUE } from "@/data/clicker/ending"
-import { formatNumber } from "@/domain/services/clicker-format"
+import { formatNumber } from "@/application/clicker-display"
 import type { MetaState } from "@/domain/entities/clicker"
 import { useArmedPress, useClickerDialogFocus, useFocusOnChange } from "@/components/clicker/clicker-a11y"
 

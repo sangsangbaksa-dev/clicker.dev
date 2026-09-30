@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import type { BossDef, BossFight } from "@/domain/entities/clicker"
-import { formatNumber } from "@/domain/services/clicker-format"
+import { formatNumber } from "@/application/clicker-display"
 import { playSfx } from "@/components/clicker/clicker-sfx"
 import { MonsterArt } from "@/components/clicker/clicker-monster"
 import "./clicker-monster.css"

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import type { RunState, UpgradeCategory } from "@/domain/entities/clicker"
-import { formatNumber } from "@/domain/services/clicker-format"
+import { formatNumber } from "@/application/clicker-display"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 import type { ClickerGame } from "./types"
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { bulkAffordable, bulkCostText } from "@/domain/services/clicker-view"
+import { bulkAffordable, bulkCostText } from "@/application/clicker-display"
 import type { PanelProps } from "./types"
 
 export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automationBuff }: PanelProps & { automationBuff: boolean }) {
