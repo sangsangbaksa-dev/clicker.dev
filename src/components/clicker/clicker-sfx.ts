@@ -11,7 +11,7 @@ let bus: GainNode | null = null
 let muted = false
 let noiseBuf: AudioBuffer | null = null
 
-const MASTER_GAIN = 0.9
+const MASTER_GAIN = 0.88
 /** Rapid-fire guard per cue so a held key or MAX-buy doesn't machine-gun. */
 const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   tap: 45,
@@ -42,7 +42,7 @@ function audio(): AudioContext | null {
     comp.attack.value = 0.003
     comp.release.value = 0.18
     bus = ctx.createGain()
-    bus.gain.value = MASTER_GAIN
+    bus.gain.value = muted ? 0 : MASTER_GAIN
     bus.connect(comp)
     comp.connect(ctx.destination)
   }
@@ -64,6 +64,7 @@ export function sharedAudioContext(): AudioContext | null {
 /** Global SFX mute (settings). Callers no longer need to thread `muted` through. */
 export function setSfxMuted(value: boolean) {
   muted = value
+  if (bus) bus.gain.value = value ? 0 : MASTER_GAIN
 }
 
 function out(c: AudioContext): AudioNode {
@@ -230,7 +231,7 @@ const semis = (base: number, n: number) => base * 2 ** (n / 12)
 const CUES = {
   /** Generic UI press: soft rounded pop with a faint glassy top. */
   tap(c: AudioContext, t: number) {
-    pluck(c, 660, 0.05, t, 0.09)
+    pluck(c, 660, 0.042, t, 0.09)
     pluck(c, 1980, 0.008, t, 0.05)
   },
   /** Soft tick — tab / panel switch. */
@@ -255,8 +256,8 @@ const CUES = {
   },
   /** Can't afford / refused: muted low double bump. */
   deny(c: AudioContext, t: number) {
-    pluck(c, 220, 0.06, t, 0.1, 0.8)
-    pluck(c, 185, 0.06, t + 0.11, 0.13, 0.8)
+    pluck(c, 220, 0.068, t, 0.1, 0.8)
+    pluck(c, 185, 0.068, t + 0.11, 0.13, 0.8)
   },
   /** Skill circuit unlocked: electric arc + ascending arpeggio. */
   skillUnlock(c: AudioContext, t: number) {
@@ -307,7 +308,7 @@ const CUES = {
   },
   /** Shockwave (quake): ground boom, cracking rock and a slow rumble. */
   quake(c: AudioContext, t: number) {
-    tone(c, "sine", 62, 22, 0.34, t, 1.3, { attack: 0.004 })
+    tone(c, "sine", 62, 22, 0.28, t, 1.3, { attack: 0.004 })
     tone(c, "triangle", 110, 40, 0.14, t, 0.7)
     noise(c, "lowpass", 260, 1.4, 0.3, t, 1.6, { sweepTo: 60, attack: 0.01 })
     noise(c, "bandpass", 1200, 1, 0.12, t, 0.18)
@@ -422,7 +423,7 @@ const CUES = {
   },
   /** Tab / dock / navigation button: soft woody knock. */
   nav(c: AudioContext, t: number) {
-    pluck(c, 494, 0.06, t, 0.1)
+    pluck(c, 494, 0.052, t, 0.1)
     pluck(c, 988, 0.012, t, 0.06)
   },
   /** Back / close: gentle falling two-step. */

@@ -5,6 +5,7 @@
   z-index: 60;
   display: grid;
   place-items: center;
+  /* Poster matches door-centered mine entrance still (seamless with door-walk f000). */
   background: #000 center / cover no-repeat;
   animation: clicker-cinematic-in 180ms ease-out;
 }

@@ -11,7 +11,8 @@ import {
 import { CLICKER_ASSETS, clickerConfig } from "@/data/clicker/catalog"
 import { formatNumber } from "@/domain/services/clicker-format"
 import { useClicker } from "@/hooks/use-clicker"
-import { useClickerBgm, worldBgm } from "@/hooks/use-clicker-bgm"
+import { useClickerBgm } from "@/hooks/use-clicker-bgm"
+import { clickerBgmControls, clickerBgmScene } from "@/application/clicker-audio"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine, type MineFxTier } from "@/components/clicker/clicker-mine"
@@ -26,6 +27,7 @@ import { collectImagePaths, useDecodedSrc, useImagePreload } from "@/components/
 import { ClickerImageZoom } from "@/components/clicker/clicker-image-zoom"
 import { ClickerPurchaseFx } from "@/components/clicker/clicker-purchase-fx"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
+import { ClickerLoading } from "@/components/clicker/clicker-loading"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
 import { ClickerBossScene } from "@/components/clicker/clicker-boss-scene"
 import { ClickerForge } from "@/components/clicker/clicker-forge"
@@ -241,17 +243,19 @@ export function ClickerApp() {
   /** Ending sequence after the guardian falls: two videos, then the story cards. */
   const [endingPhase, setEndingPhase] = useState<"fall" | "awaken" | null>(null)
 
-  useClickerBgm(game.hud?.coreVisual, {
-    // Cinematics carry their own soundtrack.
-    scene: enteringMine || game.regionIntro || endingPhase
-      ? "silent"
-      : pendingRebirth || endingOpen
-        ? "chamber"
-        : game.save?.settings.playSurface === "mine"
-          ? "mine"
-          : worldBgm(game.save?.runState.currentRegionId),
-    muted: game.otherTabActive || (game.save?.settings.musicMuted ?? false),
-    volume: game.save?.settings.musicVolume ?? 0,
+  const bgm = clickerBgmControls(game.save?.settings, game.otherTabActive, game.hud?.coreVisual)
+  useClickerBgm(bgm.visual, {
+    scene: clickerBgmScene({
+      enteringMine,
+      regionIntro: game.regionIntro,
+      endingPhase,
+      pendingRebirth: Boolean(pendingRebirth),
+      endingOpen,
+      playSurface: game.save?.settings.playSurface ?? "hub",
+      currentRegionId: game.save?.runState.currentRegionId,
+    }),
+    muted: bgm.muted,
+    volume: bgm.volume,
   })
 
 
@@ -705,16 +709,7 @@ export function ClickerApp() {
   }
 
   if (!game.save || !game.hud) {
-    return (
-      <div data-clicker className="clicker-shell clicker-loading" role="status" aria-busy="true" aria-live="polite">
-        <div
-          className="clicker-loading-bg"
-          style={{ backgroundImage: `url(${CLICKER_ASSETS.bgLoading})` }}
-          aria-hidden
-        />
-        <p className="clicker-loading-text">CORE를 깨우는 중…</p>
-      </div>
-    )
+    return <ClickerLoading bgSrc={CLICKER_ASSETS.bgLoading} />
   }
 
   if (game.isCompleted) {
