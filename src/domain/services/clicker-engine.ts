@@ -1096,7 +1096,7 @@ export function buyProducer(
  * before it. Older-world shortfalls are covered by newer wallets (see `payRegionCurrency`), so a
  * player who has moved on is never sent back to grind.
  */
-/** An item needs a world's currency once it costs at least this share of the CORE that opens the world. */
+/** An item needs a world's currency once it costs at least this share of the CORE that opens the world in this worldline. */
 const REGION_CURRENCY_UNLOCK_LEAD = 0.05
 /** Newest world first. */
 const REGION_CURRENCY_COST_SHARES = [0.1, 0.05]
@@ -1106,7 +1106,7 @@ export type CurrencyCost = { regionId: string; name: string; icon: string; amoun
 export function purchaseCurrencyCosts(run: RunState, config: GameConfig, baseCost: number): CurrencyCost[] {
   const cost = scaledCost(run, baseCost)
   return config.regions
-    .filter((r) => r.currency && !r.isHome && r.unlockAtLifetimeEnergy * REGION_CURRENCY_UNLOCK_LEAD <= baseCost)
+    .filter((r) => r.currency && !r.isHome && regionUnlockThreshold(run, config, r) * REGION_CURRENCY_UNLOCK_LEAD <= cost)
     .slice(-REGION_CURRENCY_COST_SHARES.length)
     .reverse()
     .map((r, i) => ({

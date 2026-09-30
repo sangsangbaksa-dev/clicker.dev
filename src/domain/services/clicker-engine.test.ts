@@ -607,6 +607,17 @@ test("region currency: earned where you stand, spent by late upgrades", async ()
     "late upgrades cost the two newest worlds opened before their price",
   )
   assert.ok(costs[0].amount > costs[1].amount, "the newest world takes the bigger share")
+  // Later worldlines open worlds later, so the currency gate moves with them.
+  const wl3 = { ...run0, currentWorldLine: 3 }
+  const cost3 = eng.scaledCost(wl3, late.cost)
+  assert.deepEqual(
+    eng.upgradeCurrencyCosts(wl3, config, late).map((c) => c.regionId),
+    config.regions
+      .filter((r) => r.currency && !r.isHome && eng.regionUnlockThreshold(wl3, config, r) * 0.05 <= cost3)
+      .slice(-2)
+      .reverse()
+      .map((r) => r.id),
+  )
   assert.equal(eng.upgradeCurrencyCosts(run0, config, [...config.upgrades].sort((a, b) => a.cost - b.cost)[0]).length, 0)
   const rich = {
     ...run0,
