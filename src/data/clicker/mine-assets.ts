@@ -1,8 +1,13 @@
 /** Mine chamber art pack — paths only; Waldomage + Waldo handoff. Palette PROVISIONAL. */
 
-/** Door hex center in pre-reframe v2 (1280×720); reframed left by this many px for on-screen centering. */
-export const MINE_ENTRANCE_DOOR_CENTER_X = 708
-export const MINE_ENTRANCE_REFRAME_SHIFT_PX = MINE_ENTRANCE_DOOR_CENTER_X - 640
+export const MINE_ENTRANCE_FRAME_WIDTH = 1280
+export const MINE_ENTRANCE_FRAME_HEIGHT = 720
+/** Vertical seam between door panels in pre-reframe v2 still (symmetry scan; see media/mine-entrance-reframe/). */
+export const MINE_ENTRANCE_DOOR_SEAM_X_SOURCE = 657
+/** After reframe, seam is aligned to frame center. */
+export const MINE_ENTRANCE_DOOR_SEAM_X = MINE_ENTRANCE_FRAME_WIDTH / 2
+/** Pixels to shift content left so `MINE_ENTRANCE_DOOR_SEAM_X_SOURCE` lands on frame center. */
+export const MINE_ENTRANCE_REFRAME_SHIFT_PX = MINE_ENTRANCE_DOOR_SEAM_X_SOURCE - MINE_ENTRANCE_DOOR_SEAM_X
 
 /** Interior with the single big center crystal — the clickable mining target. */
 export const MINE_ORE_PLATE = {
