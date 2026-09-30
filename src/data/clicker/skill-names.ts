@@ -206,14 +206,14 @@ function keepsOwnText(n: SkillNodeDef): boolean {
 }
 
 /** Hand-written lines where the generated one would drop a detail or run too long. */
-const DESCRIPTIONS: Record<string, string> = {
-  auto_drill: "보조 드릴 해금 · 커서 위치를 초당 2회 자동 채굴 · 과부하 시 ×3 (30초, 재충전 10분)",
-  trans_heart: "채굴·생산 ×10 폭증 · 치명타 피해 ×2 · 드론 타격 +5회/초",
+const DESCRIPTIONS: Record<string, (n: SkillNodeDef) => string> = {
+  auto_drill: (n) => `보조 드릴 해금 · 커서 위치를 초당 ${n.autoDrillPerSecond}회 자동 채굴 · 과부하 시 ×3 (30초, 재충전 10분)`,
+  trans_heart: (n) => `채굴·생산 ×${n.clickMultiplier} 폭증 · 치명타 피해 ×${n.criticalMultiplier} · 드론 타격 +${n.droneStrikesPerSecond}회/초`,
 }
 
 export function nameSkillNode(n: SkillNodeDef): SkillNodeDef {
   const name = SKILL_NAMES[n.id] ?? n.name
-  if (DESCRIPTIONS[n.id]) return { ...n, name, description: DESCRIPTIONS[n.id] }
+  if (DESCRIPTIONS[n.id]) return { ...n, name, description: DESCRIPTIONS[n.id](n) }
   if (keepsOwnText(n)) {
     const description = n.producerTag
       ? n.description.replace(/생산자 ×([\d.]+)/, "생산자 출력 ×$1 증폭")

@@ -163,6 +163,28 @@ export const EXTRA_ACTIVE_SKILLS: ActiveSkillDef[] = [
   { id: "grid_boost", name: "GRID BOOST", description: "20초 생산 ×2", cooldown: 60, duration: 20, shopCost: 150_000, productionMultiplier: 2, assetId: "/clicker/skill/skill_grid_boost.webp" },
 ]
 
+/**
+ * AUTOMATION circuits hit harder than their raw numbers: the production bonus part of every
+ * multiplier ×1.75 (×1.2 → ×1.35, ×2 → ×2.75), assist drill and drone strikes ×1.5, drone
+ * efficiency ×1.5. Unlock and producer-list descriptions pick up the new numbers.
+ */
+const AUTOMATION_BONUS_SCALE = 1.75
+const AUTOMATION_STRIKE_SCALE = 1.5
+
+function boostAutomation(n: SkillNodeDef): SkillNodeDef {
+  if (n.branch !== "AUTOMATION") return n
+  const round2 = (v: number) => Math.round(v * 100) / 100
+  const out: SkillNodeDef = { ...n }
+  if (n.productionMultiplier) out.productionMultiplier = round2(Math.round((1 + (n.productionMultiplier - 1) * AUTOMATION_BONUS_SCALE) * 20) / 20)
+  if (n.autoDrillPerSecond) out.autoDrillPerSecond = Math.ceil(n.autoDrillPerSecond * AUTOMATION_STRIKE_SCALE)
+  if (n.droneStrikesPerSecond) out.droneStrikesPerSecond = Math.ceil(n.droneStrikesPerSecond * AUTOMATION_STRIKE_SCALE)
+  if (n.droneEfficiencyAdd) out.droneEfficiencyAdd = round2(n.droneEfficiencyAdd * AUTOMATION_STRIKE_SCALE)
+  out.description = n.description
+    .replace(/생산자 ×[\d.]+/, `생산자 ×${out.productionMultiplier}`)
+    .replace(/초당 \d+회/, `초당 ${out.autoDrillPerSecond ?? out.droneStrikesPerSecond}회`)
+  return out
+}
+
 /** Raw prices are cut by this before the unit change: cheaper items, more of them. */
 export const PRICE_CUT = 0.5
 /** Display/economy unit: everything earned and spent is divided by 1000. */
@@ -191,7 +213,7 @@ export function finalizeCatalog(base: GameConfig): GameConfig {
     upgrades: upgrades
       .map((x) => ({ ...x, cost: x.cost * c, assetId: x.assetId ?? `/clicker/upgrade/${x.id}.webp` }))
       .sort((a, b) => a.cost - b.cost),
-    skillNodes: [...base.skillNodes, ...EXTRA_SKILL_NODES].map(nameSkillNode).map((n) => ({
+    skillNodes: [...base.skillNodes, ...EXTRA_SKILL_NODES].map(boostAutomation).map(nameSkillNode).map((n) => ({
       ...n,
       cost: n.cost * c,
       startingEnergy: n.startingEnergy === undefined ? undefined : n.startingEnergy * u,
