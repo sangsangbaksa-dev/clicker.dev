@@ -43,6 +43,7 @@ import {
   accrueRegionCurrency,
   scaledCost,
   mineYieldMultiplier,
+  regionUnlockThreshold,
 } from "@/domain/services/clicker-engine"
 import {
   awardAchievements,
@@ -313,13 +314,12 @@ export function clickerAdminPatch(save: SaveData, patch: Partial<SaveData["runSt
 export function clickerAdminUnlockRegion(save: SaveData, regionId: string): SaveData {
   const region = config.regions.find((r) => r.id === regionId)
   if (!region) return save
-  const run = save.runState
+  const run = { ...save.runState, currentWorldLine: Math.max(save.runState.currentWorldLine, (region.requiresRebirths ?? 0) + 1) }
   return {
     ...save,
     runState: {
       ...run,
-      currentWorldLine: Math.max(run.currentWorldLine, (region.requiresRebirths ?? 0) + 1),
-      lifetimeCoreEnergy: Math.max(run.lifetimeCoreEnergy, scaledCost(run, region.unlockAtLifetimeEnergy)),
+      lifetimeCoreEnergy: Math.max(run.lifetimeCoreEnergy, regionUnlockThreshold(run, config, region)),
     },
   }
 }

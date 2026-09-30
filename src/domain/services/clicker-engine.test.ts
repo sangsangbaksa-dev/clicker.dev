@@ -41,6 +41,7 @@ import {
   activateSkill,
   mineYieldMultiplier,
   reentryCooldownMs,
+  regionUnlockThreshold,
   buffMultiplier,
   markRegionVisited,
   claimRegionChallenge,
@@ -51,6 +52,8 @@ import { MINE_SESSION_BASE_MS as MINE_SESSION_MS, mineSessionDurationMs } from "
 import { formatNumber } from "./clicker-format.ts"
 
 const config = clickerConfig
+/** Lifetime CORE that opens a world in the first worldline. */
+const worldCore = (id: string) => config.regions.find((r) => r.id === id)!.unlockAtLifetimeEnergy
 const rng = () => 0.99
 const critRng = () => 0.0
 
@@ -130,7 +133,7 @@ test("region travel unlocks at lifetime threshold and return home works", () => 
   let run = createInitialRun(now, meta, config)
   const locked = travelToRegion(run, config, "signal_relay")
   assert.equal(locked.error, "아직 잠겨 있습니다.")
-  run = grantAdminEnergy(run, 250_000)
+  run = grantAdminEnergy(run, worldCore("signal_relay"))
   const travel = travelToRegion(run, config, "signal_relay")
   assert.equal(travel.error, undefined)
   assert.equal(travel.run.currentRegionId, "signal_relay")
@@ -142,7 +145,7 @@ test("region travel unlocks at lifetime threshold and return home works", () => 
 test("region location persists through sanitizeSave reload", () => {
   const now = 11_500_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 250_000)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), worldCore("signal_relay"))
   run = travelToRegion(run, config, "signal_relay").run
   const save = {
     schemaVersion: config.schemaVersion,
@@ -183,13 +186,13 @@ test("sanitizeSave marks gameStarted for returning players", () => {
   assert.equal(loaded.settings.gameStarted, true)
 })
 
-test("phase vault unlocks at 2M lifetime CORE", () => {
+test("phase vault unlocks at its lifetime CORE threshold", () => {
   const now = 11_200_000
   const meta = createInitialMeta()
   let run = createInitialRun(now, meta, config)
   const locked = travelToRegion(run, config, "phase_vault")
   assert.equal(locked.error, "아직 잠겨 있습니다.")
-  run = grantAdminEnergy(run, 2_000_000)
+  run = grantAdminEnergy(run, worldCore("phase_vault"))
   const travel = travelToRegion(run, config, "phase_vault")
   assert.equal(travel.error, undefined)
   assert.equal(travel.run.currentRegionId, "phase_vault")
@@ -198,7 +201,7 @@ test("phase vault unlocks at 2M lifetime CORE", () => {
 test("region presence bonuses apply only while in that region", () => {
   const now = 13_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 2_000_000)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), worldCore("phase_vault"))
   run = { ...run, producerLevels: { ...run.producerLevels, solar_node: 10 } }
 
   const chamber = regionPresenceMultipliers(run, config)
@@ -436,7 +439,7 @@ test("Enter Mine starts a timed session from any UI locale", () => {
 test("the mine opens only in the home region", () => {
   const now = 11_200_000
   const save = startClickerGame(createInitialSave(now, config))
-  const away = grantAdminEnergy(save.runState, 300_000)
+  const away = grantAdminEnergy(save.runState, worldCore("signal_relay"))
   const traveled = { ...save, runState: travelToRegion(away, config, "signal_relay").run }
   const refused = enterClickerMine(traveled, now, config)
   assert.equal(refused.error, MINE_HOME_ONLY_ERROR)
@@ -460,7 +463,7 @@ test("Enter Mine waits until a crisis is resolved", () => {
 test("field challenge pays production by score and then cools down", () => {
   const now = 12_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), 60_000_000)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), worldCore("storm_spire"))
   run = buyProducer(run, meta, config, "solar_node", 5).run
   const away = claimRegionChallenge(run, meta, config, "storm_spire", 1, now)
   assert.ok(away.error, "must stand in the region")
@@ -597,7 +600,12 @@ test("region currency: earned where you stand, spent by late upgrades", async ()
 
   const late = [...config.upgrades].sort((a, b) => b.cost - a.cost)[0]
   const costs = eng.upgradeCurrencyCosts(run0, config, late)
-  assert.deepEqual(costs.map((c) => c.regionId), ["core_heart", "deep_fault"], "late upgrades cost the two newest worlds' currencies")
+  const eligible = config.regions.filter((r) => r.currency && !r.isHome && r.unlockAtLifetimeEnergy * 0.05 <= late.cost)
+  assert.deepEqual(
+    costs.map((c) => c.regionId),
+    eligible.slice(-2).reverse().map((r) => r.id),
+    "late upgrades cost the two newest worlds opened before their price",
+  )
   assert.ok(costs[0].amount > costs[1].amount, "the newest world takes the bigger share")
   assert.equal(eng.upgradeCurrencyCosts(run0, config, [...config.upgrades].sort((a, b) => a.cost - b.cost)[0]).length, 0)
   const rich = {
@@ -613,14 +621,18 @@ test("region currency: earned where you stand, spent by late upgrades", async ()
   for (const c of costs) assert.equal(eng.regionCurrencyBalance(bought.run, c.regionId), 0)
 
   // An older world's shortfall is covered by newer worlds' currency.
-  const mid = config.upgrades.find((u) => eng.upgradeCurrencyCosts(run0, config, u)[0]?.regionId === "signal_relay")!
-  const need = eng.upgradeCurrencyCosts(run0, config, mid)[0].amount
-  const midRich = { ...rich, producerLevels: mid.unlockProducerId ? { [mid.unlockProducerId]: 1 } : {} }
-  const covered = eng.buyUpgrade({ ...midRich, regionCurrency: { signal_relay: 1, phase_vault: need } }, config, mid.id)
+  const [newer, older] = costs
+  const covered = eng.buyUpgrade(
+    { ...rich, regionCurrency: { [older.regionId]: 1, [newer.regionId]: newer.amount + older.amount } },
+    config,
+    late.id,
+  )
   assert.equal(covered.error, undefined)
-  assert.equal(eng.regionCurrencyBalance(covered.run, "signal_relay"), 0)
-  assert.equal(eng.regionCurrencyBalance(covered.run, "phase_vault"), 1)
-  assert.ok(eng.buyUpgrade({ ...midRich, regionCurrency: { signal_relay: need - 1 } }, config, mid.id).error)
+  assert.equal(eng.regionCurrencyBalance(covered.run, older.regionId), 0)
+  assert.equal(eng.regionCurrencyBalance(covered.run, newer.regionId), 1)
+  assert.ok(
+    eng.buyUpgrade({ ...rich, regionCurrency: { [older.regionId]: older.amount - 1, [newer.regionId]: newer.amount } }, config, late.id).error,
+  )
 })
 
 test("world currencies: skill circuits and shop items charge them too", async () => {
@@ -628,8 +640,8 @@ test("world currencies: skill circuits and shop items charge them too", async ()
   const config = clickerConfig
   const run0 = eng.createInitialRun(0, eng.createInitialMeta(), config)
   const node = [...config.skillNodes].filter((n) => !n.requires?.length).sort((a, b) => b.cost - a.cost)[0]
-  const pricey = config.skillNodes.find((n) => eng.purchaseCurrencyCosts(run0, config, n.cost).length === 2)!
-  assert.ok(pricey, "some circuit costs two world currencies")
+  const pricey = [...config.skillNodes].sort((a, b) => b.cost - a.cost).find((n) => eng.purchaseCurrencyCosts(run0, config, n.cost).length > 0)!
+  assert.ok(pricey, "the late circuits cost world currency")
   const costs = eng.purchaseCurrencyCosts(run0, config, pricey.cost)
   const rich = { ...run0, coreEnergy: pricey.cost * 10, ownedSkillNodeIds: pricey.requires ?? [] }
   assert.match(eng.buySkillNode(rich, config, pricey.id).error ?? "", /부족/)
@@ -783,9 +795,16 @@ test("pricier potions are stronger: boost-seconds rise with price", () => {
   }
 })
 
-test("world unlocks: first world x7, the rest x3, Core Heart unchanged, still in order", () => {
-  const worlds = config.regions.filter((r) => !r.isHome)
+test("worlds are late-run events: each opens in the back half of every worldline's goal", () => {
+  const meta = createInitialMeta()
+  const worlds = config.regions.filter((r) => !r.isHome && !r.requiresRebirths)
   for (let i = 1; i < worlds.length; i++) assert.ok(worlds[i].unlockAtLifetimeEnergy > worlds[i - 1].unlockAtLifetimeEnergy)
-  const at = (id: string) => config.regions.find((r) => r.id === id)!.unlockAtLifetimeEnergy
-  assert.equal(at("signal_relay") / at("phase_vault"), 7 / 24)
+  for (const line of [1, 2, 4]) {
+    const run = { ...createInitialRun(1_000, meta, config), currentWorldLine: line }
+    const goal = config.rebirthEnergy * config.rebirthGrowth ** (line - 1)
+    for (const w of worlds) {
+      const share = regionUnlockThreshold(run, config, w) / goal
+      assert.ok(share >= 0.2 && share < 1, `${w.id} opens at ${share} of worldline ${line}'s goal`)
+    }
+  }
 })

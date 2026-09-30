@@ -40,7 +40,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     // The drill site (a teal grade of the old foundry painting) — distinct from the intro still you land on.
     bgAssetId: "/clicker/bg/region_signal_relay_drill.webp",
     intro: { video: "/clicker/region/signal_relay_intro.mp4", poster: "/clicker/bg/region_signal_relay.webp", still: "/clicker/region/signal_relay_still.webp" },
-    unlockAtLifetimeEnergy: 7_000_000,
+    unlockAtLifetimeEnergy: 250_000_000_000,
     productionMultiplier: 1.12,
     activity: {
       kind: "PRODUCTION_BOOST",
@@ -68,7 +68,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     },
     bgAssetId: "/clicker/bg/region_phase_vault.webp",
     intro: { video: "/clicker/region/phase_vault_intro.mp4", poster: "/clicker/bg/region_phase_vault.webp", still: "/clicker/region/phase_vault_still.webp" },
-    unlockAtLifetimeEnergy: 24_000_000,
+    unlockAtLifetimeEnergy: 370_000_000_000,
     clickMultiplier: 1.08,
     productionMultiplier: 1.1,
     activity: {
@@ -90,7 +90,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     huntMode: true,
     bgAssetId: "/clicker/bg/region_storm_spire.webp",
     intro: { video: "/clicker/region/storm_spire_intro.mp4", poster: "/clicker/bg/region_storm_spire.webp", still: "/clicker/region/storm_spire_still.webp" },
-    unlockAtLifetimeEnergy: 360_000_000,
+    unlockAtLifetimeEnergy: 500_000_000_000,
     clickMultiplier: 1.15,
     lightningChanceAdd: 0.08,
     challenge: {
@@ -118,7 +118,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     huntMode: true,
     bgAssetId: "/clicker/bg/region_deep_fault.webp",
     intro: { video: "/clicker/region/deep_fault_intro.mp4", poster: "/clicker/bg/region_deep_fault.webp", still: "/clicker/region/deep_fault_still.webp" },
-    unlockAtLifetimeEnergy: 4_800_000_000,
+    unlockAtLifetimeEnergy: 700_000_000_000,
     productionMultiplier: 1.2,
     quakeIntervalReduce: 5,
     challenge: {
@@ -144,7 +144,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     description: "코어의 심장부. 수호자가 코어를 틀어막고 있습니다.",
     bgAssetId: "/clicker/bg/region_core_heart.jpg",
     intro: { video: "/clicker/region/core_heart_intro.mp4", poster: "/clicker/bg/region_core_heart.jpg", still: "/clicker/region/core_heart_still.webp" },
-    unlockAtLifetimeEnergy: 300_000_000_000,
+    unlockAtLifetimeEnergy: 900_000_000_000,
     requiresRebirths: 5,
     clickMultiplier: 1.2,
     productionMultiplier: 1.2,

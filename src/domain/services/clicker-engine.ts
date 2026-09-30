@@ -1096,7 +1096,8 @@ export function buyProducer(
  * before it. Older-world shortfalls are covered by newer wallets (see `payRegionCurrency`), so a
  * player who has moved on is never sent back to grind.
  */
-const REGION_CURRENCY_UNLOCK_LEAD = 3
+/** An item needs a world's currency once it costs at least this share of the CORE that opens the world. */
+const REGION_CURRENCY_UNLOCK_LEAD = 0.05
 /** Newest world first. */
 const REGION_CURRENCY_COST_SHARES = [0.1, 0.05]
 
@@ -1449,11 +1450,20 @@ export function claimRegionChallenge(
   }
 }
 
+/**
+ * Lifetime CORE that opens a world in this worldline. Worlds are late-run events: the catalog
+ * value is set against the first worldline's rebirth goal and grows with that goal, so each
+ * world opens at the same share of every worldline.
+ */
+export function regionUnlockThreshold(run: RunState, config: GameConfig, region: { unlockAtLifetimeEnergy: number }): number {
+  return region.unlockAtLifetimeEnergy * config.rebirthGrowth ** Math.max(0, run.currentWorldLine - 1)
+}
+
 export function isRegionUnlocked(run: RunState, config: GameConfig, regionId: string): boolean {
   const region = config.regions.find((r) => r.id === regionId)
   if (!region) return false
   if ((region.requiresRebirths ?? 0) > run.currentWorldLine - 1) return false
-  return run.lifetimeCoreEnergy >= scaledCost(run, region.unlockAtLifetimeEnergy)
+  return run.lifetimeCoreEnergy >= regionUnlockThreshold(run, config, region)
 }
 
 export function homeRegionId(config: GameConfig): string {

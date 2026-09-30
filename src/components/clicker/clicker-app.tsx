@@ -782,7 +782,7 @@ export function ClickerApp() {
   const visibleSkillNodes = game.skillNodes
   const regionDef = game.config.regions.find((r) => r.id === run.currentRegionId)
   const monsterDef = regionDef?.monster
-  const worldsOpen = game.config.regions.filter((r) => !r.isHome && run.lifetimeCoreEnergy >= r.unlockAtLifetimeEnergy).length
+  const worldsOpen = game.config.regions.filter((r) => !r.isHome && isRegionUnlocked(run, game.config, r.id)).length
   const fxTier = Math.min(4, FX_TIER_BY_WORLDS[Math.min(worldsOpen, 5)] + (coreVisual === "fever" ? 1 : 0)) as MineFxTier
   const skillStorm = inMine && run.activeBuffs.some((b) => b.expiresAt > tickNow)
   const ownedSkills = game.config.activeSkills.filter(

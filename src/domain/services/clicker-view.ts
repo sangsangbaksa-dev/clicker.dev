@@ -18,6 +18,7 @@ import {
   productionSnapshot,
   isSkillNodeVisible,
   rebirthRequirement,
+  regionUnlockThreshold,
   scaledCost,
   worldlineMultiplier,
   upgradeCurrencyCosts,
@@ -507,7 +508,7 @@ function regionActivityActiveMs(run: RunState, kind: string, now: number): numbe
 
 export function buildRegionViews(run: RunState, config: GameConfig, now = Date.now()): RegionView[] {
   return config.regions.map((region) => {
-    const threshold = scaledCost(run, region.unlockAtLifetimeEnergy)
+    const threshold = regionUnlockThreshold(run, config, region)
     const unlocked = run.lifetimeCoreEnergy >= threshold
     const remaining = Math.max(0, threshold - run.lifetimeCoreEnergy)
     const unlockRequirement =
