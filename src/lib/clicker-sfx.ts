@@ -1,6 +1,12 @@
 "use client"
 
-import { rebirthStampSampleUrl, SFX_V2, SFX_V2_PRELOAD_URLS } from "@/data/clicker/sfx-assets"
+import {
+  activeSkillSampleUrl,
+  rebirthStampSampleUrl,
+  SFX_PRELOAD_URLS,
+  SFX_V2,
+  SFX_V3,
+} from "@/data/clicker/sfx-assets"
 
 /**
  * Game SFX — v2 mp3 samples when mapped in `sfx-assets.ts`, otherwise synthesized Web Audio.
@@ -39,7 +45,13 @@ const SAMPLE_BY_CUE: Partial<Record<SfxName, string>> = {
   upgrade: SFX_V2.upgradeLevel,
   producerBuy: SFX_V2.producerBuy,
   worldlineHover: SFX_V2.worldlineHover,
-  oreBreak: SFX_V2.coreHitHeavy,
+  fever: SFX_V3.skillFeverStart,
+  skillUnlock: SFX_V3.skillUnlock,
+  potion: SFX_V3.potionFever,
+  oreBreak: SFX_V3.yieldBig,
+  quake: SFX_V3.skillSeismicWave,
+  drill: SFX_V3.skillOverdrive,
+  lightning: SFX_V3.skillPulseBurst,
 }
 
 const sampleBuffers = new Map<string, AudioBuffer>()
@@ -73,7 +85,15 @@ function loadSample(url: string): Promise<AudioBuffer | null> {
 
 /** Prime decode for v2 samples (safe to call before the first cue). */
 export function warmSfxSamples() {
-  for (const url of SFX_V2_PRELOAD_URLS) void loadSample(url)
+  for (const url of SFX_PRELOAD_URLS) void loadSample(url)
+}
+
+/** Active skill shop cast — per-skill v3 sample with synth fallback via `skillUse`. */
+export function playActiveSkillSfx(skillId: string) {
+  if (muted) return
+  const url = activeSkillSampleUrl(skillId)
+  if (playSampleUrl(url, `skill:${skillId}`)) return
+  playSfx("skillUse")
 }
 
 function playSampleUrl(url: string, rateKey: string): boolean {

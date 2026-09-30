@@ -88,7 +88,7 @@ import {
   type RegionIntroDef,
   type SaveData,
 } from "@/application/clicker-ui"
-import { playSfx, setSfxMuted } from "@/lib/clicker-sfx"
+import { playActiveSkillSfx, playSfx, setSfxMuted } from "@/lib/clicker-sfx"
 
 export type FloatNumber = {
   id: number
@@ -408,7 +408,7 @@ export function useClicker() {
     const result = clickerUseSkill(saveRef.current, id, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("skillUse")
+    playActiveSkillSfx(id)
     const name = clickerGameConfig.activeSkills.find((s) => s.id === id)?.name ?? id
     flash(`${name} 발동`)
   }, [commit, flash, refuse])

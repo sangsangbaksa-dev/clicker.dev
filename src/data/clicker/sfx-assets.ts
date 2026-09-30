@@ -1,5 +1,5 @@
 /**
- * SFX asset paths — v2 mp3 pack (legacy ogg/wav names kept on disk; constants point here).
+ * SFX asset paths — v2/v3 mp3 packs (legacy ogg/wav names kept on disk; constants point here).
  * See `public/clicker/audio/README-sfx-v2.txt`.
  */
 
@@ -21,6 +21,18 @@ export const SFX_V2 = {
   rebirthStampResonanceProtocol: `${CLICKER_SFX_AUDIO_BASE}/sfx_rebirth_stamp_resonance_protocol_v2.mp3`,
 } as const
 
+/** v3 epic / skill SFX (mp3). */
+export const SFX_V3 = {
+  skillSeismicWave: `${CLICKER_SFX_AUDIO_BASE}/sfx_skill_seismic_wave_v3.mp3`,
+  skillOverdrive: `${CLICKER_SFX_AUDIO_BASE}/sfx_skill_overdrive_v3.mp3`,
+  skillPulseBurst: `${CLICKER_SFX_AUDIO_BASE}/sfx_skill_pulse_burst_v3.mp3`,
+  skillFeverStart: `${CLICKER_SFX_AUDIO_BASE}/sfx_skill_fever_start_v3.mp3`,
+  skillUnlock: `${CLICKER_SFX_AUDIO_BASE}/sfx_skill_unlock_v3.mp3`,
+  potionFever: `${CLICKER_SFX_AUDIO_BASE}/sfx_potion_fever_v3.mp3`,
+  yieldBig: `${CLICKER_SFX_AUDIO_BASE}/sfx_yield_big_v3.mp3`,
+  oreHoldRelease: `${CLICKER_SFX_AUDIO_BASE}/sfx_ore_hold_release_v3.mp3`,
+} as const
+
 /** Legacy handoff basename → active v2 URL (v1 files may remain under public/clicker/audio). */
 export const SFX_LEGACY_TO_V2_URL: Record<string, string> = {
   sfx_ui_tap: SFX_V2.uiTap,
@@ -37,6 +49,18 @@ export const SFX_LEGACY_TO_V2_URL: Record<string, string> = {
   sfx_rebirth_stamp_resonance_protocol: SFX_V2.rebirthStampResonanceProtocol,
 }
 
+/** Legacy basename → active v3 URL. */
+export const SFX_LEGACY_TO_V3_URL: Record<string, string> = {
+  sfx_skill_seismic_wave: SFX_V3.skillSeismicWave,
+  sfx_skill_overdrive: SFX_V3.skillOverdrive,
+  sfx_skill_pulse_burst: SFX_V3.skillPulseBurst,
+  sfx_skill_fever_start: SFX_V3.skillFeverStart,
+  sfx_skill_unlock: SFX_V3.skillUnlock,
+  sfx_potion_fever: SFX_V3.potionFever,
+  sfx_yield_big: SFX_V3.yieldBig,
+  sfx_ore_hold_release: SFX_V3.oreHoldRelease,
+}
+
 const STAMP_V2: Record<string, string> = {
   aurelia_grid: SFX_V2.rebirthStampAureliaGrid,
   volatile_core: SFX_V2.rebirthStampVolatileCore,
@@ -45,8 +69,24 @@ const STAMP_V2: Record<string, string> = {
   adaptive_architect: SFX_V2.rebirthStampDirectivePulse,
 }
 
+/** Shop active-skill id → v3 cast sample (fallback: pulse burst). */
+const ACTIVE_SKILL_V3: Record<string, string> = {
+  overclock: SFX_V3.skillOverdrive,
+  core_pulse: SFX_V3.skillPulseBurst,
+  stabilizer: SFX_V3.skillSeismicWave,
+  laser_focus: SFX_V3.skillPulseBurst,
+  time_warp: SFX_V3.skillPulseBurst,
+  grid_boost: SFX_V3.skillOverdrive,
+}
+
 export function rebirthStampSampleUrl(worldlineKey: string): string | undefined {
   return STAMP_V2[worldlineKey]
 }
 
+export function activeSkillSampleUrl(skillId: string): string {
+  return ACTIVE_SKILL_V3[skillId] ?? SFX_V3.skillPulseBurst
+}
+
 export const SFX_V2_PRELOAD_URLS: readonly string[] = Object.values(SFX_V2)
+export const SFX_V3_PRELOAD_URLS: readonly string[] = Object.values(SFX_V3)
+export const SFX_PRELOAD_URLS: readonly string[] = [...SFX_V2_PRELOAD_URLS, ...SFX_V3_PRELOAD_URLS]
