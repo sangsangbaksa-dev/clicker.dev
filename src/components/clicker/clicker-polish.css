@@ -1415,6 +1415,7 @@
 [data-clicker].is-entrance-hub.is-view-entrance .clicker-stage-bg {
   bottom: var(--dock-clear);
   height: auto;
+  /* Door-centered reframe in mine_entrance_hub_closed_door_v2 (see scripts/reframe-mine-entrance-door.py). */
   background-position: center;
   -webkit-mask-image: linear-gradient(180deg, #000 88%, transparent);
   mask-image: linear-gradient(180deg, #000 88%, transparent);
