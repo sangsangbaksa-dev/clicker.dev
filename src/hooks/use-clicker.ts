@@ -358,7 +358,7 @@ export function useClicker() {
     const result = clickerBuyProducer(saveRef.current, id, count)
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("purchase")
+    playSfx("producerBuy")
   }, [commit, refuse])
 
   const buyUpgrade = useCallback((id: string) => {

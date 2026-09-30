@@ -7,6 +7,7 @@ import {
   RebirthPhaseArt,
 } from "@/data/clicker/rebirth-assets"
 import { rebirthVariantFor } from "@/data/clicker/rebirth-motion"
+import { playSfx } from "@/lib/clicker-sfx"
 import type { TranscendenceDef } from "@/application/clicker-ui"
 import "./clicker-rebirth-worldline-select.css"
 
@@ -96,8 +97,14 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onCho
                   "--wl-accent": variant.accent,
                 } as CSSProperties
               }
-              onMouseEnter={() => setFocusId(buff.id)}
-              onFocus={() => setFocusId(buff.id)}
+              onMouseEnter={() => {
+                if (focusId !== buff.id) playSfx("worldlineHover")
+                setFocusId(buff.id)
+              }}
+              onFocus={() => {
+                if (focusId !== buff.id) playSfx("worldlineHover")
+                setFocusId(buff.id)
+              }}
             >
               {focused && !confirming ? (
                 <img src={RebirthPhaseArt.selectFocus} alt="" className="clicker-wl-select-focus-plate" aria-hidden />
