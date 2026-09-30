@@ -6,7 +6,8 @@
 <title>VOCASKY · 영어 단어 학습</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#F1F4FA;--sf:#fff;--ink:#1B2340;--mute:#6B7391;--line:#E1E6F2;--ac:#3D5AFE;--ac2:#E8ECFF;--ok:#0CA678;--okbg:#DDF7EE;--bad:#E8590C;--badbg:#FFE9DD;--r:14px}
+:root{--bg:#F1F4FA;--sf:#fff;--ink:#1B2340;--mute:#6B7391;--line:#E1E6F2;--ac:#3D5AFE;--ac2:#E8ECFF;--ok:#0CA678;--okbg:#DDF7EE;--bad:#E8590C;--badbg:#FFE9DD;--r:14px;--in:#fff;--wod:#EEF2FF;--nt:#FFF8DB;--ntl:#F5E3A0;color-scheme:light}
+:root[data-theme="dark"]{--bg:#0F1426;--sf:#182038;--ink:#E6EAF7;--mute:#98A1C0;--line:#2A3454;--ac:#7C93FF;--ac2:#243060;--ok:#38D9A9;--okbg:#113B31;--bad:#FF922B;--badbg:#43291A;--in:#111831;--wod:#1E2A52;--nt:#3A3320;--ntl:#5C4F26;color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',system-ui,sans-serif;line-height:1.55}
 header{background:var(--sf);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
@@ -14,7 +15,7 @@ header{background:var(--sf);border-bottom:1px solid var(--line);position:sticky;
 .logo{font-weight:900;font-size:20px;letter-spacing:-.5px;margin-right:auto;cursor:pointer}
 .logo b{color:var(--ac)}
 nav{display:flex;gap:4px;flex-wrap:wrap}
-button{font:inherit;cursor:pointer;border:0}
+button{font:inherit;cursor:pointer;border:0;color:inherit}
 .nv{background:none;padding:8px 14px;border-radius:10px;color:var(--mute);font-weight:500}
 .nv:hover{background:var(--bg)}.nv.on{background:var(--ac2);color:var(--ac);font-weight:700}
 main{max-width:1120px;margin:0 auto;padding:28px 20px 60px}
@@ -44,7 +45,7 @@ h1{font-size:26px;margin:0 0 4px;letter-spacing:-.5px}h2{font-size:18px;margin:0
 .opt:hover{border-color:var(--ac)}
 .opt.ok{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
 .opt.bad{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
-input,textarea,select{font:inherit;width:100%;padding:13px 14px;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+input,textarea,select{font:inherit;width:100%;padding:13px 14px;border:2px solid var(--line);border-radius:12px;background:var(--in);color:var(--ink)}
 input:focus,textarea:focus,select:focus{outline:none;border-color:var(--ac)}
 .ans.ok{border-color:var(--ok);background:var(--okbg)}.ans.bad{border-color:var(--bad);background:var(--badbg)}
 .fb{margin-top:14px;font-weight:700;min-height:26px}.fb.ok{color:var(--ok)}.fb.bad{color:var(--bad)}
@@ -55,7 +56,7 @@ th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line)}th{co
 .auth{max-width:400px;margin:40px auto}
 .tabs{display:flex;background:var(--bg);border-radius:12px;padding:4px;margin-bottom:18px}
 .tabs button{flex:1;padding:10px;border-radius:9px;background:none;font-weight:700;color:var(--mute)}
-.tabs button.on{background:#fff;color:var(--ac);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.tabs button.on{background:var(--sf);color:var(--ac);box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .f{display:grid;gap:10px}
 .side{max-height:70vh;overflow:auto}
 .two{display:grid;grid-template-columns:220px 1fr;gap:18px}
@@ -65,8 +66,8 @@ th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line)}th{co
 .it{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
 .it span:first-child{font-weight:700;flex:1}.it span:nth-child(2){flex:1;color:var(--mute)}
 .x{background:none;color:var(--mute);font-size:18px;padding:0 6px}.x:hover{color:var(--bad)}
-.note{background:#FFF8DB;border:1px solid #F5E3A0;border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:18px}
-#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 20px;border-radius:99px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.note{background:var(--nt);border:1px solid var(--ntl);border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:18px}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:99px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 #toast.on{opacity:1}
 button:focus-visible,input:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
 
@@ -76,12 +77,14 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--ac);outline-off
 .hero::after{width:170px;height:60px;right:150px;bottom:-18px}
 .hero h1{font-size:32px;margin:0 0 6px;position:relative}.hero p{margin:0;opacity:.92;position:relative;max-width:460px}
 .hero .row{justify-content:flex-start;position:relative}
-.hero .btn{background:#fff;color:var(--ac)}.hero .btn.g{background:rgba(255,255,255,.22);color:#fff}
+.hero .btn{background:#fff;color:#3D5AFE}
+:root[data-theme="dark"] .btn:not(.g):not(.d){background:#4461FF;color:#fff}
+:root[data-theme="dark"] .hero .btn:not(.g){background:#fff;color:#3D5AFE}.hero .btn.g{background:rgba(255,255,255,.22);color:#fff}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px}
 .stat{padding:16px 18px}.stat b{display:block;font-size:28px;font-weight:900;color:var(--ac);line-height:1.2}.stat span{color:var(--mute);font-size:13px}
 .cols{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-bottom:26px}
 @media(max-width:760px){.cols{grid-template-columns:1fr}.hero{padding:26px 22px}}
-.wod{background:linear-gradient(160deg,#fff,#EEF2FF)}.wod .w{font-size:34px;font-weight:900;margin:8px 0 2px;letter-spacing:-.5px}.wod .m{font-size:18px;color:var(--mute)}
+.wod{background:linear-gradient(160deg,var(--sf),var(--wod))}.wod .w{font-size:34px;font-weight:900;margin:8px 0 2px;letter-spacing:-.5px}.wod .m{font-size:18px;color:var(--mute)}
 .unit .top{display:flex;justify-content:space-between;margin-bottom:12px}.unit .pill.ok{background:var(--okbg);color:var(--ok)}
 .unit .pv{color:var(--mute);font-size:13px;margin:6px 0 14px;min-height:20px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .bar2{height:6px;background:var(--line);border-radius:9px;overflow:hidden}.bar2 i{display:block;height:100%;background:linear-gradient(90deg,var(--ac),#5AB0FF)}
@@ -93,9 +96,29 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--ac);outline-off
 .feat{list-style:none;padding:0;margin:22px 0 0;display:grid;gap:10px;position:relative}
 .feat li{background:rgba(255,255,255,.18);border-radius:12px;padding:11px 14px;font-weight:500}
 footer{max-width:1120px;margin:0 auto;padding:0 20px 40px;color:var(--mute);font-size:13px;text-align:center}
+.say{background:var(--ac2);color:var(--ac);border-radius:99px;width:36px;height:36px;font-size:16px;line-height:36px;padding:0;vertical-align:middle;flex:none}
+.say.s{width:28px;height:28px;font-size:13px;line-height:28px;margin-left:6px}
+.say:hover{filter:brightness(1.05)}
+.it .say{margin-left:0}
+.qtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.lnk{background:none;color:var(--mute);font-size:14px;padding:4px 6px;border-radius:8px}.lnk:hover{color:var(--bad);background:var(--bg)}
+.opt .k{display:inline-block;min-width:22px;height:22px;line-height:22px;border-radius:6px;background:var(--bg);color:var(--mute);font-size:12px;margin-right:8px;vertical-align:1px}
+.hint{color:var(--mute);font-size:13px;margin-top:14px}
+.flash{perspective:1200px;margin:10px 0 20px;cursor:pointer}
+.flash .in{position:relative;min-height:240px;transition:transform .45s;transform-style:preserve-3d}
+.flash.on .in{transform:rotateY(180deg)}
+.flash .fc{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--sf);border:2px solid var(--line);border-radius:18px;padding:24px}
+.flash .bk{transform:rotateY(180deg);border-color:var(--ac)}
+.flash .fc .word{margin:0}
+.search{margin:0 0 18px}
+.nohit{display:none}
+.theme{background:none;color:var(--mute);border-radius:10px;padding:8px 10px;font-size:16px}.theme:hover{background:var(--bg)}
+.best{display:inline-block;background:var(--okbg);color:var(--ok);font-weight:700;font-size:13px;padding:4px 12px;border-radius:99px;margin-bottom:8px}
+@media(prefers-reduced-motion:reduce){.flash .in,.prog i{transition:none}}
 </style>
 </head>
 <body>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('vs_theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
 <header><div class="bar" id="bar"></div></header>
 <main id="app"></main>
 <footer>VOCASKY · 단어의 하늘로</footer>
@@ -110,10 +133,25 @@ const ADMIN_SALT = "vocasky-admin-v1", ADMIN_HASH = "7ab738a00017a13e5b42620f9c2
 /* ============ 유틸 ============ */
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const sh = a => [...a].sort(() => Math.random() - .5);
-const LS = (k, v) => v === undefined ? JSON.parse(localStorage.getItem(k) || 'null') : localStorage.setItem(k, JSON.stringify(v));
+const sh = a => { const r = [...a]; for (let i = r.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; } return r; };
+const LS = (k, v) => { try { return v === undefined ? JSON.parse(localStorage.getItem(k) || 'null') : localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } };
 const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 2200); };
 const MODE = { mc:'뜻 고르기', typ:'영어 쓰기', speed:'스피드 게임' };
+/* 발음 듣기 (브라우저 음성 합성) */
+const canSay = 'speechSynthesis' in window;
+const say = t => { if (!canSay) return; const u = new SpeechSynthesisUtterance(String(t).replace(/[~()\[\]]/g, ' ')); u.lang = 'en-US'; u.rate = .9; speechSynthesis.cancel(); speechSynthesis.speak(u); };
+const sayBtn = (t, c = '') => canSay ? `<button class="say ${c}" data-act="say" data-v="${esc(t)}" aria-label="발음 듣기" title="발음 듣기">🔊</button>` : '';
+/* 영어 쓰기 채점: 대소문자·공백·곡선 따옴표·끝 문장부호를 무시하고, 괄호 안은 써도 되고 안 써도 된다 */
+const norm = t => String(t).toLowerCase().replace(/[’‘`]/g, "'").replace(/[.!?]+$/, '').replace(/\s+/g, ' ').trim();
+const accepts = en => { const a = norm(en);
+  return new Set([a, norm(a.replace(/[()\[\]]/g, '')), norm(a.replace(/\([^)]*\)|\[[^\]]*\]/g, ' ')), norm(a.replace(/\s*\/.*$/, ''))]); };
+const dayKey = t => { const d = new Date(t); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); };
+function streak(rc){
+  const days = new Set(rc.map(r => dayKey(r.t))); let n = 0, d = new Date();
+  if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
+  while (days.has(dayKey(d))){ n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
 
 /* ============ 데이터 계층 (Firebase / 로컬 데모) ============ */
 let fb = null;
@@ -158,19 +196,29 @@ const API = {
   }
 };
 const mail = id => id + '@vocasky.app';
+/* 오답 노트: 틀린 단어를 모아 두고, 다시 맞히면 빠진다 (이 브라우저에 저장) */
+const WN = {
+  k: () => 'wn_' + S.user.uid,
+  all(){ return LS(this.k()) || []; },
+  miss(i, unit){ const l = this.all().filter(x => x.en !== i.en); l.unshift({ en:i.en, ko:i.ko, unit }); LS(this.k(), l.slice(0, 300)); },
+  hit(i){ const l = this.all(); if (l.some(x => x.en === i.en)) LS(this.k(), l.filter(x => x.en !== i.en)); }
+};
 const ERR = { 'auth/email-already-in-use':'이미 가입된 이메일입니다.', 'auth/invalid-credential':'아이디 또는 비밀번호가 맞지 않습니다.',
   'auth/weak-password':'비밀번호는 6자 이상이어야 합니다.', 'auth/invalid-email':'아이디 형식을 확인해 주세요.', 'auth/operation-not-allowed':'Firebase에서 이메일/비밀번호 로그인을 켜 주세요.', 'auth/network-request-failed':'인터넷 연결을 확인해 주세요.', 'auth/too-many-requests':'시도가 너무 많아요. 잠시 후 다시 해 주세요.', 'auth/user-not-found':'없는 아이디예요.', 'auth/wrong-password':'비밀번호가 맞지 않아요.' };
 const errMsg = (e, d) => ERR[e.code] || `${d} (${e.code || e.message})`;
 
 /* ============ 상태 ============ */
-const S = { user:null, units:[], view:'auth', tab:'login', pick:null, q:null, recs:[], adm:null, adminOK:false };
+const S = { user:null, units:[], view:'auth', tab:'login', pick:null, q:null, fc:null, recs:[], adm:null, adminOK:false, find:'' };
 const isAdmin = () => S.user && (!fb || S.user.id === ADMIN_ID);
 async function hashPw(pw){
   const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveBits']);
   const b = await crypto.subtle.deriveBits({ name:'PBKDF2', hash:'SHA-256', salt:new TextEncoder().encode(ADMIN_SALT), iterations:150000 }, k, 256);
   return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
 }
-const go = v => { S.view = v; render(); };
+const stopQ = () => { clearInterval(S.q?.timer); S.q = null; };
+const go = v => { if (v !== 'quiz' && v !== 'result') stopQ(); S.view = v; render(); window.scrollTo(0, 0); };
+/* 가상 UNIT: 오답 노트, 방금 틀린 단어 */
+const unitOf = id => id === '__wn' ? { id, name:'오답 노트', items:WN.all() } : id === '__retry' ? S.retry : S.units.find(x => x.id === id);
 
 /* ============ 화면 ============ */
 function render(){
@@ -179,11 +227,13 @@ function render(){
     <button class="nv ${S.view==='records'?'on':''}" data-act="records">내 기록</button>
     <button class="nv ${S.view==='about'?'on':''}" data-act="about">만든 사람</button>
     ${isAdmin() ? `<button class="nv ${S.view==='admin'?'on':''}" data-act="admin">단어 관리</button>` : ''}
-    <button class="nv" data-act="logout">로그아웃 (${esc(S.user.name)})</button></nav>` : '');
+    <button class="nv" data-act="logout">로그아웃 (${esc(S.user.name)})</button></nav>` : '') +
+    `<button class="theme" data-act="theme" aria-label="화면 테마 바꾸기" title="밝게/어둡게">${document.documentElement.dataset.theme === 'dark' ? '☀️' : '🌙'}</button>`;
   const v = S.view, el = $('#app');
   if (!S.user) el.innerHTML = authView();
-  else el.innerHTML = ({ home:homeView, unit:unitView, quiz:quizView, result:resultView, records:recordsView, admin:adminView, about:aboutView }[v] || homeView)();
+  else el.innerHTML = ({ home:homeView, unit:unitView, quiz:quizView, result:resultView, records:recordsView, admin:adminView, about:aboutView, flash:flashView }[v] || homeView)();
   const a = $('#ans'); if (a && !S.q?.fb) a.focus();
+  if (S.view === 'home' && S.find) filterUnits();
 }
 function authView(){
   const su = S.tab === 'signup';
@@ -198,58 +248,66 @@ function authView(){
 }
 function homeView(){
   const all = S.units.flatMap(u => u.items), rc = S.recs;
-  const days = new Set(rc.map(r => new Date(r.t).toDateString())).size;
+  const days = new Set(rc.map(r => dayKey(r.t))).size, stk = streak(rc), wn = WN.all();
   const pct = r => Math.round(r.ok / r.total * 100), tests = rc.filter(r => r.mode !== 'speed' && r.total);
   const best = Math.max(0, ...tests.map(pct));
   const spd = Math.max(0, ...rc.filter(r => r.mode === 'speed').map(r => r.ok));
   const wd = all.length ? all[Math.floor(Date.now() / 864e5) % all.length] : null;
   const card = u => {
     const b = tests.filter(r => r.unit === u.name).map(pct), m = Math.max(0, ...b);
-    return `<button class="card unit" data-act="unit" data-v="${esc(u.id)}"><div class="top"><span class="pill">${u.items.length}개</span>${b.length ? `<span class="pill ok">최고 ${m}%</span>` : '<span class="pill">새 UNIT</span>'}</div>
+    const key = (u.name + ' ' + (u.book || '') + ' ' + u.items.map(i => i.en + ' ' + i.ko).join(' ')).toLowerCase();
+    return `<button class="card unit" data-act="unit" data-v="${esc(u.id)}" data-s="${esc(key)}"><div class="top"><span class="pill">${u.items.length}개</span>${b.length ? `<span class="pill ok">최고 ${m}%</span>` : '<span class="pill">새 UNIT</span>'}</div>
     <div class="n">${esc(u.name)}</div><div class="pv">${esc(u.items.slice(0, 3).map(i => i.en).join(' · '))}</div><div class="bar2"><i style="width:${m}%"></i></div></button>`; };
   const groups = {}; S.units.forEach(u => (groups[u.book || '내 UNIT'] = groups[u.book || '내 UNIT'] || []).push(u));
-  const cards = Object.entries(groups).map(([g, us]) => `<div class="sec"><h2>${esc(g)}</h2><span class="pill">${us.length}개 UNIT</span></div><div class="grid" style="margin-bottom:22px">${us.map(card).join('')}</div>`).join('');
+  const cards = Object.entries(groups).map(([g, us]) => `<div class="grp"><div class="sec"><h2>${esc(g)}</h2><span class="pill">${us.length}개 UNIT</span></div><div class="grid" style="margin-bottom:22px">${us.map(card).join('')}</div></div>`).join('');
   return `<div class="hero"><h1>${esc(S.user.name)}님, 오늘도 한 단계 위로</h1><p>UNIT을 골라 단어를 외우고, 스피드 게임으로 실력을 확인해 보세요.</p>
     <div class="row">${S.units.length ? '<button class="btn" data-act="quick">바로 시작 · 스피드 게임</button>' : ''}<button class="btn g" data-act="records">내 기록 보기</button></div></div>
   <div class="stats"><div class="card stat"><b>${S.units.length}</b><span>UNIT</span></div><div class="card stat"><b>${all.length}</b><span>전체 단어·구문</span></div>
     <div class="card stat"><b>${rc.length}</b><span>학습 횟수</span></div><div class="card stat"><b>${best}%</b><span>최고 정답률</span></div>
-    <div class="card stat"><b>${spd}</b><span>스피드 최고 점수</span></div><div class="card stat"><b>${days}</b><span>학습한 날</span></div></div>
-  <div class="cols"><div class="card wod"><span class="pill">오늘의 단어</span>${wd ? `<div class="w">${esc(wd.en)}</div><div class="m">${esc(wd.ko)}</div>` : '<p class="sub" style="margin:10px 0 0">단어가 등록되면 매일 하나씩 보여드려요.</p>'}</div>
-    <div class="card"><h2>학습 방법</h2><div class="it"><span>뜻 고르기</span><span>영어 → 한글 4지선다</span></div><div class="it"><span>영어 쓰기</span><span>한글 → 영어 입력</span></div><div class="it"><span>스피드 게임</span><span>60초 도전</span></div></div></div>
+    <div class="card stat"><b>${spd}</b><span>스피드 최고 점수</span></div><div class="card stat"><b>${stk}일</b><span>연속 학습 · 총 ${days}일</span></div></div>
+  <div class="cols"><div class="card wod"><span class="pill">오늘의 단어</span>${wd ? `<div class="w">${esc(wd.en)}</div><div class="m">${esc(wd.ko)}</div><div class="row" style="justify-content:flex-start;margin-top:12px">${sayBtn(wd.en)}</div>` : '<p class="sub" style="margin:10px 0 0">단어가 등록되면 매일 하나씩 보여드려요.</p>'}</div>
+    <div class="card"><h2>학습 방법</h2><div class="it"><span>뜻 고르기</span><span>영어 → 한글 4지선다</span></div><div class="it"><span>영어 쓰기</span><span>한글 → 영어 입력</span></div><div class="it"><span>단어 카드</span><span>뒤집으며 외우기</span></div><div class="it"><span>스피드 게임</span><span>60초 도전</span></div>
+    <div class="row" style="justify-content:flex-start;margin-top:14px">${wn.length ? `<button class="btn d" data-act="unit" data-v="__wn">오답 노트 ${wn.length}개 복습</button>` : '<span class="sub" style="margin:0;font-size:13px">틀린 단어는 오답 노트에 자동으로 모여요.</span>'}</div></div></div>
+  ${S.units.length > 3 ? `<input id="find" class="search" type="search" placeholder="UNIT 이름이나 단어로 찾기 (예: attention, 관심)" value="${esc(S.find)}" autocomplete="off">
+  <p class="sub nohit" id="nohit">찾는 UNIT이 없어요.</p>` : ''}
   ${cards ? cards : `<div class="card">아직 등록된 UNIT이 없어요. ${isAdmin() ? '<b>단어 관리</b>에서 첫 UNIT을 만들어 보세요.' : '관리자가 단어를 등록하면 여기에 나타납니다.'}</div>`}`;
 }
 function unitView(){
-  const u = S.units.find(x => x.id === S.pick);
+  const u = unitOf(S.pick); if (!u || !u.items.length){ S.view = 'home'; return homeView(); }
   return `<button class="btn g" data-act="home">← 목록</button>
   <div class="card" style="margin-top:14px"><span class="pill">단어·구문 ${u.items.length}개</span><h1 style="margin-top:8px">${esc(u.name)}</h1>
   <div class="modes">
+   <button class="mode" data-act="flash"><b>단어 카드</b><span>카드를 뒤집으며 외우고, 모르는 것만 다시 보기</span></button>
    <button class="mode" data-act="start" data-v="mc"><b>뜻 고르기</b><span>영어를 보고 한글 뜻을 4개 중에서 선택</span></button>
    <button class="mode" data-act="start" data-v="typ"><b>영어 쓰기</b><span>한글 뜻을 보고 영어를 직접 입력</span></button>
    <button class="mode" data-act="start" data-v="speed"><b>스피드 게임</b><span>60초 동안 두 유형이 섞여 나오는 도전 게임</span></button></div></div>
-  <div class="card" style="margin-top:16px"><h2>단어 목록</h2>${u.items.map(i => `<div class="it"><span>${esc(i.en)}</span><span>${esc(i.ko)}</span></div>`).join('')}</div>`;
+  <div class="card" style="margin-top:16px"><h2>단어 목록</h2>${u.items.map(i => `<div class="it"><span>${esc(i.en)}</span><span>${esc(i.ko)}</span>${sayBtn(i.en, 's')}</div>`).join('')}</div>`;
 }
 function quizView(){
   const q = S.q, fbk = q.fb, sp = q.mode === 'speed';
   const pct = sp ? (q.left / 60 * 100) : (q.i / q.list.length * 100);
-  const head = `<div class="prog"><i id="pg" style="width:${pct}%"></i></div><div class="meta"><span>${MODE[q.mode]} · ${esc(q.u.name)}</span><span>${sp ? `<b id="tm">${q.left}</b>초 · 정답 ${q.ok}` : `${Math.min(q.i + (fbk?0:1), q.list.length)} / ${q.list.length}`}</span></div>`;
+  const head = `<div class="qtop"><span class="pill">${esc(q.u.name)}</span><button class="lnk" data-act="quit">그만하기 ✕</button></div><div class="prog"><i id="pg" style="width:${pct}%"></i></div><div class="meta"><span>${MODE[q.mode]}</span><span>${sp ? `<b id="tm">${q.left}</b>초 · 정답 ${q.ok}` : `${Math.min(q.i + (fbk?0:1), q.list.length)} / ${q.list.length}`}</span></div>`;
   let body;
   if (q.type === 'mc'){
-    body = `<div class="word">${esc(q.cur.en)}</div><div class="opts">${q.opts.map(o => {
+    body = `<div class="word">${esc(q.cur.en)} ${sayBtn(q.cur.en)}</div><div class="opts">${q.opts.map((o, n) => {
       let c = ''; if (fbk) c = o === q.cur.ko ? 'ok' : (o === fbk.v ? 'bad' : '');
-      return `<button class="opt ${c}" data-act="pick" data-v="${esc(o)}">${esc(o)}</button>`; }).join('')}</div>`;
+      return `<button class="opt ${c}" data-act="pick" data-v="${esc(o)}"><span class="k">${n + 1}</span>${esc(o)}</button>`; }).join('')}</div>`;
   } else {
     body = `<div class="word k">${esc(q.cur.ko)}</div><input id="ans" class="ans ${fbk ? (fbk.ok?'ok':'bad') : ''}" placeholder="영어로 입력하고 Enter" autocomplete="off" autocapitalize="off" spellcheck="false" ${fbk ? `value="${esc(fbk.v)}" disabled` : ''}>
-    ${fbk ? '' : '<div class="row"><button class="btn" data-act="submit">확인</button></div>'}`;
+    ${fbk ? '' : '<div class="row"><button class="btn" data-act="submit">확인</button><button class="btn g" data-act="skip">모르겠어요</button></div>'}`;
   }
   const msg = fbk ? `<div class="fb ${fbk.ok?'ok':'bad'}">${fbk.ok ? '정답!' : `오답 · 정답: ${esc(q.type==='mc'?q.cur.ko:q.cur.en)}`}</div>` : '<div class="fb"></div>';
-  return `<div class="q">${head}${body}${msg}</div>`;
+  const hint = q.type === 'mc' ? '키보드 1~4로 고를 수 있어요.' : '';
+  return `<div class="q">${head}${body}${msg}${hint ? `<p class="hint">${hint}</p>` : ''}</div>`;
 }
 function resultView(){
-  const r = S.q.res;
-  return `<div class="q card"><span class="pill">${MODE[r.mode]} · ${esc(r.unit)}</span><div class="score">${r.ok} / ${r.total}</div>
-  <p class="sub">${r.total && r.ok / r.total >= .8 ? '훌륭해요! 거의 다 외웠어요.' : '틀린 단어를 다시 확인해 보세요.'}</p>
-  ${S.q.wrong.length ? `<h2>다시 볼 단어</h2>${[...new Map(S.q.wrong.map(w => [w.en, w])).values()].map(i => `<div class="it"><span>${esc(i.en)}</span><span>${esc(i.ko)}</span></div>`).join('')}` : ''}
-  <div class="row"><button class="btn" data-act="start" data-v="${r.mode}">다시 도전</button><button class="btn g" data-act="unit" data-v="${esc(S.q.u.id)}">모드 선택</button><button class="btn g" data-act="home">목록</button></div></div>`;
+  const r = S.q.res, wr = [...new Map(S.q.wrong.map(w => [w.en, w])).values()];
+  const pct = r.total ? Math.round(r.ok / r.total * 100) : 0;
+  const msg = !r.total ? '다음엔 한 문제라도 풀어 봐요!' : pct === 100 ? '완벽해요! 모두 맞혔어요.' : pct >= 80 ? '훌륭해요! 거의 다 외웠어요.' : pct >= 50 ? '좋아요! 틀린 단어만 한 번 더 보면 돼요.' : '틀린 단어를 다시 확인해 보세요.';
+  return `<div class="q card">${S.q.best ? '<span class="best">🏆 최고 기록!</span><br>' : ''}<span class="pill">${MODE[r.mode]} · ${esc(r.unit)}</span><div class="score">${r.ok} / ${r.total}</div>
+  <p class="sub">${r.mode === 'speed' ? `60초 동안 ${r.total}문제 · 정답률 ${pct}%` : `정답률 ${pct}%`} — ${msg}</p>
+  ${wr.length ? `<h2 style="text-align:left">다시 볼 단어</h2>${wr.map(i => `<div class="it"><span>${esc(i.en)}</span><span>${esc(i.ko)}</span>${sayBtn(i.en, 's')}</div>`).join('')}` : ''}
+  <div class="row">${wr.length ? '<button class="btn d" data-act="retry">틀린 단어만 다시</button>' : ''}<button class="btn" data-act="start" data-v="${r.mode}">다시 도전</button><button class="btn g" data-act="unit" data-v="${esc(S.q.u.id)}">모드 선택</button><button class="btn g" data-act="home">목록</button></div></div>`;
 }
 function recordsView(){
   const best = {}; S.recs.forEach(r => { const k = r.unit + '|' + r.mode; if (!best[k] || r.ok > best[k].ok) best[k] = r; });
@@ -262,6 +320,29 @@ function aboutView(){
   <p>안녕하세요, 김시율이에요. 저는 14세에 이 사이트를 만들었어요.</p>
   <p>영어 단어를 더 쉽고 재미있게 외우고 싶어서 직접 VOCASKY를 만들었어요. UNIT별로 단어를 외우고, 퀴즈와 스피드 게임으로 확인하고, 내 기록까지 남길 수 있어요.</p>
   <p style="margin-bottom:0">쓰다가 불편한 점이나 바라는 기능이 있으면 꼭 알려 주세요. 함께 더 좋은 사이트로 키워 가요!</p></div>`;
+}
+function flashView(){
+  const f = S.fc;
+  if (f.i >= f.list.length){
+    return `<div class="q card"><span class="pill">단어 카드 · ${esc(f.u.name)}</span><div class="score">${f.known} / ${f.list.length}</div>
+    <p class="sub">${f.unk.length ? `모르는 단어 ${f.unk.length}개가 남았어요.` : '이번 카드는 모두 알아요!'}</p>
+    <div class="row">${f.unk.length ? '<button class="btn d" data-act="fcagain">모르는 것만 다시</button>' : ''}<button class="btn" data-act="start" data-v="mc">퀴즈로 확인하기</button><button class="btn g" data-act="unit" data-v="${esc(f.u.id)}">모드 선택</button></div></div>`;
+  }
+  const c = f.list[f.i];
+  return `<div class="q"><div class="qtop"><span class="pill">${esc(f.u.name)}</span><button class="lnk" data-act="unit" data-v="${esc(f.u.id)}">그만하기 ✕</button></div>
+  <div class="prog"><i style="width:${f.i / f.list.length * 100}%"></i></div><div class="meta"><span>단어 카드</span><span>${f.i + 1} / ${f.list.length} · 알아요 ${f.known}</span></div>
+  <div class="flash ${f.flip ? 'on' : ''}" data-act="flip" role="button" tabindex="0" aria-label="카드 뒤집기"><div class="in">
+    <div class="fc"><div class="word">${esc(c.en)}</div>${sayBtn(c.en)}<span class="sub" style="margin:0">눌러서 뜻 보기</span></div>
+    <div class="fc bk"><div class="word k">${esc(c.ko)}</div><span class="sub" style="margin:0">${esc(c.en)}</span></div></div></div>
+  <div class="row"><button class="btn d" data-act="fcno">몰라요</button><button class="btn" data-act="fcyes">알아요</button></div>
+  <p class="hint">Space: 뒤집기 · ←: 몰라요 · →: 알아요</p></div>`;
+}
+function filterUnits(){
+  const q = S.find.trim().toLowerCase(); let any = false;
+  document.querySelectorAll('.grp').forEach(g => { let n = 0;
+    g.querySelectorAll('.unit').forEach(u => { const on = !q || u.dataset.s.includes(q); u.style.display = on ? '' : 'none'; if (on) n++; });
+    g.style.display = n ? '' : 'none'; if (n) any = true; });
+  const e = $('#nohit'); if (e) e.style.display = any ? 'none' : 'block';
 }
 function gateView(){
   return `<div class="auth card"><h1>관리자 확인</h1><p class="sub">단어 관리는 관리자 비밀번호가 필요해요.</p>
@@ -282,15 +363,16 @@ function adminView(){
 
 /* ============ 퀴즈 엔진 ============ */
 function start(mode){
-  const u = S.units.find(x => x.id === S.pick);
+  const u = unitOf(S.pick);
   if (S.units.flatMap(x => x.items).length < 4) return toast('단어가 전체 4개 이상 있어야 해요.');
-  if (!u.items.length) return toast('이 UNIT에는 단어가 없어요.');
-  clearInterval(S.q?.timer);
+  if (!u || !u.items.length) return toast('이 UNIT에는 단어가 없어요.');
+  stopQ();
   const q = S.q = { u, mode, list: sh(u.items), i:0, ok:0, wrong:[], left:60, fb:null };
   if (mode === 'speed') q.timer = setInterval(() => {
     q.left--; if (q.left <= 0) return finish();
     const t = $('#tm'), p = $('#pg'); if (t) t.textContent = q.left; if (p) p.style.width = q.left / 60 * 100 + '%';
   }, 1000);
+  S.view = 'quiz';  // 결과 화면에서 '다시 도전'할 때 nextQ가 막히지 않게
   nextQ();
 }
 function nextQ(){
@@ -299,20 +381,26 @@ function nextQ(){
   q.cur = q.list[q.i];
   q.type = q.mode === 'speed' ? (Math.random() < .5 ? 'mc' : 'typ') : q.mode;
   if (q.type === 'mc'){
-    const pool = [...new Set(S.units.flatMap(x => x.items).map(x => x.ko).filter(k => k !== q.cur.ko))];
-    q.opts = sh([q.cur.ko, ...sh(pool).slice(0, 3)]);
+    // 같은 UNIT의 뜻을 먼저 보기로 쓰고, 모자라면 전체에서 채운다
+    const own = [...new Set(q.u.items.map(x => x.ko))].filter(k => k !== q.cur.ko);
+    const rest = [...new Set(S.units.flatMap(x => x.items).map(x => x.ko))].filter(k => k !== q.cur.ko && !own.includes(k));
+    q.opts = sh([q.cur.ko, ...sh(own).concat(sh(rest)).slice(0, 3)]);
   }
   q.fb = null; go('quiz');
 }
 function answer(v){
   const q = S.q; if (!q || q.fb || S.view !== 'quiz') return;
-  const ok = q.type === 'mc' ? v === q.cur.ko : v.trim().toLowerCase().replace(/\s+/g, ' ') === q.cur.en.toLowerCase();
-  q.fb = { ok, v }; q.i++; ok ? q.ok++ : q.wrong.push(q.cur); render();
+  const ok = q.type === 'mc' ? v === q.cur.ko : !!v.trim() && accepts(q.cur.en).has(norm(v));
+  q.fb = { ok, v }; q.i++;
+  if (ok){ q.ok++; WN.hit(q.cur); } else { q.wrong.push(q.cur); WN.miss(q.cur, q.u.name); }
+  render();
   setTimeout(() => { if (S.q === q) nextQ(); }, ok ? 600 : 1500);
 }
 async function finish(){
   const q = S.q; clearInterval(q.timer);
-  q.res = { unit:q.u.name, mode:q.mode, ok:q.ok, total: q.mode === 'speed' ? q.i : q.list.length, t:Date.now() };
+  q.res = { unit:q.u.name, mode:q.mode, ok:q.ok, total:q.i, t:Date.now() };  // 중간에 그만둬도 푼 문제 수만큼 기록
+  const prev = S.recs.filter(r => r.unit === q.res.unit && r.mode === q.res.mode);
+  q.best = q.res.ok > 0 && prev.length > 0 && prev.every(r => q.res.ok > r.ok);
   S.recs.unshift(q.res);
   go('result');
   try { await API.addRec(q.res); } catch (e) { toast('기록 저장에 실패했어요.'); }
@@ -325,7 +413,17 @@ const parse = t => t.split('\n').map(l => l.trim().match(/^(.+?)\s*(?:=|\t|,)\s*
 /* ============ 이벤트 ============ */
 const ACT = {
   quick(){ S.pick = S.units[Math.floor(Math.random() * S.units.length)].id; start('speed'); },
-  home: () => { clearInterval(S.q?.timer); go('home'); },
+  home: () => go('home'),
+  say: d => say(d.v),
+  theme(){ const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; try { localStorage.setItem('vs_theme', t); } catch (e) {} render(); },
+  quit(){ const q = S.q; if (q && q.i > 0 && !q.fb && confirm('지금까지 푼 것까지 기록할까요?\n(취소를 누르면 기록 없이 나가요)')) return finish(); if (q && q.i > 0 && q.fb) return finish(); go('unit'); },
+  skip: () => answer(''),
+  retry(){ const q = S.q; S.retry = { id:'__retry', name:q.u.name + ' · 틀린 단어', items:[...new Map(q.wrong.map(w => [w.en, w])).values()] }; S.pick = '__retry'; start(q.mode === 'speed' ? 'mc' : q.mode); },
+  flash(){ const u = unitOf(S.pick); S.fc = { u, list:sh(u.items), i:0, known:0, unk:[], flip:false }; go('flash'); },
+  flip(){ S.fc.flip = !S.fc.flip; $('.flash')?.classList.toggle('on', S.fc.flip); },
+  fcyes(){ const f = S.fc; if (f.i >= f.list.length) return; WN.hit(f.list[f.i]); f.known++; f.i++; f.flip = false; render(); },
+  fcno(){ const f = S.fc; if (f.i >= f.list.length) return; f.unk.push(f.list[f.i]); f.i++; f.flip = false; render(); },
+  fcagain(){ const f = S.fc; S.fc = { u:f.u, list:sh(f.unk), i:0, known:0, unk:[], flip:false }; render(); },
   tab: d => { S.tab = d.v; render(); },
   async login(){
     const id = $('#em').value.trim().toLowerCase();
@@ -343,8 +441,8 @@ const ACT = {
   },
   about: () => go('about'),
   async unlock(){ if (await hashPw($('#ap').value) === ADMIN_HASH){ S.adminOK = true; render(); } else toast('비밀번호가 맞지 않아요.'); },
-  async logout(){ await API.logout(); S.user = null; S.adminOK = false; S.tab = 'login'; S.view = 'auth'; render(); },
-  unit: d => { S.pick = d.v; go('unit'); },
+  async logout(){ await API.logout(); stopQ(); S.user = null; S.adminOK = false; S.tab = 'login'; S.view = 'auth'; render(); },
+  unit: d => { if (d.v === '__wn' && !WN.all().length) return toast('오답 노트가 비어 있어요.'); S.pick = d.v; go('unit'); },
   start: d => start(d.v),
   pick: d => answer(d.v),
   submit: () => answer($('#ans').value),
@@ -357,7 +455,17 @@ const ACT = {
   delunit(){ if (!confirm('이 UNIT을 삭제할까요?')) return; S.units = S.units.filter(x => x.id !== S.adm); S.adm = S.units[0]?.id; saveU(); }
 };
 document.addEventListener('click', e => { const a = e.target.closest('[data-act]'); if (a) ACT[a.dataset.act](a.dataset); });
+document.addEventListener('input', e => { if (e.target.id === 'find'){ S.find = e.target.value; filterUnits(); } });
 document.addEventListener('keydown', e => {
+  const typing = /^(INPUT|TEXTAREA)$/.test(e.target.tagName);
+  if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey){
+    if (S.view === 'quiz' && S.q?.type === 'mc' && !S.q.fb && /^[1-4]$/.test(e.key)){ const o = S.q.opts[+e.key - 1]; if (o !== undefined){ e.preventDefault(); return answer(o); } }
+    if (S.view === 'flash' && S.fc && S.fc.i < S.fc.list.length){
+      if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); return ACT.flip(); }
+      if (e.key === 'ArrowRight'){ e.preventDefault(); return ACT.fcyes(); }
+      if (e.key === 'ArrowLeft'){ e.preventDefault(); return ACT.fcno(); }
+    }
+  }
   if (e.key !== 'Enter') return;
   if (e.target.id === 'ans') answer(e.target.value);
   else if (e.target.id === 'ap') ACT.unlock();
