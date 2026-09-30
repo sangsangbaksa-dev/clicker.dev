@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { clickerConfig } from "../../data/clicker/catalog.ts"
+import type { RunState } from "../entities/clicker.ts"
 import {
   monsterAlive,
   slayMonster,
@@ -38,6 +39,7 @@ import {
   startFever,
   syncClickerMineSession,
   activateSkill,
+  buffMultiplier,
   markRegionVisited,
   claimRegionChallenge,
   regionChallengeError,
@@ -289,9 +291,31 @@ test("active skill shop purchase adds charges and use consumes one", () => {
   assert.equal(bought.error, undefined)
   assert.equal(bought.run.skillItems[skill.id], 1)
   assert.ok(bought.run.coreEnergy < run.coreEnergy)
-  const used = activateSkill(bought.run, meta, config, skill.id, now + 100)
+  assert.ok(activateSkill(bought.run, meta, config, skill.id, now + 100).error, "outside the mine skills cannot be cast")
+  const inMine = { ...bought.run, mineSessionEndsAt: now + 60_000 }
+  const used = activateSkill(inMine, meta, config, skill.id, now + 100)
   assert.equal(used.error, undefined)
   assert.equal(used.run.skillItems[skill.id], 0)
+})
+
+test("active skill cooldowns and buffs only run inside the mine", () => {
+  const now = 6_600_000
+  const meta = createInitialMeta()
+  const skill = config.activeSkills.find((s) => s.duration > 0 && s.clickMultiplier)!
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), skill.shopCost + 100)
+  run = buyActiveSkillItem(run, config, skill.id).run
+  run = activateSkill({ ...run, mineSessionEndsAt: now + 60_000 }, meta, config, skill.id, now).run
+  const expiresAt = run.activeBuffs[0].expiresAt
+  // Leave the mine and let 30 seconds pass.
+  let away: RunState = { ...run, mineSessionEndsAt: 0, lastTickAt: now }
+  for (let t = 1; t <= 30; t++) away = processTick(away, meta, config, now + t * 1000).run
+  assert.equal(away.skillCooldowns[skill.id], skill.cooldown)
+  assert.equal(away.activeBuffs[0].expiresAt, expiresAt + 30_000)
+  assert.equal(buffMultiplier(away, now + 30_000, "clickMultiplier", config), 1)
+  // Back in the mine the clock resumes and the buff applies.
+  const back = processTick({ ...away, mineSessionEndsAt: now + 120_000 }, meta, config, now + 31_000).run
+  assert.ok(back.skillCooldowns[skill.id] < skill.cooldown)
+  assert.equal(buffMultiplier(back, now + 31_000, "clickMultiplier", config), skill.clickMultiplier)
 })
 
 test("clicks do not drop potions and shop purchase adds inventory", () => {

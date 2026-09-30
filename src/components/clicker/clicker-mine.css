@@ -586,3 +586,82 @@
   .clicker-mine-nova,
   .clicker-mine-flash { animation: none; opacity: 0; }
 }
+
+/* Owned active skills — right rail inside the mine, mirroring the potions. */
+[data-clicker] .clicker-mine-skills {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+}
+[data-clicker] .clicker-mine-skill {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  padding: 5px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, #4fb8d0 60%, transparent);
+  background: color-mix(in srgb, #070b14 78%, transparent);
+  box-shadow: 0 0 12px rgb(0 200 255 / 0.18);
+  cursor: pointer;
+  appearance: none;
+  overflow: hidden;
+}
+[data-clicker] .clicker-mine-skill img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+/* Cooldown sweep: the dark wedge shrinks as the skill recharges. */
+[data-clicker] .clicker-mine-skill.is-cooldown::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(rgb(3 8 14 / 0.72) var(--cd, 0%), transparent 0);
+  pointer-events: none;
+}
+[data-clicker] .clicker-mine-skill.is-active {
+  border-color: #ffd36a;
+  box-shadow: 0 0 18px rgb(255 200 80 / 0.6);
+}
+[data-clicker] .clicker-mine-skill.is-crisis,
+[data-clicker] .clicker-mine-skill:disabled:not(.is-active) {
+  cursor: not-allowed;
+}
+[data-clicker] .clicker-mine-skill.is-crisis { opacity: 0.45; }
+[data-clicker] .clicker-mine-skill-time {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 6px #000, 0 0 2px #000;
+  pointer-events: none;
+}
+[data-clicker] .clicker-mine-skill.is-active .clicker-mine-skill-time { color: #ffe39a; }
+[data-clicker] .clicker-mine-skill-key {
+  position: absolute;
+  left: 3px;
+  top: 2px;
+  min-width: 14px;
+  padding: 0 3px;
+  border-radius: 5px;
+  background: color-mix(in srgb, #041018 85%, transparent);
+  color: #9fdcff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+}
+@media (max-width: 720px) {
+  [data-clicker] .clicker-mine-skills { top: 108px; gap: 6px; }
+  [data-clicker] .clicker-mine-skill { width: 48px; height: 48px; }
+}

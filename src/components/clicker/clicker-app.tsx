@@ -784,8 +784,13 @@ export function ClickerApp() {
   const monsterDef = regionDef?.monster
   const worldsOpen = game.config.regions.filter((r) => !r.isHome && run.lifetimeCoreEnergy >= r.unlockAtLifetimeEnergy).length
   const fxTier = Math.min(4, FX_TIER_BY_WORLDS[Math.min(worldsOpen, 5)] + (coreVisual === "fever" ? 1 : 0)) as MineFxTier
-  const skillStorm = run.activeBuffs.some((b) => b.expiresAt > tickNow)
-  const ownedSkills = game.config.activeSkills.filter((skill) => (run.skillItems[skill.id] ?? 0) > 0)
+  const skillStorm = inMine && run.activeBuffs.some((b) => b.expiresAt > tickNow)
+  const ownedSkills = game.config.activeSkills.filter(
+    (skill) =>
+      (run.skillItems[skill.id] ?? 0) > 0 ||
+      (run.skillCooldowns[skill.id] ?? 0) > 0 ||
+      run.activeBuffs.some((b) => b.id === skill.id && b.expiresAt > tickNow),
+  )
   const monsterIsAlive = monsterDef ? monsterAlive(run, run.currentRegionId, tickNow) : false
   const huntSpawn = run.monsterRespawnAt[run.currentRegionId] ?? 0
   const lair = run.lair && run.lair.regionId === run.currentRegionId ? run.lair : null
@@ -816,7 +821,7 @@ export function ClickerApp() {
   const automationBuff =
     run.ownedSkillNodeIds.some((id) => id.startsWith("auto_")) ||
     game.save.metaState.transcendenceIds.includes("auto_line") ||
-    run.activeBuffs.some((buff) => buff.id === "overclock" && buff.expiresAt > tickNow)
+    (inMine && run.activeBuffs.some((buff) => buff.id === "overclock" && buff.expiresAt > tickNow))
 
   const panelProps = { game, run, popIcons, bumpIcon }
 
@@ -1237,6 +1242,38 @@ export function ClickerApp() {
                     })}
                 </div>
               ) : null}
+              {ownedSkills.length ? (
+                <div className="clicker-mine-skills" role="toolbar" aria-label="보유 스킬">
+                  {ownedSkills.map((skill, slot) => {
+                    const cd = run.skillCooldowns[skill.id] ?? 0
+                    const charges = run.skillItems[skill.id] ?? 0
+                    const buff = run.activeBuffs.find((b) => b.id === skill.id && b.expiresAt > tickNow)
+                    const buffLeft = buff ? Math.ceil((buff.expiresAt - tickNow) / 1000) : 0
+                    const state = hud.crisisActive ? "crisis" : buff ? "active" : cd > 0 ? "cooldown" : "ready"
+                    const status =
+                      state === "active" ? `${buffLeft}초 지속` : state === "cooldown" ? `쿨다운 ${Math.ceil(cd)}초` : state === "crisis" ? "위기" : "준비"
+                    return (
+                      <button
+                        key={skill.id}
+                        type="button"
+                        className={`clicker-mine-skill is-${state}${(popIcons[skill.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
+                        disabled={cd > 0 || charges <= 0 || hud.crisisActive}
+                        aria-label={`${skill.name} · ${status} · 보유 ${charges}`}
+                        title={`${skill.name} · ${skill.description}`}
+                        style={cd > 0 ? ({ "--cd": `${Math.min(100, (cd / skill.cooldown) * 100)}%` } as React.CSSProperties) : undefined}
+                        onClick={() => castSkill(skill.id)}
+                      >
+                        <img key={`${skill.id}-${popIcons[skill.id] ?? 0}`} src={skill.assetId} alt="" />
+                        {slot < 9 ? <kbd className="clicker-mine-skill-key">{slot + 1}</kbd> : null}
+                        {state === "active" || state === "cooldown" ? (
+                          <b className="clicker-mine-skill-time">{state === "active" ? buffLeft : Math.ceil(cd)}</b>
+                        ) : null}
+                        <span className="clicker-mine-potion-count">{charges}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : null}
               <ClickerMine
                 visual={mineVisual}
                 muted={game.save.settings.muted}
@@ -1417,7 +1454,7 @@ export function ClickerApp() {
       <ClickerSkillHotkeys
         onSlot={(n) => {
           const skill = ownedSkills[n]
-          if (!skill || (run.skillCooldowns[skill.id] ?? 0) > 0 || game.hud?.crisisActive) return
+          if (!inMine || !skill || (run.skillItems[skill.id] ?? 0) <= 0 || (run.skillCooldowns[skill.id] ?? 0) > 0 || game.hud?.crisisActive) return
           castSkill(skill.id)
         }}
       />

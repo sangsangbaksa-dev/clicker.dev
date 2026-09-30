@@ -618,8 +618,14 @@ export function isProducerUnlocked(run: RunState, config: GameConfig, producerId
   return run.lifetimeCoreEnergy >= scaledCost(run, producer.unlockAt) || (run.producerLevels[producerId] ?? 0) > 0
 }
 
+/** Active skills live in the mine: they can only be cast there, and their cooldowns and buffs stand still outside it. */
+export function skillClockRunning(run: RunState): boolean {
+  return run.mineSessionEndsAt > 0
+}
+
 /** Product of every running active-skill buff's multiplier for `field`. */
 export function buffMultiplier(run: RunState, now: number, field: "productionMultiplier" | "clickMultiplier", config: GameConfig): number {
+  if (!skillClockRunning(run)) return 1
   let m = 1
   for (const b of run.activeBuffs) {
     if (b.expiresAt <= now) continue
@@ -924,13 +930,19 @@ export function processTick(
   if (now > next.combo.expiresAt && next.combo.count > 0) {
     next.combo = { ...next.combo, count: 0, multiplier: 1 }
   }
-  next.activeBuffs = next.activeBuffs.filter((b) => b.expiresAt > now)
-  const cooldowns: Record<string, number> = {}
-  for (const [id, remaining] of Object.entries(next.skillCooldowns)) {
-    const left = remaining - dt
-    if (left > 0) cooldowns[id] = left
+  if (skillClockRunning(next)) {
+    next.activeBuffs = next.activeBuffs.filter((b) => b.expiresAt > now)
+    const cooldowns: Record<string, number> = {}
+    for (const [id, remaining] of Object.entries(next.skillCooldowns)) {
+      const left = remaining - dt
+      if (left > 0) cooldowns[id] = left
+    }
+    next.skillCooldowns = cooldowns
+  } else if (next.activeBuffs.length) {
+    // Outside the mine a running buff keeps its remaining time for the next session.
+    const away = Math.max(0, now - run.lastTickAt)
+    next.activeBuffs = next.activeBuffs.map((b) => ({ ...b, expiresAt: b.expiresAt + away }))
   }
-  next.skillCooldowns = cooldowns
 
   if (feverRunning(next)) {
     next.fever = { ...next.fever, remainingTime: next.fever.remainingTime - dt }
@@ -1206,6 +1218,7 @@ export function activateSkill(
   now: number
 ): { run: RunState; error?: string } {
   if (run.crisisActive) return { run, error: "위기 중에는 일부 스킬을 쓸 수 없습니다." }
+  if (!skillClockRunning(run)) return { run, error: "스킬은 광산 안에서만 쓸 수 있습니다." }
   const skill = config.activeSkills.find((s) => s.id === skillId)
   if (!skill) return { run, error: "스킬이 없습니다." }
   if ((run.skillItems[skillId] ?? 0) <= 0) return { run, error: "스킬이 부족합니다." }
