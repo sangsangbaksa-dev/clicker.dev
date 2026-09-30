@@ -15,7 +15,7 @@ import {
   type WorldlineMotionVariant,
 } from "@/data/clicker/rebirth-motion"
 import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
-import { playRebirthCue } from "@/components/clicker/clicker-sfx"
+import { playRebirthCue } from "@/lib/clicker-sfx"
 import "./clicker-rebirth-motion.css"
 
 type Props = {

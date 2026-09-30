@@ -1,7 +1,5 @@
 "use client"
 
-import "@/infrastructure/persistence/clicker-client-bind"
-
 import {
   useCallback,
   useEffect,
@@ -11,7 +9,21 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { CLICKER_ASSETS, clickerConfig } from "@/data/clicker/catalog"
-import { formatNumber } from "@/application/clicker-display"
+import {
+  ARMORS,
+  CLICKER_ADMIN_REMEMBER_KEY,
+  CLICKER_PRELAUNCH,
+  INSTABILITY_WARNING,
+  LAIR_BOSSES,
+  WEAPONS,
+  drillCooldownMs,
+  formatNumber,
+  gearOf,
+  isClickerAdminAllowed,
+  isRegionUnlocked,
+  monsterAlive,
+  shieldRemainingMs,
+} from "@/application/clicker-ui"
 import { useClicker } from "@/hooks/use-clicker"
 import { useClickerBgm, worldBgm } from "@/hooks/use-clicker-bgm"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
@@ -31,14 +43,11 @@ import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
 import { ClickerBossScene } from "@/components/clicker/clicker-boss-scene"
 import { ClickerForge } from "@/components/clicker/clicker-forge"
-import { ARMORS, LAIR_BOSSES, WEAPONS, gearOf, shieldRemainingMs } from "@/domain/services/clicker-lair"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
 import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
-import { INSTABILITY_WARNING, drillCooldownMs, isRegionUnlocked, monsterAlive } from "@/domain/services/clicker-engine"
-import type { SfxName } from "@/components/clicker/clicker-sfx"
-import { CLICKER_ADMIN_REMEMBER_KEY, CLICKER_PRELAUNCH, isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
+import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
-import { playLaser, playSfx, unlockSfx } from "@/components/clicker/clicker-sfx"
+import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
 import { ClickerAchievementsPanel } from "@/components/clicker/panels/achievements-panel"
 import { ClickerProducersPanel } from "@/components/clicker/panels/producers-panel"
 import { ClickerUpgradesPanel } from "@/components/clicker/panels/upgrades-panel"

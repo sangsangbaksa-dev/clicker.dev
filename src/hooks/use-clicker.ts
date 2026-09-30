@@ -51,6 +51,7 @@ import {
   loadClickerGame,
   persistClickerGame,
   resetClickerPersistence,
+  createInitialSave,
 } from "@/application/clicker"
 import {
   clickerCanWriteSave,
@@ -58,24 +59,31 @@ import {
   clickerCreateTabId,
   clickerIsLeaseTakenByOther,
 } from "@/application/clicker-tab-session"
-import { createInitialSave } from "@/domain/services/clicker-engine"
-import { playSfx, setSfxMuted } from "@/components/clicker/clicker-sfx"
-import type { ClickerSettings, CrisisChoice, RegionIntroDef, SaveData } from "@/domain/entities/clicker"
-import { productionSnapshot } from "@/domain/services/clicker-engine"
-import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
-import { GEAR, gearOf, type GearSlot } from "@/domain/services/clicker-lair"
-import { achievementProgress, autoDrillRate, baseDrillRate } from "@/domain/services/clicker-bonus"
-import { formatNumber } from "@/domain/services/clicker-format"
-import type { MineSessionStart, MineSessionSummary } from "@/domain/services/clicker-mine-session"
 import {
+  achievementProgress,
+  autoDrillRate,
+  baseDrillRate,
   buildActiveSkillShopViews,
   buildHud,
-  buildRegionViews,
   buildPotionShopViews,
   buildProducerViews,
+  buildRegionViews,
   buildSkillNodeViews,
   buildUpgradeViews,
-} from "@/domain/services/clicker-view"
+  formatNumber,
+  GEAR,
+  gearOf,
+  isClickerAdminAllowed,
+  productionSnapshot,
+  type ClickerSettings,
+  type CrisisChoice,
+  type GearSlot,
+  type MineSessionStart,
+  type MineSessionSummary,
+  type RegionIntroDef,
+  type SaveData,
+} from "@/application/clicker-ui"
+import { playSfx, setSfxMuted } from "@/lib/clicker-sfx"
 
 export type FloatNumber = {
   id: number

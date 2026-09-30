@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import type { CoreVisual } from "@/domain/services/clicker-view"
-import { sharedAudioContext } from "@/components/clicker/clicker-sfx"
+import type { CoreVisual } from "@/application/clicker-ui"
+import { sharedAudioContext } from "@/lib/clicker-sfx"
 
 /** Hub / mine loops, one theme per world, plus the chamber cue for rebirth and ending. */
 const BGM_SRC = {

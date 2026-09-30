@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import type { BossDef, BossFight } from "@/domain/entities/clicker"
-import { formatNumber } from "@/application/clicker-display"
-import { playSfx } from "@/components/clicker/clicker-sfx"
+import type { BossDef, BossFight } from "@/application/clicker-ui"
+import { formatNumber } from "@/application/clicker-ui"
+import { playSfx } from "@/lib/clicker-sfx"
 import { MonsterArt } from "@/components/clicker/clicker-monster"
 import "./clicker-monster.css"
 

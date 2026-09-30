@@ -9,8 +9,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { MineArt, MINE_ORE_PLATE } from "@/data/clicker/mine-assets"
-import { VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/domain/services/clicker-bonus"
-import { playSfx } from "@/components/clicker/clicker-sfx"
+import { VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/application/clicker-ui"
+import { playSfx } from "@/lib/clicker-sfx"
 import "./clicker-mine.css"
 
 /** Strikes per second while Space is held down. */
