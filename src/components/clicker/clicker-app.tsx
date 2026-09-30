@@ -16,14 +16,20 @@ import {
   INSTABILITY_WARNING,
   LAIR_BOSSES,
   WEAPONS,
+  buildScreenTabs,
   drillCooldownMs,
+  formatMinePauseBadge,
   formatNumber,
   gearOf,
   isClickerAdminAllowed,
   isRegionUnlocked,
   monsterAlive,
+  shouldMountMineChamber,
+  shouldShowManageScreen,
+  type ClickerScreenTabId,
   shieldRemainingMs,
 } from "@/application/clicker-ui"
+import { ClickerScreenNav } from "@/components/clicker/clicker-screen-nav"
 import { useClicker } from "@/hooks/use-clicker"
 import { useClickerBgm, worldBgm } from "@/hooks/use-clicker-bgm"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
@@ -222,6 +228,7 @@ export function ClickerApp() {
   }, [])
 
   const [tab, setTab] = useState<TabId>("upgrades")
+  const [screenTab, setScreenTab] = useState<ClickerScreenTabId>("mine")
   // Hub splits into the mine entrance scene and a full-screen management screen.
   const [hubView, setHubView] = useState<"entrance" | "manage">("entrance")
   const [adminOpen, setAdminOpen] = useState(false)
@@ -312,6 +319,26 @@ export function ClickerApp() {
 
   /** The forge opens with the third world (Phase Vault), where the first boss lairs are. */
   const forgeUnlocked = Boolean(game.regions[2]?.unlocked)
+  const selectScreen = useCallback(
+    (id: ClickerScreenTabId) => {
+      const result = game.selectScreen(screenTab, id)
+      setScreenTab(id)
+      if (result.openSkillTree) setSkillMapOpen(true)
+      if (result.manageTab) {
+        if (result.manageTab === "transcendence") playSfx("transcend")
+        setTab(result.manageTab)
+        setHubView("manage")
+      } else if (id === "mine") {
+        setHubView("entrance")
+      }
+      if (result.manageTab && drawerHeight <= drawerSnaps.peek + 16) {
+        setDrawerHeight(drawerSnaps.half)
+        persistDrawerHeight(drawerSnaps.half)
+      }
+    },
+    [drawerHeight, drawerSnaps, game, persistDrawerHeight, screenTab],
+  )
+
   const selectTab = useCallback(
     (id: TabId) => {
       if (id === "forge" && !forgeUnlocked) {
@@ -319,10 +346,21 @@ export function ClickerApp() {
         return
       }
       if (id === "skills") {
-        setSkillMapOpen(true)
+        selectScreen("skills")
         return
       }
-      if (id === "transcendence") playSfx("transcend")
+      if (id === "upgrades") {
+        selectScreen("upgrades")
+        return
+      }
+      if (id === "shop") {
+        selectScreen("shop")
+        return
+      }
+      if (id === "transcendence") {
+        selectScreen("rebirth")
+        return
+      }
       setTab(id)
       setHubView("manage")
       if (drawerHeight <= drawerSnaps.peek + 16) {
@@ -335,7 +373,7 @@ export function ClickerApp() {
           ?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" })
       })
     },
-    [drawerHeight, drawerSnaps, persistDrawerHeight, forgeUnlocked, game],
+    [drawerHeight, drawerSnaps, persistDrawerHeight, forgeUnlocked, game, selectScreen],
   )
 
   const playSurface = game.save?.settings.playSurface ?? "hub"
@@ -773,6 +811,7 @@ export function ClickerApp() {
   const inMine = game.save.settings.playSurface === "mine"
   // Last tick time (~100ms fresh) keeps render pure instead of reading Date.now().
   const tickNow = run.lastTickAt
+  const mountMineChamber = shouldMountMineChamber(screenTab, game.save, tickNow)
   const mineRemainMs = Math.max(0, run.mineSessionEndsAt - tickNow)
   const mineRemainSec = mineRemainMs / 1000
   const mineDurationMs = Math.max(1, run.mineSessionDurationMs || 10_000)
@@ -801,6 +840,8 @@ export function ClickerApp() {
   const transcendenceUnlocked = hud.canRebirth
   const rebirthRatio = Math.min(1, run.lifetimeCoreEnergy / hud.rebirthRequirement)
   const showTranscendenceTab = transcendenceUnlocked || rebirthRatio >= 0.25
+  const screenTabs = buildScreenTabs({ showRebirth: showTranscendenceTab })
+  const minePauseBadge = formatMinePauseBadge(run.minePausedRemainMs ?? 0)
   const transcendenceOwned = new Set(game.save.metaState.transcendenceIds).size
   const transcendenceTotal = game.config.transcendence.length
   // Every circuit (all 100, transcendence branch included) stays on the board.
@@ -852,9 +893,10 @@ export function ClickerApp() {
 
   const atHomeHub = !inMine && Boolean(game.currentRegion?.isHome)
   const regionIntroPlaying = Boolean(game.regionIntro)
-  const managing = !inMine && hubView === "manage"
+  const managing = shouldShowManageScreen(screenTab) || (!mountMineChamber && hubView === "manage")
 
   const beginEnterMine = () => {
+    setScreenTab("mine")
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     // Refused entries (cooldown / cost) skip the cinematic; enterMine shows the reason.
     if (reduced || game.mineEntryError()) {
@@ -1036,6 +1078,7 @@ export function ClickerApp() {
           설정
         </button>
       </header>
+      <ClickerScreenNav tabs={screenTabs} active={screenTab} mineBadge={minePauseBadge} onSelect={selectScreen} />
 
       <div className="clicker-stage">
         <StageBg
@@ -1154,7 +1197,7 @@ export function ClickerApp() {
           ) : null}
         </nav>
         <div className="clicker-core-wrap">
-          {inMine ? (
+          {mountMineChamber ? (
             <div className="clicker-mine-dig">
               <div className="clicker-mine-hud" role="status" aria-live="polite">
                 <div className="clicker-mine-hud-stat" aria-label={`채굴량 ${formatNumber(mineHaul)}`}>

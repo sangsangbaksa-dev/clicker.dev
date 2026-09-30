@@ -48,6 +48,9 @@ import {
   clickerForge,
   allowMineStrike,
   clearClickerStoredSave,
+  clickerPauseMine,
+  clickerResumeMine,
+  clickerSelectScreenTab,
   loadClickerGame,
   persistClickerGame,
   resetClickerPersistence,
@@ -80,6 +83,8 @@ import {
   type GearSlot,
   type MineSessionStart,
   type MineSessionSummary,
+  type ClickerScreenTabId,
+  type ManageDrawerTabId,
   type RegionIntroDef,
   type SaveData,
 } from "@/application/clicker-ui"
@@ -597,13 +602,49 @@ export function useClicker() {
     const result = clickerEnterMine(saveRef.current, t)
     const next = result.save
     if (!result.error && next.settings.playSurface === "mine") {
-      mineStartRef.current = clickerMineSessionStart(next, t)
+      if (!mineStartRef.current) mineStartRef.current = clickerMineSessionStart(next, t)
       setMineSummary(null)
     }
     commit(next)
     persistNow(next)
     if (result.error) refuse(result.error)
-  }, [commit, persistNow, flash, refuse])
+  }, [commit, persistNow, refuse])
+
+  const pauseMine = useCallback(() => {
+    if (!saveRef.current) return
+    const next = clickerPauseMine(saveRef.current, now())
+    if (next === saveRef.current) return
+    commit(next)
+    persistNow(next)
+  }, [commit, persistNow])
+
+  const resumeMine = useCallback(() => {
+    if (!saveRef.current) return
+    const t = now()
+    const next = clickerResumeMine(saveRef.current, t)
+    if (next === saveRef.current) return
+    if (next.settings.playSurface === "mine" && !mineStartRef.current) {
+      mineStartRef.current = clickerMineSessionStart(next, t)
+    }
+    commit(next)
+    persistNow(next)
+  }, [commit, persistNow])
+
+  const selectScreen = useCallback(
+    (from: ClickerScreenTabId, to: ClickerScreenTabId): { openSkillTree: boolean; manageTab: ManageDrawerTabId | null } => {
+      if (!saveRef.current) return { openSkillTree: false, manageTab: null }
+      const t = now()
+      const result = clickerSelectScreenTab(saveRef.current, from, to, t)
+      const next = result.save
+      if (to === "mine" && next.settings.playSurface === "mine" && !mineStartRef.current) {
+        mineStartRef.current = clickerMineSessionStart(next, t)
+      }
+      commit(next)
+      persistNow(next)
+      return { openSkillTree: result.openSkillTree, manageTab: result.manageTab }
+    },
+    [commit, persistNow],
+  )
 
   /** Golden vein hit in the mine; returns a short label for the in-scene burst. */
   const claimVein = useCallback(
@@ -918,6 +959,9 @@ export function useClicker() {
     setMusicVolume,
     startFromTitle,
     enterMine,
+    pauseMine,
+    resumeMine,
+    selectScreen,
     mineEntryError,
     claimVein,
     oreBroken,

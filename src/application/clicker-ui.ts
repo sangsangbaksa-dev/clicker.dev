@@ -50,6 +50,20 @@ export {
 export { isConfirmReady } from "@/domain/services/clicker-confirm-guard"
 export { achievementProgress, autoDrillRate, baseDrillRate, VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/domain/services/clicker-bonus"
 export {
+  buildScreenTabs,
+  manageTabForScreen,
+  shouldMountMineChamber,
+  shouldShowManageScreen,
+  type ClickerScreenTabId,
+  type ManageDrawerTabId,
+  type ScreenTabDef,
+} from "@/domain/services/clicker-screen-tabs"
+export {
+  formatMinePauseBadge,
+  isLiveMineSession,
+  isMinePaused,
+} from "@/domain/services/clicker-mine-pause"
+export {
   AMULETS,
   ARMORS,
   GEAR,

@@ -63,6 +63,8 @@ import { decodeClickerSave, encodeClickerSave } from "@/domain/services/clicker-
 import { enterLair, forgeGear, leaveLair, strikeLair, tickLair, type GearSlot } from "@/domain/services/clicker-lair"
 import { encodeSaveCode, parseSaveCode, type ParsedSaveCode } from "@/domain/services/clicker-save-transfer"
 import { clickerPersistence } from "@/application/clicker-client-bind"
+import { pauseMine, resumeMine } from "@/domain/services/clicker-mine-pause"
+import { selectScreenTab, type ClickerScreenTabId, type ManageDrawerTabId } from "@/domain/services/clicker-screen-tabs"
 
 const config = clickerConfig
 const rng: Rng = () => Math.random()
@@ -115,6 +117,23 @@ export function persistClickerGame(save: SaveData): void {
 
 export function clearClickerStoredSave(): void {
   clickerPersistence().clearRaw()
+}
+
+export function clickerPauseMine(save: SaveData, now: number): SaveData {
+  return pauseMine(save, now)
+}
+
+export function clickerResumeMine(save: SaveData, now: number): SaveData {
+  return resumeMine(save, now)
+}
+
+export function clickerSelectScreenTab(
+  save: SaveData,
+  from: ClickerScreenTabId,
+  to: ClickerScreenTabId,
+  now: number,
+): { save: SaveData; openSkillTree: boolean; manageTab: ManageDrawerTabId | null } {
+  return selectScreenTab(save, from, to, now)
 }
 
 /** Save code for the settings sheet: the current save as the loader would store it. */
