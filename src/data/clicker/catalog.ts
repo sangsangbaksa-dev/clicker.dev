@@ -35,10 +35,11 @@ const baseConfig: GameConfig = {
   feverCritChanceAdd: 0.1,
   feverComboCap: 10,
   feverCoolDown: 2,
-  // Final unit ÷1000: goals 1B → 2T → 4Qa … Each worldline must climb past the whole catalog.
+  // Final unit ÷1000: goals 1B → 300B → 90T … ×300 keeps worldlines 2–6 at roughly 10–25 min each
+  // (scripts/playtime-sim.ts); ×500 and up hit the production wall in the last worldlines.
   rebirthEnergy: 1e12,
-  rebirthGrowth: 2_000,
-  // Prices double per worldline while goals grow ×10, so each worldline climbs further.
+  rebirthGrowth: 300,
+  // Prices double per worldline while goals grow ×300, so each worldline climbs further.
   priceGrowth: 2,
   // ×5 permanent click & production per rebirth: every worldline plays about five times faster.
   worldlineBonus: 4,
