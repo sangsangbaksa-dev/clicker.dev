@@ -14,9 +14,9 @@ export const CLICKER_BGM_URL: Record<BgmTrackId, string> = {
 
 const warmed = new Map<string, Promise<void>>()
 
-/** Warm decode for one track so the first play does not hitch. */
-export function warmBgmUrl(url: string): Promise<void> {
-  if (typeof window === "undefined") return Promise.resolve()
+/** Warm decode for one track so the first play does not hitch (no-op when networking is blocked). */
+export function warmBgmUrl(url: string, allowNetwork = true): Promise<void> {
+  if (!allowNetwork || typeof window === "undefined") return Promise.resolve()
   let job = warmed.get(url)
   if (!job) {
     job = new Promise<void>((resolve) => {
@@ -33,8 +33,9 @@ export function warmBgmUrl(url: string): Promise<void> {
   return job
 }
 
-export function warmBgmTracks(ids: BgmTrackId[]): void {
-  for (const id of ids) void warmBgmUrl(CLICKER_BGM_URL[id])
+export function warmBgmTracks(ids: BgmTrackId[], allowNetwork = true): void {
+  if (!allowNetwork) return
+  for (const id of ids) void warmBgmUrl(CLICKER_BGM_URL[id], true)
 }
 
 export function allBgmTrackIds(): BgmTrackId[] {
