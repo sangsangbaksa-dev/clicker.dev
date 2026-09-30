@@ -1,5 +1,9 @@
 /** Mine chamber art pack — paths only; Waldomage + Waldo handoff. Palette PROVISIONAL. */
 
+/** Door hex center in pre-reframe v2 (1280×720); reframed left by this many px for on-screen centering. */
+export const MINE_ENTRANCE_DOOR_CENTER_X = 708
+export const MINE_ENTRANCE_REFRAME_SHIFT_PX = MINE_ENTRANCE_DOOR_CENTER_X - 640
+
 /** Interior with the single big center crystal — the clickable mining target. */
 export const MINE_ORE_PLATE = {
   src: "/clicker/mine/mine_interior_mineral_ore_v2.webp",
