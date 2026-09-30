@@ -3,13 +3,21 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react"
-import { MineArt, MINE_ORE_PLATE } from "@/data/clicker/mine-assets"
-import { VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/application/clicker-ui"
+import { MineArt } from "@/data/clicker/mine-assets"
+import {
+  ORE_ART,
+  oreHitBox,
+  oreStrikePoint,
+  spawnMineOres,
+  VEIN_LIFETIME_MS,
+  VEIN_SPAWN_CHANCE,
+} from "@/application/clicker-ui"
 import { playSfx } from "@/lib/clicker-sfx"
 import "./clicker-mine.css"
 
@@ -92,27 +100,9 @@ type Props = {
 
 type Vein = { x: number; y: number; expiresAt: number }
 
-
 type Box = { left: number; top: number; width: number; height: number }
 
-/**
- * Where the crystal sits inside the plate, and the plate's cover-fit
- * placement for a given viewport — must match `background-size: cover` + center.
- */
-function oreBoxFor(width: number, height: number): Box {
-  const { width: iw, height: ih, ore } = MINE_ORE_PLATE
-  const scale = Math.max(width / iw, height / ih)
-  const ox = (width - iw * scale) / 2
-  const oy = (height - ih * scale) / 2
-  return {
-    left: ox + ore.x * scale,
-    top: oy + ore.y * scale,
-    width: ore.w * scale,
-    height: ore.h * scale,
-  }
-}
-
-/** Single center ore: tap the big crystal, a laser fires from the rig below. */
+/** Single center ore: tap the crystal, a laser fires from the rig below. */
 export function ClickerMine({
   visual = "idle",
   muted,
@@ -129,9 +119,12 @@ export function ClickerMine({
   lightning = false,
   nova = null,
 }: Props) {
+  const oreNodes = useMemo(() => spawnMineOres(), [])
+  const oreNode = oreNodes[0]!
   const [box, setBox] = useState<Box | null>(null)
-  const [size, setSize] = useState({ width: 0, height: 0 })
+  const [strikePx, setStrikePx] = useState({ x: 0, y: 0 })
   const [hitSeq, setHitSeq] = useState(0)
+  const [oreSprite, setOreSprite] = useState(ORE_ART.idle)
   const broken = false
   const [sparks, setSparks] = useState<Spark[]>([])
   const [lasers, setLasers] = useState<Laser[]>([])
@@ -157,8 +150,8 @@ export function ClickerMine({
     if (!el) return
     const measure = () => {
       const { width, height } = el.getBoundingClientRect()
-      setSize({ width, height })
-      setBox(oreBoxFor(width, height))
+      setBox(oreHitBox(oreNode, width, height))
+      setStrikePx(oreStrikePoint(oreNode, width, height))
     }
     measure()
     const ro = new ResizeObserver(measure)
@@ -168,7 +161,7 @@ export function ClickerMine({
       ro.disconnect()
       for (const t of pending) window.clearTimeout(t)
     }
-  }, [])
+  }, [oreNode])
 
   const fireLaser = useCallback((x: number, y: number, critical: boolean, drill = false, tier: MineFxTier = 0) => {
     const el = mineRef.current
@@ -176,7 +169,6 @@ export function ClickerMine({
     const { width, height } = el.getBoundingClientRect()
     const id = ++seq.current
     const side = id % 2 === 0 ? -1 : 1
-    // Player rig sits below the frame (alternating barrels); the assist drill fires from the side walls.
     const origin = drill
       ? { x: side < 0 ? -8 : width + 8, y: height * 0.55 }
       : { x: width / 2 + side * width * 0.06, y: height + 8 }
@@ -202,13 +194,11 @@ export function ClickerMine({
     later(() => setSparks((prev) => prev.filter((s) => !burst.some((b) => b.id === s.id))), 480)
   }, [])
 
-  // Latest values for the drill interval without re-arming it every render.
-  const live = useRef({ broken, box, muted, onMine, onPop, playLaser, fxTier, storm, lightning })
+  const live = useRef({ broken, strikePx, muted, onMine, onPop, playLaser, fxTier, storm, lightning, box })
   useEffect(() => {
-    live.current = { broken, box, muted, onMine, onPop, playLaser, fxTier, storm, lightning }
+    live.current = { broken, strikePx, muted, onMine, onPop, playLaser, fxTier, storm, lightning, box }
   })
 
-  /** Lightning, shockwaves, arcs and prism sparks on top of the laser, scaled by tier. */
   const fireFx = useCallback((x: number, y: number, hit: MineStrikeResult, tier: MineFxTier, stormOn: boolean, boltsOn: boolean) => {
     if (reduceMotion.current) return
     const el = mineRef.current
@@ -224,7 +214,6 @@ export function ClickerMine({
         newBolts.push({ id: ++seq.current, d: boltPath(sx + 30, -10, x, y, 90, 10), big: true })
       }
     }
-    // Chain arcs across the crystal (tier 3+ crits, every hit at 4, and every lightning proc).
     if (b && (hit.lightning || (boltsOn && ((tier >= 3 && hit.critical) || tier >= 4)))) {
       const arcs = hit.lightning ? 4 : tier >= 4 ? 2 : 1
       for (let i = 0; i < arcs; i++) {
@@ -246,24 +235,25 @@ export function ClickerMine({
     if (hit.lightning || hit.quake || (tier >= 4 && hit.critical)) setFlash((n) => n + 1)
   }, [])
 
-  /** One strike at a point in mine-local px — shared by taps and the assist drill. */
   const hitAt = useCallback(
-    (x: number, y: number, drill: boolean) => {
+    (aimX: number, aimY: number, drill: boolean) => {
       const el = mineRef.current
       const cur = live.current
       if (!el || cur.broken) return
       const rect = el.getBoundingClientRect()
-      const strike = cur.onMine(rect.left + x, rect.top + y)
+      const { x: cx, y: cy } = cur.strikePx
+      const strike = cur.onMine(rect.left + cx, rect.top + cy)
       if (!strike) return
       const { critical } = strike
       if (!drill) {
         cur.playLaser(cur.muted, critical)
         cur.onPop()
       }
-      fireLaser(x, y, critical, drill, cur.fxTier)
-      fireFx(x, y, strike, cur.fxTier, cur.storm, cur.lightning)
+      setOreSprite(ORE_ART.hit)
+      later(() => setOreSprite(ORE_ART.idle), 120)
+      fireLaser(aimX, aimY, critical, drill, cur.fxTier)
+      fireFx(aimX, aimY, strike, cur.fxTier, cur.storm, cur.lightning)
       setHitSeq((n) => n + 1)
-
     },
     [fireLaser, fireFx],
   )
@@ -276,29 +266,27 @@ export function ClickerMine({
       const el = mineRef.current
       if (!el) return
       const rect = el.getBoundingClientRect()
-      hitAt(e.clientX - rect.left, e.clientY - rect.top, false)
+      const aimX = e.clientX - rect.left
+      const aimY = e.clientY - rect.top
+      hitAt(aimX, aimY, false)
     },
     [hitAt],
   )
 
-  // Assist drill: auto strikes on random points of the crystal.
   useEffect(() => {
     if (autoRate <= 0) return
     const id = window.setInterval(() => {
-      const b = live.current.box
-      if (!b) return
-      hitAt(b.left + b.width * (0.25 + Math.random() * 0.5), b.top + b.height * (0.2 + Math.random() * 0.55), true)
+      const { x, y } = live.current.strikePx
+      hitAt(x, y, true)
     }, 1000 / autoRate)
     return () => window.clearInterval(id)
   }, [autoRate, hitAt])
 
-  // Holding Space mines at a steady 7 strikes a second (first strike on press).
   useEffect(() => {
     let timer = 0
-    const hitRandom = () => {
-      const b = live.current.box
-      if (!b) return
-      hitAt(b.left + b.width * (0.25 + Math.random() * 0.5), b.top + b.height * (0.2 + Math.random() * 0.55), false)
+    const hitCenter = () => {
+      const { x, y } = live.current.strikePx
+      hitAt(x, y, false)
     }
     const stop = () => {
       if (timer) window.clearInterval(timer)
@@ -310,8 +298,8 @@ export function ClickerMine({
       if (e.code !== "Space" || e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return
       e.preventDefault()
       if (timer || e.repeat) return
-      hitRandom()
-      timer = window.setInterval(hitRandom, 1000 / SPACE_HOLD_CPS)
+      hitCenter()
+      timer = window.setInterval(hitCenter, 1000 / SPACE_HOLD_CPS)
     }
     const onUp = (e: KeyboardEvent) => {
       if (e.code === "Space") stop()
@@ -327,15 +315,13 @@ export function ClickerMine({
     }
   }, [hitAt])
 
-  // Golden vein: maybe one per session, a few seconds in, briefly clickable.
   useEffect(() => {
     if (!onVein || Math.random() >= VEIN_SPAWN_CHANCE) return
     const spawn = window.setTimeout(() => {
-      setVein({ x: 0.2 + Math.random() * 0.6, y: 0.2 + Math.random() * 0.5, expiresAt: Date.now() + VEIN_LIFETIME_MS })
+      setVein({ x: 0.5, y: 0.42, expiresAt: Date.now() + VEIN_LIFETIME_MS })
       playSfx("veinSpawn")
     }, 1500 + Math.random() * 3500)
     return () => window.clearTimeout(spawn)
-    // One roll per mount (= per mine session).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -363,8 +349,6 @@ export function ClickerMine({
   }
 
   const plate = MineArt.orePlate
-  const { width: iw, height: ih, ore } = MINE_ORE_PLATE
-  const scale = size.width ? Math.max(size.width / iw, size.height / ih) : 0
 
   return (
     <div
@@ -378,37 +362,32 @@ export function ClickerMine({
         <button
           type="button"
           className={`clicker-mine-crystal${broken ? " is-broken" : ""}`}
-          aria-label={
-            muted
-              ? "코어 광석 채굴 · 음소거"
-              : "코어 광석 채굴 · 레이저"
-          }
+          aria-label={muted ? "코어 광석 채굴 · 음소거" : "코어 광석 채굴 · 레이저"}
           style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
           onPointerDown={strike}
         >
-          {/* Same plate, cropped to the crystal, so hits can pulse just the ore. */}
-          <span
+          <img
             key={hitSeq}
+            src={oreSprite}
+            alt=""
             className={`clicker-mine-crystal-art${hitSeq > 0 ? " is-hit" : ""}`}
-            style={
-              {
-                backgroundImage: `url(${plate})`,
-                backgroundSize: `${iw * scale}px ${ih * scale}px`,
-                backgroundPosition: `${-ore.x * scale}px ${-ore.y * scale}px`,
-              } as CSSProperties
-            }
+            onError={(e) => {
+              const img = e.currentTarget
+              if (img.src.endsWith(ORE_ART.clickFallback) || img.dataset.fallback === "1") return
+              img.dataset.fallback = "1"
+              img.src = ORE_ART.clickFallback
+            }}
           />
           <span className="clicker-mine-crystal-glow" />
         </button>
       ) : null}
-
 
       {vein && box ? (
         <button
           type="button"
           className="clicker-mine-vein-gold"
           aria-label="황금 광맥 — 탭하여 보상"
-          style={{ left: box.left + box.width * vein.x, top: box.top + box.height * vein.y }}
+          style={{ left: box.left + box.width * vein.x - 24, top: box.top + box.height * vein.y - 24 }}
           onPointerDown={claimVein}
         />
       ) : null}
