@@ -65,7 +65,7 @@ export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; ru
                 aria-current={region.isCurrent ? "location" : undefined}
               >
                 <img
-                  src={region.bgAssetId || CLICKER_ASSETS.bgChamber}
+                  src={game.config.regions.find((r) => r.id === region.id)?.intro?.still ?? (region.bgAssetId || CLICKER_ASSETS.bgChamber)}
                   alt=""
                   onError={(e) => {
                     e.currentTarget.src = CLICKER_ASSETS.bgChamber

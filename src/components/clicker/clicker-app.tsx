@@ -54,6 +54,8 @@ const CLICKER_ADMIN_UI =
 /** Nova colour each active skill paints across the mine when cast. */
 /** Spark Strike unlocks lightning; before it the mine shows no bolts. */
 const LIGHTNING_SKILL_ID = "storm_spark"
+/** How long a finished boss fight stays on screen (death / knockout) before returning to the world still. */
+const BOSS_EXIT_DELAY_MS = 2200
 
 const SKILL_NOVA_COLOR: Record<string, string> = {
   overclock: "rgb(255 120 60 / 0.9)",
@@ -678,6 +680,18 @@ export function ClickerApp() {
     }
     prevShield.current = shieldUntil
   }, [shieldUntil, lairRegion])
+
+  // When a boss fight ends (knocked out or boss slain), let the finish play, then step back
+  // out to the world's still screen.
+  const fightOn = Boolean(game.save?.runState.lair || game.save?.runState.boss)
+  const prevFightOn = useRef(fightOn)
+  useEffect(() => {
+    const ended = prevFightOn.current && !fightOn
+    prevFightOn.current = fightOn
+    if (!ended) return
+    const t = window.setTimeout(() => setEngagedRegion(null), BOSS_EXIT_DELAY_MS)
+    return () => window.clearTimeout(t)
+  }, [fightOn])
 
   if (game.otherTabActive) {
     return (
@@ -1690,9 +1704,8 @@ export function ClickerApp() {
           key={game.regionIntro.regionId}
           src={game.regionIntro.video}
           poster={game.regionIntro.poster}
-          label={`${game.regionIntro.name} 첫 진입`}
+          label={`${game.regionIntro.name} 입장`}
           caption={{
-            kicker: "NEW REGION · 첫 진입",
             title: game.regionIntro.name,
             body: game.regionIntro.description,
           }}

@@ -17,7 +17,7 @@ export const CLICKER_TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: "blocked",
     title: "막힌 심장",
-    bgAssetId: "/clicker/bg/region_core_heart.jpg",
+    bgAssetId: "/clicker/region/core_heart_still.webp",
     body: "코어의 심장부는 거대한 수호자가 틀어막고 있습니다. 코어가 숨을 쉬지 못해 세계가 꺼져 갑니다.",
   },
   {

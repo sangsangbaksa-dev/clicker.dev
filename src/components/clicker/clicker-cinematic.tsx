@@ -21,7 +21,7 @@ type Props = {
   /** Accessible name of the dialog, e.g. "광산 입장 중". */
   label: string
   /** Optional title card over the video (region intros). */
-  caption?: { kicker: string; title: string; body: string }
+  caption?: { kicker?: string; title: string; body: string }
   muted: boolean
   onDone: () => void
 }
@@ -98,7 +98,7 @@ export function ClickerCinematic({ src, poster, label, caption, muted, onDone }:
       />
       {caption ? (
         <div className="clicker-cinematic-caption" aria-live="polite">
-          <p>{caption.kicker}</p>
+          {caption.kicker ? <p>{caption.kicker}</p> : null}
           <h2>{caption.title}</h2>
           <span>{caption.body}</span>
         </div>
