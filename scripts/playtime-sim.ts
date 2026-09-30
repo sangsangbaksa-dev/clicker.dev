@@ -221,7 +221,14 @@ function bestRegion(): void {
   }
 }
 
+const regionOpenedAt = new Map<string, string>()
 while (elapsed() < MAX_HOURS * 3600) {
+  for (const r of config.regions) {
+    if (r.isHome || regionOpenedAt.has(r.id) || !isRegionUnlocked(save.runState, config, r.id)) continue
+    const line = `  ${r.id} opens: ${fmt(elapsed())} total · worldline ${save.metaState.rebirthCount + 1} at ${fmt(elapsed() - runStart)}`
+    regionOpenedAt.set(r.id, line)
+    runLog.push(line)
+  }
   bestRegion()
   {
     const m = slayMonster(save.runState, save.metaState, config, save.runState.currentRegionId, now)
