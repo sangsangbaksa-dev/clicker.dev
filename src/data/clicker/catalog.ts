@@ -35,12 +35,12 @@ const baseConfig: GameConfig = {
   feverCritChanceAdd: 0.1,
   feverComboCap: 10,
   feverCoolDown: 2,
-  // Final unit ÷1000: goals 1B → 550B → 300T … With the Heart Key capstone, ×550 keeps worldlines
-  // 2–5 at ~10 min and the last climb to Core Heart at ~17 min (scripts/playtime-sim.ts); ×800 and
-  // up hit the production wall in the last worldline.
+  // Final unit ÷1000: goals 1B → 1.2T → 1.4Qa … With the Heart Key capstone and the boosted
+  // AUTOMATION branch, ×1200 keeps worldlines 2–5 at ~8–9 min and the last climb to Core Heart at
+  // ~20 min, ~80 min in all (scripts/playtime-sim.ts); ×550 left that last climb at ~6 min.
   rebirthEnergy: 1e12,
-  rebirthGrowth: 550,
-  // Prices double per worldline while goals grow ×550, so each worldline climbs further.
+  rebirthGrowth: 1_200,
+  // Prices double per worldline while goals grow ×1200, so each worldline climbs further.
   priceGrowth: 2,
   // ×5 permanent click & production per rebirth: every worldline plays about five times faster.
   worldlineBonus: 4,
