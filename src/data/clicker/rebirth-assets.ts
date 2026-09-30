@@ -10,9 +10,13 @@ const SLUG: Record<string, string> = {
   risk_line: "volatile_core",
 }
 
-/** Legacy geometric stamps under /clicker/stamp/ — the only art for hybrid_line. */
+/** Stamps for worldlines outside the Wave A pack: a legacy geometric stamp, or the late lines' sigils. */
 const STAMP_FALLBACK: Record<string, string> = {
   hybrid_line: "/clicker/stamp/stamp_adaptive_architect.webp",
+  // Late worldlines stamp with their own sigil.
+  hunt_line: "/clicker/buff/buff_hunt.webp",
+  forge_line: "/clicker/buff/buff_forge.webp",
+  memory_line: "/clicker/buff/buff_memory.webp",
 }
 
 /** Four-card chrome set from sheet 08; other worldlines use the geometric card. */

@@ -30,7 +30,7 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
             ← 돌아가기
           </button>
         </div>
-        <h3>{transcendenceUnlocked ? "환생할 세계선을 고르세요" : allWalked ? "다섯 세계선 완료" : "환생 준비 중"}</h3>
+        <h3>{transcendenceUnlocked ? "환생할 세계선을 고르세요" : allWalked ? `${transcendenceTotal}개 세계선 완료` : "환생 준비 중"}</h3>
         <div
           className="clicker-transcendence-meter"
           role="progressbar"

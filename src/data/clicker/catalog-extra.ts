@@ -22,6 +22,10 @@ export const EXTRA_PRODUCERS: ProducerDef[] = [
   { id: "gravity_well", name: "Gravity Well", description: "중력으로 잔향을 끌어모은다.", unlockAt: 5_000_000, baseCost: 200_000_000, productionPerSecond: 3_100, costGrowth: 1.215, tags: ["RESONANCE", "MID"], assetId: "/clicker/producer/producer_gravity_well.webp" },
   { id: "nova_forge", name: "Nova Forge", description: "작은 신성을 불러 주조한다.", unlockAt: 4_000_000_000, baseCost: 110_000_000_000, productionPerSecond: 240_000, costGrowth: 1.24, tags: ["END", "LATE"], assetId: "/clicker/producer/producer_nova_forge.webp" },
   { id: "aurora_reactor", name: "Aurora Reactor", description: "코어 심장과 공명하는 마지막 반응로.", unlockAt: 15_000_000_000, baseCost: 500_000_000_000, productionPerSecond: 650_000, costGrowth: 1.245, tags: ["END", "RISK"], assetId: "/clicker/producer/producer_aurora_reactor.webp" },
+  // Late producers: they only exist from their worldline on, each a step above the last.
+  { id: "star_anvil", name: "Star Anvil", description: "붙잡은 별 위에서 코어를 두드려 벼리는 모루.", unlockAt: 100_000_000_000, baseCost: 3_000_000_000_000, productionPerSecond: 3_500_000, costGrowth: 1.25, tags: ["END"], requiresWorldLine: 6, assetId: "/clicker/producer/producer_star_anvil.webp" },
+  { id: "worldline_loom", name: "Worldline Loom", description: "지나온 세계선들을 실로 뽑아 한 장으로 짜는 베틀.", unlockAt: 600_000_000_000, baseCost: 20_000_000_000_000, productionPerSecond: 20_000_000, costGrowth: 1.255, tags: ["END"], requiresWorldLine: 7, assetId: "/clicker/producer/producer_worldline_loom.webp" },
+  { id: "heart_engine", name: "Heart Engine", description: "코어 심장의 박동을 그대로 옮겨 심은 기관.", unlockAt: 4_000_000_000_000, baseCost: 150_000_000_000_000, productionPerSecond: 120_000_000, costGrowth: 1.26, tags: ["END"], requiresWorldLine: 8, assetId: "/clicker/producer/producer_heart_engine.webp" },
 ]
 
 /** Two ×2 tiers per producer (skipping ids the base catalog already upgrades once). */
@@ -39,6 +43,7 @@ export function producerUpgradeTiers(producers: ProducerDef[], existing: Upgrade
         productionMultiplier: 2,
         producerId: p.id,
         unlockProducerId: p.id,
+        ...(p.requiresWorldLine ? { assetId: p.assetId } : {}),
       })
     }
     out.push({
@@ -50,6 +55,7 @@ export function producerUpgradeTiers(producers: ProducerDef[], existing: Upgrade
       productionMultiplier: 2,
       producerId: p.id,
       unlockProducerId: p.id,
+      ...(p.requiresWorldLine ? { assetId: p.assetId } : {}),
     })
   }
   return out

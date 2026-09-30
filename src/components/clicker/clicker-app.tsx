@@ -29,10 +29,11 @@ import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
 import { ClickerBossScene } from "@/components/clicker/clicker-boss-scene"
 import { ClickerForge } from "@/components/clicker/clicker-forge"
+import { ClickerRelicVault } from "@/components/clicker/clicker-relic-vault"
 import { ARMORS, LAIR_BOSSES, WEAPONS, gearOf, shieldRemainingMs } from "@/domain/services/clicker-lair"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
 import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
-import { INSTABILITY_WARNING, drillCooldownMs, isRegionUnlocked, monsterAlive } from "@/domain/services/clicker-engine"
+import { INSTABILITY_WARNING, drillCooldownMs, isRegionUnlocked, monsterAlive, relicVaultOpen } from "@/domain/services/clicker-engine"
 import type { SfxName } from "@/components/clicker/clicker-sfx"
 import { CLICKER_ADMIN_REMEMBER_KEY, CLICKER_PRELAUNCH, isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
@@ -84,7 +85,7 @@ function ClickerSkillHotkeys({ onSlot }: { onSlot: (slot: number) => void }) {
 /** Strike spectacle by worlds opened (0–5); FEVER adds one more step. */
 const FX_TIER_BY_WORLDS: MineFxTier[] = [0, 1, 2, 2, 3, 3]
 
-type TabId = "producers" | "upgrades" | "skills" | "shop" | "forge" | "world" | "achievements" | "transcendence"
+type TabId = "producers" | "upgrades" | "skills" | "shop" | "forge" | "relics" | "world" | "achievements" | "transcendence"
 
 function CountUpNumber({ value }: { value: number }) {
   const [shown, setShown] = useState(value)
@@ -328,6 +329,7 @@ export function ClickerApp() {
   )
 
   const playSurface = game.save?.settings.playSurface ?? "hub"
+  const relicsOpen = game.save ? relicVaultOpen(game.save.metaState) : false
   const prevSurface = useRef(playSurface)
   useEffect(() => {
     if (!game.save?.settings.gameStarted) return
@@ -819,6 +821,7 @@ export function ClickerApp() {
       ["skills", "SKILLS", "스킬"],
       ["shop", "SHOP", "상점"],
       ["forge", "FORGE", "대장간"],
+      ...(relicsOpen ? ([["relics", "RELICS", "유물"]] as const) : []),
       ["world", "WORLD", "지역"],
       ["achievements", "RECORDS", "업적"],
       ...(showTranscendenceTab ? ([["transcendence", "TRANSCENDENCE", "초월"]] as const) : []),
@@ -1617,6 +1620,7 @@ export function ClickerApp() {
 
         {tab === "shop" ? <ClickerShopPanel {...panelProps} /> : null}
         {tab === "forge" && forgeUnlocked ? <ClickerForge game={game} run={run} /> : null}
+        {tab === "relics" && relicsOpen ? <ClickerRelicVault game={game} run={run} meta={game.save.metaState} /> : null}
 
 
         {tab === "world" ? <ClickerWorldPanel game={game} run={run} onBack={() => selectTab("producers")} /> : null}

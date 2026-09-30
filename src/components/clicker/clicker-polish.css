@@ -2012,3 +2012,7 @@
 [data-clicker] .clicker-forge-item figcaption span { opacity: 0.75; }
 [data-clicker] .clicker-forge-item.is-next figcaption b { color: #ffe08a; }
 [data-clicker] .clicker-forge-arrow { flex: none; opacity: 0.6; }
+
+/* Relic Vault: forge-style cards with a line of lore. */
+[data-clicker] .clicker-relic-lore { margin: 6px 0 0; font-size: 12px; color: #8fb3c2; font-style: italic; word-break: keep-all; }
+[data-clicker] .clicker-relic.is-maxed { border-color: rgba(255, 200, 90, 0.55); box-shadow: 0 0 18px rgba(255, 190, 70, 0.18); }

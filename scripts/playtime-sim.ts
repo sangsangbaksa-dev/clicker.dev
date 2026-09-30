@@ -38,6 +38,9 @@ import {
   strikeStats,
   syncClickerMineSession,
   travelToRegion,
+  accrueRegionCurrency,
+  buyRelic,
+  relicCost,
   homeRegionId,
   returnHomeRegion,
   activateRegion,
@@ -148,6 +151,16 @@ function shop(): void {
       const score = consider(scaledCost(run, n.cost), next) * (opens ? 0.6 : 1)
       options.push({ cost: scaledCost(run, n.cost), score, apply: () => ({ ...save, runState: buySkillNode(run, config, n.id).run }) })
     }
+    // Relics cost world currency only: level the cheapest one whenever the wallet allows.
+    const relic = [...config.relics]
+      .filter((r) => !buyRelic(save.runState, save.metaState, config, r.id).error)
+      .sort((a, b) => relicCost(save.metaState, config, a) - relicCost(save.metaState, config, b))[0]
+    if (relic) {
+      const r = buyRelic(save.runState, save.metaState, config, relic.id)
+      save = { ...save, runState: r.run, metaState: r.meta }
+      relicBuys++
+      continue
+    }
     options.sort((a, b) => a.score - b.score || a.cost - b.cost)
     const pick = options.find((o) => o.score < 3600)
     if (!pick || pick.cost > run.coreEnergy) return
@@ -165,7 +178,7 @@ function step(dt: number): void {
   sources.tickExtra = (sources.tickExtra ?? 0) + Math.max(0, tickGain - prodNow * dt)
   if (process.env.TRACE && t.run.lifetimeCoreEnergy > save.runState.lifetimeCoreEnergy * 3 && t.run.lifetimeCoreEnergy > 1e6)
     console.log(`  TICK jump ${save.runState.lifetimeCoreEnergy.toExponential(2)} → ${t.run.lifetimeCoreEnergy.toExponential(2)} fever=${t.run.fever.phase} boosts=${JSON.stringify(t.run.eventBoosts.map((b) => b.id + b.multiplier))} inst=${t.run.instability}`)
-  save = { ...save, runState: t.run, metaState: t.meta }
+  save = { ...save, runState: accrueRegionCurrency(save.runState, t.run, config), metaState: t.meta }
   // Mirrors the application's auto-start of a full FEVER gauge.
   if (save.runState.fever.phase === "IDLE" && save.runState.fever.gauge >= config.feverGaugeMax) {
     const f = startFever(save.runState, save.metaState, config, "GAUGE", null)
@@ -174,6 +187,7 @@ function step(dt: number): void {
 }
 
 // Lines print as they happen, so a run cut short still reports how far it got.
+let relicBuys = 0
 const runLog = { push: (line: string) => console.log(line) }
 const sources: Record<string, number> = {}
 const credit = (key: string, before: number) => {
@@ -197,7 +211,7 @@ function bestRegion(): void {
     const used = activateRegion(save.runState, save.metaState, config, region.id, now)
     if (!used.error) sources[`act:${region.id}`] = (sources[`act:${region.id}`] ?? 0) + used.run.lifetimeCoreEnergy - before
     if (process.env.TRACE && !used.error) console.log(`  activity ${region.id} +${(used.run.lifetimeCoreEnergy - before).toExponential(2)}`)
-    if (!used.error) save = { ...save, runState: used.run, metaState: used.meta }
+    if (!used.error) save = { ...save, runState: accrueRegionCurrency(save.runState, used.run, config), metaState: used.meta }
   }
   // Field challenges: played at CHALLENGE_SCORE, costing the countdown plus play time.
   for (const region of config.regions) {
@@ -212,7 +226,7 @@ function bestRegion(): void {
     const before = save.runState.lifetimeCoreEnergy
     const played = claimRegionChallenge(save.runState, save.metaState, config, region.id, CHALLENGE_SCORE, now)
     if (played.error) continue
-    save = { ...save, runState: played.run, metaState: played.meta }
+    save = { ...save, runState: accrueRegionCurrency(save.runState, played.run, config), metaState: played.meta }
     sources[`challenge:${region.id}`] = (sources[`challenge:${region.id}`] ?? 0) + save.runState.lifetimeCoreEnergy - before
   }
   // The mine only exists at home: walk back before the next session.
@@ -290,7 +304,7 @@ while (elapsed() < MAX_HOURS * 3600) {
     }
     if (process.env.LEVELS) runLog.push("   levels " + Object.entries(save.runState.producerLevels).filter(([, v]) => v > 0).map(([k, v]) => `${k}:${v}`).join(" ") + " · regions " + config.regions.filter((r) => isRegionUnlocked(save.runState, config, r.id)).length)
     runLog.push(
-      `worldline ${save.metaState.rebirthCount + 1}: ${fmt(elapsed() - runStart)} (goal ${need.toExponential(0)}, skills ${skills}/${config.skillNodes.length}) → ${buff.id}`,
+      `worldline ${save.metaState.rebirthCount + 1}: ${fmt(elapsed() - runStart)} (goal ${need.toExponential(0)}, skills ${skills}/${config.skillNodes.length}, relic lv ${Object.values(save.metaState.relicLevels).reduce((a, b) => a + b, 0)}) → ${buff.id}`,
     )
     save = { ...save, runState: r.run, metaState: r.meta }
     runStart = elapsed()

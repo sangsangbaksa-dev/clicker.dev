@@ -3,6 +3,7 @@ import { CLICKER_REGIONS } from "./regions.ts"
 import { MineArt } from "./mine-assets.ts"
 import { CLICKER_ACHIEVEMENTS } from "./achievements.ts"
 import { finalizeCatalog } from "./catalog-extra.ts"
+import { CLICKER_RELICS } from "./relics.ts"
 
 export const CLICKER_ASSETS = {
   bgLoading: "/clicker/bg/loading_core_awakening.webp",
@@ -1512,7 +1513,7 @@ const baseConfig: GameConfig = {
     { id: "network_hum", title: "맥동의 확장", line: "중계 복도가 응답합니다. 지역마다 다른 활동과 도전이 기다립니다.", kind: "ENERGY", target: 250000, nextId: "deep_pulse" },
     { id: "deep_pulse", title: "심층 공명", line: "더 깊은 곳에서 무언가가 코어를 막고 있습니다. 힘을 모으세요.", kind: "ENERGY", target: 2000000, nextId: "rebirth_ready" },
     { id: "rebirth_ready", title: "첫 환생", line: "이 세계선은 한계에 닿았습니다. 환생하면 더 강한 규칙으로 다시 시작합니다.", kind: "REBIRTH", target: 1, nextId: "rebirth_all" },
-    { id: "rebirth_all", title: "다섯 세계선", line: "다섯 개의 세계선을 모두 걸어야 코어 심장부의 문이 열립니다.", kind: "REBIRTH", target: 5, nextId: "heart_gate" },
+    { id: "rebirth_all", title: "여덟 세계선", line: "여덟 개의 세계선을 모두 걸어야 코어 심장부의 문이 열립니다.", kind: "REBIRTH", target: 8, nextId: "heart_gate" },
     { id: "heart_gate", title: "코어 심장부", line: "문이 열립니다. 코어를 막고 있던 수호자를 제한 시간 안에 쓰러뜨리세요.", kind: "ENERGY", target: 1e22, nextId: null },
   ],
   transcendence: [
@@ -1568,7 +1569,39 @@ const baseConfig: GameConfig = {
       startingEnergy: 20_000,
       assetId: "/clicker/buff/buff_utility.webp",
     },
+    // Late worldlines 6–8: walked after the first five, before the Core Heart opens.
+    {
+      id: "hunt_line",
+      name: "Predator Accord",
+      description: "채굴 ×3 · 치명타 배율 ×2 · 드론 +4회/초",
+      identity: "사냥 세계선",
+      clickMultiplier: 3,
+      criticalMultiplier: 2,
+      droneStrikesPerSecond: 4,
+      assetId: "/clicker/buff/buff_hunt.webp",
+    },
+    {
+      id: "forge_line",
+      name: "Molten Covenant",
+      description: "생산 ×4 · FEVER 강도 +30%",
+      identity: "단조 세계선",
+      productionMultiplier: 4,
+      feverIntensity: 1.3,
+      assetId: "/clicker/buff/buff_forge.webp",
+    },
+    {
+      id: "memory_line",
+      name: "Echo Archive",
+      description: "채굴·생산 ×3 · 잔향 +10% · 번개 +5%",
+      identity: "기억 세계선",
+      clickMultiplier: 3,
+      productionMultiplier: 3,
+      echoChanceAdd: 0.1,
+      lightningChanceAdd: 0.05,
+      assetId: "/clicker/buff/buff_memory.webp",
+    },
   ],
+  relics: CLICKER_RELICS,
   regions: CLICKER_REGIONS,
   achievements: CLICKER_ACHIEVEMENTS,
   synergies: [
