@@ -39,7 +39,13 @@ function clickerApplicationFiles(): string[] {
   const root = readdirSync(appDir)
     .filter((n) => n.startsWith("clicker") && (n.endsWith(".ts") || n.endsWith(".tsx")))
     .map((n) => join(appDir, n))
-    .filter((f) => !f.endsWith(".test.ts") && !f.endsWith("clicker-ui.ts") && !f.endsWith("clicker-display.ts"))
+    .filter(
+      (f) =>
+        !f.endsWith(".test.ts") &&
+        !f.endsWith("clicker-ui.ts") &&
+        !f.endsWith("clicker-display.ts") &&
+        !f.endsWith("clicker-bgm-client-bind.ts"),
+    )
   return [...ports, ...root]
 }
 

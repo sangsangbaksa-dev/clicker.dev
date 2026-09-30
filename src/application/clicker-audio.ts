@@ -1,6 +1,9 @@
 import type { ClickerSettings } from "@/domain/entities/clicker"
 import { DEFAULT_MUSIC_VOLUME } from "@/domain/services/clicker-engine"
 import { resolveBgmScene, type BgmOverlayState, type BgmScene } from "@/domain/services/clicker-bgm"
+
+export type { BgmScene } from "@/domain/services/clicker-bgm"
+export { worldBgmTrack as worldBgm } from "@/domain/services/clicker-bgm"
 import type { CoreVisual } from "@/domain/services/clicker-view"
 
 export function clickerBgmScene(overlay: BgmOverlayState): BgmScene {
