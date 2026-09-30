@@ -1,5 +1,7 @@
 "use client"
 
+import "@/infrastructure/persistence/clicker-client-bind"
+
 import {
   useCallback,
   useEffect,
@@ -9,7 +11,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { CLICKER_ASSETS, clickerConfig } from "@/data/clicker/catalog"
-import { formatNumber } from "@/domain/services/clicker-format"
+import { formatNumber } from "@/application/clicker-display"
 import { useClicker } from "@/hooks/use-clicker"
 import { useClickerBgm, worldBgm } from "@/hooks/use-clicker-bgm"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"

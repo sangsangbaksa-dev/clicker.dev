@@ -47,20 +47,19 @@ import {
   clickerStrikeLair,
   clickerForge,
   allowMineStrike,
+  clearClickerStoredSave,
   loadClickerGame,
   persistClickerGame,
   resetClickerPersistence,
 } from "@/application/clicker"
+import {
+  clickerCanWriteSave,
+  clickerClaimLease,
+  clickerCreateTabId,
+  clickerIsLeaseTakenByOther,
+} from "@/application/clicker-tab-session"
 import { createInitialSave } from "@/domain/services/clicker-engine"
 import { playSfx, setSfxMuted } from "@/components/clicker/clicker-sfx"
-import { clearClickerRaw } from "@/infrastructure/persistence/clicker-save"
-import {
-  browserLeaseStorage,
-  canWriteClickerSave,
-  claimClickerLease,
-  createClickerTabId,
-  isLeaseTakenByOther,
-} from "@/infrastructure/persistence/clicker-tab-lock"
 import type { ClickerSettings, CrisisChoice, RegionIntroDef, SaveData } from "@/domain/entities/clicker"
 import { productionSnapshot } from "@/domain/services/clicker-engine"
 import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
@@ -122,7 +121,7 @@ export function useClicker() {
   const persistNow = useCallback((next?: SaveData, silent = false) => {
     const target = next ?? saveRef.current
     if (!target || blockedRef.current) return
-    if (!canWriteClickerSave(browserLeaseStorage(), tabIdRef.current, now())) {
+    if (!clickerCanWriteSave(tabIdRef.current, now())) {
       markBlocked()
       return
     }
@@ -148,8 +147,8 @@ export function useClicker() {
   /** Claim the save for this tab, then load whatever the last writer stored. */
   const loadAsOwner = useCallback(() => {
     const t = now()
-    if (!tabIdRef.current) tabIdRef.current = createClickerTabId()
-    claimClickerLease(browserLeaseStorage(), tabIdRef.current, t)
+    if (!tabIdRef.current) tabIdRef.current = clickerCreateTabId()
+    clickerClaimLease(tabIdRef.current, t)
     blockedRef.current = false
     setOtherTabActive(false)
     const loaded = loadClickerGame(t)
@@ -166,7 +165,7 @@ export function useClicker() {
 
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
-      if (isLeaseTakenByOther(event.key, event.newValue, tabIdRef.current)) markBlocked()
+      if (clickerIsLeaseTakenByOther(event.key, event.newValue, tabIdRef.current)) markBlocked()
     }
     window.addEventListener("storage", onStorage)
     return () => window.removeEventListener("storage", onStorage)
@@ -537,7 +536,7 @@ export function useClicker() {
 
   const adminReset = useCallback(() => {
     if (blockedRef.current) return
-    clearClickerRaw()
+    clearClickerStoredSave()
     resetClickerPersistence()
     const fresh = createInitialSave(now(), clickerGameConfig)
     commit(fresh)
