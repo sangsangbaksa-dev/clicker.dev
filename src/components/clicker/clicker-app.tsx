@@ -27,6 +27,7 @@ import { collectImagePaths, useDecodedSrc, useImagePreload } from "@/components/
 import { ClickerImageZoom } from "@/components/clicker/clicker-image-zoom"
 import { ClickerPurchaseFx } from "@/components/clicker/clicker-purchase-fx"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
+import { ClickerLoading } from "@/components/clicker/clicker-loading"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
 import { ClickerBossScene } from "@/components/clicker/clicker-boss-scene"
 import { ClickerForge } from "@/components/clicker/clicker-forge"
@@ -708,16 +709,7 @@ export function ClickerApp() {
   }
 
   if (!game.save || !game.hud) {
-    return (
-      <div data-clicker className="clicker-shell clicker-loading" role="status" aria-busy="true" aria-live="polite">
-        <div
-          className="clicker-loading-bg"
-          style={{ backgroundImage: `url(${CLICKER_ASSETS.bgLoading})` }}
-          aria-hidden
-        />
-        <p className="clicker-loading-text">CORE를 깨우는 중…</p>
-      </div>
-    )
+    return <ClickerLoading bgSrc={CLICKER_ASSETS.bgLoading} />
   }
 
   if (game.isCompleted) {
