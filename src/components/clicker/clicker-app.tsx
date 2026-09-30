@@ -1032,6 +1032,18 @@ export function ClickerApp() {
           src={stageBg}
         />
         <div className="clicker-vignette" />
+        {worldStill && !worldEngaged ? (
+          <img
+            key={run.currentRegionId}
+            className="clicker-world-particles"
+            src={`/clicker/region/${run.currentRegionId}_particles.webp`}
+            alt=""
+            aria-hidden
+            onError={(e) => {
+              e.currentTarget.style.display = "none"
+            }}
+          />
+        ) : null}
         {!inMine && worldEngaged && monsterDef && !regionDef?.boss && LAIR_BOSSES[monsterDef.kind] ? (
           <ClickerBossScene
             key={run.currentRegionId}
