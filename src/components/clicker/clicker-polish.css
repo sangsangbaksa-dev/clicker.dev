@@ -1994,6 +1994,58 @@
   box-shadow: 0 0 8px rgb(255 211 107 / 0.7);
 }
 
+/* ---------- Interaction polish (hover / active / focus / disabled) ---------- */
+[data-clicker] .clicker-primary:not(:disabled):active {
+  transform: translateY(1px);
+  filter: brightness(0.96);
+}
+
+[data-clicker] .clicker-ghost:not(:disabled):active,
+[data-clicker] .clicker-hub-dock-btn:active {
+  transform: translateY(1px);
+}
+
+[data-clicker] .clicker-hub-dock-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--core-bright) 88%, white);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--core) 32%, transparent);
+}
+
+[data-clicker] .clicker-settings-toggle:focus-visible,
+[data-clicker] .clicker-drawer-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--core-bright) 88%, white);
+  outline-offset: 2px;
+}
+
+[data-clicker] :is(.clicker-primary, .clicker-ghost, .clicker-buy button):disabled {
+  color: color-mix(in srgb, var(--muted) 92%, var(--text-2));
+  cursor: not-allowed;
+}
+
+[data-clicker] .clicker-tabs button:active:not([data-active="true"]) {
+  background: rgb(255 255 255 / 0.07);
+}
+
+[data-clicker] .clicker-card,
+[data-clicker] .clicker-hub-dock-btn,
+[data-clicker] .clicker-bar > i {
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-clicker] .clicker-card,
+  [data-clicker] .clicker-hub-dock-btn,
+  [data-clicker] .clicker-bar > i {
+    will-change: auto;
+  }
+
+  [data-clicker] .clicker-primary:not(:disabled):active,
+  [data-clicker] .clicker-ghost:not(:disabled):active,
+  [data-clicker] .clicker-hub-dock-btn:active {
+    transform: none;
+  }
+}
+
 /* Forge slots: current item → next item, each with its painted icon. */
 [data-clicker] .clicker-forge-panel .clicker-forge-slots { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 [data-clicker] .clicker-forge-label small { margin-left: 4px; font-weight: 600; opacity: 0.6; }
