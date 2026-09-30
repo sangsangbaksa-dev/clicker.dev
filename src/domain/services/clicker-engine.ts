@@ -24,7 +24,10 @@ import {
 
 /** Base timed-mine length before skill-tree extensions. Balance PROVISIONAL. */
 export const MINE_SESSION_BASE_MS = 10_000
-export const MINE_REENTER_COOLDOWN_MS = 30_000
+export const MINE_REENTER_COOLDOWN_MS = 10_000
+/** The re-entry wait the economy was tuned on; mine yields scale so CORE per real minute stays as it was. */
+export const MINE_PACE_REFERENCE_COOLDOWN_MS = 30_000
+const REENTER_MIN_COOLDOWN_MS = 5_000
 /** Strikes per second allowed in the mine (taps + assist drill together). */
 export const MINE_MAX_CPS = 12
 
@@ -240,10 +243,29 @@ export function enterClickerMine(
   }
 }
 
-/** Mine re-entry and core-drilling cooldown: 30s base, minus owned `cooldownReduceSec`, never under 5s. */
+function cooldownCutMs(run: RunState, config?: GameConfig): number {
+  return config ? ownedSkills(run, config).reduce((s, n) => s + (n.cooldownReduceSec ?? 0), 0) * 1000 : 0
+}
+
+/** Mine re-entry cooldown: 10s base, minus owned `cooldownReduceSec`, never under 5s. */
 export function reentryCooldownMs(run: RunState, config?: GameConfig): number {
-  const cut = config ? ownedSkills(run, config).reduce((s, n) => s + (n.cooldownReduceSec ?? 0), 0) : 0
-  return Math.max(5_000, MINE_REENTER_COOLDOWN_MS - cut * 1000)
+  return Math.max(REENTER_MIN_COOLDOWN_MS, MINE_REENTER_COOLDOWN_MS - cooldownCutMs(run, config))
+}
+
+/** The old 30s-base wait (same cuts); the drill still paces on it and mine yields are measured against it. */
+function referenceCooldownMs(run: RunState, config?: GameConfig): number {
+  return Math.max(REENTER_MIN_COOLDOWN_MS, MINE_PACE_REFERENCE_COOLDOWN_MS - cooldownCutMs(run, config))
+}
+
+/**
+ * Share of a mine session's CORE that is paid out. With the shorter wait a player fits in more
+ * sessions per minute, so each one pays (session + wait) / (session + reference wait): the CORE
+ * earned per real minute of play, and so the time to each goal, stays as it was.
+ */
+export function mineYieldMultiplier(run: RunState, config: GameConfig): number {
+  if (run.mineSessionEndsAt <= 0) return 1
+  const session = run.mineSessionDurationMs > 0 ? run.mineSessionDurationMs : mineSessionDurationMs(run, config)
+  return (session + reentryCooldownMs(run, config)) / (session + referenceCooldownMs(run, config))
 }
 
 /** Leave mine → hub; starts re-enter cooldown. */
@@ -758,6 +780,7 @@ export function processClick(
   if (lightning) energy += hit * strikes.lightningMultiplier * (1 + 0.5 * strikes.lightningChains)
   const quake = strikes.quakeMultiplier > 0 && (run.clickCount + 1) % strikes.quakeInterval === 0
   if (quake) energy += hit * strikes.quakeMultiplier
+  energy *= mineYieldMultiplier(run, config)
 
   const feverState = { ...run.fever }
   if (feverRunning(run)) {
@@ -903,7 +926,7 @@ function tryFinisher(run: RunState, meta: MetaState, config: GameConfig, now: nu
   const rewardMult =
     ownedUpgrades(run, config).reduce((s, u) => s * (u.finisherReward ?? 1), 1) *
     ownedSkills(run, config).reduce((s, n) => s * (n.finisherReward ?? 1), 1)
-  const burst = snapshot.perSecond * 3 * rewardMult + run.coreEnergy * 0.02
+  const burst = (snapshot.perSecond * 3 * rewardMult + run.coreEnergy * 0.02) * mineYieldMultiplier(run, config)
   return {
     ...run,
     coreEnergy: run.coreEnergy + burst,
@@ -1663,7 +1686,7 @@ export function drillTaps(run: RunState, config: GameConfig): number {
 /** Cooldown after a bore: the shared re-entry cooldown minus drill coolant upgrades. */
 export function drillCooldownMs(run: RunState, config: GameConfig): number {
   const cut = ownedUpgradeSum(run, config, "drillCooldownReduceSec") * 1000
-  return Math.max(DRILL_MIN_COOLDOWN_MS, reentryCooldownMs(run, config) - cut)
+  return Math.max(DRILL_MIN_COOLDOWN_MS, referenceCooldownMs(run, config) - cut)
 }
 
 /**

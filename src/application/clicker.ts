@@ -42,6 +42,7 @@ import {
   type Rng,
   accrueRegionCurrency,
   scaledCost,
+  mineYieldMultiplier,
 } from "@/domain/services/clicker-engine"
 import {
   awardAchievements,
@@ -326,7 +327,7 @@ export function clickerAdminUnlockRegion(save: SaveData, regionId: string): Save
 /** Golden vein hit: rolls surge / jackpot / laser rush from current production. */
 export function clickerClaimVein(save: SaveData, now: number): { save: SaveData; outcome: VeinOutcome } {
   const perSecond = productionSnapshot(save.runState, save.metaState, config, now).perSecond
-  const next = claimGoldenVein(save.runState, save.metaState, perSecond, now, rng)
+  const next = claimGoldenVein(save.runState, save.metaState, perSecond, now, rng, mineYieldMultiplier(save.runState, config))
   return { save: withAchievements({ ...save, runState: next.run, metaState: next.meta }), outcome: next.outcome }
 }
 

@@ -58,11 +58,13 @@ export function claimGoldenVein(
   perSecond: number,
   now: number,
   rng: Rng,
+  /** Mine yield share (see `mineYieldMultiplier`); scales the jackpot. */
+  yieldScale = 1,
 ): { run: RunState; meta: MetaState; outcome: VeinOutcome } {
   const kind = rollVeinKind(rng)
   const stats = { ...meta.statistics, veins: meta.statistics.veins + 1 }
   if (kind === "jackpot") {
-    const energy = jackpotEnergy(run.coreEnergy, perSecond)
+    const energy = jackpotEnergy(run.coreEnergy, perSecond) * yieldScale
     const granted = grantBonusEnergy(run, { ...meta, statistics: stats }, energy)
     return { ...granted, outcome: { kind, energy } }
   }

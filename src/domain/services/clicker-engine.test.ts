@@ -39,6 +39,8 @@ import {
   startFever,
   syncClickerMineSession,
   activateSkill,
+  mineYieldMultiplier,
+  reentryCooldownMs,
   buffMultiplier,
   markRegionVisited,
   claimRegionChallenge,
@@ -750,4 +752,25 @@ test("instability 100: the core collapses on its own — half the CORE is lost, 
   const stuck = eng.processTick({ ...run, instability: 50, crisisActive: true }, meta, config, now + 100).run
   assert.equal(stuck.crisisActive, false)
   assert.equal(stuck.instability, eng.CRISIS_RESET_INSTABILITY)
+})
+
+test("mine re-entry waits 10s and pays less per session so CORE per minute is unchanged", () => {
+  const now = 7_000_000
+  const meta = createInitialMeta()
+  const run = createInitialRun(now, meta, config)
+  assert.equal(reentryCooldownMs(run, config), 10_000)
+  const session = mineSessionDurationMs(run, config)
+  const inMine = { ...run, mineSessionEndsAt: now + session, mineSessionDurationMs: session }
+  const share = mineYieldMultiplier(inMine, config)
+  assert.equal(share, 0.5)
+  assert.equal(mineYieldMultiplier(run, config), 1, "outside a session nothing is scaled")
+  // A full cycle of the old pace (10s mining + 30s wait) and of the new one (10s + 10s)
+  // earn the same CORE per second of real time.
+  const perClick = 100
+  const oldPerSec = perClick / (session + 30_000)
+  const newPerSec = (perClick * share) / (session + reentryCooldownMs(run, config))
+  assert.ok(Math.abs(oldPerSec - newPerSec) < 1e-12)
+  const hit = processClick(inMine, meta, config, now + 100, () => 0.99).result.energyGained
+  const full = processClick({ ...inMine, mineSessionEndsAt: 0 }, meta, config, now + 100, () => 0.99).result.energyGained
+  assert.ok(Math.abs(hit - full * share) < 1e-9)
 })
