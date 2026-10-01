@@ -660,6 +660,7 @@ export function useClicker() {
     if (!result.error && next.settings.playSurface === "mine") {
       if (!mineStartRef.current) mineStartRef.current = clickerMineSessionStart(next, t)
       setMineSummary(null)
+      playSfx("enterMine")
     }
     commit(next)
     persistNow(next)
@@ -748,6 +749,7 @@ export function useClicker() {
   const exitMine = useCallback(() => {
     if (!saveRef.current) return
     const before = saveRef.current
+    if (before.settings.playSurface === "mine") playSfx("exitMine")
     const exited = clickerExitMine(before, now())
     const next = before.settings.playSurface === "mine" ? finishMine(before, exited) : exited
     commit(next)

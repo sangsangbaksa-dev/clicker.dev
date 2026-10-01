@@ -2,6 +2,7 @@
 
 import {
   activeSkillSampleUrl,
+  REBIRTH_MOTION_SAMPLE,
   rebirthStampSampleUrl,
   SFX_PRELOAD_URLS,
   SFX_V2,
@@ -52,6 +53,12 @@ const SAMPLE_BY_CUE: Partial<Record<SfxName, string>> = {
   quake: SFX_V3.skillSeismicWave,
   drill: SFX_V3.skillOverdrive,
   lightning: SFX_V3.skillPulseBurst,
+  enterMine: SFX_V3.enterMine,
+  exitMine: SFX_V3.exitMine,
+  rebirthOpen: SFX_V3.rebirthOpen,
+  transcend: SFX_V3.transcendOpen,
+  sessionEnd: SFX_V3.sessionTimerEnd,
+  sessionTimerEnd: SFX_V3.sessionTimerEnd,
 }
 
 const sampleBuffers = new Map<string, AudioBuffer>()
@@ -499,6 +506,22 @@ const CUES = {
     tone(c, "square", 1320, 1320, 0.028, t, 0.06, { attack: 0.001 })
     tone(c, "sine", 660, 660, 0.03, t, 0.1)
   },
+  enterMine(c: AudioContext, t: number) {
+    tone(c, "sine", 120, 60, 0.06, t, 0.25)
+    noise(c, "bandpass", 900, 1, 0.04, t, 0.3, { sweepTo: 400 })
+  },
+  exitMine(c: AudioContext, t: number) {
+    tone(c, "triangle", 880, 880, 0.04, t, 0.12)
+    tone(c, "triangle", 660, 660, 0.04, t + 0.1, 0.15)
+  },
+  rebirthOpen(c: AudioContext, t: number) {
+    tone(c, "sine", 440, 440, 0.04, t, 0.2)
+    pluck(c, 1320, 0.03, t + 0.05, 0.1)
+  },
+  sessionTimerEnd(c: AudioContext, t: number) {
+    tone(c, "square", 1320, 1320, 0.028, t, 0.06)
+    tone(c, "triangle", 587, 587, 0.045, t + 0.12, 0.25)
+  },
   /** Mine session over. */
   sessionEnd(c: AudioContext, t: number) {
     const e = echo(c, 0.15, 0.3, 0.3)
@@ -711,6 +734,8 @@ const STAMP_ROOT: Record<string, number> = {
 /** Rebirth beat cues, keyed by the placeholder names in `REBIRTH_AUDIO_CUES`. */
 export function playRebirthCue(name: string) {
   if (muted) return
+  const motion = REBIRTH_MOTION_SAMPLE[name]
+  if (motion && playSampleUrl(motion, `rebirth:${name}`)) return
   if (name.startsWith("sfx_rebirth_stamp_")) {
     const key = name.slice("sfx_rebirth_stamp_".length)
     const stamp = rebirthStampSampleUrl(key)

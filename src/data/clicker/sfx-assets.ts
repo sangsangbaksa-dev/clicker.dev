@@ -31,6 +31,14 @@ export const SFX_V3 = {
   potionFever: `${CLICKER_SFX_AUDIO_BASE}/sfx_potion_fever_v3.mp3`,
   yieldBig: `${CLICKER_SFX_AUDIO_BASE}/sfx_yield_big_v3.mp3`,
   oreHoldRelease: `${CLICKER_SFX_AUDIO_BASE}/sfx_ore_hold_release_v3.mp3`,
+  enterMine: `${CLICKER_SFX_AUDIO_BASE}/sfx_enter_mine_v3.mp3`,
+  exitMine: `${CLICKER_SFX_AUDIO_BASE}/sfx_exit_mine_v3.mp3`,
+  rebirthOpen: `${CLICKER_SFX_AUDIO_BASE}/sfx_rebirth_open_v3.mp3`,
+  rebirthRebuildRise: `${CLICKER_SFX_AUDIO_BASE}/sfx_rebirth_rebuild_rise_v3.mp3`,
+  rebirthSettleChime: `${CLICKER_SFX_AUDIO_BASE}/sfx_rebirth_settle_chime_v3.mp3`,
+  rebirthVoidTear: `${CLICKER_SFX_AUDIO_BASE}/sfx_rebirth_void_tear_v3.mp3`,
+  transcendOpen: `${CLICKER_SFX_AUDIO_BASE}/sfx_transcend_open_v3.mp3`,
+  sessionTimerEnd: `${CLICKER_SFX_AUDIO_BASE}/sfx_session_timer_end_v3.mp3`,
 } as const
 
 /** Legacy handoff basename → active v2 URL (v1 files may remain under public/clicker/audio). */
@@ -59,6 +67,21 @@ export const SFX_LEGACY_TO_V3_URL: Record<string, string> = {
   sfx_potion_fever: SFX_V3.potionFever,
   sfx_yield_big: SFX_V3.yieldBig,
   sfx_ore_hold_release: SFX_V3.oreHoldRelease,
+  sfx_enter_mine: SFX_V3.enterMine,
+  sfx_exit_mine: SFX_V3.exitMine,
+  sfx_rebirth_open: SFX_V3.rebirthOpen,
+  sfx_rebirth_rebuild_rise: SFX_V3.rebirthRebuildRise,
+  sfx_rebirth_settle_chime: SFX_V3.rebirthSettleChime,
+  sfx_rebirth_void_tear: SFX_V3.rebirthVoidTear,
+  sfx_transcend_open: SFX_V3.transcendOpen,
+  sfx_session_timer_end: SFX_V3.sessionTimerEnd,
+}
+
+/** Rebirth motion placeholder cue name → v3 sample URL. */
+export const REBIRTH_MOTION_SAMPLE: Record<string, string> = {
+  sfx_rebirth_void_tear: SFX_V3.rebirthVoidTear,
+  sfx_rebirth_rebuild_rise: SFX_V3.rebirthRebuildRise,
+  sfx_rebirth_settle_chime: SFX_V3.rebirthSettleChime,
 }
 
 const STAMP_V2: Record<string, string> = {
