@@ -41,6 +41,14 @@ export const SFX_V3 = {
   sessionTimerEnd: `${CLICKER_SFX_AUDIO_BASE}/sfx_session_timer_end_v3.mp3`,
 } as const
 
+/** Final boss (core guardian) SFX v1 (mp3). */
+export const SFX_BOSS_V1 = {
+  appear: `${CLICKER_SFX_AUDIO_BASE}/sfx_boss_appear_v1.mp3`,
+  hit: `${CLICKER_SFX_AUDIO_BASE}/sfx_boss_hit_v1.mp3`,
+  phaseChange: `${CLICKER_SFX_AUDIO_BASE}/sfx_boss_phase_change_v1.mp3`,
+  defeat: `${CLICKER_SFX_AUDIO_BASE}/sfx_boss_defeat_v1.mp3`,
+} as const
+
 /** Legacy handoff basename → active v2 URL (v1 files may remain under public/clicker/audio). */
 export const SFX_LEGACY_TO_V2_URL: Record<string, string> = {
   sfx_ui_tap: SFX_V2.uiTap,
@@ -75,6 +83,10 @@ export const SFX_LEGACY_TO_V3_URL: Record<string, string> = {
   sfx_rebirth_void_tear: SFX_V3.rebirthVoidTear,
   sfx_transcend_open: SFX_V3.transcendOpen,
   sfx_session_timer_end: SFX_V3.sessionTimerEnd,
+  sfx_boss_appear: SFX_BOSS_V1.appear,
+  sfx_boss_hit: SFX_BOSS_V1.hit,
+  sfx_boss_phase_change: SFX_BOSS_V1.phaseChange,
+  sfx_boss_defeat: SFX_BOSS_V1.defeat,
 }
 
 /** Rebirth motion placeholder cue name → v3 sample URL. */
@@ -112,4 +124,9 @@ export function activeSkillSampleUrl(skillId: string): string {
 
 export const SFX_V2_PRELOAD_URLS: readonly string[] = Object.values(SFX_V2)
 export const SFX_V3_PRELOAD_URLS: readonly string[] = Object.values(SFX_V3)
-export const SFX_PRELOAD_URLS: readonly string[] = [...SFX_V2_PRELOAD_URLS, ...SFX_V3_PRELOAD_URLS]
+export const SFX_BOSS_V1_PRELOAD_URLS: readonly string[] = Object.values(SFX_BOSS_V1)
+export const SFX_PRELOAD_URLS: readonly string[] = [
+  ...SFX_V2_PRELOAD_URLS,
+  ...SFX_V3_PRELOAD_URLS,
+  ...SFX_BOSS_V1_PRELOAD_URLS,
+]

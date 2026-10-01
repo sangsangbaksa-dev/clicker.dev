@@ -6,6 +6,7 @@ export const CLICKER_BGM_URL: Record<BgmTrackId, string> = {
   hub: "/clicker/audio/bgm_hub_loop_v2.mp3",
   mine: "/clicker/audio/bgm_mine_loop_v2.mp3",
   chamber: "/clicker/audio/bgm_rebirth_loop_v2.mp3",
+  boss: "/clicker/audio/bgm_boss_loop_v1.mp3",
   relay: "/clicker/audio/bgm_world_relay.mp3",
   vault: "/clicker/audio/bgm_world_vault.mp3",
   storm: "/clicker/audio/bgm_world_storm.mp3",

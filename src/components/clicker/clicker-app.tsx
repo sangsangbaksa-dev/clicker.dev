@@ -277,6 +277,7 @@ export function ClickerApp() {
       endingOpen,
       playSurface: game.save?.settings.playSurface ?? "hub",
       currentRegionId: game.save?.runState.currentRegionId,
+      bossFight: Boolean(game.save?.runState.boss),
     }),
     muted: bgm.muted,
     volume: bgm.volume,

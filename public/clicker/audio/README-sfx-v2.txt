@@ -44,3 +44,10 @@ sfx_rebirth_settle_chime_v3 | Rebirth motion settle phase | 3.0s
 sfx_rebirth_void_tear_v3 | Rebirth motion void tear phase | 3.2s
 sfx_transcend_open_v3 | Transcendence tab / worldline UI open | 3.0s
 sfx_session_timer_end_v3 | Mine session timer expires | 2.0s
+
+=== Boss audio v1 (2026-10-01) — core guardian fight ===
+bgm_boss_loop_v1 | Boss fight BGM (crossfade via BgmScene `boss`, loop=true) | loop
+sfx_boss_appear_v1 | Wired: `startBoss` (guardian fight begins) | —
+sfx_boss_hit_v1 | Wired: `strikeBoss` on damage | —
+sfx_boss_defeat_v1 | Wired: `bossDown` when `meta.bossDefeated` flips (ending cue) | —
+sfx_boss_phase_change_v1 | Mapped only — no boss HP phase in engine yet | —

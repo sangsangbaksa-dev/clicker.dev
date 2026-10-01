@@ -7,6 +7,7 @@ import {
   SFX_PRELOAD_URLS,
   SFX_V2,
   SFX_V3,
+  SFX_BOSS_V1,
 } from "@/data/clicker/sfx-assets"
 
 /**
@@ -37,6 +38,9 @@ const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   lightning: 220,
   quake: 380,
   echoStrike: 120,
+  bossHit: 70,
+  bossAppear: 400,
+  bossDefeat: 800,
 }
 const lastPlayed = new Map<string, number>()
 
@@ -59,6 +63,11 @@ const SAMPLE_BY_CUE: Partial<Record<SfxName, string>> = {
   transcend: SFX_V3.transcendOpen,
   sessionEnd: SFX_V3.sessionTimerEnd,
   sessionTimerEnd: SFX_V3.sessionTimerEnd,
+  bossAppear: SFX_BOSS_V1.appear,
+  bossHit: SFX_BOSS_V1.hit,
+  bossPhaseChange: SFX_BOSS_V1.phaseChange,
+  bossDefeat: SFX_BOSS_V1.defeat,
+  bossDown: SFX_BOSS_V1.defeat,
 }
 
 const sampleBuffers = new Map<string, AudioBuffer>()
@@ -590,6 +599,23 @@ const CUES = {
     tone(c, "sawtooth", 420, 90, 0.06, t, 0.25, { attack: 0.002 })
     noise(c, "lowpass", 1200, 1, 0.08, t, 0.25, { sweepTo: 200 })
     ;[1318, 1568, 2093].forEach((f, i) => tone(c, "triangle", f, f, 0.03, t + 0.18 + i * 0.05, 0.15))
+  },
+  bossAppear(c: AudioContext, t: number) {
+    tone(c, "sawtooth", 110, 55, 0.08, t, 0.5, { attack: 0.05 })
+    noise(c, "bandpass", 1200, 1, 0.06, t, 0.4, { sweepTo: 400 })
+  },
+  bossHit(c: AudioContext, t: number) {
+    noise(c, "bandpass", 1800, 1, 0.05, t, 0.08)
+    tone(c, "square", 280, 280, 0.04, t, 0.1)
+  },
+  bossPhaseChange(c: AudioContext, t: number) {
+    tone(c, "sine", 330, 330, 0.05, t, 0.35)
+    tone(c, "sine", 495, 495, 0.04, t + 0.1, 0.4)
+  },
+  bossDefeat(c: AudioContext, t: number) {
+    const e = echo(c, 0.2, 0.45, 0.45)
+    tone(c, "sine", 60, 25, 0.25, t, 1.2, { dest: e })
+    noise(c, "lowpass", 600, 1, 0.15, t, 1.4, { sweepTo: 80 })
   },
   /** Guardian wakes. */
   bossRoar(c: AudioContext, t: number) {

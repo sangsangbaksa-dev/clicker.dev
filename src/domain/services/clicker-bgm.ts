@@ -6,6 +6,7 @@ export type BgmTrackId =
   | "hub"
   | "mine"
   | "chamber"
+  | "boss"
   | "relay"
   | "vault"
   | "storm"
@@ -80,6 +81,8 @@ export type BgmOverlayState = {
   endingOpen: boolean
   playSurface: "hub" | "mine" | string
   currentRegionId: string | undefined
+  /** Core guardian (or other region boss) fight in progress. */
+  bossFight?: boolean
 }
 
 /**
@@ -100,6 +103,7 @@ export function bgmTracksToWarm(scene: BgmScene): BgmTrackId[] {
 export function resolveBgmScene(overlay: BgmOverlayState): BgmScene {
   if (overlay.enteringMine || overlay.regionIntro || overlay.endingPhase) return "silent"
   if (overlay.bootLoading) return "loading"
+  if (overlay.bossFight) return "boss"
   if (overlay.pendingRebirth || overlay.endingOpen) return "chamber"
   if (overlay.playSurface === "mine") return "mine"
   return worldBgmTrack(overlay.currentRegionId)
