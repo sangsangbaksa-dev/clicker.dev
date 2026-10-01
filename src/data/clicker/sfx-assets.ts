@@ -41,6 +41,17 @@ export const SFX_V3 = {
   sessionTimerEnd: `${CLICKER_SFX_AUDIO_BASE}/sfx_session_timer_end_v3.mp3`,
 } as const
 
+/** Rebirth ceremony HQ SFX + stamp variants (mp3). */
+export const SFX_REBIRTH_HQ = {
+  trigger: `${CLICKER_SFX_AUDIO_BASE}/sfx_rebirth_trigger_hq.mp3`,
+  rebuild: `${CLICKER_SFX_AUDIO_BASE}/sfx_rebirth_rebuild_hq.mp3`,
+  complete: `${CLICKER_SFX_AUDIO_BASE}/sfx_rebirth_complete_hq.mp3`,
+  stampAureliaGrid: `${CLICKER_SFX_AUDIO_BASE}/sfx_rebirth_stamp_aurelia_grid_hq.mp3`,
+  stampVolatileCore: `${CLICKER_SFX_AUDIO_BASE}/sfx_rebirth_stamp_volatile_core_hq.mp3`,
+  stampDirectivePulse: `${CLICKER_SFX_AUDIO_BASE}/sfx_rebirth_stamp_directive_pulse_hq.mp3`,
+  stampResonanceProtocol: `${CLICKER_SFX_AUDIO_BASE}/sfx_rebirth_stamp_resonance_protocol_hq.mp3`,
+} as const
+
 /** Final boss (core guardian) SFX v1 (mp3). */
 export const SFX_BOSS_V1 = {
   appear: `${CLICKER_SFX_AUDIO_BASE}/sfx_boss_appear_v1.mp3`,
@@ -89,11 +100,28 @@ export const SFX_LEGACY_TO_V3_URL: Record<string, string> = {
   sfx_boss_defeat: SFX_BOSS_V1.defeat,
 }
 
-/** Rebirth motion placeholder cue name → v3 sample URL. */
+/** Rebirth motion placeholder cue name → HQ sample URL (see `REBIRTH_MOTION_SAMPLE_FALLBACK`). */
 export const REBIRTH_MOTION_SAMPLE: Record<string, string> = {
+  sfx_rebirth_confirm_click: SFX_REBIRTH_HQ.trigger,
+  sfx_rebirth_rebuild_rise: SFX_REBIRTH_HQ.rebuild,
+  sfx_rebirth_settle_chime: SFX_REBIRTH_HQ.complete,
   sfx_rebirth_void_tear: SFX_V3.rebirthVoidTear,
+}
+
+/** v3/v2 fallback when HQ mp3 is unavailable. */
+export const REBIRTH_MOTION_SAMPLE_FALLBACK: Record<string, string> = {
+  sfx_rebirth_confirm_click: SFX_V3.rebirthOpen,
   sfx_rebirth_rebuild_rise: SFX_V3.rebirthRebuildRise,
   sfx_rebirth_settle_chime: SFX_V3.rebirthSettleChime,
+  sfx_rebirth_void_tear: SFX_V3.rebirthVoidTear,
+}
+
+const STAMP_HQ: Record<string, string> = {
+  aurelia_grid: SFX_REBIRTH_HQ.stampAureliaGrid,
+  volatile_core: SFX_REBIRTH_HQ.stampVolatileCore,
+  directive_pulse: SFX_REBIRTH_HQ.stampDirectivePulse,
+  resonance_protocol: SFX_REBIRTH_HQ.stampResonanceProtocol,
+  adaptive_architect: SFX_REBIRTH_HQ.stampDirectivePulse,
 }
 
 const STAMP_V2: Record<string, string> = {
@@ -115,6 +143,10 @@ const ACTIVE_SKILL_V3: Record<string, string> = {
 }
 
 export function rebirthStampSampleUrl(worldlineKey: string): string | undefined {
+  return STAMP_HQ[worldlineKey] ?? STAMP_V2[worldlineKey]
+}
+
+export function rebirthStampSampleFallbackUrl(worldlineKey: string): string | undefined {
   return STAMP_V2[worldlineKey]
 }
 
@@ -125,8 +157,10 @@ export function activeSkillSampleUrl(skillId: string): string {
 export const SFX_V2_PRELOAD_URLS: readonly string[] = Object.values(SFX_V2)
 export const SFX_V3_PRELOAD_URLS: readonly string[] = Object.values(SFX_V3)
 export const SFX_BOSS_V1_PRELOAD_URLS: readonly string[] = Object.values(SFX_BOSS_V1)
+export const SFX_REBIRTH_HQ_PRELOAD_URLS: readonly string[] = Object.values(SFX_REBIRTH_HQ)
 export const SFX_PRELOAD_URLS: readonly string[] = [
   ...SFX_V2_PRELOAD_URLS,
   ...SFX_V3_PRELOAD_URLS,
   ...SFX_BOSS_V1_PRELOAD_URLS,
+  ...SFX_REBIRTH_HQ_PRELOAD_URLS,
 ]

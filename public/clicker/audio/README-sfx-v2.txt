@@ -51,3 +51,16 @@ sfx_boss_appear_v1 | Wired: `startBoss` (guardian fight begins) | —
 sfx_boss_hit_v1 | Wired: `strikeBoss` on damage | —
 sfx_boss_defeat_v1 | Wired: `bossDown` when `meta.bossDefeated` flips (ending cue) | —
 sfx_boss_phase_change_v1 | Mapped only — no boss HP phase in engine yet | —
+
+=== Rebirth HQ audio (2026-10-01) — ceremony bed + motion SFX ===
+bgm_rebirth_hq_intro | BGM `BgmScene` `rebirth` (pendingRebirth): plays once, then hands off to loop | ~9s
+bgm_rebirth_hq_loop | Rebirth BGM loop after intro (loop=true, crossfade engine) | ~90s
+sfx_rebirth_trigger_hq | Wired: `playSfx("rebirthOpen")`, rebirth motion `select_confirm` (`sfx_rebirth_confirm_click`) | —
+sfx_rebirth_rebuild_hq | Wired: rebirth motion `rebuild` phase | —
+sfx_rebirth_complete_hq | Wired: rebirth motion `settle` phase | —
+sfx_rebirth_stamp_aurelia_grid_hq | Wired: stamp phase, worldline Aurelia Grid | —
+sfx_rebirth_stamp_volatile_core_hq | Wired: stamp phase, Volatile Core | —
+sfx_rebirth_stamp_directive_pulse_hq | Wired: stamp phase, Directive Pulse (+ adaptive_architect fallback key) | —
+sfx_rebirth_stamp_resonance_protocol_hq | Wired: stamp phase, Resonance Protocol | —
+(HQ mp3 preferred; v3/v2 stamp samples and synth cues remain as fallback. Ending overlay still uses `bgm_rebirth_loop_v2` via `chamber` scene.)
+(Mapped only — no dedicated mp3 yet: `sfx_rebirth_collapse_whoosh`, `sfx_rebirth_void_tear` still use v3 void tear / synth.)

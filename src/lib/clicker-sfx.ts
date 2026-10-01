@@ -3,8 +3,11 @@
 import {
   activeSkillSampleUrl,
   REBIRTH_MOTION_SAMPLE,
+  REBIRTH_MOTION_SAMPLE_FALLBACK,
+  rebirthStampSampleFallbackUrl,
   rebirthStampSampleUrl,
   SFX_PRELOAD_URLS,
+  SFX_REBIRTH_HQ,
   SFX_V2,
   SFX_V3,
   SFX_BOSS_V1,
@@ -44,6 +47,10 @@ const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
 }
 const lastPlayed = new Map<string, number>()
 
+const SAMPLE_BY_CUE_FALLBACK: Partial<Record<SfxName, string>> = {
+  rebirthOpen: SFX_V3.rebirthOpen,
+}
+
 const SAMPLE_BY_CUE: Partial<Record<SfxName, string>> = {
   tap: SFX_V2.uiTap,
   purchase: SFX_V2.uiPurchase,
@@ -59,7 +66,7 @@ const SAMPLE_BY_CUE: Partial<Record<SfxName, string>> = {
   lightning: SFX_V3.skillPulseBurst,
   enterMine: SFX_V3.enterMine,
   exitMine: SFX_V3.exitMine,
-  rebirthOpen: SFX_V3.rebirthOpen,
+  rebirthOpen: SFX_REBIRTH_HQ.trigger,
   transcend: SFX_V3.transcendOpen,
   sessionEnd: SFX_V3.sessionTimerEnd,
   sessionTimerEnd: SFX_V3.sessionTimerEnd,
@@ -704,6 +711,8 @@ export function playSfx(name: SfxName) {
   const sample = SAMPLE_BY_CUE[name]
   if (sample) {
     if (playSampleUrl(sample, name)) return
+    const fallback = SAMPLE_BY_CUE_FALLBACK[name]
+    if (fallback && playSampleUrl(fallback, name)) return
   }
   const now = typeof performance !== "undefined" ? performance.now() : Date.now()
   const gap = MIN_GAP_MS[name] ?? 30
@@ -762,10 +771,14 @@ export function playRebirthCue(name: string) {
   if (muted) return
   const motion = REBIRTH_MOTION_SAMPLE[name]
   if (motion && playSampleUrl(motion, `rebirth:${name}`)) return
+  const motionFallback = REBIRTH_MOTION_SAMPLE_FALLBACK[name]
+  if (motionFallback && playSampleUrl(motionFallback, `rebirth:${name}`)) return
   if (name.startsWith("sfx_rebirth_stamp_")) {
     const key = name.slice("sfx_rebirth_stamp_".length)
     const stamp = rebirthStampSampleUrl(key)
     if (stamp && playSampleUrl(stamp, `stamp:${key}`)) return
+    const stampFallback = rebirthStampSampleFallbackUrl(key)
+    if (stampFallback && playSampleUrl(stampFallback, `stamp:${key}`)) return
   }
   const c = audio()
   if (!c) return

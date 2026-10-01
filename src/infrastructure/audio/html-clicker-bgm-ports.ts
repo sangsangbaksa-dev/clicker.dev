@@ -1,6 +1,11 @@
 import type { BgmLoopTrack, ClickerBgmPorts } from "@/application/clicker-audio-ports"
 import type { BgmTrackId } from "@/domain/services/clicker-bgm"
-import { allBgmTrackIds, CLICKER_BGM_URL, warmBgmTracks } from "@/infrastructure/audio/clicker-bgm-catalog"
+import {
+  allBgmTrackIds,
+  bgmTrackShouldLoop,
+  CLICKER_BGM_URL,
+  warmBgmTracks,
+} from "@/infrastructure/audio/clicker-bgm-catalog"
 
 export type HtmlClickerBgmPortDeps = {
   resumeSharedContext: () => void
@@ -33,6 +38,12 @@ function wrapTrack(rec: TrackRecord): BgmLoopTrack {
       if (rec.gain) rec.gain.gain.value = level
       else rec.audio.volume = level
     },
+    onEnded(listener: () => void) {
+      rec.audio.addEventListener("ended", listener)
+    },
+    rewind() {
+      rec.audio.currentTime = 0
+    },
   }
 }
 
@@ -45,7 +56,7 @@ export function createHtmlClickerBgmPorts(deps: HtmlClickerBgmPortDeps): Clicker
     let rec = records.get(id)
     if (!rec) {
       const audio = new Audio()
-      audio.loop = true
+      audio.loop = bgmTrackShouldLoop(id)
       audio.preload = "none"
       audio.volume = 0
       audio.src = CLICKER_BGM_URL[id]

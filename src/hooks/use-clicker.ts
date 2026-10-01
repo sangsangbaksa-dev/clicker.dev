@@ -855,7 +855,7 @@ export function useClicker() {
     const result = clickerStartBoss(saveRef.current, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("bossRoar")
+    playSfx("bossAppear")
   }, [commit, refuse])
 
   /** Strike the guardian. Returns true on the killing blow. */
@@ -864,6 +864,7 @@ export function useClicker() {
       if (!saveRef.current) return false
       const result = clickerStrikeBoss(saveRef.current, now())
       if (result.damage <= 0) return false
+      playSfx("bossHit")
       commit(result.save)
       const id = ++floatId.current
       setFloats((prev) => [...prev.slice(-12), { id, text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }])

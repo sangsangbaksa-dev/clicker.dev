@@ -6,12 +6,23 @@ export const CLICKER_BGM_URL: Record<BgmTrackId, string> = {
   hub: "/clicker/audio/bgm_hub_loop_v2.mp3",
   mine: "/clicker/audio/bgm_mine_loop_v2.mp3",
   chamber: "/clicker/audio/bgm_rebirth_loop_v2.mp3",
+  rebirthIntro: "/clicker/audio/bgm_rebirth_hq_intro.mp3",
+  rebirthHq: "/clicker/audio/bgm_rebirth_hq_loop.mp3",
   boss: "/clicker/audio/bgm_boss_loop_v1.mp3",
   relay: "/clicker/audio/bgm_world_relay.mp3",
   vault: "/clicker/audio/bgm_world_vault.mp3",
   storm: "/clicker/audio/bgm_world_storm.mp3",
   fault: "/clicker/audio/bgm_world_fault.mp3",
   heart: "/clicker/audio/bgm_world_heart.mp3",
+}
+
+/** Default loop=true; one-shot beds (rebirth intro) opt out. */
+export const CLICKER_BGM_LOOP: Partial<Record<BgmTrackId, boolean>> = {
+  rebirthIntro: false,
+}
+
+export function bgmTrackShouldLoop(id: BgmTrackId): boolean {
+  return CLICKER_BGM_LOOP[id] ?? true
 }
 
 const warmed = new Map<string, Promise<void>>()
