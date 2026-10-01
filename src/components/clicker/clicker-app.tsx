@@ -161,16 +161,6 @@ function readDrawerHeight() {
   return drawerSnapPoints().peek
 }
 
-/** Deterministic pseudo-random stage spot for a hunting-ground spawn, clear of the HUD and dock. */
-function huntSpot(seed: number): { left: number; top: number } {
-  const r = (n: number) => {
-    const x = Math.sin(seed * 0.001 + n * 12.9898) * 43758.5453
-    return x - Math.floor(x)
-  }
-  // Giant dragons are centered on the spot, so keep them well inside the stage.
-  return { left: 30 + r(1) * 40, top: 30 + r(2) * 16 }
-}
-
 /** Stage backdrop that keeps the previous image until the next is decoded (no blank/stale flash). */
 function StageBg({ src, className }: { src: string; className: string }) {
   const shown = useDecodedSrc(src)
@@ -808,7 +798,6 @@ export function ClickerApp() {
       run.activeBuffs.some((b) => b.id === skill.id && b.expiresAt > tickNow),
   )
   const monsterIsAlive = monsterDef ? monsterAlive(run, run.currentRegionId, tickNow) : false
-  const huntSpawn = run.monsterRespawnAt[run.currentRegionId] ?? 0
   const lair = run.lair && run.lair.regionId === run.currentRegionId ? run.lair : null
   const shieldMs = shieldRemainingMs(run, run.currentRegionId, tickNow)
   const gear = gearOf(run)
