@@ -9,9 +9,36 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { CLICKER_ASSETS, clickerConfig } from "@/data/clicker/catalog"
-import { formatNumber } from "@/domain/services/clicker-format"
+import {
+  ARMORS,
+  CLICKER_ADMIN_REMEMBER_KEY,
+  CLICKER_PRELAUNCH,
+  INSTABILITY_WARNING,
+  LAIR_BOSSES,
+  WEAPONS,
+  buildScreenTabs,
+  drillCooldownMs,
+  formatMinePauseBadge,
+  formatNumber,
+  gearOf,
+  isClickerAdminAllowed,
+  isRegionUnlocked,
+  monsterAlive,
+  relicVaultOpen,
+  shouldMountMineChamber,
+  shouldShowManageScreen,
+  type ClickerScreenTabId,
+  shieldRemainingMs,
+  activeSkillBarHint,
+  activeSkillBarShortLabel,
+  activeSkillBarStatusLine,
+  isActiveSkillBarDisabled,
+  resolveActiveSkillBarState,
+} from "@/application/clicker-ui"
+import { ClickerScreenNav } from "@/components/clicker/clicker-screen-nav"
 import { useClicker } from "@/hooks/use-clicker"
-import { useClickerBgm, worldBgm } from "@/hooks/use-clicker-bgm"
+import { useClickerBgm } from "@/hooks/use-clicker-bgm"
+import { clickerBgmControls, clickerBgmScene } from "@/application/clicker-audio"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine, type MineFxTier } from "@/components/clicker/clicker-mine"
@@ -26,18 +53,16 @@ import { collectImagePaths, useDecodedSrc, useImagePreload } from "@/components/
 import { ClickerImageZoom } from "@/components/clicker/clicker-image-zoom"
 import { ClickerPurchaseFx } from "@/components/clicker/clicker-purchase-fx"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
+import { ClickerLoading } from "@/components/clicker/clicker-loading"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
 import { ClickerBossScene } from "@/components/clicker/clicker-boss-scene"
 import { ClickerForge } from "@/components/clicker/clicker-forge"
 import { ClickerRelicVault } from "@/components/clicker/clicker-relic-vault"
-import { ARMORS, LAIR_BOSSES, WEAPONS, gearOf, shieldRemainingMs } from "@/domain/services/clicker-lair"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
 import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
-import { INSTABILITY_WARNING, drillCooldownMs, isRegionUnlocked, monsterAlive, relicVaultOpen } from "@/domain/services/clicker-engine"
-import type { SfxName } from "@/components/clicker/clicker-sfx"
-import { CLICKER_ADMIN_REMEMBER_KEY, CLICKER_PRELAUNCH, isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
+import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
-import { playLaser, playSfx, unlockSfx } from "@/components/clicker/clicker-sfx"
+import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
 import { ClickerAchievementsPanel } from "@/components/clicker/panels/achievements-panel"
 import { ClickerProducersPanel } from "@/components/clicker/panels/producers-panel"
 import { ClickerUpgradesPanel } from "@/components/clicker/panels/upgrades-panel"
@@ -202,6 +227,7 @@ export function ClickerApp() {
   }, [])
 
   const [tab, setTab] = useState<TabId>("upgrades")
+  const [screenTab, setScreenTab] = useState<ClickerScreenTabId>("mine")
   // Hub splits into the mine entrance scene and a full-screen management screen.
   const [hubView, setHubView] = useState<"entrance" | "manage">("entrance")
   const [adminOpen, setAdminOpen] = useState(false)
@@ -232,17 +258,21 @@ export function ClickerApp() {
   /** Ending sequence after the guardian falls: two videos, then the story cards. */
   const [endingPhase, setEndingPhase] = useState<"fall" | "awaken" | null>(null)
 
-  useClickerBgm(game.hud?.coreVisual, {
-    // Cinematics carry their own soundtrack.
-    scene: enteringMine || game.regionIntro || endingPhase
-      ? "silent"
-      : pendingRebirth || endingOpen
-        ? "chamber"
-        : game.save?.settings.playSurface === "mine"
-          ? "mine"
-          : worldBgm(game.save?.runState.currentRegionId),
-    muted: game.otherTabActive || (game.save?.settings.musicMuted ?? false),
-    volume: game.save?.settings.musicVolume ?? 0,
+  const bgm = clickerBgmControls(game.save?.settings, game.otherTabActive, game.hud?.coreVisual)
+  useClickerBgm(bgm.visual, {
+    scene: clickerBgmScene({
+      bootLoading: !game.save,
+      enteringMine,
+      regionIntro: game.regionIntro,
+      endingPhase,
+      pendingRebirth: Boolean(pendingRebirth),
+      endingOpen,
+      playSurface: game.save?.settings.playSurface ?? "hub",
+      currentRegionId: game.save?.runState.currentRegionId,
+      bossFight: Boolean(game.save?.runState.boss),
+    }),
+    muted: bgm.muted,
+    volume: bgm.volume,
   })
 
 
@@ -292,6 +322,26 @@ export function ClickerApp() {
 
   /** The forge opens with the third world (Phase Vault), where the first boss lairs are. */
   const forgeUnlocked = Boolean(game.regions[2]?.unlocked)
+  const selectScreen = useCallback(
+    (id: ClickerScreenTabId) => {
+      const result = game.selectScreen(screenTab, id)
+      setScreenTab(id)
+      if (result.openSkillTree) setSkillMapOpen(true)
+      if (result.manageTab) {
+        if (result.manageTab === "transcendence") playSfx("transcend")
+        setTab(result.manageTab)
+        setHubView("manage")
+      } else if (id === "mine") {
+        setHubView("entrance")
+      }
+      if (result.manageTab && drawerHeight <= drawerSnaps.peek + 16) {
+        setDrawerHeight(drawerSnaps.half)
+        persistDrawerHeight(drawerSnaps.half)
+      }
+    },
+    [drawerHeight, drawerSnaps, game, persistDrawerHeight, screenTab],
+  )
+
   const selectTab = useCallback(
     (id: TabId) => {
       if (id === "forge" && !forgeUnlocked) {
@@ -299,10 +349,21 @@ export function ClickerApp() {
         return
       }
       if (id === "skills") {
-        setSkillMapOpen(true)
+        selectScreen("skills")
         return
       }
-      if (id === "transcendence") playSfx("transcend")
+      if (id === "upgrades") {
+        selectScreen("upgrades")
+        return
+      }
+      if (id === "shop") {
+        selectScreen("shop")
+        return
+      }
+      if (id === "transcendence") {
+        selectScreen("rebirth")
+        return
+      }
       setTab(id)
       setHubView("manage")
       if (drawerHeight <= drawerSnaps.peek + 16) {
@@ -315,7 +376,7 @@ export function ClickerApp() {
           ?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" })
       })
     },
-    [drawerHeight, drawerSnaps, persistDrawerHeight, forgeUnlocked, game],
+    [drawerHeight, drawerSnaps, persistDrawerHeight, forgeUnlocked, game, selectScreen],
   )
 
   const playSurface = game.save?.settings.playSurface ?? "hub"
@@ -382,9 +443,9 @@ export function ClickerApp() {
       setAdminOpen(false)
       return
     }
-    // Before launch, one `?admin=1` visit keeps the panel in this browser.
+    // `?admin=1` remembered for pre-launch builds (or set NEXT_PUBLIC_CLICKER_ADMIN=1 for playtest builds).
     try {
-      if (CLICKER_PRELAUNCH && new URLSearchParams(window.location.search).get("admin") === "1") {
+      if (new URLSearchParams(window.location.search).get("admin") === "1" && (CLICKER_PRELAUNCH || process.env.NEXT_PUBLIC_CLICKER_ADMIN === "1")) {
         window.localStorage.setItem(CLICKER_ADMIN_REMEMBER_KEY, "1")
       }
     } catch {
@@ -609,9 +670,16 @@ export function ClickerApp() {
     return () => timers.forEach((t) => window.clearTimeout(t))
   }, [inMineSurface, mineEndsAt])
 
+  const mineEndsRef = useRef(0)
+  useEffect(() => {
+    if (inMineSurface && mineEndsAt) mineEndsRef.current = mineEndsAt
+  }, [inMineSurface, mineEndsAt])
   const prevInMine = useRef(inMineSurface)
   useEffect(() => {
-    if (prevInMine.current && !inMineSurface) playSfx("sessionEnd")
+    if (prevInMine.current && !inMineSurface) {
+      const timedOut = mineEndsRef.current > 0 && Date.now() >= mineEndsRef.current - 150
+      if (timedOut) playSfx("sessionTimerEnd")
+    }
     prevInMine.current = inMineSurface
   }, [inMineSurface])
 
@@ -697,16 +765,7 @@ export function ClickerApp() {
   }
 
   if (!game.save || !game.hud) {
-    return (
-      <div data-clicker className="clicker-shell clicker-loading" role="status" aria-busy="true" aria-live="polite">
-        <div
-          className="clicker-loading-bg"
-          style={{ backgroundImage: `url(${CLICKER_ASSETS.bgLoading})` }}
-          aria-hidden
-        />
-        <p className="clicker-loading-text">CORE를 깨우는 중…</p>
-      </div>
-    )
+    return <ClickerLoading bgSrc={CLICKER_ASSETS.bgLoading} />
   }
 
   if (game.isCompleted) {
@@ -754,6 +813,7 @@ export function ClickerApp() {
   const inMine = game.save.settings.playSurface === "mine"
   // Last tick time (~100ms fresh) keeps render pure instead of reading Date.now().
   const tickNow = run.lastTickAt
+  const mountMineChamber = shouldMountMineChamber(screenTab, game.save, tickNow)
   const mineRemainMs = Math.max(0, run.mineSessionEndsAt - tickNow)
   const mineRemainSec = mineRemainMs / 1000
   const mineDurationMs = Math.max(1, run.mineSessionDurationMs || 10_000)
@@ -782,6 +842,8 @@ export function ClickerApp() {
   const transcendenceUnlocked = hud.canRebirth
   const rebirthRatio = Math.min(1, run.lifetimeCoreEnergy / hud.rebirthRequirement)
   const showTranscendenceTab = transcendenceUnlocked || rebirthRatio >= 0.25
+  const screenTabs = buildScreenTabs({ showRebirth: showTranscendenceTab })
+  const minePauseBadge = formatMinePauseBadge(run.minePausedRemainMs ?? 0)
   const transcendenceOwned = new Set(game.save.metaState.transcendenceIds).size
   const transcendenceTotal = game.config.transcendence.length
   // Every circuit (all 100, transcendence branch included) stays on the board.
@@ -833,9 +895,10 @@ export function ClickerApp() {
 
   const atHomeHub = !inMine && Boolean(game.currentRegion?.isHome)
   const regionIntroPlaying = Boolean(game.regionIntro)
-  const managing = !inMine && hubView === "manage"
+  const managing = shouldShowManageScreen(screenTab) || (!mountMineChamber && hubView === "manage")
 
   const beginEnterMine = () => {
+    setScreenTab("mine")
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     // Refused entries (cooldown / cost) skip the cinematic; enterMine shows the reason.
     if (reduced || game.mineEntryError()) {
@@ -1017,6 +1080,7 @@ export function ClickerApp() {
           설정
         </button>
       </header>
+      <ClickerScreenNav tabs={screenTabs} active={screenTab} mineBadge={minePauseBadge} onSelect={selectScreen} />
 
       <div className="clicker-stage">
         <StageBg
@@ -1135,7 +1199,7 @@ export function ClickerApp() {
           ) : null}
         </nav>
         <div className="clicker-core-wrap">
-          {inMine ? (
+          {mountMineChamber ? (
             <div className="clicker-mine-dig">
               <div className="clicker-mine-hud" role="status" aria-live="polite">
                 <div className="clicker-mine-hud-stat" aria-label={`채굴량 ${formatNumber(mineHaul)}`}>
@@ -1481,19 +1545,18 @@ export function ClickerApp() {
           const cd = run.skillCooldowns[skill.id] ?? 0
           const charges = run.skillItems[skill.id] ?? 0
           const skillTip = `${skill.name} — ${skill.description}`
-          const skillState = hud.crisisActive ? "crisis" : cd > 0 ? "cooldown" : "ready"
-          const skillStatus =
-            skillState === "cooldown"
-              ? `${charges} · 쿨다운`
-              : skillState === "crisis"
-                ? `${charges} · 위기`
-                : `${charges} · 준비`
+          const skillState = resolveActiveSkillBarState({
+            crisisActive: hud.crisisActive,
+            cooldownMs: cd,
+            charges,
+          })
+          const skillStatus = activeSkillBarStatusLine(skillState, charges)
           return (
             <span key={skill.id} className="clicker-action-slot">
               <button
                 className={`clicker-item clicker-skill-item is-${skillState}${(popIcons[skill.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
                 type="button"
-                disabled={cd > 0 || hud.crisisActive}
+                disabled={isActiveSkillBarDisabled(skillState)}
                 aria-label={`${skillTip} · ${skillStatus}`}
                 title={skillTip}
                 onClick={() => castSkill(skill.id)}
@@ -1504,20 +1567,14 @@ export function ClickerApp() {
                   {skill.name}
                   <br />
                   <small>
-                    {charges} · {skillState === "ready" ? "준비" : skillState === "cooldown" ? "쿨다운" : "위기"}
+                    {charges} · {activeSkillBarShortLabel(skillState)}
                   </small>
                 </span>
               </button>
               <span className="clicker-action-tip" role="tooltip">
                 <strong>{skill.name}</strong>
                 {skill.description}
-                <em className="clicker-action-tip-state">
-                  {skillState === "ready"
-                    ? "준비됨 · 탭하여 사용"
-                    : skillState === "cooldown"
-                      ? "쿨다운이 끝나면 다시 사용"
-                      : "위기 중 사용 불가"}
-                </em>
+                <em className="clicker-action-tip-state">{activeSkillBarHint(skillState)}</em>
               </span>
             </span>
           )
@@ -1619,7 +1676,10 @@ export function ClickerApp() {
             {...panelProps}
             meta={game.save.metaState}
             onSelectTab={selectTab}
-            onChoose={(buff) => setPendingRebirth({ id: buff.id, label: buff.name })}
+            onChoose={(buff) => {
+              playSfx("rebirthOpen")
+              setPendingRebirth({ id: buff.id, label: buff.name })
+            }}
           />
         ) : null}
         </>
@@ -1658,6 +1718,15 @@ export function ClickerApp() {
           onExportCode={game.exportSaveCode}
           onParseCode={game.parseSaveCode}
           onImportJson={game.importSaveJson}
+          onSecretAdmin={() => {
+            try {
+              window.localStorage.setItem(CLICKER_ADMIN_REMEMBER_KEY, "1")
+            } catch {
+              /* storage blocked — admin stays on for this visit only */
+            }
+            setAdminAllowed(true)
+            game.notify("관리자 모드 켜짐")
+          }}
           onClose={() => setSettingsOpen(false)}
         />
       ) : null}
@@ -1805,7 +1874,7 @@ export function ClickerApp() {
       ) : null}
 
       {game.save.settings.gameStarted && !game.save.settings.tutorialSeen && !inMine ? (
-        <ClickerTutorial onDone={game.finishTutorial} />
+        <ClickerTutorial onDone={game.finishTutorial} admin={CLICKER_ADMIN_UI && adminAllowed} />
       ) : null}
 
       {endingPhase ? (
@@ -1849,7 +1918,7 @@ export function ClickerApp() {
         >
           <h2>임시 관리자 · 플레이테스트</h2>
           <p style={{ margin: "0 0 8px", fontSize: 11, color: "var(--text-2)" }}>
-            개발 전용 · loopback 또는 ?admin=1 · production 빌드에서 UI·치트 모두 차단 · Esc로 닫기
+            플레이테스트 · ?admin=1 또는 설정 제목 7번 탭(이 브라우저에 기억) · 운영 빌드는 NEXT_PUBLIC_CLICKER_ADMIN=1 없으면 숨김 · Esc로 닫기
           </p>
           <div className="clicker-admin-grid">
             <button type="button" className="clicker-primary" aria-label="치트 · CORE 1천 지급" onClick={() => game.adminGrant(1_000)}>
@@ -1875,6 +1944,48 @@ export function ClickerApp() {
             </button>
             <button type="button" className="clicker-primary" onClick={game.adminUnlock}>
               해금/CORE
+            </button>
+            <button type="button" className="clicker-primary" onClick={() => game.adminGrantAllCurrencies(1_000_000)}>
+              지역 재화 +1M
+            </button>
+            <button type="button" className="clicker-primary" onClick={game.adminSkipTutorial}>
+              튜토리얼 건너뛰기
+            </button>
+            <button
+              type="button"
+              className="clicker-primary"
+              onClick={() => {
+                game.adminReplayTutorial()
+                setAdminOpen(false)
+              }}
+            >
+              튜토리얼 다시 보기
+            </button>
+            <button
+              type="button"
+              className="clicker-primary"
+              aria-label="치트 · 최종 보스로 이동"
+              onClick={() => {
+                game.adminJumpFinalBoss()
+                setAdminOpen(false)
+              }}
+            >
+              최종 보스로 점프
+            </button>
+            <button
+              type="button"
+              className={`clicker-primary${game.adminModes.god ? " is-on" : ""}`}
+              aria-pressed={game.adminModes.god}
+              onClick={game.adminToggleGod}
+            >
+              갓 모드 {game.adminModes.god ? "ON" : "OFF"}
+            </button>
+            <button
+              type="button"
+              className={`clicker-primary${game.adminModes.speed > 1 ? " is-on" : ""}`}
+              onClick={game.adminCycleSpeed}
+            >
+              속도 ×{game.adminModes.speed}
             </button>
             <button type="button" className="clicker-danger" aria-label="치트 · CORE CRISIS 발동" onClick={game.adminCrisis}>
               CRISIS

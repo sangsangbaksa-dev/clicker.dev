@@ -91,6 +91,8 @@ export type RunState = {
   respecCount: number
   /** Absolute ms when the timed mine session ends; 0 when not in mine. */
   mineSessionEndsAt: number
+  /** Frozen remaining ms while the mine session is paused off the Mine tab; 0 when none. */
+  minePausedRemainMs: number
   /** Absolute ms until Enter Mine is allowed again. */
   mineCooldownUntil: number
   /** CORE at session start — haul = coreEnergy - this while in mine. */
@@ -420,6 +422,8 @@ export type MonsterDef = {
 export type BossDef = {
   name: string
   kind: string
+  /** Optional painted art (transparent PNG/WebP); replaces the inline SVG creature. */
+  imageSrc?: string
   /** Guardian health in CORE-strike damage. */
   hp: number
   playerHp: number

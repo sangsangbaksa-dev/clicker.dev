@@ -1,4 +1,4 @@
-import type { RunState } from "@/domain/entities/clicker"
+import type { RunState } from "@/application/clicker-ui"
 import type { useClicker } from "@/hooks/use-clicker"
 
 export type ClickerGame = ReturnType<typeof useClicker>

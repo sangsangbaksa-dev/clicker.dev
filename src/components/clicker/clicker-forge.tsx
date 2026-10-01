@@ -1,8 +1,5 @@
 "use client"
 
-import type { RunState } from "@/domain/entities/clicker"
-import { formatNumber } from "@/domain/services/clicker-format"
-import { scaledCost, regionCurrencyBalance } from "@/domain/services/clicker-engine"
 import {
   AMULETS,
   ARMORS,
@@ -11,13 +8,17 @@ import {
   HELMETS,
   WEAPONS,
   forgeError,
+  formatNumber,
   gearImage,
   gearOf,
   lairAttackEveryMs,
   playerMaxHp,
+  regionCurrencyBalance,
+  scaledCost,
   type GearSlot,
   type GearTier,
-} from "@/domain/services/clicker-lair"
+  type RunState,
+} from "@/application/clicker-ui"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 import type { ClickerGame } from "./panels/types"
 

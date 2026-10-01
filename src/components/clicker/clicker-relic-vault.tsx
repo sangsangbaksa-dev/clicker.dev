@@ -1,8 +1,16 @@
 "use client"
 
-import type { MetaState, RelicDef, RunState } from "@/domain/entities/clicker"
-import { formatNumber } from "@/domain/services/clicker-format"
-import { regionCurrencyBalance, relicCost, relicEffectAt, relicError, relicLevel } from "@/domain/services/clicker-engine"
+import {
+  formatNumber,
+  regionCurrencyBalance,
+  relicCost,
+  relicEffectAt,
+  relicError,
+  relicLevel,
+  type MetaState,
+  type RelicDef,
+  type RunState,
+} from "@/application/clicker-ui"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 import type { ClickerGame } from "./panels/types"
 

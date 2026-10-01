@@ -13,15 +13,12 @@
    stage, so the camera frames the monster's body and crops sky and ground instead of leaving
    dark bars at the sides. Overlays stay pinned to the art. */
 .boss-scene-box {
-  /* Cover: at least full width, and at least full height on a portrait stage. */
-  --w: max(56.25cqh, 100cqw);
-  --h: calc(var(--w) * 16 / 9);
   position: absolute;
-  left: 50%;
-  top: clamp(calc(100cqh - var(--h)), calc(50cqh - var(--h) * var(--byn, 0.4)), 0px);
-  width: var(--w);
-  aspect-ratio: 9 / 16;
-  translate: -50% 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  transform: translateZ(0);
 }
 .boss-scene-base,
 .boss-scene-body {
@@ -30,8 +27,10 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center calc(var(--byn, 0.42) * 100%);
   user-select: none;
   -webkit-user-drag: none;
+  transform: translateZ(0);
 }
 /* The monster layer: the same art masked to the body, moving over a still backdrop.
    Motion is split across nested layers so it never snaps or jumps:
@@ -45,7 +44,7 @@
   position: absolute;
   inset: 0;
   transform-origin: var(--bx) calc(var(--by) + var(--bh) / 2);
-  will-change: transform;
+  backface-visibility: hidden;
 }
 .boss-scene-rig { animation: boss-breathe 7s ease-in-out infinite; }
 .boss-scene-pose {
@@ -88,12 +87,12 @@
   transition: transform 520ms cubic-bezier(0.3, 0, 0.15, 1), filter 520ms ease-out;
   filter: brightness(1.25) saturate(1.15);
 }
-.clicker-boss-scene.is-strike .boss-scene-box { animation: boss-quake 700ms ease-out; }
+.clicker-boss-scene.is-strike .boss-scene-box { animation: boss-quake 520ms cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes boss-quake {
-  20% { translate: calc(-50% - 5px) 4px; }
-  45% { translate: calc(-50% + 4px) -3px; }
-  70% { translate: calc(-50% - 2px) 1px; }
-  100% { translate: -50% 0; }
+  22% { transform: translate3d(-2px, 1px, 0); }
+  48% { transform: translate3d(2px, -1px, 0); }
+  72% { transform: translate3d(-1px, 0, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
 .clicker-boss-scene.is-strike::after {
   content: "";
@@ -106,41 +105,41 @@
 @keyframes boss-flash { from { opacity: 1; } to { opacity: 0; } }
 
 /* Player hits: a soft red flare and a small give (scale is separate from the pose transform). */
-.boss-scene-box.hit-0 .boss-scene-flesh { animation: boss-flinch-a 560ms cubic-bezier(0.2, 0.7, 0.3, 1); }
-.boss-scene-box.hit-1 .boss-scene-flesh { animation: boss-flinch-b 560ms cubic-bezier(0.2, 0.7, 0.3, 1); }
+.boss-scene-box.hit-0 .boss-scene-flesh { animation: boss-flinch-a 380ms cubic-bezier(0.22, 1, 0.36, 1); }
+.boss-scene-box.hit-1 .boss-scene-flesh { animation: boss-flinch-b 380ms cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes boss-flinch-a {
-  0% { scale: 1; filter: none; }
-  18% { scale: 0.984; filter: brightness(1.5) sepia(0.7) hue-rotate(-40deg) saturate(2.6); }
-  100% { scale: 1; filter: none; }
+  0% { transform: scale(1); }
+  20% { transform: scale(0.988); }
+  100% { transform: scale(1); }
 }
 @keyframes boss-flinch-b {
-  0% { scale: 1; filter: none; }
-  18% { scale: 0.984; filter: brightness(1.5) sepia(0.7) hue-rotate(-40deg) saturate(2.6); }
-  100% { scale: 1; filter: none; }
+  0% { transform: scale(1); }
+  20% { transform: scale(0.988); }
+  100% { transform: scale(1); }
 }
 
-/* The hit flare lights the whole painting, not just the masked body. */
-.boss-scene-box.hit-0 .boss-scene-base { animation: boss-flare-a 560ms cubic-bezier(0.2, 0.7, 0.3, 1); }
-.boss-scene-box.hit-1 .boss-scene-base { animation: boss-flare-b 560ms cubic-bezier(0.2, 0.7, 0.3, 1); }
-@keyframes boss-flare-a {
-  18% { filter: brightness(1.35) sepia(0.6) hue-rotate(-15deg) saturate(2.2); }
-}
-@keyframes boss-flare-b {
-  18% { filter: brightness(1.35) sepia(0.6) hue-rotate(-15deg) saturate(2.2); }
-}
+/* Hit flare: opacity-only overlay (GPU-friendly). */
 .boss-scene-box.hit-0::after,
 .boss-scene-box.hit-1::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(ellipse at var(--bx) var(--by), rgb(255 214 90 / 0.4), rgb(255 190 60 / 0.16) 55%, transparent 80%);
-  mix-blend-mode: screen;
+  background: radial-gradient(ellipse at var(--bx) var(--by), rgb(255 120 90 / 0.42), rgb(255 80 60 / 0.12) 50%, transparent 78%);
+  opacity: 0;
 }
-.boss-scene-box.hit-0::after { animation: boss-flare-glow-a 560ms ease-out forwards; }
-.boss-scene-box.hit-1::after { animation: boss-flare-glow-b 560ms ease-out forwards; }
-@keyframes boss-flare-glow-a { from { opacity: 1; } to { opacity: 0; } }
-@keyframes boss-flare-glow-b { from { opacity: 1; } to { opacity: 0; } }
+.boss-scene-box.hit-0::after { animation: boss-flare-glow-a 380ms ease-out forwards; }
+.boss-scene-box.hit-1::after { animation: boss-flare-glow-b 380ms ease-out forwards; }
+@keyframes boss-flare-glow-a {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes boss-flare-glow-b {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  100% { opacity: 0; }
+}
 
 /* Eyes burn, and blaze during an attack or a victory roar. */
 .boss-scene-eye {
@@ -334,7 +333,7 @@
   position: absolute;
   inset: 0 auto 0 0;
   background: linear-gradient(90deg, #d4231a, #ff9b3d);
-  transition: width 220ms cubic-bezier(0.3, 1.4, 0.5, 1);
+  transition: width 340ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .boss-scene-hp span {
   position: relative;
@@ -348,15 +347,36 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .boss-scene-rig, .boss-scene-flesh, .boss-scene-eye, .boss-scene-weather *, .boss-scene-weather::before, .boss-scene-weather::after { animation: none !important; }
+  .boss-scene-rig,
+  .boss-scene-flesh,
+  .boss-scene-eye,
+  .boss-scene-weather *,
+  .boss-scene-weather::before,
+  .boss-scene-weather::after,
+  .boss-scene-box,
+  .boss-scene-pose {
+    animation: none !important;
+    transition: none !important;
+  }
+  .clicker-boss-scene.is-strike::after { animation: none; opacity: 0; }
 }
 
 .boss-scene-ambient {
   position: absolute;
-  inset: -8%;
-  width: 116%;
-  height: 116%;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  object-position: center calc(var(--byn, 0.42) * 100%);
   filter: blur(28px) brightness(0.38) saturate(1.2);
   pointer-events: none;
+  transform: scale(1.06);
+}
+
+/* Laptop / short wide stages: keep the painting edge-to-edge without side letterboxing. */
+@media (min-width: 720px) and (max-height: 980px) {
+  .boss-scene-hp {
+    top: 10%;
+    width: min(300px, 62%);
+  }
 }

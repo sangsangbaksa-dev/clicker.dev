@@ -7,7 +7,8 @@ import {
   RebirthPhaseArt,
 } from "@/data/clicker/rebirth-assets"
 import { rebirthVariantFor } from "@/data/clicker/rebirth-motion"
-import type { TranscendenceDef } from "@/domain/entities/clicker"
+import { playSfx } from "@/lib/clicker-sfx"
+import type { TranscendenceDef } from "@/application/clicker-ui"
 import "./clicker-rebirth-worldline-select.css"
 
 type Props = {
@@ -48,6 +49,7 @@ function WorldlineStampArt({
 
 export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onChoose }: Props) {
   const [chromeFailed, setChromeFailed] = useState(false)
+  const [selectBgFailed, setSelectBgFailed] = useState(false)
   const [focusId, setFocusId] = useState<string | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const reducedMotion = useMemo(
@@ -71,7 +73,13 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onCho
 
   return (
     <div className={`clicker-wl-select${reducedMotion ? " is-reduced" : ""}`}>
-      <img src={CLICKER_ASSETS.bgTranscendence} alt="" className="clicker-wl-select-room-bg" aria-hidden />
+      <img
+        src={selectBgFailed ? CLICKER_ASSETS.bgTranscendence : RebirthPhaseArt.worldlineSelectBg}
+        alt=""
+        className={`clicker-wl-select-room-bg${selectBgFailed ? "" : " clicker-wl-select-room-bg--hq"}`}
+        aria-hidden
+        onError={() => setSelectBgFailed(true)}
+      />
       {!chromeFailed ? (
         <img
           src={RebirthPhaseArt.selectChromeShared}
@@ -96,8 +104,14 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onCho
                   "--wl-accent": variant.accent,
                 } as CSSProperties
               }
-              onMouseEnter={() => setFocusId(buff.id)}
-              onFocus={() => setFocusId(buff.id)}
+              onMouseEnter={() => {
+                if (focusId !== buff.id) playSfx("worldlineHover")
+                setFocusId(buff.id)
+              }}
+              onFocus={() => {
+                if (focusId !== buff.id) playSfx("worldlineHover")
+                setFocusId(buff.id)
+              }}
             >
               {focused && !confirming ? (
                 <img src={RebirthPhaseArt.selectFocus} alt="" className="clicker-wl-select-focus-plate" aria-hidden />
