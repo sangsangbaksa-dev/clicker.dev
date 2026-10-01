@@ -164,7 +164,7 @@ function ParticleOverlayPlate({
   opacity: number
 }) {
   if (phase !== "collapse" && phase !== "void_tear" && phase !== "stamp" && phase !== "rebuild") return null
-  const src = RebirthPhaseArt.plateForPhase(phase)
+  const src = RebirthPhaseArt.plateForPhase(phase, variant.transcendenceId)
   return (
     <div className="clicker-rebirth-particles-plate" style={{ opacity }} aria-hidden>
       <RebirthAssetImage

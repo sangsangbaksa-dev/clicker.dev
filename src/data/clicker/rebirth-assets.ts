@@ -25,6 +25,8 @@ export const RebirthPhaseArt = {
   rebuildShared: `${DIR}/rebirth_rebuild_shared_v1.webp`,
   settleShared: `${DIR}/rebirth_settle_shared_v1.webp`,
   particlesShared: `${DIR}/rebirth_particles_shared_v1.webp`,
+  particlesResonanceProtocol: `${DIR}/rebirth_particles_resonance_protocol_v2.png`,
+  particlesVolatileCore: `${DIR}/rebirth_particles_volatile_core_v2.png`,
   voidTearShared: `${DIR}/rebirth_void_tear_shared_v1.webp`,
   selectChromeShared: `${DIR}/rebirth_worldline_select_chrome_shared_v1.webp`,
   selectFocus: `${DIR}/rebirth_worldline_select_focus_v1.webp`,
@@ -44,11 +46,19 @@ export const RebirthPhaseArt = {
     return slug ? `${DIR}/rebirth_reduced_motion_${slug}_v1.webp` : undefined
   },
 
-  plateForPhase(phase: PlatePhase): string {
+  /** Stamp-phase particle plate; resonance / volatile worldlines use v2 PNG overlays. */
+  particlesFor(transcendenceId: string): string {
+    if (transcendenceId === "reso_line") return RebirthPhaseArt.particlesResonanceProtocol
+    if (transcendenceId === "risk_line") return RebirthPhaseArt.particlesVolatileCore
+    return RebirthPhaseArt.particlesShared
+  },
+
+  plateForPhase(phase: PlatePhase, transcendenceId?: string): string {
     if (phase === "collapse") return RebirthPhaseArt.collapseShared
     if (phase === "void_tear") return RebirthPhaseArt.voidTearShared
     if (phase === "rebuild") return RebirthPhaseArt.rebuildShared
     if (phase === "settle") return RebirthPhaseArt.settleShared
+    if (phase === "stamp") return RebirthPhaseArt.particlesFor(transcendenceId ?? "")
     return RebirthPhaseArt.particlesShared
   },
 

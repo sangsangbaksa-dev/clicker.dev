@@ -32,6 +32,11 @@ export const MineArt = {
   enterCinematicV11: "/clicker/mine/mine_enter_door_walk_v11.mp4",
   /** Timed-session hi-tech interior — full-bleed chamber. */
   chamberBg: "/clicker/mine/mine_interior_hitech_v1.webp",
+  /**
+   * 1080p chamber still with center mineral (registered only — not wired as `chamberBg`;
+   * layout differs from ore plate / door-walk seam at x=640).
+   */
+  chamberInteriorMineral1080pV1: "/clicker/mine/mine_interior_hitech_mineral_1080p_v1.png",
   orePlate: MINE_ORE_PLATE.src,
   coreOre: "/clicker/mine/mine_core_ore_click_v1.webp",
 } as const

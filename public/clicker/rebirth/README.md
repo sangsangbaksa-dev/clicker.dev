@@ -10,6 +10,8 @@ Hex PROVISIONAL. Wired via `RebirthPhaseArt` in `src/data/clicker/rebirth-assets
 
 ## Particles / phase plates
 - `rebirth_particles_shared_v1.webp`
+- `rebirth_particles_resonance_protocol_v2.png` — Resonance Protocol stamp overlay (`reso_line`)
+- `rebirth_particles_volatile_core_v2.png` — Volatile Core stamp overlay (`risk_line`)
 - `rebirth_collapse_shared_v1.webp`
 - `rebirth_rebuild_shared_v1.webp`
 - `rebirth_settle_shared_v1.webp`
