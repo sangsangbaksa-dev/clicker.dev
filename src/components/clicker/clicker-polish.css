@@ -1737,7 +1737,7 @@
 [data-clicker] .clicker-metric-coin small { font-size: 10px; font-weight: 500; opacity: 0.75; }
 
 /* Battle HUD sits above the boss so your HP stays readable mid-fight. */
-[data-clicker] .clicker-hunt-station { position: relative; z-index: 12; }
+[data-clicker] .clicker-hunt-station { z-index: 12; }
 [data-clicker] .clicker-hunt-station.is-battle {
   padding: 8px 12px;
   border-radius: 14px;
@@ -1908,6 +1908,10 @@
   [data-clicker].is-region-hub:has(.clicker-hub-dock-btn:nth-child(7)) .clicker-region-station {
     bottom: calc(154px + env(safe-area-inset-bottom, 0px));
   }
+  /* Nine (RELICS + TRANSCENDENCE) still fit two rows: 5 + 4. */
+  [data-clicker] .clicker-hub-dock:has(.clicker-hub-dock-btn:nth-child(9)) { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+  [data-clicker] .clicker-hub-dock:has(.clicker-hub-dock-btn:nth-child(9)) .clicker-hub-dock-btn { padding: 8px 2px; }
+  [data-clicker] .clicker-hub-dock:has(.clicker-hub-dock-btn:nth-child(9)) .clicker-hub-dock-btn strong { font-size: 12px; letter-spacing: -0.02em; }
 }
 
 /* Desktop: CORE figures on the left, world wallet pills in their own column (they overlapped). */

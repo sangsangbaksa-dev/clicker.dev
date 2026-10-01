@@ -863,3 +863,11 @@
     width: min(100%, clamp(260px, 48vmin, 520px));
   }
 }
+
+/* Keep the guardian, its bars and the start button clear of the hub dock on short screens. */
+.clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-target {
+  width: min(100%, clamp(200px, 46vmin, 480px), calc((100dvh - 420px) * 0.8));
+}
+.clicker-shell.is-region-hub .clicker-boss.has-art .boss-art-canvas {
+  max-height: max(200px, calc(100dvh - 420px));
+}
