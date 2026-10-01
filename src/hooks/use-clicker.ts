@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   clickerAdminGrant,
+  clickerAdminGrantCurrencies,
+  clickerAdminJumpToFinalBoss,
+  clickerAdminReplayTutorial,
+  clickerApplyAdminModes,
   clickerAdminPatch,
   clickerAdminUnlockRegion,
   clickerBuyActiveSkill,
@@ -87,6 +91,9 @@ import {
   type ManageDrawerTabId,
   type RegionIntroDef,
   type SaveData,
+  ADMIN_DEFAULT_MODES,
+  nextAdminSpeed,
+  type AdminModes,
 } from "@/application/clicker-ui"
 import { playActiveSkillSfx, playSfx, setSfxMuted } from "@/lib/clicker-sfx"
 
@@ -126,6 +133,8 @@ export function useClicker() {
   const fxKey = useRef(0)
   const toastTimer = useRef<number | null>(null)
   const saveRef = useRef<SaveData | null>(null)
+  const [adminModes, setAdminModes] = useState<AdminModes>(ADMIN_DEFAULT_MODES)
+  const adminModesRef = useRef<AdminModes>(ADMIN_DEFAULT_MODES)
   const floatId = useRef(0)
   const knownAchievements = useRef<Set<string> | null>(null)
   const mineStartRef = useRef<MineSessionStart | null>(null)
@@ -217,7 +226,9 @@ export function useClicker() {
         last = ts
         const current = saveRef.current
         if (current && !current.metaState.gameCompleted && !blockedRef.current) {
-          const next = clickerTick(current, now())
+          const ticked = clickerTick(current, now())
+          const modes = adminModesRef.current
+          const next = modes.god || modes.speed > 1 ? clickerApplyAdminModes(current, ticked, modes) : ticked
           // Skip stale ticks if a commit landed while processTick ran.
           if (saveRef.current !== current) {
             frame = window.requestAnimationFrame(loop)
@@ -501,6 +512,51 @@ export function useClicker() {
     if (!isClickerAdminAllowed() || !saveRef.current) return
     commit(clickerAdminGrant(saveRef.current, amount))
   }, [commit])
+
+  const adminGrantAllCurrencies = useCallback(
+    (amount: number) => {
+      if (!isClickerAdminAllowed() || !saveRef.current) return
+      commit(clickerAdminGrantCurrencies(saveRef.current, amount))
+      flash(`관리자 · 모든 지역 재화 +${formatNumber(amount)}`)
+    },
+    [commit, flash],
+  )
+
+  const adminJumpFinalBoss = useCallback(() => {
+    if (!isClickerAdminAllowed() || !saveRef.current) return
+    const next = clickerAdminJumpToFinalBoss(saveRef.current, now())
+    commit(next)
+    persistNow(next)
+    flash("관리자 · 최종 보스 전투 시작")
+  }, [commit, persistNow, flash])
+
+  const adminSkipTutorial = useCallback(() => {
+    if (!isClickerAdminAllowed() || !saveRef.current) return
+    const next = clickerFinishTutorial(saveRef.current)
+    commit(next)
+    persistNow(next)
+  }, [commit, persistNow])
+
+  const adminReplayTutorial = useCallback(() => {
+    if (!isClickerAdminAllowed() || !saveRef.current) return
+    const next = clickerAdminReplayTutorial(saveRef.current)
+    commit(next)
+    persistNow(next)
+  }, [commit, persistNow])
+
+  const adminToggleGod = useCallback(() => {
+    if (!isClickerAdminAllowed()) return
+    const next = { ...adminModesRef.current, god: !adminModesRef.current.god }
+    adminModesRef.current = next
+    setAdminModes(next)
+  }, [])
+
+  const adminCycleSpeed = useCallback(() => {
+    if (!isClickerAdminAllowed()) return
+    const next = { ...adminModesRef.current, speed: nextAdminSpeed(adminModesRef.current.speed) }
+    adminModesRef.current = next
+    setAdminModes(next)
+  }, [])
 
   const adminFillFever = useCallback(() => {
     if (!isClickerAdminAllowed() || !saveRef.current) return
@@ -950,6 +1006,13 @@ export function useClicker() {
     completeEnding,
     adminReset,
     adminGrant,
+    adminGrantAllCurrencies,
+    adminJumpFinalBoss,
+    adminSkipTutorial,
+    adminReplayTutorial,
+    adminToggleGod,
+    adminCycleSpeed,
+    adminModes,
     adminFillFever,
     adminCrisis,
     adminPotions,

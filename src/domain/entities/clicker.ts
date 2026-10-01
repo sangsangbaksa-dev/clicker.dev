@@ -418,6 +418,8 @@ export type MonsterDef = {
 export type BossDef = {
   name: string
   kind: string
+  /** Optional painted art (transparent PNG/WebP); replaces the inline SVG creature. */
+  imageSrc?: string
   /** Guardian health in CORE-strike damage. */
   hp: number
   playerHp: number

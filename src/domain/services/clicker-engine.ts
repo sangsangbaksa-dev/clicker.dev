@@ -29,8 +29,8 @@ export const MINE_REENTER_COOLDOWN_MS = 10_000
 /** The re-entry wait the economy was tuned on; mine yields scale so CORE per real minute stays as it was. */
 export const MINE_PACE_REFERENCE_COOLDOWN_MS = 30_000
 const REENTER_MIN_COOLDOWN_MS = 5_000
-/** Strikes per second allowed in the mine (taps + assist drill together). */
-export const MINE_MAX_CPS = 12
+/** Strikes per second allowed in the mine (taps + Space + assist drill together). */
+export { MINE_MAX_CPS } from "./clicker-strike-limiter.ts"
 
 export type Rng = () => number
 

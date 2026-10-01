@@ -13,16 +13,19 @@ import { MineArt } from "@/data/clicker/mine-assets"
 import {
   ORE_ART,
   oreHitBox,
+  oreHitTest,
   oreStrikePoint,
   spawnMineOres,
+  type AlphaMask,
   VEIN_LIFETIME_MS,
   VEIN_SPAWN_CHANCE,
+  loadAlphaMask,
 } from "@/application/clicker-ui"
+import { useClickerSpaceClick } from "@/hooks/use-clicker-space-click"
 import { playSfx } from "@/lib/clicker-sfx"
 import "./clicker-mine.css"
 
-/** Strikes per second while Space is held down. */
-const SPACE_HOLD_CPS = 7
+const ORE_MASK_SRC = "/clicker/mine/ore_outline_v2.png"
 
 export type MineStrikeResult = { critical: boolean; lightning?: boolean; quake?: boolean; echo?: boolean }
 
@@ -136,12 +139,27 @@ export function ClickerMine({
   const [veinLabel, setVeinLabel] = useState<string | null>(null)
   const seq = useRef(0)
   const mineRef = useRef<HTMLDivElement>(null)
+  const oreRef = useRef<HTMLButtonElement>(null)
+  const maskRef = useRef<AlphaMask | null>(null)
   const reduceMotion = useRef(false)
   const timers = useRef<number[]>([])
 
   const later = (fn: () => void, ms: number) => {
     timers.current.push(window.setTimeout(fn, ms))
   }
+
+  useEffect(() => {
+    let alive = true
+    loadAlphaMask(ORE_MASK_SRC).then(
+      (mask) => {
+        if (alive) maskRef.current = mask
+      },
+      () => {},
+    )
+    return () => {
+      alive = false
+    }
+  }, [])
 
   useEffect(() => {
     reduceMotion.current =
@@ -258,19 +276,34 @@ export function ClickerMine({
     [fireLaser, fireFx],
   )
 
+  const isOreAt = useCallback((clientX: number, clientY: number) => {
+    const rect = oreRef.current?.getBoundingClientRect()
+    if (!rect || rect.width <= 0) return false
+    const mask = maskRef.current
+    if (!mask) {
+      return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom
+    }
+    return oreHitTest(mask, { x: clientX, y: clientY }, rect, "fill")
+  }, [])
+
+  const clickAtClient = useCallback(
+    (clientX: number, clientY: number) => {
+      const el = mineRef.current
+      if (!el || !isOreAt(clientX, clientY)) return
+      const rect = el.getBoundingClientRect()
+      hitAt(clientX - rect.left, clientY - rect.top, false)
+    },
+    [hitAt, isOreAt],
+  )
+
   const strike = useCallback(
     (e: ReactPointerEvent<HTMLButtonElement>) => {
       if (e.button !== 0) return
       e.preventDefault()
       e.stopPropagation()
-      const el = mineRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      const aimX = e.clientX - rect.left
-      const aimY = e.clientY - rect.top
-      hitAt(aimX, aimY, false)
+      clickAtClient(e.clientX, e.clientY)
     },
-    [hitAt],
+    [clickAtClient],
   )
 
   useEffect(() => {
@@ -282,38 +315,13 @@ export function ClickerMine({
     return () => window.clearInterval(id)
   }, [autoRate, hitAt])
 
-  useEffect(() => {
-    let timer = 0
-    const hitCenter = () => {
-      const { x, y } = live.current.strikePx
-      hitAt(x, y, false)
-    }
-    const stop = () => {
-      if (timer) window.clearInterval(timer)
-      timer = 0
-    }
-    const typing = (t: EventTarget | null) =>
-      t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))
-    const onDown = (e: KeyboardEvent) => {
-      if (e.code !== "Space" || e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return
-      e.preventDefault()
-      if (timer || e.repeat) return
-      hitCenter()
-      timer = window.setInterval(hitCenter, 1000 / SPACE_HOLD_CPS)
-    }
-    const onUp = (e: KeyboardEvent) => {
-      if (e.code === "Space") stop()
-    }
-    window.addEventListener("keydown", onDown)
-    window.addEventListener("keyup", onUp)
-    window.addEventListener("blur", stop)
-    return () => {
-      stop()
-      window.removeEventListener("keydown", onDown)
-      window.removeEventListener("keyup", onUp)
-      window.removeEventListener("blur", stop)
-    }
-  }, [hitAt])
+  useClickerSpaceClick({
+    getOreCenter: () => {
+      const r = oreRef.current?.getBoundingClientRect()
+      return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null
+    },
+    click: clickAtClient,
+  })
 
   useEffect(() => {
     if (!onVein || Math.random() >= VEIN_SPAWN_CHANCE) return
@@ -360,6 +368,7 @@ export function ClickerMine({
 
       {box ? (
         <button
+          ref={oreRef}
           type="button"
           className={`clicker-mine-crystal${broken ? " is-broken" : ""}`}
           aria-label={muted ? "코어 광석 채굴 · 음소거" : "코어 광석 채굴 · 레이저"}
