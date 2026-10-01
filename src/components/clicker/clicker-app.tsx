@@ -677,12 +677,14 @@ export function ClickerApp() {
   }, [inMineSurface, mineEndsAt])
 
   const mineEndsRef = useRef(0)
-  if (inMineSurface && mineEndsAt) mineEndsRef.current = mineEndsAt
+  useEffect(() => {
+    if (inMineSurface && mineEndsAt) mineEndsRef.current = mineEndsAt
+  }, [inMineSurface, mineEndsAt])
   const prevInMine = useRef(inMineSurface)
   useEffect(() => {
     if (prevInMine.current && !inMineSurface) {
       const timedOut = mineEndsRef.current > 0 && Date.now() >= mineEndsRef.current - 150
-      playSfx(timedOut ? "sessionTimerEnd" : "sessionEnd")
+      if (timedOut) playSfx("sessionTimerEnd")
     }
     prevInMine.current = inMineSurface
   }, [inMineSurface])
