@@ -29,7 +29,7 @@ function importsFrom(file: string): string[] {
 
 function clickerDomainFiles(): string[] {
   const entities = join(srcRoot, "domain/entities/clicker.ts")
-  const services = walk(join(srcRoot, "domain/services")).filter((f) => /clicker/i.test(f))
+  const services = walk(join(srcRoot, "domain/services")).filter((f) => /clicker|ore-node/i.test(f))
   return [entities, ...services]
 }
 
@@ -37,9 +37,17 @@ function clickerApplicationFiles(): string[] {
   const appDir = join(srcRoot, "application")
   const ports = walk(join(appDir, "ports")).filter((f) => /clicker/i.test(f))
   const root = readdirSync(appDir)
-    .filter((n) => n.startsWith("clicker") && (n.endsWith(".ts") || n.endsWith(".tsx")))
+    .filter(
+      (n) => (n.startsWith("clicker") || n === "spawn-mine-ores.ts") && (n.endsWith(".ts") || n.endsWith(".tsx")),
+    )
     .map((n) => join(appDir, n))
-    .filter((f) => !f.endsWith(".test.ts") && !f.endsWith("clicker-ui.ts") && !f.endsWith("clicker-display.ts"))
+    .filter(
+      (f) =>
+        !f.endsWith(".test.ts") &&
+        !f.endsWith("clicker-ui.ts") &&
+        !f.endsWith("clicker-display.ts") &&
+        !f.endsWith("clicker-bgm-client-bind.ts"),
+    )
   return [...ports, ...root]
 }
 

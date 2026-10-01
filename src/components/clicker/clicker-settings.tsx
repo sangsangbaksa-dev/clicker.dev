@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
-import { formatNumber } from "@/application/clicker-ui"
-import type { ParsedSaveCode } from "@/application/clicker-ui"
+import { formatNumber, registerSecretTap, type ParsedSaveCode, type SecretTapState } from "@/application/clicker-ui"
 
 type Props = {
   muted: boolean
@@ -17,6 +16,8 @@ type Props = {
   onExportCode: () => string | null
   onParseCode: (code: string) => ParsedSaveCode
   onImportJson: (json: string) => boolean
+  /** Hidden: tapping the title a few times quickly reveals the admin tools. */
+  onSecretAdmin?: () => void
   onClose: () => void
 }
 
@@ -44,8 +45,10 @@ export function ClickerSettings({
   onExportCode,
   onParseCode,
   onImportJson,
+  onSecretAdmin,
   onClose,
 }: Props) {
+  const secretTaps = useRef<SecretTapState>({ count: 0, first: 0 })
   const [resetArmed, setResetArmed] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const reducedMotion = useReducedMotion()
@@ -65,7 +68,16 @@ export function ClickerSettings({
       >
         <header className="clicker-settings-head">
           <div>
-                        <h2 id="clicker-settings-title">설정</h2>
+                        <h2
+              id="clicker-settings-title"
+              onClick={() => {
+                const r = registerSecretTap(secretTaps.current, Date.now())
+                secretTaps.current = r.state
+                if (r.unlocked) onSecretAdmin?.()
+              }}
+            >
+              설정
+            </h2>
           </div>
           <button type="button" className="clicker-ghost" onClick={onClose} aria-keyshortcuts="Escape">
             닫기

@@ -163,10 +163,17 @@ function ParticleOverlayPlate({
   phase: RebirthPhaseId
   opacity: number
 }) {
-  if (phase !== "collapse" && phase !== "void_tear" && phase !== "stamp" && phase !== "rebuild") return null
-  const src = RebirthPhaseArt.plateForPhase(phase)
+  if (phase !== "collapse" && phase !== "void_tear" && phase !== "stamp" && phase !== "rebuild" && phase !== "settle")
+    return null
+  const keyBackdrop = RebirthPhaseArt.keyVisualBackdropFor(phase)
+  const src = keyBackdrop ?? RebirthPhaseArt.plateForPhase(phase, variant.transcendenceId)
+  const keyVisual = Boolean(keyBackdrop)
   return (
-    <div className="clicker-rebirth-particles-plate" style={{ opacity }} aria-hidden>
+    <div
+      className={`clicker-rebirth-particles-plate${keyVisual ? " clicker-rebirth-particles-plate--key-visual" : ""}`}
+      style={{ opacity: keyVisual ? Math.max(opacity, 0.55) : opacity }}
+      aria-hidden
+    >
       <RebirthAssetImage
         src={src}
         className="clicker-rebirth-particles-plate-img"

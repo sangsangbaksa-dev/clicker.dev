@@ -7,6 +7,7 @@ import type {
   SkillNodeDef,
   UpgradeDef,
 } from "../../domain/entities/clicker"
+import { nameSkillNode } from "./skill-names.ts"
 
 /**
  * Catalog additions: more producers, per-producer upgrade tiers, side circuits, potions and
@@ -21,6 +22,10 @@ export const EXTRA_PRODUCERS: ProducerDef[] = [
   { id: "gravity_well", name: "Gravity Well", description: "중력으로 잔향을 끌어모은다.", unlockAt: 5_000_000, baseCost: 200_000_000, productionPerSecond: 3_100, costGrowth: 1.215, tags: ["RESONANCE", "MID"], assetId: "/clicker/producer/producer_gravity_well.webp" },
   { id: "nova_forge", name: "Nova Forge", description: "작은 신성을 불러 주조한다.", unlockAt: 4_000_000_000, baseCost: 110_000_000_000, productionPerSecond: 240_000, costGrowth: 1.24, tags: ["END", "LATE"], assetId: "/clicker/producer/producer_nova_forge.webp" },
   { id: "aurora_reactor", name: "Aurora Reactor", description: "코어 심장과 공명하는 마지막 반응로.", unlockAt: 15_000_000_000, baseCost: 500_000_000_000, productionPerSecond: 650_000, costGrowth: 1.245, tags: ["END", "RISK"], assetId: "/clicker/producer/producer_aurora_reactor.webp" },
+  // Late producers: they only exist from their worldline on, each a step above the last.
+  { id: "star_anvil", name: "Star Anvil", description: "붙잡은 별 위에서 코어를 두드려 벼리는 모루.", unlockAt: 100_000_000_000, baseCost: 3_000_000_000_000, productionPerSecond: 3_500_000, costGrowth: 1.25, tags: ["END"], requiresWorldLine: 6, assetId: "/clicker/producer/producer_star_anvil.webp" },
+  { id: "worldline_loom", name: "Worldline Loom", description: "지나온 세계선들을 실로 뽑아 한 장으로 짜는 베틀.", unlockAt: 600_000_000_000, baseCost: 20_000_000_000_000, productionPerSecond: 20_000_000, costGrowth: 1.255, tags: ["END"], requiresWorldLine: 7, assetId: "/clicker/producer/producer_worldline_loom.webp" },
+  { id: "heart_engine", name: "Heart Engine", description: "코어 심장의 박동을 그대로 옮겨 심은 기관.", unlockAt: 4_000_000_000_000, baseCost: 150_000_000_000_000, productionPerSecond: 120_000_000, costGrowth: 1.26, tags: ["END"], requiresWorldLine: 8, assetId: "/clicker/producer/producer_heart_engine.webp" },
 ]
 
 /** Two ×2 tiers per producer (skipping ids the base catalog already upgrades once). */
@@ -38,6 +43,7 @@ export function producerUpgradeTiers(producers: ProducerDef[], existing: Upgrade
         productionMultiplier: 2,
         producerId: p.id,
         unlockProducerId: p.id,
+        ...(p.requiresWorldLine ? { assetId: p.assetId } : {}),
       })
     }
     out.push({
@@ -49,6 +55,7 @@ export function producerUpgradeTiers(producers: ProducerDef[], existing: Upgrade
       productionMultiplier: 2,
       producerId: p.id,
       unlockProducerId: p.id,
+      ...(p.requiresWorldLine ? { assetId: p.assetId } : {}),
     })
   }
   return out
@@ -135,7 +142,8 @@ const NODE_SPECS: NodeSpec[] = [
   ["hunt_slayer", "HUNT", 4, "Slayer", 16_000_000_000, "hunt_lure", { monsterRewardMultiplier: 2.5 }, "크리처 보상 ×2.5"],
   ["hunt_bane", "HUNT", 4, "Warden's Bane", 29_000_000_000, "hunt_slayer", { bossDamageMultiplier: 1.5 }, "수호자 피해 ×1.5"],
   ["hunt_apex", "HUNT", 5, "Apex Predator", 150_000_000_000, "hunt_bane", { bossDamageMultiplier: 2, monsterRewardMultiplier: 3 }, "수호자 피해 ×2 · 크리처 보상 ×3"],
-  ["trans_heart", "TRANSCENDENCE", 5, "Heart Key", 200_000_000_000, "trans_convergence", { clickMultiplier: 2, productionMultiplier: 2 }, "채굴·생산 ×2"],
+  // The tree's final key: one purchase that redraws the whole economy.
+  ["trans_heart", "TRANSCENDENCE", 5, "Heart Key", 1_000_000_000_000, "trans_convergence", { clickMultiplier: 10, productionMultiplier: 10, criticalMultiplier: 2, droneStrikesPerSecond: 5 }, "채굴·생산 ×10 · 치명타 배율 ×2 · 드론 +5회/초"],
 ]
 
 export const EXTRA_SKILL_NODES: SkillNodeDef[] = NODE_SPECS.map(([id, branch, tier, name, cost, requires, effect, description]) => ({
@@ -160,6 +168,28 @@ export const EXTRA_ACTIVE_SKILLS: ActiveSkillDef[] = [
   { id: "time_warp", name: "TIME WARP", description: "생산 30초분 즉시 획득", cooldown: 60, duration: 0, shopCost: 300_000, energyBurstSeconds: 30, assetId: "/clicker/skill/skill_time_warp.webp" },
   { id: "grid_boost", name: "GRID BOOST", description: "20초 생산 ×2", cooldown: 60, duration: 20, shopCost: 150_000, productionMultiplier: 2, assetId: "/clicker/skill/skill_grid_boost.webp" },
 ]
+
+/**
+ * AUTOMATION circuits hit harder than their raw numbers: the production bonus part of every
+ * multiplier ×1.75 (×1.2 → ×1.35, ×2 → ×2.75), assist drill and drone strikes ×1.5, drone
+ * efficiency ×1.5. Unlock and producer-list descriptions pick up the new numbers.
+ */
+const AUTOMATION_BONUS_SCALE = 1.75
+const AUTOMATION_STRIKE_SCALE = 1.5
+
+function boostAutomation(n: SkillNodeDef): SkillNodeDef {
+  if (n.branch !== "AUTOMATION") return n
+  const round2 = (v: number) => Math.round(v * 100) / 100
+  const out: SkillNodeDef = { ...n }
+  if (n.productionMultiplier) out.productionMultiplier = round2(Math.round((1 + (n.productionMultiplier - 1) * AUTOMATION_BONUS_SCALE) * 20) / 20)
+  if (n.autoDrillPerSecond) out.autoDrillPerSecond = Math.ceil(n.autoDrillPerSecond * AUTOMATION_STRIKE_SCALE)
+  if (n.droneStrikesPerSecond) out.droneStrikesPerSecond = Math.ceil(n.droneStrikesPerSecond * AUTOMATION_STRIKE_SCALE)
+  if (n.droneEfficiencyAdd) out.droneEfficiencyAdd = round2(n.droneEfficiencyAdd * AUTOMATION_STRIKE_SCALE)
+  out.description = n.description
+    .replace(/생산자 ×[\d.]+/, `생산자 ×${out.productionMultiplier}`)
+    .replace(/초당 \d+회/, `초당 ${out.autoDrillPerSecond ?? out.droneStrikesPerSecond}회`)
+  return out
+}
 
 /** Raw prices are cut by this before the unit change: cheaper items, more of them. */
 export const PRICE_CUT = 0.5
@@ -189,7 +219,7 @@ export function finalizeCatalog(base: GameConfig): GameConfig {
     upgrades: upgrades
       .map((x) => ({ ...x, cost: x.cost * c, assetId: x.assetId ?? `/clicker/upgrade/${x.id}.webp` }))
       .sort((a, b) => a.cost - b.cost),
-    skillNodes: [...base.skillNodes, ...EXTRA_SKILL_NODES].map((n) => ({
+    skillNodes: [...base.skillNodes, ...EXTRA_SKILL_NODES].map(boostAutomation).map(nameSkillNode).map((n) => ({
       ...n,
       cost: n.cost * c,
       startingEnergy: n.startingEnergy === undefined ? undefined : n.startingEnergy * u,

@@ -28,6 +28,26 @@
   z-index: 0;
 }
 
+.clicker-wl-select-room-bg--hq {
+  object-position: center top;
+  opacity: 0.52;
+}
+
+.clicker-wl-select::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    transparent 36%,
+    color-mix(in srgb, #05070d 45%, transparent) 48%,
+    color-mix(in srgb, #05070d 82%, transparent) 100%
+  );
+}
+
 .clicker-wl-select-chrome-placeholder {
   position: absolute;
   inset: 0;

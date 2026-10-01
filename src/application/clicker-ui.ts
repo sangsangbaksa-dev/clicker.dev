@@ -2,6 +2,10 @@
  * Clicker UI facade: types and read-only helpers for components and hooks.
  * Domain rules stay in domain; this module is the outward-facing import surface.
  */
+export { spawnMineOres } from "@/application/spawn-mine-ores"
+export { ORE_ART } from "@/infrastructure/ore-art"
+export { loadAlphaMask } from "@/infrastructure/image/alpha-mask-loader"
+export { oreHitBox, oreStrikePoint, type OreNode } from "@/domain/services/ore-node"
 export { formatNumber } from "@/domain/services/clicker-format"
 export {
   bulkAffordable,
@@ -25,6 +29,7 @@ export type {
   MetaState,
   RegionChallengeKind,
   RegionIntroDef,
+  RelicDef,
   RunState,
   SaveData,
   TranscendenceDef,
@@ -38,6 +43,11 @@ export {
   drillCooldownMs,
   isRegionUnlocked,
   monsterAlive,
+  relicVaultOpen,
+  relicCost,
+  relicEffectAt,
+  relicError,
+  relicLevel,
   productionSnapshot,
   regionCurrencyBalance,
   scaledCost,
@@ -48,6 +58,23 @@ export {
   isClickerAdminAllowed,
 } from "@/domain/services/clicker-admin-gate"
 export { isConfirmReady } from "@/domain/services/clicker-confirm-guard"
+export {
+  activeSkillBarHint,
+  activeSkillBarShortLabel,
+  activeSkillBarStatusLine,
+  isActiveSkillBarDisabled,
+  resolveActiveSkillBarState,
+  type ActiveSkillBarState,
+} from "@/domain/services/clicker-active-skill-slot"
+export { oreHitTest, mapPointToImage, buildAlphaMask, ORE_ALPHA_THRESHOLD, type AlphaMask } from "@/domain/services/clicker-ore-hit"
+export {
+  ADMIN_DEFAULT_MODES,
+  clampTutorialStep,
+  nextAdminSpeed,
+  registerSecretTap,
+  type AdminModes,
+  type SecretTapState,
+} from "@/domain/services/clicker-admin-tools"
 export { achievementProgress, autoDrillRate, baseDrillRate, VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/domain/services/clicker-bonus"
 export {
   buildScreenTabs,

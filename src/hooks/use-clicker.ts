@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   clickerAdminGrant,
+  clickerAdminGrantCurrencies,
+  clickerAdminJumpToFinalBoss,
+  clickerAdminReplayTutorial,
+  clickerApplyAdminModes,
   clickerAdminPatch,
   clickerAdminUnlockRegion,
   clickerBuyActiveSkill,
@@ -46,6 +50,7 @@ import {
   clickerLeaveLair,
   clickerStrikeLair,
   clickerForge,
+  clickerBuyRelic,
   allowMineStrike,
   clearClickerStoredSave,
   clickerPauseMine,
@@ -87,8 +92,11 @@ import {
   type ManageDrawerTabId,
   type RegionIntroDef,
   type SaveData,
+  ADMIN_DEFAULT_MODES,
+  nextAdminSpeed,
+  type AdminModes,
 } from "@/application/clicker-ui"
-import { playSfx, setSfxMuted } from "@/lib/clicker-sfx"
+import { playActiveSkillSfx, playSfx, setSfxMuted } from "@/lib/clicker-sfx"
 
 export type FloatNumber = {
   id: number
@@ -126,6 +134,8 @@ export function useClicker() {
   const fxKey = useRef(0)
   const toastTimer = useRef<number | null>(null)
   const saveRef = useRef<SaveData | null>(null)
+  const [adminModes, setAdminModes] = useState<AdminModes>(ADMIN_DEFAULT_MODES)
+  const adminModesRef = useRef<AdminModes>(ADMIN_DEFAULT_MODES)
   const floatId = useRef(0)
   const knownAchievements = useRef<Set<string> | null>(null)
   const mineStartRef = useRef<MineSessionStart | null>(null)
@@ -217,7 +227,9 @@ export function useClicker() {
         last = ts
         const current = saveRef.current
         if (current && !current.metaState.gameCompleted && !blockedRef.current) {
-          const next = clickerTick(current, now())
+          const ticked = clickerTick(current, now())
+          const modes = adminModesRef.current
+          const next = modes.god || modes.speed > 1 ? clickerApplyAdminModes(current, ticked, modes) : ticked
           // Skip stale ticks if a commit landed while processTick ran.
           if (saveRef.current !== current) {
             frame = window.requestAnimationFrame(loop)
@@ -358,7 +370,7 @@ export function useClicker() {
     const result = clickerBuyProducer(saveRef.current, id, count)
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("purchase")
+    playSfx("producerBuy")
   }, [commit, refuse])
 
   const buyUpgrade = useCallback((id: string) => {
@@ -408,7 +420,7 @@ export function useClicker() {
     const result = clickerUseSkill(saveRef.current, id, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("skillUse")
+    playActiveSkillSfx(id)
     const name = clickerGameConfig.activeSkills.find((s) => s.id === id)?.name ?? id
     flash(`${name} 발동`)
   }, [commit, flash, refuse])
@@ -501,6 +513,51 @@ export function useClicker() {
     if (!isClickerAdminAllowed() || !saveRef.current) return
     commit(clickerAdminGrant(saveRef.current, amount))
   }, [commit])
+
+  const adminGrantAllCurrencies = useCallback(
+    (amount: number) => {
+      if (!isClickerAdminAllowed() || !saveRef.current) return
+      commit(clickerAdminGrantCurrencies(saveRef.current, amount))
+      flash(`관리자 · 모든 지역 재화 +${formatNumber(amount)}`)
+    },
+    [commit, flash],
+  )
+
+  const adminJumpFinalBoss = useCallback(() => {
+    if (!isClickerAdminAllowed() || !saveRef.current) return
+    const next = clickerAdminJumpToFinalBoss(saveRef.current, now())
+    commit(next)
+    persistNow(next)
+    flash("관리자 · 최종 보스 전투 시작")
+  }, [commit, persistNow, flash])
+
+  const adminSkipTutorial = useCallback(() => {
+    if (!isClickerAdminAllowed() || !saveRef.current) return
+    const next = clickerFinishTutorial(saveRef.current)
+    commit(next)
+    persistNow(next)
+  }, [commit, persistNow])
+
+  const adminReplayTutorial = useCallback(() => {
+    if (!isClickerAdminAllowed() || !saveRef.current) return
+    const next = clickerAdminReplayTutorial(saveRef.current)
+    commit(next)
+    persistNow(next)
+  }, [commit, persistNow])
+
+  const adminToggleGod = useCallback(() => {
+    if (!isClickerAdminAllowed()) return
+    const next = { ...adminModesRef.current, god: !adminModesRef.current.god }
+    adminModesRef.current = next
+    setAdminModes(next)
+  }, [])
+
+  const adminCycleSpeed = useCallback(() => {
+    if (!isClickerAdminAllowed()) return
+    const next = { ...adminModesRef.current, speed: nextAdminSpeed(adminModesRef.current.speed) }
+    adminModesRef.current = next
+    setAdminModes(next)
+  }, [])
 
   const adminFillFever = useCallback(() => {
     if (!isClickerAdminAllowed() || !saveRef.current) return
@@ -604,6 +661,7 @@ export function useClicker() {
     if (!result.error && next.settings.playSurface === "mine") {
       if (!mineStartRef.current) mineStartRef.current = clickerMineSessionStart(next, t)
       setMineSummary(null)
+      playSfx("enterMine")
     }
     commit(next)
     persistNow(next)
@@ -692,6 +750,7 @@ export function useClicker() {
   const exitMine = useCallback(() => {
     if (!saveRef.current) return
     const before = saveRef.current
+    if (before.settings.playSurface === "mine") playSfx("exitMine")
     const exited = clickerExitMine(before, now())
     const next = before.settings.playSurface === "mine" ? finishMine(before, exited) : exited
     commit(next)
@@ -772,6 +831,20 @@ export function useClicker() {
     [commit, persistNow, refuse, flash],
   )
 
+  const buyRelic = useCallback(
+    (relicId: string) => {
+      if (!saveRef.current) return
+      const result = clickerBuyRelic(saveRef.current, relicId)
+      if (!result.ok) return refuse(result.error)
+      commit(result.value)
+      persistNow(result.value)
+      playSfx("upgrade")
+      const relic = clickerGameConfig.relics.find((r) => r.id === relicId)
+      flash(`유물 강화 · ${relic?.name ?? relicId} Lv.${result.value.metaState.relicLevels[relicId] ?? 0}`)
+    },
+    [commit, persistNow, refuse, flash],
+  )
+
   /** One tap on the region drill rig. Returns the payout when this tap bored the vein, else 0 (null when refused). */
   const drillVein = useCallback(
     (clientX: number, clientY: number) => {
@@ -797,7 +870,7 @@ export function useClicker() {
     const result = clickerStartBoss(saveRef.current, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("bossRoar")
+    playSfx("bossAppear")
   }, [commit, refuse])
 
   /** Strike the guardian. Returns true on the killing blow. */
@@ -806,6 +879,7 @@ export function useClicker() {
       if (!saveRef.current) return false
       const result = clickerStrikeBoss(saveRef.current, now())
       if (result.damage <= 0) return false
+      playSfx("bossHit")
       commit(result.save)
       const id = ++floatId.current
       setFloats((prev) => [...prev.slice(-12), { id, text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }])
@@ -950,6 +1024,13 @@ export function useClicker() {
     completeEnding,
     adminReset,
     adminGrant,
+    adminGrantAllCurrencies,
+    adminJumpFinalBoss,
+    adminSkipTutorial,
+    adminReplayTutorial,
+    adminToggleGod,
+    adminCycleSpeed,
+    adminModes,
     adminFillFever,
     adminCrisis,
     adminPotions,
@@ -982,6 +1063,7 @@ export function useClicker() {
     leaveLair,
     strikeLair,
     forge,
+    buyRelic,
     drillVein,
     purchaseFx,
     startBoss,

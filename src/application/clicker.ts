@@ -44,6 +44,7 @@ import {
   scaledCost,
   mineYieldMultiplier,
   regionUnlockThreshold,
+  buyRelic,
 } from "@/domain/services/clicker-engine"
 import {
   awardAchievements,
@@ -59,6 +60,15 @@ import {
   type MineSessionStart,
   type MineSessionSummary,
 } from "@/domain/services/clicker-mine-session"
+import {
+  adminGrantCurrencies,
+  adminJumpToFinalBoss,
+  adminReplayTutorial,
+  applyGodMode,
+  applySpeedBoost,
+  type AdminModes,
+} from "@/domain/services/clicker-admin-tools"
+import { allowStrike } from "@/domain/services/clicker-strike-limiter"
 import { decodeClickerSave, encodeClickerSave } from "@/domain/services/clicker-save-codec"
 import { enterLair, forgeGear, leaveLair, strikeLair, tickLair, type GearSlot } from "@/domain/services/clicker-lair"
 import { encodeSaveCode, parseSaveCode, type ParsedSaveCode } from "@/domain/services/clicker-save-transfer"
@@ -420,6 +430,14 @@ export function clickerForge(save: SaveData, slot: GearSlot): UseCaseResult<Save
   return ok({ ...save, runState: next.run })
 }
 
+/* ---------- Relic Vault ---------- */
+
+export function clickerBuyRelic(save: SaveData, relicId: string): UseCaseResult<SaveData> {
+  const next = buyRelic(save.runState, save.metaState, config, relicId)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ ...save, runState: next.run, metaState: next.meta })
+}
+
 export function clickerStartBoss(save: SaveData, now: number): UseCaseResult<SaveData> {
   return withRun(save, startBossFight(save.runState, config, now))
 }
@@ -434,12 +452,25 @@ export function clickerStrikeBoss(save: SaveData, now: number) {
  * Returns true when this strike may land; the caller keeps the timestamp window.
  */
 export function allowMineStrike(window: number[], now: number): boolean {
-  while (window.length && now - window[0] >= 1000) window.shift()
-  if (window.length >= MINE_MAX_CPS) return false
-  window.push(now)
-  return true
+  return allowStrike(window, now, MINE_MAX_CPS)
 }
 
 export { mineSessionStart as clickerMineSessionStart }
+
+export function clickerAdminGrantCurrencies(save: SaveData, amount: number): SaveData {
+  return { ...save, runState: adminGrantCurrencies(save.runState, config, amount) }
+}
+
+export function clickerAdminJumpToFinalBoss(save: SaveData, now: number): SaveData {
+  return adminJumpToFinalBoss(save, config, now)
+}
+
+export { adminReplayTutorial as clickerAdminReplayTutorial }
+
+export function clickerApplyAdminModes(prev: SaveData, next: SaveData, modes: AdminModes): SaveData {
+  let run = applySpeedBoost(prev.runState, next.runState, modes.speed)
+  if (modes.god) run = applyGodMode(prev.runState, run)
+  return run === next.runState ? next : { ...next, runState: run }
+}
 
 export { config as clickerGameConfig, createInitialSave }

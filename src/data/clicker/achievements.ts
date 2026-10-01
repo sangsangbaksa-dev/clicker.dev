@@ -26,6 +26,7 @@ export const CLICKER_ACHIEVEMENTS: AchievementDef[] = [
   { id: "skills_10", name: "회로 설계자", description: "스킬 회로 10개", kind: "SKILLS", target: 10 },
   { id: "rebirth_1", name: "세계선 도약", description: "환생 1회", kind: "REBIRTHS", target: 1 },
   { id: "rebirth_4", name: "다중 세계선", description: "환생 4회", kind: "REBIRTHS", target: 4 },
+  { id: "rebirth_7", name: "끝없는 세계선", description: "환생 7회", kind: "REBIRTHS", target: 7 },
   { id: "vein_1", name: "황금의 속삭임", description: "황금 광맥 1회", kind: "VEINS", target: 1 },
   { id: "vein_10", name: "광맥 사냥꾼", description: "황금 광맥 10회", kind: "VEINS", target: 10 },
   { id: "vein_50", name: "황금 탐지기", description: "황금 광맥 50회", kind: "VEINS", target: 50 },

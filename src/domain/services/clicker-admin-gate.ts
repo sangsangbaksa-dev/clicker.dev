@@ -2,6 +2,8 @@
  * Pre-launch playtest: the live site also offers the admin panel to anyone who opens it with
  * `?admin=1` (remembered in this browser). Set to `false` at launch — that removes admin
  * from every production build again.
+ *
+ * Playtest on production without flipping this flag: set `NEXT_PUBLIC_CLICKER_ADMIN=1` at build time.
  */
 export const CLICKER_PRELAUNCH = false
 

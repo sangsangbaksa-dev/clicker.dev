@@ -13,6 +13,7 @@ import type {
   SaveData,
   SkillNodeDef,
   TimedBuff,
+  RelicDef,
   TranscendenceDef,
   UpgradeDef,
 } from "../entities/clicker"
@@ -29,8 +30,8 @@ export const MINE_REENTER_COOLDOWN_MS = 10_000
 /** The re-entry wait the economy was tuned on; mine yields scale so CORE per real minute stays as it was. */
 export const MINE_PACE_REFERENCE_COOLDOWN_MS = 30_000
 const REENTER_MIN_COOLDOWN_MS = 5_000
-/** Strikes per second allowed in the mine (taps + assist drill together). */
-export const MINE_MAX_CPS = 12
+/** Strikes per second allowed in the mine (taps + Space + assist drill together). */
+export { MINE_MAX_CPS } from "./clicker-strike-limiter.ts"
 
 export type Rng = () => number
 
@@ -127,6 +128,7 @@ export function createInitialMeta(): MetaState {
     completedAt: null,
     bossDefeated: false,
     monstersSlain: 0,
+    relicLevels: {},
   }
 }
 
@@ -373,9 +375,95 @@ export function droneEnergyPerSecond(run: RunState, meta: MetaState, config: Gam
   return derivedClick(run, meta, config).click * stats.droneStrikesPerSecond * stats.droneEfficiency
 }
 
+/** Walked worldlines plus Relic Vault levels — both are permanent and feed the same stats. */
 function ownedTranscendence(meta: MetaState, config: GameConfig): TranscendenceDef[] {
   const set = new Set(meta.transcendenceIds)
-  return config.transcendence.filter((t) => set.has(t.id))
+  return [...config.transcendence.filter((t) => set.has(t.id)), ...relicEffects(meta, config)]
+}
+
+/* ------------------------------------------------------------------ Relic Vault */
+
+/** The vault opens once three worldlines have been walked (i.e. from the fourth). */
+export const RELIC_UNLOCK_REBIRTHS = 3
+/** Level 1 of a relic costs this share of the current rebirth goal, in its world's currency… */
+export const RELIC_COST_SHARE = 0.03
+/** …and each further level this much more. */
+export const RELIC_COST_GROWTH = 4
+
+const RELIC_MULTIPLIERS = new Set(["clickMultiplier", "productionMultiplier", "criticalMultiplier", "feverIntensity"])
+
+export function relicLevel(meta: MetaState, relicId: string): number {
+  return meta.relicLevels?.[relicId] ?? 0
+}
+
+export function relicVaultOpen(meta: MetaState): boolean {
+  return meta.rebirthCount >= RELIC_UNLOCK_REBIRTHS
+}
+
+/** Highest level a relic can reach this worldline: 1 on the fourth, one more each worldline after. */
+export function relicLevelCap(run: RunState, relic: RelicDef): number {
+  return Math.max(0, Math.min(relic.maxLevel, run.currentWorldLine - RELIC_UNLOCK_REBIRTHS))
+}
+
+/** A relic's effect at `level`: multipliers compound, additions stack. */
+export function relicEffectAt(relic: RelicDef, level: number): RelicDef["perLevel"] {
+  const out: Record<string, number> = {}
+  for (const [key, value] of Object.entries(relic.perLevel)) {
+    if (typeof value !== "number") continue
+    out[key] = RELIC_MULTIPLIERS.has(key) ? value ** level : value * level
+  }
+  return out as RelicDef["perLevel"]
+}
+
+function relicEffects(meta: MetaState, config: GameConfig): TranscendenceDef[] {
+  return (config.relics ?? [])
+    .map((relic) => ({ relic, level: relicLevel(meta, relic.id) }))
+    .filter(({ level }) => level > 0)
+    .map(({ relic, level }) => ({
+      id: relic.id,
+      name: relic.name,
+      description: relic.lore,
+      identity: "relic",
+      assetId: relic.assetId,
+      ...relicEffectAt(relic, level),
+    }))
+}
+
+/** World currency the next level costs — a share of this worldline's goal, so it always takes a while. */
+export function relicCost(meta: MetaState, config: GameConfig, relic: RelicDef): number {
+  return Math.ceil(rebirthRequirement(meta, config) * RELIC_COST_SHARE * RELIC_COST_GROWTH ** relicLevel(meta, relic.id))
+}
+
+export function relicError(run: RunState, meta: MetaState, config: GameConfig, relicId: string): string | undefined {
+  const relic = (config.relics ?? []).find((r) => r.id === relicId)
+  if (!relic) return "유물이 없습니다."
+  if (!relicVaultOpen(meta)) return `유물 보관소는 세계선 ${RELIC_UNLOCK_REBIRTHS + 1}부터 열립니다.`
+  if (relicLevel(meta, relicId) >= relic.maxLevel) return "최대 레벨입니다."
+  if (relicLevel(meta, relicId) >= relicLevelCap(run, relic)) return "다음 세계선에서 더 강화할 수 있습니다."
+  const wallet = { ...run.regionCurrency }
+  if (!payRegionCurrency(wallet, config, relic.regionId, relicCost(meta, config, relic))) {
+    const region = config.regions.find((r) => r.id === relic.regionId)
+    return `${region?.currency?.name ?? "지역 화폐"}이(가) 부족합니다.`
+  }
+  return undefined
+}
+
+/** Buy the next level of a relic: the world currency comes out of this run, the level stays forever. */
+export function buyRelic(
+  run: RunState,
+  meta: MetaState,
+  config: GameConfig,
+  relicId: string,
+): { run: RunState; meta: MetaState; error?: string } {
+  const error = relicError(run, meta, config, relicId)
+  if (error) return { run, meta, error }
+  const relic = config.relics.find((r) => r.id === relicId)!
+  const wallet = { ...run.regionCurrency }
+  payRegionCurrency(wallet, config, relic.regionId, relicCost(meta, config, relic))
+  return {
+    run: { ...run, regionCurrency: wallet },
+    meta: { ...meta, relicLevels: { ...meta.relicLevels, [relicId]: relicLevel(meta, relicId) + 1 } },
+  }
 }
 
 /** Permanent multiplier on click and production: compounding per rebirth. */
@@ -642,6 +730,7 @@ export function maxAffordable(
 export function isProducerUnlocked(run: RunState, config: GameConfig, producerId: string): boolean {
   const producer = config.producers.find((p) => p.id === producerId)
   if (!producer) return false
+  if ((producer.requiresWorldLine ?? 1) > run.currentWorldLine) return false
   return run.lifetimeCoreEnergy >= scaledCost(run, producer.unlockAt) || (run.producerLevels[producerId] ?? 0) > 0
 }
 
@@ -1578,6 +1667,7 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         completedAt: typeof meta.completedAt === "number" ? meta.completedAt : null,
         bossDefeated: Boolean(meta.bossDefeated),
         monstersSlain: typeof meta.monstersSlain === "number" ? meta.monstersSlain : 0,
+        relicLevels: sanitizeRelicLevels(meta.relicLevels, config),
       },
       runState: {
         ...createInitialRun(now, createInitialMeta(), config),
@@ -1801,3 +1891,13 @@ export function tickBoss(run: RunState, config: GameConfig, now: number): RunSta
 }
 
 export type { ActiveSkillDef }
+
+function sanitizeRelicLevels(raw: unknown, config: GameConfig): Record<string, number> {
+  if (!raw || typeof raw !== "object") return {}
+  const out: Record<string, number> = {}
+  for (const relic of config.relics ?? []) {
+    const v = (raw as Record<string, unknown>)[relic.id]
+    if (typeof v === "number" && Number.isFinite(v) && v > 0) out[relic.id] = Math.min(relic.maxLevel, Math.floor(v))
+  }
+  return out
+}

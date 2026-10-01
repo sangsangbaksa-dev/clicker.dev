@@ -103,7 +103,7 @@ test("auto-drill needs its skill; overdrive triples rate then cools down", () =>
 
   const run = { ...grantAdminEnergy(save.runState, 0), ownedSkillNodeIds: ["auto_prod", "auto_more", "auto_drill"] }
   const base = autoDrillRate(run, config, NOW)
-  assert.equal(base, 2)
+  assert.equal(base, config.skillNodes.find((n) => n.id === "auto_drill")!.autoDrillPerSecond)
   const over = startDrillOverdrive(run, config, NOW)
   assert.equal(over.error, undefined)
   assert.equal(autoDrillRate(over.run, config, NOW + 1), base * DRILL_OVERDRIVE_MULTIPLIER)

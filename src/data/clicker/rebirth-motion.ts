@@ -90,6 +90,27 @@ const VARIANTS: Record<string, VariantBase> = {
     motif: "hybrid",
     particleMode: "scatter",
   },
+  hunt_line: {
+    label: "Predator Accord",
+    primary: "#FF3B3B",
+    accent: "#B3122E",
+    motif: "core",
+    particleMode: "jets",
+  },
+  forge_line: {
+    label: "Molten Covenant",
+    primary: "#FF9A2E",
+    accent: "#FF5A1F",
+    motif: "grid",
+    particleMode: "jets",
+  },
+  memory_line: {
+    label: "Echo Archive",
+    primary: "#B98CFF",
+    accent: "#6A4DFF",
+    motif: "rings",
+    particleMode: "orbit",
+  },
 }
 
 export function rebirthVariantFor(transcendenceId: string): WorldlineMotionVariant {

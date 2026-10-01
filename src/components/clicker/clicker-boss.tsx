@@ -20,6 +20,7 @@ type Props = {
 export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike }: Props) {
   const [attack, setAttack] = useState(0)
   const [lost, setLost] = useState(false)
+  const [hit, setHit] = useState(0)
   const prev = useRef(fight)
 
   useEffect(() => {
@@ -35,7 +36,7 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
 
   const left = fight ? Math.max(0, fight.endsAt - now) / 1000 : def.timeLimitSec
   return (
-    <div className={`clicker-boss${attack ? " is-attack" : ""}`} key={attack}>
+    <div className={`clicker-boss${attack ? " is-attack" : ""}${def.imageSrc ? " has-art" : ""}${fight ? " is-fighting" : ""}`} key={attack}>
       <strong>{def.name}</strong>
       {fight ? (
         <div className="clicker-boss-bars">
@@ -62,10 +63,24 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
         onPointerDown={(e) => {
           if (!fight || e.button !== 0) return
           e.preventDefault()
+          setHit((n) => n + 1)
           onStrike(e.clientX, e.clientY)
         }}
       >
-        <MonsterArt kind={def.kind} />
+        {def.imageSrc ? (
+          <span className="boss-art-enter">
+            <span className="boss-art-idle">
+              <span className={`boss-art-hit${hit ? ` hit-${hit % 2}` : ""}`}>
+                <span className="boss-art-canvas">
+                  <img className="boss-art-img" src={def.imageSrc} alt="" draggable={false} />
+                </span>
+                <span className="boss-art-core" aria-hidden />
+              </span>
+            </span>
+          </span>
+        ) : (
+          <MonsterArt kind={def.kind} />
+        )}
       </button>
       {!fight ? (
         <>

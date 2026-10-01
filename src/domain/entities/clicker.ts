@@ -167,6 +167,8 @@ export type MetaState = {
   /** The core guardian fell at least once — unlocks the ending. */
   bossDefeated: boolean
   monstersSlain: number
+  /** Relic Vault: relic id → level. Permanent across rebirths. */
+  relicLevels: Record<string, number>
 }
 
 export type ClickerSettings = {
@@ -222,6 +224,8 @@ export type ProducerDef = {
   costGrowth: number
   tags: string[]
   assetId: string
+  /** Late producers exist only from this worldline on (1 = the first). */
+  requiresWorldLine?: number
 }
 
 export type UpgradeDef = {
@@ -418,6 +422,8 @@ export type MonsterDef = {
 export type BossDef = {
   name: string
   kind: string
+  /** Optional painted art (transparent PNG/WebP); replaces the inline SVG creature. */
+  imageSrc?: string
   /** Guardian health in CORE-strike damage. */
   hp: number
   playerHp: number
@@ -476,6 +482,22 @@ export type TranscendenceDef = {
   assetId: string
 }
 
+/**
+ * Relic Vault item: a permanent upgrade bought level by level with one world's currency. Each
+ * level adds `perLevel` once more (multipliers compound, additions stack) through the same
+ * pipeline as walked worldlines.
+ */
+export type RelicDef = {
+  id: string
+  name: string
+  lore: string
+  /** World whose currency pays for it (newer worlds' wallets cover a shortfall). */
+  regionId: string
+  maxLevel: number
+  perLevel: Omit<TranscendenceDef, "id" | "name" | "description" | "identity" | "assetId" | "startingEnergy">
+  assetId: string
+}
+
 export type GameConfig = {
   schemaVersion: number
   baseClick: number
@@ -509,6 +531,7 @@ export type GameConfig = {
   objectives: ObjectiveDef[]
   regions: RegionDef[]
   transcendence: TranscendenceDef[]
+  relics: RelicDef[]
   achievements: AchievementDef[]
   synergies: Array<{
     producerId: string
