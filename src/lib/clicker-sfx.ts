@@ -1,9 +1,22 @@
 "use client"
 
+import {
+  activeSkillSampleUrl,
+  REBIRTH_MOTION_SAMPLE,
+  REBIRTH_MOTION_SAMPLE_FALLBACK,
+  rebirthStampSampleFallbackUrl,
+  rebirthStampSampleUrl,
+  SFX_PRELOAD_URLS,
+  SFX_REBIRTH_HQ,
+  SFX_V2,
+  SFX_V3,
+  SFX_BOSS_V1,
+} from "@/data/clicker/sfx-assets"
+
 /**
- * Synthesized SFX (Web Audio) — one shared context, unlocked on the first gesture.
+ * Game SFX — v2 mp3 samples when mapped in `sfx-assets.ts`, otherwise synthesized Web Audio.
  * Everything routes through a master bus (gain → compressor) so click spam and
- * stacked cues don't clip on phone speakers. Nothing here loads a file.
+ * stacked cues don't clip on phone speakers.
  */
 
 let ctx: AudioContext | null = null
@@ -11,14 +24,16 @@ let bus: GainNode | null = null
 let muted = false
 let noiseBuf: AudioBuffer | null = null
 
-const MASTER_GAIN = 0.9
+const MASTER_GAIN = 0.88
 /** Rapid-fire guard per cue so a held key or MAX-buy doesn't machine-gun. */
 const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   tap: 45,
   nav: 45,
   select: 45,
+  worldlineHover: 120,
   playerHurt: 200,
   purchase: 60,
+  producerBuy: 60,
   deny: 140,
   tick: 90,
   achievement: 400,
@@ -26,8 +41,117 @@ const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   lightning: 220,
   quake: 380,
   echoStrike: 120,
+  bossHit: 70,
+  bossAppear: 400,
+  bossDefeat: 800,
 }
 const lastPlayed = new Map<string, number>()
+
+const SAMPLE_BY_CUE_FALLBACK: Partial<Record<SfxName, string>> = {
+  rebirthOpen: SFX_V3.rebirthOpen,
+}
+
+const SAMPLE_BY_CUE: Partial<Record<SfxName, string>> = {
+  tap: SFX_V2.uiTap,
+  purchase: SFX_V2.uiPurchase,
+  upgrade: SFX_V2.upgradeLevel,
+  producerBuy: SFX_V2.producerBuy,
+  worldlineHover: SFX_V2.worldlineHover,
+  fever: SFX_V3.skillFeverStart,
+  skillUnlock: SFX_V3.skillUnlock,
+  potion: SFX_V3.potionFever,
+  oreBreak: SFX_V3.yieldBig,
+  quake: SFX_V3.skillSeismicWave,
+  drill: SFX_V3.skillOverdrive,
+  lightning: SFX_V3.skillPulseBurst,
+  enterMine: SFX_V3.enterMine,
+  exitMine: SFX_V3.exitMine,
+  rebirthOpen: SFX_REBIRTH_HQ.trigger,
+  transcend: SFX_V3.transcendOpen,
+  sessionEnd: SFX_V3.sessionTimerEnd,
+  sessionTimerEnd: SFX_V3.sessionTimerEnd,
+  bossAppear: SFX_BOSS_V1.appear,
+  bossHit: SFX_BOSS_V1.hit,
+  bossPhaseChange: SFX_BOSS_V1.phaseChange,
+  bossDefeat: SFX_BOSS_V1.defeat,
+  bossDown: SFX_BOSS_V1.defeat,
+}
+
+const sampleBuffers = new Map<string, AudioBuffer>()
+const sampleLoads = new Map<string, Promise<AudioBuffer | null>>()
+
+function loadSample(url: string): Promise<AudioBuffer | null> {
+  const cached = sampleBuffers.get(url)
+  if (cached) return Promise.resolve(cached)
+  let job = sampleLoads.get(url)
+  if (!job) {
+    job = (async () => {
+      const c = audio()
+      if (!c) return null
+      try {
+        const res = await fetch(url)
+        if (!res.ok) return null
+        const buf = await res.arrayBuffer()
+        const decoded = await c.decodeAudioData(buf.slice(0))
+        sampleBuffers.set(url, decoded)
+        return decoded
+      } catch {
+        return null
+      } finally {
+        sampleLoads.delete(url)
+      }
+    })()
+    sampleLoads.set(url, job)
+  }
+  return job
+}
+
+/** Prime decode for v2 samples (safe to call before the first cue). */
+export function warmSfxSamples() {
+  for (const url of SFX_PRELOAD_URLS) void loadSample(url)
+}
+
+/** Active skill shop cast — per-skill v3 sample with synth fallback via `skillUse`. */
+export function playActiveSkillSfx(skillId: string) {
+  if (muted) return
+  const url = activeSkillSampleUrl(skillId)
+  if (playSampleUrl(url, `skill:${skillId}`)) return
+  playSfx("skillUse")
+}
+
+function playSampleUrl(url: string, rateKey: string): boolean {
+  if (muted) return true
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now()
+  const gap = MIN_GAP_MS[rateKey as SfxName] ?? 30
+  if (now - (lastPlayed.get(rateKey) ?? -Infinity) < gap) return true
+  lastPlayed.set(rateKey, now)
+  const c = audio()
+  if (!c) return false
+  const cached = sampleBuffers.get(url)
+  if (cached) {
+    try {
+      const src = c.createBufferSource()
+      src.buffer = cached
+      src.connect(out(c))
+      src.start(c.currentTime + 0.005)
+      return true
+    } catch {
+      return false
+    }
+  }
+  void loadSample(url).then((buf) => {
+    if (!buf || muted) return
+    try {
+      const src = c.createBufferSource()
+      src.buffer = buf
+      src.connect(out(c))
+      src.start(c.currentTime + 0.005)
+    } catch {
+      /* fall through to synth on next trigger */
+    }
+  })
+  return false
+}
 
 function audio(): AudioContext | null {
   if (typeof window === "undefined") return null
@@ -42,7 +166,7 @@ function audio(): AudioContext | null {
     comp.attack.value = 0.003
     comp.release.value = 0.18
     bus = ctx.createGain()
-    bus.gain.value = MASTER_GAIN
+    bus.gain.value = muted ? 0 : MASTER_GAIN
     bus.connect(comp)
     comp.connect(ctx.destination)
   }
@@ -54,6 +178,7 @@ function audio(): AudioContext | null {
 /** Call from a capture-phase gesture listener so later SFX aren't stuck suspended. */
 export function unlockSfx() {
   audio()
+  warmSfxSamples()
 }
 
 /** The shared context, for BGM gain routing. Only call after a user gesture. */
@@ -64,6 +189,7 @@ export function sharedAudioContext(): AudioContext | null {
 /** Global SFX mute (settings). Callers no longer need to thread `muted` through. */
 export function setSfxMuted(value: boolean) {
   muted = value
+  if (bus) bus.gain.value = value ? 0 : MASTER_GAIN
 }
 
 function out(c: AudioContext): AudioNode {
@@ -230,12 +356,20 @@ const semis = (base: number, n: number) => base * 2 ** (n / 12)
 const CUES = {
   /** Generic UI press: soft rounded pop with a faint glassy top. */
   tap(c: AudioContext, t: number) {
-    pluck(c, 660, 0.05, t, 0.09)
+    pluck(c, 660, 0.042, t, 0.09)
     pluck(c, 1980, 0.008, t, 0.05)
   },
   /** Soft tick — tab / panel switch. */
   tick(c: AudioContext, t: number) {
     pluck(c, 1760, 0.014, t, 0.04)
+  },
+  /** Producer card purchase (fallback when v2 sample missing). */
+  producerBuy(c: AudioContext, t: number) {
+    CUES.purchase(c, t)
+  },
+  /** Worldline row hover (fallback). */
+  worldlineHover(c: AudioContext, t: number) {
+    pluck(c, 1320, 0.012, t, 0.05)
   },
   /** Buy OK: warm two-note coin chime that climbs on streaks. */
   purchase(c: AudioContext, t: number) {
@@ -255,8 +389,8 @@ const CUES = {
   },
   /** Can't afford / refused: muted low double bump. */
   deny(c: AudioContext, t: number) {
-    pluck(c, 220, 0.06, t, 0.1, 0.8)
-    pluck(c, 185, 0.06, t + 0.11, 0.13, 0.8)
+    pluck(c, 220, 0.068, t, 0.1, 0.8)
+    pluck(c, 185, 0.068, t + 0.11, 0.13, 0.8)
   },
   /** Skill circuit unlocked: electric arc + ascending arpeggio. */
   skillUnlock(c: AudioContext, t: number) {
@@ -307,7 +441,7 @@ const CUES = {
   },
   /** Shockwave (quake): ground boom, cracking rock and a slow rumble. */
   quake(c: AudioContext, t: number) {
-    tone(c, "sine", 62, 22, 0.34, t, 1.3, { attack: 0.004 })
+    tone(c, "sine", 62, 22, 0.28, t, 1.3, { attack: 0.004 })
     tone(c, "triangle", 110, 40, 0.14, t, 0.7)
     noise(c, "lowpass", 260, 1.4, 0.3, t, 1.6, { sweepTo: 60, attack: 0.01 })
     noise(c, "bandpass", 1200, 1, 0.12, t, 0.18)
@@ -388,6 +522,22 @@ const CUES = {
     tone(c, "square", 1320, 1320, 0.028, t, 0.06, { attack: 0.001 })
     tone(c, "sine", 660, 660, 0.03, t, 0.1)
   },
+  enterMine(c: AudioContext, t: number) {
+    tone(c, "sine", 120, 60, 0.06, t, 0.25)
+    noise(c, "bandpass", 900, 1, 0.04, t, 0.3, { sweepTo: 400 })
+  },
+  exitMine(c: AudioContext, t: number) {
+    tone(c, "triangle", 880, 880, 0.04, t, 0.12)
+    tone(c, "triangle", 660, 660, 0.04, t + 0.1, 0.15)
+  },
+  rebirthOpen(c: AudioContext, t: number) {
+    tone(c, "sine", 440, 440, 0.04, t, 0.2)
+    pluck(c, 1320, 0.03, t + 0.05, 0.1)
+  },
+  sessionTimerEnd(c: AudioContext, t: number) {
+    tone(c, "square", 1320, 1320, 0.028, t, 0.06)
+    tone(c, "triangle", 587, 587, 0.045, t + 0.12, 0.25)
+  },
   /** Mine session over. */
   sessionEnd(c: AudioContext, t: number) {
     const e = echo(c, 0.15, 0.3, 0.3)
@@ -422,7 +572,7 @@ const CUES = {
   },
   /** Tab / dock / navigation button: soft woody knock. */
   nav(c: AudioContext, t: number) {
-    pluck(c, 494, 0.06, t, 0.1)
+    pluck(c, 494, 0.052, t, 0.1)
     pluck(c, 988, 0.012, t, 0.06)
   },
   /** Back / close: gentle falling two-step. */
@@ -456,6 +606,23 @@ const CUES = {
     tone(c, "sawtooth", 420, 90, 0.06, t, 0.25, { attack: 0.002 })
     noise(c, "lowpass", 1200, 1, 0.08, t, 0.25, { sweepTo: 200 })
     ;[1318, 1568, 2093].forEach((f, i) => tone(c, "triangle", f, f, 0.03, t + 0.18 + i * 0.05, 0.15))
+  },
+  bossAppear(c: AudioContext, t: number) {
+    tone(c, "sawtooth", 110, 55, 0.08, t, 0.5, { attack: 0.05 })
+    noise(c, "bandpass", 1200, 1, 0.06, t, 0.4, { sweepTo: 400 })
+  },
+  bossHit(c: AudioContext, t: number) {
+    noise(c, "bandpass", 1800, 1, 0.05, t, 0.08)
+    tone(c, "square", 280, 280, 0.04, t, 0.1)
+  },
+  bossPhaseChange(c: AudioContext, t: number) {
+    tone(c, "sine", 330, 330, 0.05, t, 0.35)
+    tone(c, "sine", 495, 495, 0.04, t + 0.1, 0.4)
+  },
+  bossDefeat(c: AudioContext, t: number) {
+    const e = echo(c, 0.2, 0.45, 0.45)
+    tone(c, "sine", 60, 25, 0.25, t, 1.2, { dest: e })
+    noise(c, "lowpass", 600, 1, 0.15, t, 1.4, { sweepTo: 80 })
   },
   /** Guardian wakes. */
   bossRoar(c: AudioContext, t: number) {
@@ -541,6 +708,12 @@ export type SfxName = keyof typeof CUES
 /** Play a named UI/game cue. Respects the global mute and per-cue rate limits. */
 export function playSfx(name: SfxName) {
   if (muted) return
+  const sample = SAMPLE_BY_CUE[name]
+  if (sample) {
+    if (playSampleUrl(sample, name)) return
+    const fallback = SAMPLE_BY_CUE_FALLBACK[name]
+    if (fallback && playSampleUrl(fallback, name)) return
+  }
   const now = typeof performance !== "undefined" ? performance.now() : Date.now()
   const gap = MIN_GAP_MS[name] ?? 30
   if (now - (lastPlayed.get(name) ?? -Infinity) < gap) return
@@ -561,6 +734,8 @@ export function playSfx(name: SfxName) {
  */
 export function playLaser(mutedArg: boolean, critical: boolean) {
   if (mutedArg || muted) return
+  const sample = critical ? SFX_V2.coreCrit : SFX_V2.coreHitLight
+  if (playSampleUrl(sample, critical ? "laserCrit" : "laserHit")) return
   const c = audio()
   if (!c) return
   const t0 = c.currentTime
@@ -594,6 +769,17 @@ const STAMP_ROOT: Record<string, number> = {
 /** Rebirth beat cues, keyed by the placeholder names in `REBIRTH_AUDIO_CUES`. */
 export function playRebirthCue(name: string) {
   if (muted) return
+  const motion = REBIRTH_MOTION_SAMPLE[name]
+  if (motion && playSampleUrl(motion, `rebirth:${name}`)) return
+  const motionFallback = REBIRTH_MOTION_SAMPLE_FALLBACK[name]
+  if (motionFallback && playSampleUrl(motionFallback, `rebirth:${name}`)) return
+  if (name.startsWith("sfx_rebirth_stamp_")) {
+    const key = name.slice("sfx_rebirth_stamp_".length)
+    const stamp = rebirthStampSampleUrl(key)
+    if (stamp && playSampleUrl(stamp, `stamp:${key}`)) return
+    const stampFallback = rebirthStampSampleFallbackUrl(key)
+    if (stampFallback && playSampleUrl(stampFallback, `stamp:${key}`)) return
+  }
   const c = audio()
   if (!c) return
   const t = c.currentTime

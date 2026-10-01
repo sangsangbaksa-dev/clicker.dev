@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
-import { playSfx } from "./clicker-sfx"
+import { playSfx } from "@/lib/clicker-sfx"
 import "./clicker-boss-scene.css"
 
 /*

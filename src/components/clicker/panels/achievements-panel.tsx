@@ -1,7 +1,7 @@
 "use client"
 
-import { formatNumber } from "@/domain/services/clicker-format"
-import type { MetaState } from "@/domain/entities/clicker"
+import { formatNumber } from "@/application/clicker-ui"
+import type { MetaState } from "@/application/clicker-ui"
 import type { ClickerGame } from "./types"
 
 export function ClickerAchievementsPanel({ game, meta }: { game: ClickerGame; meta: MetaState }) {

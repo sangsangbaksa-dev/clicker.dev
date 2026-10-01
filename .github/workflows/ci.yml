@@ -29,3 +29,7 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Install Chromium for smoke test
+        run: npx playwright install chromium
+      - name: App smoke (production start)
+        run: npm run test:smoke

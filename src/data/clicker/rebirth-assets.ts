@@ -25,10 +25,16 @@ export const REBIRTH_CHROME_WORLDLINE_IDS = Object.keys(SLUG)
 type PlatePhase = "collapse" | "void_tear" | "stamp" | "rebuild" | "settle"
 
 export const RebirthPhaseArt = {
+  /** 1920×1080 worldline picker backdrop (dark lower band for cards). */
+  worldlineSelectBg: `${DIR}/rebirth_worldline_select_bg_v1.png`,
+  /** Key visual: void tear + nascent core; also settle-phase flash backdrop. */
+  keyVisualVoidTear: `${DIR}/rebirth_key_visual_void_tear_v1.png`,
   collapseShared: `${DIR}/rebirth_collapse_shared_v1.webp`,
   rebuildShared: `${DIR}/rebirth_rebuild_shared_v1.webp`,
   settleShared: `${DIR}/rebirth_settle_shared_v1.webp`,
   particlesShared: `${DIR}/rebirth_particles_shared_v1.webp`,
+  particlesResonanceProtocol: `${DIR}/rebirth_particles_resonance_protocol_v2.png`,
+  particlesVolatileCore: `${DIR}/rebirth_particles_volatile_core_v2.png`,
   voidTearShared: `${DIR}/rebirth_void_tear_shared_v1.webp`,
   selectChromeShared: `${DIR}/rebirth_worldline_select_chrome_shared_v1.webp`,
   selectFocus: `${DIR}/rebirth_worldline_select_focus_v1.webp`,
@@ -48,11 +54,19 @@ export const RebirthPhaseArt = {
     return slug ? `${DIR}/rebirth_reduced_motion_${slug}_v1.webp` : undefined
   },
 
-  plateForPhase(phase: PlatePhase): string {
+  /** Stamp-phase particle plate; resonance / volatile worldlines use v2 PNG overlays. */
+  particlesFor(transcendenceId: string): string {
+    if (transcendenceId === "reso_line") return RebirthPhaseArt.particlesResonanceProtocol
+    if (transcendenceId === "risk_line") return RebirthPhaseArt.particlesVolatileCore
+    return RebirthPhaseArt.particlesShared
+  },
+
+  plateForPhase(phase: PlatePhase, transcendenceId?: string): string {
     if (phase === "collapse") return RebirthPhaseArt.collapseShared
-    if (phase === "void_tear") return RebirthPhaseArt.voidTearShared
+    if (phase === "void_tear") return RebirthPhaseArt.keyVisualVoidTear
     if (phase === "rebuild") return RebirthPhaseArt.rebuildShared
     if (phase === "settle") return RebirthPhaseArt.settleShared
+    if (phase === "stamp") return RebirthPhaseArt.particlesFor(transcendenceId ?? "")
     return RebirthPhaseArt.particlesShared
   },
 
@@ -60,5 +74,11 @@ export const RebirthPhaseArt = {
   hudPlateFor(phase: "rebuild" | "settle", phaseT: number): string {
     if (phase === "settle") return RebirthPhaseArt.settleShared
     return phaseT < 0.55 ? RebirthPhaseArt.hudRebuildWire : RebirthPhaseArt.hudRebuildFill
+  },
+
+  /** Full-screen backdrop for void tear / settle (HUD chrome layers above). */
+  keyVisualBackdropFor(phase: PlatePhase): string | undefined {
+    if (phase === "void_tear" || phase === "settle") return RebirthPhaseArt.keyVisualVoidTear
+    return undefined
   },
 }

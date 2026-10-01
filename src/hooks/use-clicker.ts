@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   clickerAdminGrant,
+  clickerAdminGrantCurrencies,
+  clickerAdminJumpToFinalBoss,
+  clickerAdminReplayTutorial,
+  clickerApplyAdminModes,
   clickerAdminPatch,
   clickerAdminUnlockRegion,
   clickerBuyActiveSkill,
@@ -48,36 +52,51 @@ import {
   clickerForge,
   clickerBuyRelic,
   allowMineStrike,
+  clearClickerStoredSave,
+  clickerPauseMine,
+  clickerResumeMine,
+  clickerSelectScreenTab,
   loadClickerGame,
   persistClickerGame,
   resetClickerPersistence,
+  createInitialSave,
 } from "@/application/clicker"
-import { createInitialSave } from "@/domain/services/clicker-engine"
-import { playSfx, setSfxMuted } from "@/components/clicker/clicker-sfx"
-import { clearClickerRaw } from "@/infrastructure/persistence/clicker-save"
 import {
-  browserLeaseStorage,
-  canWriteClickerSave,
-  claimClickerLease,
-  createClickerTabId,
-  isLeaseTakenByOther,
-} from "@/infrastructure/persistence/clicker-tab-lock"
-import type { ClickerSettings, CrisisChoice, RegionIntroDef, SaveData } from "@/domain/entities/clicker"
-import { productionSnapshot } from "@/domain/services/clicker-engine"
-import { isClickerAdminAllowed } from "@/domain/services/clicker-admin-gate"
-import { GEAR, gearOf, type GearSlot } from "@/domain/services/clicker-lair"
-import { achievementProgress, autoDrillRate, baseDrillRate } from "@/domain/services/clicker-bonus"
-import { formatNumber } from "@/domain/services/clicker-format"
-import type { MineSessionStart, MineSessionSummary } from "@/domain/services/clicker-mine-session"
+  clickerCanWriteSave,
+  clickerClaimLease,
+  clickerCreateTabId,
+  clickerIsLeaseTakenByOther,
+} from "@/application/clicker-tab-session"
 import {
+  achievementProgress,
+  autoDrillRate,
+  baseDrillRate,
   buildActiveSkillShopViews,
   buildHud,
-  buildRegionViews,
   buildPotionShopViews,
   buildProducerViews,
+  buildRegionViews,
   buildSkillNodeViews,
   buildUpgradeViews,
-} from "@/domain/services/clicker-view"
+  formatNumber,
+  GEAR,
+  gearOf,
+  isClickerAdminAllowed,
+  productionSnapshot,
+  type ClickerSettings,
+  type CrisisChoice,
+  type GearSlot,
+  type MineSessionStart,
+  type MineSessionSummary,
+  type ClickerScreenTabId,
+  type ManageDrawerTabId,
+  type RegionIntroDef,
+  type SaveData,
+  ADMIN_DEFAULT_MODES,
+  nextAdminSpeed,
+  type AdminModes,
+} from "@/application/clicker-ui"
+import { playActiveSkillSfx, playSfx, setSfxMuted } from "@/lib/clicker-sfx"
 
 export type FloatNumber = {
   id: number
@@ -115,6 +134,8 @@ export function useClicker() {
   const fxKey = useRef(0)
   const toastTimer = useRef<number | null>(null)
   const saveRef = useRef<SaveData | null>(null)
+  const [adminModes, setAdminModes] = useState<AdminModes>(ADMIN_DEFAULT_MODES)
+  const adminModesRef = useRef<AdminModes>(ADMIN_DEFAULT_MODES)
   const floatId = useRef(0)
   const knownAchievements = useRef<Set<string> | null>(null)
   const mineStartRef = useRef<MineSessionStart | null>(null)
@@ -123,7 +144,7 @@ export function useClicker() {
   const persistNow = useCallback((next?: SaveData, silent = false) => {
     const target = next ?? saveRef.current
     if (!target || blockedRef.current) return
-    if (!canWriteClickerSave(browserLeaseStorage(), tabIdRef.current, now())) {
+    if (!clickerCanWriteSave(tabIdRef.current, now())) {
       markBlocked()
       return
     }
@@ -149,8 +170,8 @@ export function useClicker() {
   /** Claim the save for this tab, then load whatever the last writer stored. */
   const loadAsOwner = useCallback(() => {
     const t = now()
-    if (!tabIdRef.current) tabIdRef.current = createClickerTabId()
-    claimClickerLease(browserLeaseStorage(), tabIdRef.current, t)
+    if (!tabIdRef.current) tabIdRef.current = clickerCreateTabId()
+    clickerClaimLease(tabIdRef.current, t)
     blockedRef.current = false
     setOtherTabActive(false)
     const loaded = loadClickerGame(t)
@@ -167,7 +188,7 @@ export function useClicker() {
 
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
-      if (isLeaseTakenByOther(event.key, event.newValue, tabIdRef.current)) markBlocked()
+      if (clickerIsLeaseTakenByOther(event.key, event.newValue, tabIdRef.current)) markBlocked()
     }
     window.addEventListener("storage", onStorage)
     return () => window.removeEventListener("storage", onStorage)
@@ -206,7 +227,9 @@ export function useClicker() {
         last = ts
         const current = saveRef.current
         if (current && !current.metaState.gameCompleted && !blockedRef.current) {
-          const next = clickerTick(current, now())
+          const ticked = clickerTick(current, now())
+          const modes = adminModesRef.current
+          const next = modes.god || modes.speed > 1 ? clickerApplyAdminModes(current, ticked, modes) : ticked
           // Skip stale ticks if a commit landed while processTick ran.
           if (saveRef.current !== current) {
             frame = window.requestAnimationFrame(loop)
@@ -347,7 +370,7 @@ export function useClicker() {
     const result = clickerBuyProducer(saveRef.current, id, count)
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("purchase")
+    playSfx("producerBuy")
   }, [commit, refuse])
 
   const buyUpgrade = useCallback((id: string) => {
@@ -397,7 +420,7 @@ export function useClicker() {
     const result = clickerUseSkill(saveRef.current, id, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("skillUse")
+    playActiveSkillSfx(id)
     const name = clickerGameConfig.activeSkills.find((s) => s.id === id)?.name ?? id
     flash(`${name} 발동`)
   }, [commit, flash, refuse])
@@ -491,6 +514,51 @@ export function useClicker() {
     commit(clickerAdminGrant(saveRef.current, amount))
   }, [commit])
 
+  const adminGrantAllCurrencies = useCallback(
+    (amount: number) => {
+      if (!isClickerAdminAllowed() || !saveRef.current) return
+      commit(clickerAdminGrantCurrencies(saveRef.current, amount))
+      flash(`관리자 · 모든 지역 재화 +${formatNumber(amount)}`)
+    },
+    [commit, flash],
+  )
+
+  const adminJumpFinalBoss = useCallback(() => {
+    if (!isClickerAdminAllowed() || !saveRef.current) return
+    const next = clickerAdminJumpToFinalBoss(saveRef.current, now())
+    commit(next)
+    persistNow(next)
+    flash("관리자 · 최종 보스 전투 시작")
+  }, [commit, persistNow, flash])
+
+  const adminSkipTutorial = useCallback(() => {
+    if (!isClickerAdminAllowed() || !saveRef.current) return
+    const next = clickerFinishTutorial(saveRef.current)
+    commit(next)
+    persistNow(next)
+  }, [commit, persistNow])
+
+  const adminReplayTutorial = useCallback(() => {
+    if (!isClickerAdminAllowed() || !saveRef.current) return
+    const next = clickerAdminReplayTutorial(saveRef.current)
+    commit(next)
+    persistNow(next)
+  }, [commit, persistNow])
+
+  const adminToggleGod = useCallback(() => {
+    if (!isClickerAdminAllowed()) return
+    const next = { ...adminModesRef.current, god: !adminModesRef.current.god }
+    adminModesRef.current = next
+    setAdminModes(next)
+  }, [])
+
+  const adminCycleSpeed = useCallback(() => {
+    if (!isClickerAdminAllowed()) return
+    const next = { ...adminModesRef.current, speed: nextAdminSpeed(adminModesRef.current.speed) }
+    adminModesRef.current = next
+    setAdminModes(next)
+  }, [])
+
   const adminFillFever = useCallback(() => {
     if (!isClickerAdminAllowed() || !saveRef.current) return
     commit(
@@ -538,7 +606,7 @@ export function useClicker() {
 
   const adminReset = useCallback(() => {
     if (blockedRef.current) return
-    clearClickerRaw()
+    clearClickerStoredSave()
     resetClickerPersistence()
     const fresh = createInitialSave(now(), clickerGameConfig)
     commit(fresh)
@@ -591,13 +659,50 @@ export function useClicker() {
     const result = clickerEnterMine(saveRef.current, t)
     const next = result.save
     if (!result.error && next.settings.playSurface === "mine") {
-      mineStartRef.current = clickerMineSessionStart(next, t)
+      if (!mineStartRef.current) mineStartRef.current = clickerMineSessionStart(next, t)
       setMineSummary(null)
+      playSfx("enterMine")
     }
     commit(next)
     persistNow(next)
     if (result.error) refuse(result.error)
-  }, [commit, persistNow, flash, refuse])
+  }, [commit, persistNow, refuse])
+
+  const pauseMine = useCallback(() => {
+    if (!saveRef.current) return
+    const next = clickerPauseMine(saveRef.current, now())
+    if (next === saveRef.current) return
+    commit(next)
+    persistNow(next)
+  }, [commit, persistNow])
+
+  const resumeMine = useCallback(() => {
+    if (!saveRef.current) return
+    const t = now()
+    const next = clickerResumeMine(saveRef.current, t)
+    if (next === saveRef.current) return
+    if (next.settings.playSurface === "mine" && !mineStartRef.current) {
+      mineStartRef.current = clickerMineSessionStart(next, t)
+    }
+    commit(next)
+    persistNow(next)
+  }, [commit, persistNow])
+
+  const selectScreen = useCallback(
+    (from: ClickerScreenTabId, to: ClickerScreenTabId): { openSkillTree: boolean; manageTab: ManageDrawerTabId | null } => {
+      if (!saveRef.current) return { openSkillTree: false, manageTab: null }
+      const t = now()
+      const result = clickerSelectScreenTab(saveRef.current, from, to, t)
+      const next = result.save
+      if (to === "mine" && next.settings.playSurface === "mine" && !mineStartRef.current) {
+        mineStartRef.current = clickerMineSessionStart(next, t)
+      }
+      commit(next)
+      persistNow(next)
+      return { openSkillTree: result.openSkillTree, manageTab: result.manageTab }
+    },
+    [commit, persistNow],
+  )
 
   /** Golden vein hit in the mine; returns a short label for the in-scene burst. */
   const claimVein = useCallback(
@@ -645,6 +750,7 @@ export function useClicker() {
   const exitMine = useCallback(() => {
     if (!saveRef.current) return
     const before = saveRef.current
+    if (before.settings.playSurface === "mine") playSfx("exitMine")
     const exited = clickerExitMine(before, now())
     const next = before.settings.playSurface === "mine" ? finishMine(before, exited) : exited
     commit(next)
@@ -764,7 +870,7 @@ export function useClicker() {
     const result = clickerStartBoss(saveRef.current, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("bossRoar")
+    playSfx("bossAppear")
   }, [commit, refuse])
 
   /** Strike the guardian. Returns true on the killing blow. */
@@ -773,6 +879,7 @@ export function useClicker() {
       if (!saveRef.current) return false
       const result = clickerStrikeBoss(saveRef.current, now())
       if (result.damage <= 0) return false
+      playSfx("bossHit")
       commit(result.save)
       const id = ++floatId.current
       setFloats((prev) => [...prev.slice(-12), { id, text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }])
@@ -917,6 +1024,13 @@ export function useClicker() {
     completeEnding,
     adminReset,
     adminGrant,
+    adminGrantAllCurrencies,
+    adminJumpFinalBoss,
+    adminSkipTutorial,
+    adminReplayTutorial,
+    adminToggleGod,
+    adminCycleSpeed,
+    adminModes,
     adminFillFever,
     adminCrisis,
     adminPotions,
@@ -926,6 +1040,9 @@ export function useClicker() {
     setMusicVolume,
     startFromTitle,
     enterMine,
+    pauseMine,
+    resumeMine,
+    selectScreen,
     mineEntryError,
     claimVein,
     oreBroken,

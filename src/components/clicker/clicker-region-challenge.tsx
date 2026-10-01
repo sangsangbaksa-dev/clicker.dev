@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useRef, useState, type CSSProperties } from "react"
-import type { RegionChallengeKind } from "@/domain/entities/clicker"
-import { playChallengeCue } from "@/components/clicker/clicker-sfx"
+import type { RegionChallengeKind } from "@/application/clicker-ui"
+import { playChallengeCue } from "@/lib/clicker-sfx"
 import "./clicker-region-challenge.css"
 
 type Props = {

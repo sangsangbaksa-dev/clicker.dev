@@ -60,10 +60,21 @@ import {
   type MineSessionStart,
   type MineSessionSummary,
 } from "@/domain/services/clicker-mine-session"
+import {
+  adminGrantCurrencies,
+  adminJumpToFinalBoss,
+  adminReplayTutorial,
+  applyGodMode,
+  applySpeedBoost,
+  type AdminModes,
+} from "@/domain/services/clicker-admin-tools"
+import { allowStrike } from "@/domain/services/clicker-strike-limiter"
 import { decodeClickerSave, encodeClickerSave } from "@/domain/services/clicker-save-codec"
 import { enterLair, forgeGear, leaveLair, strikeLair, tickLair, type GearSlot } from "@/domain/services/clicker-lair"
 import { encodeSaveCode, parseSaveCode, type ParsedSaveCode } from "@/domain/services/clicker-save-transfer"
-import { backupClickerRaw, readClickerRaw, writeClickerRaw } from "@/infrastructure/persistence/clicker-save"
+import { clickerPersistence } from "@/application/clicker-client-bind"
+import { pauseMine, resumeMine } from "@/domain/services/clicker-mine-pause"
+import { selectScreenTab, type ClickerScreenTabId, type ManageDrawerTabId } from "@/domain/services/clicker-screen-tabs"
 
 const config = clickerConfig
 const rng: Rng = () => Math.random()
@@ -94,23 +105,45 @@ function withAchievements(save: SaveData): SaveData {
 let persistBlocked = false
 
 export function loadClickerGame(now: number): SaveData {
-  const raw = readClickerRaw()
+  const store = clickerPersistence()
+  const raw = store.readRaw()
   const decoded = decodeClickerSave(raw, config, now)
   if (raw && decoded.backup) {
-    const kept = backupClickerRaw(raw, `${decoded.status}${decoded.reason ? `: ${decoded.reason}` : ""}`, now)
+    const kept = store.backupRaw(raw, `${decoded.status}${decoded.reason ? `: ${decoded.reason}` : ""}`, now)
     persistBlocked = !kept && decoded.status === "corrupt"
   }
   try {
     return syncClickerMineSession(decoded.save, now, config)
   } catch {
-    if (raw) persistBlocked = !backupClickerRaw(raw, "corrupt: 광산 세션을 복원하지 못했습니다.", now)
+    if (raw) persistBlocked = !store.backupRaw(raw, "corrupt: 광산 세션을 복원하지 못했습니다.", now)
     return createInitialSave(now, config)
   }
 }
 
 export function persistClickerGame(save: SaveData): void {
   if (persistBlocked) return
-  writeClickerRaw(encodeClickerSave({ ...save, savedAt: Date.now() }).json)
+  clickerPersistence().writeRaw(encodeClickerSave({ ...save, savedAt: Date.now() }).json)
+}
+
+export function clearClickerStoredSave(): void {
+  clickerPersistence().clearRaw()
+}
+
+export function clickerPauseMine(save: SaveData, now: number): SaveData {
+  return pauseMine(save, now)
+}
+
+export function clickerResumeMine(save: SaveData, now: number): SaveData {
+  return resumeMine(save, now)
+}
+
+export function clickerSelectScreenTab(
+  save: SaveData,
+  from: ClickerScreenTabId,
+  to: ClickerScreenTabId,
+  now: number,
+): { save: SaveData; openSkillTree: boolean; manageTab: ManageDrawerTabId | null } {
+  return selectScreenTab(save, from, to, now)
 }
 
 /** Save code for the settings sheet: the current save as the loader would store it. */
@@ -128,11 +161,12 @@ export function clickerParseSaveCode(code: string, now: number): ParsedSaveCode 
  * The caller reloads from storage afterwards.
  */
 export function clickerImportSave(json: string, now: number): boolean {
-  const current = readClickerRaw()
-  if (current && !backupClickerRaw(current, "import: 저장 코드를 불러오기 전", now)) return false
-  writeClickerRaw(json)
+  const store = clickerPersistence()
+  const current = store.readRaw()
+  if (current && !store.backupRaw(current, "import: 저장 코드를 불러오기 전", now)) return false
+  store.writeRaw(json)
   persistBlocked = false
-  return readClickerRaw() === json
+  return store.readRaw() === json
 }
 
 /** Admin reset: the player chose to start over, so autosave may write again. */
@@ -418,12 +452,25 @@ export function clickerStrikeBoss(save: SaveData, now: number) {
  * Returns true when this strike may land; the caller keeps the timestamp window.
  */
 export function allowMineStrike(window: number[], now: number): boolean {
-  while (window.length && now - window[0] >= 1000) window.shift()
-  if (window.length >= MINE_MAX_CPS) return false
-  window.push(now)
-  return true
+  return allowStrike(window, now, MINE_MAX_CPS)
 }
 
 export { mineSessionStart as clickerMineSessionStart }
 
-export { config as clickerGameConfig }
+export function clickerAdminGrantCurrencies(save: SaveData, amount: number): SaveData {
+  return { ...save, runState: adminGrantCurrencies(save.runState, config, amount) }
+}
+
+export function clickerAdminJumpToFinalBoss(save: SaveData, now: number): SaveData {
+  return adminJumpToFinalBoss(save, config, now)
+}
+
+export { adminReplayTutorial as clickerAdminReplayTutorial }
+
+export function clickerApplyAdminModes(prev: SaveData, next: SaveData, modes: AdminModes): SaveData {
+  let run = applySpeedBoost(prev.runState, next.runState, modes.speed)
+  if (modes.god) run = applyGodMode(prev.runState, run)
+  return run === next.runState ? next : { ...next, runState: run }
+}
+
+export { config as clickerGameConfig, createInitialSave }
