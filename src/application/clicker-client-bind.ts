@@ -1,5 +1,10 @@
-import type { ClickerPersistencePort } from "@/application/ports/clicker-persistence"
-import type { ClickerTabLockPort } from "@/application/ports/clicker-tab-lock"
+import type { ClickerPersistencePort } from "./ports/clicker-persistence.ts"
+import type { ClickerTabLockPort } from "./ports/clicker-tab-lock.ts"
+import {
+  clickerPersistenceFallback,
+  clickerTabLockFallback,
+  resetClickerClientFallbackState,
+} from "./clicker-client-fallbacks.ts"
 
 let persistence: ClickerPersistencePort | null = null
 let tabLock: ClickerTabLockPort | null = null
@@ -13,17 +18,16 @@ export function bindClickerTabLock(port: ClickerTabLockPort): void {
 }
 
 export function clickerPersistence(): ClickerPersistencePort {
-  if (!persistence) throw new Error("Clicker persistence is not bound")
-  return persistence
+  return persistence ?? clickerPersistenceFallback
 }
 
 export function clickerTabLock(): ClickerTabLockPort {
-  if (!tabLock) throw new Error("Clicker tab lock is not bound")
-  return tabLock
+  return tabLock ?? clickerTabLockFallback
 }
 
 /** Test-only: clear bindings so each test can install fakes. */
 export function resetClickerClientBindings(): void {
   persistence = null
   tabLock = null
+  resetClickerClientFallbackState()
 }

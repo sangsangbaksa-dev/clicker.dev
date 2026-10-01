@@ -19,8 +19,10 @@ afterEach(() => {
   resetClickerClientBindings()
 })
 
-test("clickerPersistence throws until bound", () => {
-  assert.throws(() => clickerPersistence(), /not bound/)
+test("clickerPersistence uses in-memory fallback until bound", () => {
+  assert.equal(clickerPersistence().readRaw(), null)
+  clickerPersistence().writeRaw('{"ok":true}')
+  assert.equal(clickerPersistence().readRaw(), '{"ok":true}')
 })
 
 test("fake persistence port is returned after bind", () => {
