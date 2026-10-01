@@ -306,14 +306,43 @@ export function ClickerMine({
     [clickAtClient],
   )
 
+  // Space and assist drill aim at the cursor when it is over the ore (alpha mask hitbox).
+  const cursor = useRef<{ x: number; y: number } | null>(null)
+  useEffect(() => {
+    const track = (e: PointerEvent) => {
+      cursor.current = { x: e.clientX, y: e.clientY }
+    }
+    const lose = () => {
+      cursor.current = null
+    }
+    window.addEventListener("pointermove", track, { passive: true })
+    window.addEventListener("pointerdown", track, { passive: true, capture: true })
+    document.documentElement.addEventListener("mouseleave", lose)
+    window.addEventListener("blur", lose)
+    return () => {
+      window.removeEventListener("pointermove", track)
+      window.removeEventListener("pointerdown", track, { capture: true })
+      document.documentElement.removeEventListener("mouseleave", lose)
+      window.removeEventListener("blur", lose)
+    }
+  }, [])
+
+  const aimAtCursor = useCallback((): { x: number; y: number } | null => {
+    const el = mineRef.current
+    const c = cursor.current
+    if (!el || !c || !isOreAt(c.x, c.y)) return null
+    const rect = el.getBoundingClientRect()
+    return { x: c.x - rect.left, y: c.y - rect.top }
+  }, [isOreAt])
+
   useEffect(() => {
     if (autoRate <= 0) return
     const id = window.setInterval(() => {
-      const { x, y } = live.current.strikePx
-      hitAt(x, y, true)
+      const at = aimAtCursor()
+      if (at) hitAt(at.x, at.y, true)
     }, 1000 / autoRate)
     return () => window.clearInterval(id)
-  }, [autoRate, hitAt])
+  }, [autoRate, hitAt, aimAtCursor])
 
   useClickerSpaceClick({
     getOreCenter: () => {
@@ -405,7 +434,7 @@ export function ClickerMine({
           {veinLabel}
         </p>
       ) : null}
-      {autoRate > 0 ? <span className="clicker-mine-drill-tag">보조 드릴 · {autoRate}/s</span> : null}
+      {autoRate > 0 ? <span className="clicker-mine-drill-tag">보조 드릴 · {autoRate}/s · 커서 조준</span> : null}
 
       <svg className="clicker-mine-lasers" aria-hidden>
         {lasers.map((laser) => (

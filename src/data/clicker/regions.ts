@@ -145,7 +145,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     bgAssetId: "/clicker/bg/region_core_heart.jpg",
     intro: { video: "/clicker/region/core_heart_intro.mp4", poster: "/clicker/bg/region_core_heart.jpg", still: "/clicker/region/core_heart_still.webp" },
     unlockAtLifetimeEnergy: 900_000_000_000,
-    requiresRebirths: 5,
+    requiresRebirths: 8,
     clickMultiplier: 1.2,
     productionMultiplier: 1.2,
     boss: {

@@ -188,7 +188,13 @@ export function buildProducerViews(
       nextCostText: formatNumber(cost),
       unlocked,
       canBuy,
-      lockReason: unlocked ? (canBuy ? "" : "CORE 부족") : `${formatNumber(scaledCost(run, p.unlockAt))} CORE 해금`,
+      lockReason: unlocked
+        ? canBuy
+          ? ""
+          : "CORE 부족"
+        : (p.requiresWorldLine ?? 1) > run.currentWorldLine
+          ? `세계선 ${p.requiresWorldLine}부터 등장`
+          : `${formatNumber(scaledCost(run, p.unlockAt))} CORE 해금`,
     }
   })
 }

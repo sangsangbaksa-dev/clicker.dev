@@ -16,7 +16,7 @@ export const CLICKER_TRUE_ENDING_STEPS: EndingStep[] = [
   {
     id: "breath",
     title: "코어의 첫 숨",
-    body: "AURELIA 코어가 다시 숨을 쉽니다. 다섯 세계선에서 모은 힘이 하나의 빛으로 모여 광산 전체를 밝힙니다.",
+    body: "AURELIA 코어가 다시 숨을 쉽니다. 여덟 세계선에서 모은 힘이 하나의 빛으로 모여 광산 전체를 밝힙니다.",
   },
   {
     id: "final",

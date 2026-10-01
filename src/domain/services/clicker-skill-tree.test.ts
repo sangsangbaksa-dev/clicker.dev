@@ -71,7 +71,9 @@ test("tagged production nodes only boost producers with that tag", () => {
   base.run = { ...base.run, producerLevels: { ...base.run.producerLevels, solar_node: 10, pulse_relay: 10 } }
   const before = productionSnapshot(base.run, base.meta, config, base.now)
   const after = productionSnapshot({ ...base.run, ownedSkillNodeIds: ["auto_early"] }, base.meta, config, base.now)
-  assert.equal(after.byProducer.solar_node, before.byProducer.solar_node * 2)
+  const early = config.skillNodes.find((n) => n.id === "auto_early")!.productionMultiplier!
+  assert.ok(early > 1)
+  assert.ok(Math.abs(after.byProducer.solar_node / before.byProducer.solar_node - early) < 1e-9)
   assert.equal(after.byProducer.pulse_relay, before.byProducer.pulse_relay)
 })
 

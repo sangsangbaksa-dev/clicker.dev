@@ -24,6 +24,7 @@ import {
   isClickerAdminAllowed,
   isRegionUnlocked,
   monsterAlive,
+  relicVaultOpen,
   shouldMountMineChamber,
   shouldShowManageScreen,
   type ClickerScreenTabId,
@@ -56,6 +57,7 @@ import { ClickerLoading } from "@/components/clicker/clicker-loading"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
 import { ClickerBossScene } from "@/components/clicker/clicker-boss-scene"
 import { ClickerForge } from "@/components/clicker/clicker-forge"
+import { ClickerRelicVault } from "@/components/clicker/clicker-relic-vault"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
 import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
 import type { SfxName } from "@/lib/clicker-sfx"
@@ -108,7 +110,7 @@ function ClickerSkillHotkeys({ onSlot }: { onSlot: (slot: number) => void }) {
 /** Strike spectacle by worlds opened (0–5); FEVER adds one more step. */
 const FX_TIER_BY_WORLDS: MineFxTier[] = [0, 1, 2, 2, 3, 3]
 
-type TabId = "producers" | "upgrades" | "skills" | "shop" | "forge" | "world" | "achievements" | "transcendence"
+type TabId = "producers" | "upgrades" | "skills" | "shop" | "forge" | "relics" | "world" | "achievements" | "transcendence"
 
 function CountUpNumber({ value }: { value: number }) {
   const [shown, setShown] = useState(value)
@@ -182,16 +184,6 @@ function readDrawerHeight() {
     /* ignore */
   }
   return drawerSnapPoints().peek
-}
-
-/** Deterministic pseudo-random stage spot for a hunting-ground spawn, clear of the HUD and dock. */
-function huntSpot(seed: number): { left: number; top: number } {
-  const r = (n: number) => {
-    const x = Math.sin(seed * 0.001 + n * 12.9898) * 43758.5453
-    return x - Math.floor(x)
-  }
-  // Giant dragons are centered on the spot, so keep them well inside the stage.
-  return { left: 30 + r(1) * 40, top: 30 + r(2) * 16 }
 }
 
 /** Stage backdrop that keeps the previous image until the next is decoded (no blank/stale flash). */
@@ -388,6 +380,7 @@ export function ClickerApp() {
   )
 
   const playSurface = game.save?.settings.playSurface ?? "hub"
+  const relicsOpen = game.save ? relicVaultOpen(game.save.metaState) : false
   const prevSurface = useRef(playSurface)
   useEffect(() => {
     if (!game.save?.settings.gameStarted) return
@@ -867,7 +860,6 @@ export function ClickerApp() {
       run.activeBuffs.some((b) => b.id === skill.id && b.expiresAt > tickNow),
   )
   const monsterIsAlive = monsterDef ? monsterAlive(run, run.currentRegionId, tickNow) : false
-  const huntSpawn = run.monsterRespawnAt[run.currentRegionId] ?? 0
   const lair = run.lair && run.lair.regionId === run.currentRegionId ? run.lair : null
   const shieldMs = shieldRemainingMs(run, run.currentRegionId, tickNow)
   const gear = gearOf(run)
@@ -880,6 +872,7 @@ export function ClickerApp() {
       ["skills", "SKILLS", "스킬"],
       ["shop", "SHOP", "상점"],
       ["forge", "FORGE", "대장간"],
+      ...(relicsOpen ? ([["relics", "RELICS", "유물"]] as const) : []),
       ["world", "WORLD", "지역"],
       ["achievements", "RECORDS", "업적"],
       ...(showTranscendenceTab ? ([["transcendence", "TRANSCENDENCE", "초월"]] as const) : []),
@@ -1673,6 +1666,7 @@ export function ClickerApp() {
 
         {tab === "shop" ? <ClickerShopPanel {...panelProps} /> : null}
         {tab === "forge" && forgeUnlocked ? <ClickerForge game={game} run={run} /> : null}
+        {tab === "relics" && relicsOpen ? <ClickerRelicVault game={game} run={run} meta={game.save.metaState} /> : null}
 
 
         {tab === "world" ? <ClickerWorldPanel game={game} run={run} onBack={() => selectTab("producers")} /> : null}

@@ -44,6 +44,7 @@ import {
   scaledCost,
   mineYieldMultiplier,
   regionUnlockThreshold,
+  buyRelic,
 } from "@/domain/services/clicker-engine"
 import {
   awardAchievements,
@@ -427,6 +428,14 @@ export function clickerForge(save: SaveData, slot: GearSlot): UseCaseResult<Save
   const next = forgeGear(save.runState, config, slot)
   if (next.error) return { ok: false, status: 400, error: next.error }
   return ok({ ...save, runState: next.run })
+}
+
+/* ---------- Relic Vault ---------- */
+
+export function clickerBuyRelic(save: SaveData, relicId: string): UseCaseResult<SaveData> {
+  const next = buyRelic(save.runState, save.metaState, config, relicId)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ ...save, runState: next.run, metaState: next.meta })
 }
 
 export function clickerStartBoss(save: SaveData, now: number): UseCaseResult<SaveData> {

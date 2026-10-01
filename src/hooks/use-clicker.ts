@@ -50,6 +50,7 @@ import {
   clickerLeaveLair,
   clickerStrikeLair,
   clickerForge,
+  clickerBuyRelic,
   allowMineStrike,
   clearClickerStoredSave,
   clickerPauseMine,
@@ -830,6 +831,20 @@ export function useClicker() {
     [commit, persistNow, refuse, flash],
   )
 
+  const buyRelic = useCallback(
+    (relicId: string) => {
+      if (!saveRef.current) return
+      const result = clickerBuyRelic(saveRef.current, relicId)
+      if (!result.ok) return refuse(result.error)
+      commit(result.value)
+      persistNow(result.value)
+      playSfx("upgrade")
+      const relic = clickerGameConfig.relics.find((r) => r.id === relicId)
+      flash(`유물 강화 · ${relic?.name ?? relicId} Lv.${result.value.metaState.relicLevels[relicId] ?? 0}`)
+    },
+    [commit, persistNow, refuse, flash],
+  )
+
   /** One tap on the region drill rig. Returns the payout when this tap bored the vein, else 0 (null when refused). */
   const drillVein = useCallback(
     (clientX: number, clientY: number) => {
@@ -1048,6 +1063,7 @@ export function useClicker() {
     leaveLair,
     strikeLair,
     forge,
+    buyRelic,
     drillVein,
     purchaseFx,
     startBoss,
