@@ -319,26 +319,6 @@ export function ClickerApp() {
 
   /** The forge opens with the third world (Phase Vault), where the first boss lairs are. */
   const forgeUnlocked = Boolean(game.regions[2]?.unlocked)
-  const selectScreen = useCallback(
-    (id: ClickerScreenTabId) => {
-      const result = game.selectScreen(screenTab, id)
-      setScreenTab(id)
-      if (result.openSkillTree) setSkillMapOpen(true)
-      if (result.manageTab) {
-        if (result.manageTab === "transcendence") playSfx("transcend")
-        setTab(result.manageTab)
-        setHubView("manage")
-      } else if (id === "mine") {
-        setHubView("entrance")
-      }
-      if (result.manageTab && drawerHeight <= drawerSnaps.peek + 16) {
-        setDrawerHeight(drawerSnaps.half)
-        persistDrawerHeight(drawerSnaps.half)
-      }
-    },
-    [drawerHeight, drawerSnaps, game, persistDrawerHeight, screenTab],
-  )
-
   const selectTab = useCallback(
     (id: TabId) => {
       if (id === "forge" && !forgeUnlocked) {
@@ -346,21 +326,10 @@ export function ClickerApp() {
         return
       }
       if (id === "skills") {
-        selectScreen("skills")
+        setSkillMapOpen(true)
         return
       }
-      if (id === "upgrades") {
-        selectScreen("upgrades")
-        return
-      }
-      if (id === "shop") {
-        selectScreen("shop")
-        return
-      }
-      if (id === "transcendence") {
-        selectScreen("rebirth")
-        return
-      }
+      if (id === "transcendence") playSfx("transcend")
       setTab(id)
       setHubView("manage")
       if (drawerHeight <= drawerSnaps.peek + 16) {
@@ -373,7 +342,7 @@ export function ClickerApp() {
           ?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" })
       })
     },
-    [drawerHeight, drawerSnaps, persistDrawerHeight, forgeUnlocked, game, selectScreen],
+    [drawerHeight, drawerSnaps, persistDrawerHeight, forgeUnlocked, game],
   )
 
   const playSurface = game.save?.settings.playSurface ?? "hub"
