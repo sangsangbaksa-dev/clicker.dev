@@ -49,6 +49,7 @@ function WorldlineStampArt({
 
 export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onChoose }: Props) {
   const [chromeFailed, setChromeFailed] = useState(false)
+  const [selectBgFailed, setSelectBgFailed] = useState(false)
   const [focusId, setFocusId] = useState<string | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const reducedMotion = useMemo(
@@ -72,7 +73,13 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onCho
 
   return (
     <div className={`clicker-wl-select${reducedMotion ? " is-reduced" : ""}`}>
-      <img src={CLICKER_ASSETS.bgTranscendence} alt="" className="clicker-wl-select-room-bg" aria-hidden />
+      <img
+        src={selectBgFailed ? CLICKER_ASSETS.bgTranscendence : RebirthPhaseArt.worldlineSelectBg}
+        alt=""
+        className={`clicker-wl-select-room-bg${selectBgFailed ? "" : " clicker-wl-select-room-bg--hq"}`}
+        aria-hidden
+        onError={() => setSelectBgFailed(true)}
+      />
       {!chromeFailed ? (
         <img
           src={RebirthPhaseArt.selectChromeShared}

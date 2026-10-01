@@ -123,6 +123,27 @@
   object-fit: cover;
 }
 
+.clicker-rebirth-particles-plate--key-visual {
+  z-index: 0;
+  mix-blend-mode: normal;
+}
+
+.clicker-rebirth-particles-plate--key-visual .clicker-rebirth-particles-plate-img {
+  object-position: center center;
+  filter: brightness(0.92) contrast(1.04);
+}
+
+.clicker-rebirth-particles-plate--key-visual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 92% 86% at 50% 46%, transparent 32%, color-mix(in srgb, #05070d 55%, transparent) 72%, #05070d 100%),
+    radial-gradient(ellipse 100% 100% at 50% 50%, transparent 42%, color-mix(in srgb, #0b0f1a 35%, transparent) 100%);
+  opacity: 0.78;
+}
+
 .clicker-rebirth-particles-plate-placeholder {
   width: 100%;
   height: 100%;

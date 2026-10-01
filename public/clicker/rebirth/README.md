@@ -19,6 +19,11 @@ Hex PROVISIONAL. Wired via `RebirthPhaseArt` in `src/data/clicker/rebirth-assets
 ## Motion timing reference (optional — not required for runtime)
 - `rebirth_motion_preview_directive_v1.gif` — ~5s collapse→Directive stamp→rebuild preview
 
+## HQ stills (2026-10-01)
+- `rebirth_worldline_select_bg_v1.png` — worldline select room backdrop (`RebirthPhaseArt.worldlineSelectBg`)
+- `rebirth_key_visual_void_tear_v1.png` — void tear + settle motion backdrop (`RebirthPhaseArt.keyVisualVoidTear`)
+- Details: `README-hq-images-2026-10-01.txt`
+
 ## Worldline select chrome (sheets 08/10)
 - `rebirth_worldline_select_chrome_shared_v1.webp`
 - `rebirth_worldline_select_focus_v1.webp`
