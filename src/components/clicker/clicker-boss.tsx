@@ -71,7 +71,9 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
           <span className="boss-art-enter">
             <span className="boss-art-idle">
               <span className={`boss-art-hit${hit ? ` hit-${hit % 2}` : ""}`}>
-                <img className="boss-art-img" src={def.imageSrc} alt="" draggable={false} />
+                <span className="boss-art-canvas">
+                  <img className="boss-art-img" src={def.imageSrc} alt="" draggable={false} />
+                </span>
                 <span className="boss-art-core" aria-hidden />
               </span>
             </span>

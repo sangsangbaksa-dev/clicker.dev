@@ -90,7 +90,7 @@
   border: 1px solid rgb(255 200 120 / 0.35);
   overflow: hidden;
 }
-.clicker-boss-bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #ff5a1f, #ffcc4d); transition: width 120ms linear; }
+.clicker-boss-bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #ff5a1f, #ffcc4d); transition: width 340ms cubic-bezier(0.22, 1, 0.36, 1); }
 .clicker-boss-bar.is-player i { background: linear-gradient(90deg, #2fd27a, #9cf5c0); }
 .clicker-boss-bar span { position: relative; display: block; font-size: 10px; line-height: 14px; font-weight: 700; text-shadow: 0 1px 2px #000; }
 .clicker-boss-target {
@@ -114,8 +114,9 @@
   inset: 0;
   z-index: 45;
   pointer-events: none;
-  background: radial-gradient(circle, transparent 40%, rgb(255 0 0 / 0.45));
-  animation: clicker-boss-hurt 420ms ease-out forwards;
+  background: radial-gradient(circle, transparent 42%, rgb(255 0 0 / 0.32));
+  opacity: 1;
+  animation: clicker-boss-hurt 360ms ease-out forwards;
 }
 @keyframes clicker-boss-hurt { to { opacity: 0; } }
 .clicker-boss-start { min-width: 220px; }
@@ -129,10 +130,12 @@
 .clicker-shell.is-region-hub .clicker-boss {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 46%;
   transform: translate(-50%, -50%);
   z-index: 8;
   pointer-events: auto;
+  width: min(94vw, 720px);
+  max-height: min(68vh, 620px);
 }
 .clicker-monster-roam { z-index: 9; }
 
@@ -245,11 +248,10 @@
   animation: clicker-dragon-hit 260ms ease-out, clicker-dragon-hover 3.2s ease-in-out 260ms infinite;
 }
 @keyframes clicker-dragon-hit {
-  0% { transform: translate(0, 0) scale(1); filter: brightness(2.2) sepia(1) hue-rotate(-30deg) saturate(4); }
-  25% { transform: translate(-10px, 6px) scale(0.95, 1.04) rotate(-2deg); }
-  50% { transform: translate(8px, -2px) scale(1.03) rotate(1.5deg); }
-  75% { transform: translate(-4px, 0) rotate(-0.5deg); }
-  100% { transform: none; }
+  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+  22% { transform: translate3d(-4px, 2px, 0) scale(0.985); opacity: 0.92; }
+  45% { transform: translate3d(3px, -1px, 0) scale(1.01); opacity: 1; }
+  100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
 }
 .clicker-monster-dmg {
   position: absolute;
@@ -588,10 +590,10 @@
   animation: clicker-boss-quake 360ms ease-out;
 }
 @keyframes clicker-boss-quake {
-  20% { translate: 0 7px; }
-  40% { translate: -6px -3px; }
-  60% { translate: 4px 2px; }
-  100% { translate: 0 0; }
+  22% { transform: translate3d(0, 3px, 0); }
+  44% { transform: translate3d(-3px, -2px, 0); }
+  66% { transform: translate3d(2px, 1px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
 @media (prefers-reduced-motion: reduce) {
   .clicker-monster .mon-frames { transition: none; }
@@ -738,15 +740,33 @@
 
 /* ---------- Canva final boss art: entrance / idle float+breathe / attack lunge / hit shake ---------- */
 .clicker-boss.has-art .clicker-boss-target {
-  width: clamp(200px, 38vw, 340px);
+  width: min(100%, clamp(220px, 46vmin, 480px));
+  max-height: min(62vh, 540px);
   animation: none;
   filter: drop-shadow(0 14px 26px rgb(0 0 0 / 0.65)) drop-shadow(0 0 18px rgb(255 140 40 / 0.25));
 }
-.clicker-boss.has-art .clicker-boss-target:active { transform: none; }
+.clicker-boss.has-art .clicker-boss-target:active { transform: scale(0.992); }
 .boss-art-enter,
 .boss-art-idle,
-.boss-art-hit { position: relative; display: block; }
-.boss-art-img { display: block; width: 100%; height: auto; user-select: none; -webkit-user-drag: none; }
+.boss-art-hit { position: relative; display: block; width: 100%; }
+.boss-art-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  max-height: min(62vh, 540px);
+  overflow: hidden;
+  border-radius: 4px;
+}
+.boss-art-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 38%;
+  user-select: none;
+  -webkit-user-drag: none;
+  transform: translateZ(0);
+}
 
 .boss-art-enter { animation: boss-art-enter 1100ms cubic-bezier(0.2, 0.9, 0.25, 1) both; transform-origin: 50% 100%; }
 @keyframes boss-art-enter {
@@ -778,21 +798,35 @@
 .clicker-boss.is-fighting .boss-art-idle { animation-duration: 2.2s; }
 .clicker-boss.is-fighting .boss-art-core { animation-duration: 0.9s; }
 
-.boss-art-hit.hit-0 { animation: boss-art-hit-a 260ms ease-out; }
-.boss-art-hit.hit-1 { animation: boss-art-hit-b 260ms ease-out; }
+.boss-art-hit.hit-0 { animation: boss-art-hit-a 320ms cubic-bezier(0.22, 1, 0.36, 1); }
+.boss-art-hit.hit-1 { animation: boss-art-hit-b 320ms cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes boss-art-hit-a {
-  0% { filter: brightness(2.2) sepia(1) hue-rotate(-30deg) saturate(4); transform: translate(0, 0); }
-  25% { transform: translate(-10px, 4px) rotate(-1.5deg); }
-  50% { transform: translate(8px, -2px) rotate(1deg); }
-  75% { transform: translate(-4px, 1px); }
-  100% { filter: none; transform: none; }
+  0% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-4px, 2px, 0) scale(0.99); }
+  45% { transform: translate3d(3px, -1px, 0) scale(1.01); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
 }
 @keyframes boss-art-hit-b {
-  0% { filter: brightness(2.2) sepia(1) hue-rotate(-30deg) saturate(4); transform: translate(0, 0); }
-  25% { transform: translate(-10px, 4px) rotate(-1.5deg); }
-  50% { transform: translate(8px, -2px) rotate(1deg); }
-  75% { transform: translate(-4px, 1px); }
-  100% { filter: none; transform: none; }
+  0% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-4px, 2px, 0) scale(0.99); }
+  45% { transform: translate3d(3px, -1px, 0) scale(1.01); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+.boss-art-hit.hit-0 .boss-art-canvas::after,
+.boss-art-hit.hit-1 .boss-art-canvas::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 42%, rgb(255 120 80 / 0.45), transparent 68%);
+  opacity: 0;
+  animation: boss-art-hit-flash 320ms ease-out forwards;
+}
+.boss-art-canvas { position: relative; }
+@keyframes boss-art-hit-flash {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 .clicker-boss.has-art.is-attack .boss-art-enter { animation: boss-art-lunge 520ms cubic-bezier(0.3, 0.8, 0.3, 1); }
@@ -805,5 +839,27 @@
 
 @media (prefers-reduced-motion: reduce) {
   .boss-art-enter, .boss-art-idle, .boss-art-core, .boss-art-hit.hit-0, .boss-art-hit.hit-1,
-  .clicker-boss.has-art.is-attack .boss-art-enter { animation: none; }
+  .clicker-boss.has-art.is-attack .boss-art-enter,
+  .boss-art-hit.hit-0 .boss-art-canvas::after,
+  .boss-art-hit.hit-1 .boss-art-canvas::after { animation: none; }
+}
+
+/* Laptop stages: scale roaming bosses to fill the scene without tiny letterboxed sprites. */
+@media (min-width: 720px) and (max-height: 980px) {
+  .clicker-monster-roam.is-dragon .clicker-monster,
+  .clicker-monster-roam.is-hunt.is-dragon .clicker-monster {
+    width: min(54vw, 50vh, 560px);
+  }
+  .clicker-monster-roam.is-dragon { top: 40%; }
+  .clicker-monster-roam.is-battle .mon-frames { scale: 1.12; }
+  .clicker-monster .mon-dragon {
+    width: 100%;
+    height: auto;
+    max-height: min(52vh, 520px);
+    object-fit: contain;
+    object-position: center bottom;
+  }
+  .clicker-boss.has-art .clicker-boss-target {
+    width: min(100%, clamp(260px, 48vmin, 520px));
+  }
 }
