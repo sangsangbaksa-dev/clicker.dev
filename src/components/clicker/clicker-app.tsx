@@ -269,6 +269,7 @@ export function ClickerApp() {
   const bgm = clickerBgmControls(game.save?.settings, game.otherTabActive, game.hud?.coreVisual)
   useClickerBgm(bgm.visual, {
     scene: clickerBgmScene({
+      bootLoading: !game.save,
       enteringMine,
       regionIntro: game.regionIntro,
       endingPhase,
@@ -675,9 +676,14 @@ export function ClickerApp() {
     return () => timers.forEach((t) => window.clearTimeout(t))
   }, [inMineSurface, mineEndsAt])
 
+  const mineEndsRef = useRef(0)
+  if (inMineSurface && mineEndsAt) mineEndsRef.current = mineEndsAt
   const prevInMine = useRef(inMineSurface)
   useEffect(() => {
-    if (prevInMine.current && !inMineSurface) playSfx("sessionEnd")
+    if (prevInMine.current && !inMineSurface) {
+      const timedOut = mineEndsRef.current > 0 && Date.now() >= mineEndsRef.current - 150
+      playSfx(timedOut ? "sessionTimerEnd" : "sessionEnd")
+    }
     prevInMine.current = inMineSurface
   }, [inMineSurface])
 
@@ -1673,7 +1679,10 @@ export function ClickerApp() {
             {...panelProps}
             meta={game.save.metaState}
             onSelectTab={selectTab}
-            onChoose={(buff) => setPendingRebirth({ id: buff.id, label: buff.name })}
+            onChoose={(buff) => {
+              playSfx("rebirthOpen")
+              setPendingRebirth({ id: buff.id, label: buff.name })
+            }}
           />
         ) : null}
         </>

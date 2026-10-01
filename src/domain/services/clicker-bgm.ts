@@ -2,6 +2,7 @@ import type { CoreVisual } from "./clicker-view.ts"
 
 /** Logical BGM scenes the runtime crossfades between. */
 export type BgmTrackId =
+  | "loading"
   | "hub"
   | "mine"
   | "chamber"
@@ -70,6 +71,8 @@ export function bgmOutputLevel(fade: number, playerGain: number): number {
 }
 
 export type BgmOverlayState = {
+  /** Save still loading (boot screen). */
+  bootLoading?: boolean
   enteringMine: boolean
   regionIntro: unknown
   endingPhase: unknown
@@ -96,6 +99,7 @@ export function bgmTracksToWarm(scene: BgmScene): BgmTrackId[] {
 /** Cinematics silence the score; rebirth/ending use the chamber bed. */
 export function resolveBgmScene(overlay: BgmOverlayState): BgmScene {
   if (overlay.enteringMine || overlay.regionIntro || overlay.endingPhase) return "silent"
+  if (overlay.bootLoading) return "loading"
   if (overlay.pendingRebirth || overlay.endingOpen) return "chamber"
   if (overlay.playSurface === "mine") return "mine"
   return worldBgmTrack(overlay.currentRegionId)
