@@ -5,11 +5,13 @@ import { CLICKER_TUTORIAL_STEPS } from "@/data/clicker/onboarding"
 import { useClickerEscape } from "@/components/clicker/clicker-a11y"
 
 /** Story beats and play tips, once per save (and again after a reset). */
-export function ClickerTutorial({ onDone }: { onDone: () => void }) {
+export function ClickerTutorial({ onDone, hidden = false }: { onDone: () => void; hidden?: boolean }) {
+  // Stays mounted while hidden (a mine run mid-tutorial) so it resumes on the same step.
   const [step, setStep] = useState(0)
-  useClickerEscape(true, onDone)
+  useClickerEscape(!hidden, onDone)
   const current = CLICKER_TUTORIAL_STEPS[step]
   const last = step >= CLICKER_TUTORIAL_STEPS.length - 1
+  if (hidden) return null
   return (
     <div className={`clicker-tutorial${current.bgAssetId ? " is-story" : ""}`} role="dialog" aria-modal="true" aria-labelledby="clicker-tutorial-title">
       {current.bgAssetId ? (
