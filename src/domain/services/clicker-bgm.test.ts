@@ -74,9 +74,9 @@ test("resolveBgmScene picks mine, chamber, silent, and world themes", () => {
   }
   assert.equal(resolveBgmScene(base), "storm")
   assert.equal(resolveBgmScene({ ...base, playSurface: "mine" }), "mine")
-  assert.equal(resolveBgmScene({ ...base, pendingRebirth: true }), "rebirth")
+  assert.equal(resolveBgmScene({ ...base, pendingRebirth: true }), "chamber")
   assert.equal(resolveBgmScene({ ...base, endingOpen: true }), "chamber")
   assert.equal(resolveBgmScene({ ...base, enteringMine: true }), "silent")
-  assert.equal(resolveBgmScene({ ...base, bootLoading: true }), "loading")
-  assert.equal(resolveBgmScene({ ...base, bossFight: true }), "boss")
+  assert.equal(resolveBgmScene({ ...base, bootLoading: true }), "silent")
+  assert.equal(resolveBgmScene({ ...base, bossFight: true }), "storm")
 })

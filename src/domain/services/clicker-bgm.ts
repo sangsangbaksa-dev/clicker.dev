@@ -111,13 +111,14 @@ export function bgmTracksToWarm(scene: BgmScene): BgmTrackId[] {
   return [scene]
 }
 
-/** Cinematics silence the score; active rebirth uses HQ intro→loop; ending keeps chamber v2. */
+/**
+ * Cinematics and the boot screen silence the score; rebirth and the ending play the chamber
+ * cue; boss fights keep the world theme (the original score — no separate loading/boss beds).
+ */
 export function resolveBgmScene(overlay: BgmOverlayState): BgmScene {
   if (overlay.enteringMine || overlay.regionIntro || overlay.endingPhase) return "silent"
-  if (overlay.bootLoading) return "loading"
-  if (overlay.bossFight) return "boss"
-  if (overlay.pendingRebirth) return "rebirth"
-  if (overlay.endingOpen) return "chamber"
+  if (overlay.bootLoading) return "silent"
+  if (overlay.pendingRebirth || overlay.endingOpen) return "chamber"
   if (overlay.playSurface === "mine") return "mine"
   return worldBgmTrack(overlay.currentRegionId)
 }

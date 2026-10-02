@@ -1,11 +1,11 @@
 import type { BgmTrackId } from "@/domain/services/clicker-bgm"
 
-/** Public URLs for looping BGM (v2 mixes). */
+/** Public URLs for looping BGM — the original score for hub, mine and chamber. */
 export const CLICKER_BGM_URL: Record<BgmTrackId, string> = {
   loading: "/clicker/audio/bgm_loading_loop_v2.mp3",
-  hub: "/clicker/audio/bgm_hub_loop_v2.mp3",
-  mine: "/clicker/audio/bgm_mine_loop_v2.mp3",
-  chamber: "/clicker/audio/bgm_rebirth_loop_v2.mp3",
+  hub: "/clicker/audio/bgm_hub_v2.mp3",
+  mine: "/clicker/audio/bgm_mine_v2.mp3",
+  chamber: "/clicker/audio/bgm_chamber_v2.mp3",
   rebirthIntro: "/clicker/audio/bgm_rebirth_hq_intro.mp3",
   rebirthHq: "/clicker/audio/bgm_rebirth_hq_loop.mp3",
   boss: "/clicker/audio/bgm_boss_loop_v1.mp3",
