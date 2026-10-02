@@ -61,6 +61,8 @@ import {
   resetClickerPersistence,
   createInitialSave,
 } from "@/application/clicker"
+import { bindClickerAccountSaveFlush } from "@/application/clicker-account-client-bind"
+import { CLICKER_ACCOUNT_CHANGED_EVENT } from "@/application/ports/clicker-account-client"
 import {
   clickerCanWriteSave,
   clickerClaimLease,
@@ -186,6 +188,17 @@ export function useClicker() {
 
   useEffect(() => {
     loadAsOwner()
+  }, [loadAsOwner])
+
+  useEffect(() => {
+    bindClickerAccountSaveFlush(() => persistNow(undefined, true))
+    return () => bindClickerAccountSaveFlush(null)
+  }, [persistNow])
+
+  useEffect(() => {
+    const onAccountChange = () => loadAsOwner()
+    window.addEventListener(CLICKER_ACCOUNT_CHANGED_EVENT, onAccountChange)
+    return () => window.removeEventListener(CLICKER_ACCOUNT_CHANGED_EVENT, onAccountChange)
   }, [loadAsOwner])
 
   useEffect(() => {

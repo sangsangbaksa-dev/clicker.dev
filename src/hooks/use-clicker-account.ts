@@ -2,14 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react"
 import type { ClickerPublicAccount } from "@/application/clicker-account"
+import { clickerAccountClient } from "@/application/clicker-account-client-bind"
 
 type Mode = "login" | "signup"
-
-async function call(path: string, init?: RequestInit) {
-  const res = await fetch(`/api/clicker/auth/${path}`, { credentials: "same-origin", ...init })
-  const data = (await res.json().catch(() => ({}))) as { account?: ClickerPublicAccount | null; error?: string }
-  return { ok: res.ok, status: res.status, data }
-}
 
 export function useClickerAccount() {
   const [account, setAccount] = useState<ClickerPublicAccount | null>(null)
@@ -19,11 +14,14 @@ export function useClickerAccount() {
 
   useEffect(() => {
     let alive = true
-    call("me").then(({ data }) => {
-      if (!alive) return
-      setAccount(data.account ?? null)
-      setReady(true)
-    }, () => alive && setReady(true))
+    clickerAccountClient()
+      .me()
+      .then((a) => {
+        if (!alive) return
+        setAccount(a)
+        setReady(true)
+      })
+      .catch(() => alive && setReady(true))
     return () => {
       alive = false
     }
@@ -34,21 +32,16 @@ export function useClickerAccount() {
       setBusy(true)
       setError(null)
       try {
-        const { ok, status, data } = await call(mode, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(form),
-        })
-        if (!ok || !data.account) {
-          setError(
-            data.error ??
-              (status === 404 || status === 405
-                ? "이 배포(정적 빌드)에서는 로그인·가입을 쓸 수 없어요. 서버가 있는 주소에서 이용해 주세요."
-                : "요청을 처리하지 못했어요."),
-          )
+        const client = clickerAccountClient()
+        const result =
+          mode === "signup"
+            ? await client.signup(form)
+            : await client.login({ loginId: form.loginId, password: form.password })
+        if (!result.ok) {
+          setError(result.error)
           return false
         }
-        setAccount(data.account)
+        setAccount(result.account)
         return true
       } catch {
         setError("네트워크 오류가 났어요. 다시 시도해 주세요.")
@@ -61,7 +54,7 @@ export function useClickerAccount() {
   )
 
   const logout = useCallback(async () => {
-    await call("logout", { method: "POST" }).catch(() => {})
+    await clickerAccountClient().logout()
     setAccount(null)
   }, [])
 

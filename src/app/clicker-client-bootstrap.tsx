@@ -7,6 +7,7 @@
  */
 import "@/infrastructure/audio/legacy-sfx-client-bind"
 import "@/infrastructure/audio/clicker-bgm-client-bind"
+import "@/infrastructure/clicker-account/clicker-account-client-bind"
 import "@/infrastructure/persistence/clicker-client-bind"
 
 export function ClickerClientBootstrap({ children }: { children: React.ReactNode }) {
