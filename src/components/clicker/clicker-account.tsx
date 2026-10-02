@@ -7,16 +7,110 @@ function savedAtLabel(at: number) {
   return new Date(at).toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
 }
 
-/** Settings → 계정: log in or sign up, then keep the run in the cloud. */
-export function ClickerAccountPanel({ state }: { state: ClickerAccountState }) {
+/**
+ * Log in / sign up form, shared by Settings → 계정 and the login gate.
+ * `onSuccess` runs after the server accepted the login or signup.
+ */
+export function ClickerAccountForm({
+  state,
+  onSuccess,
+  autoFocus = false,
+  disabled = false,
+}: {
+  state: ClickerAccountState
+  onSuccess?: (mode: "login" | "signup") => void
+  autoFocus?: boolean
+  disabled?: boolean
+}) {
   const [mode, setMode] = useState<"login" | "signup">("login")
   const [loginId, setLoginId] = useState("")
   const [nickname, setNickname] = useState("")
   const [password, setPassword] = useState("")
   const [passwordConfirm, setPasswordConfirm] = useState("")
+  const { busy } = state
+  const off = busy || disabled
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (off) return
+    const ok =
+      mode === "login"
+        ? await state.login(loginId, password)
+        : await state.signup({ loginId, nickname, password, passwordConfirm })
+    setPassword("")
+    setPasswordConfirm("")
+    if (ok) onSuccess?.(mode)
+  }
+
+  return (
+    <form className="clicker-account-form" onSubmit={(e) => void submit(e)}>
+      <div className="clicker-account-tabs" role="tablist">
+        <button type="button" role="tab" aria-selected={mode === "login"} className={mode === "login" ? "is-on" : ""} onClick={() => setMode("login")}>
+          로그인
+        </button>
+        <button type="button" role="tab" aria-selected={mode === "signup"} className={mode === "signup" ? "is-on" : ""} onClick={() => setMode("signup")}>
+          회원가입
+        </button>
+      </div>
+      <label>
+        <span>아이디</span>
+        <input
+          value={loginId}
+          onChange={(e) => setLoginId(e.target.value)}
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          placeholder="영문 소문자·숫자 3~20자"
+          autoFocus={autoFocus}
+          disabled={disabled}
+          required
+        />
+      </label>
+      {mode === "signup" ? (
+        <label>
+          <span>닉네임</span>
+          <input value={nickname} onChange={(e) => setNickname(e.target.value)} maxLength={12} placeholder="게임에서 보일 이름" disabled={disabled} required />
+        </label>
+      ) : null}
+      <label>
+        <span>비밀번호</span>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete={mode === "login" ? "current-password" : "new-password"}
+          placeholder={mode === "signup" ? "6자 이상" : ""}
+          disabled={disabled}
+          required
+        />
+      </label>
+      {mode === "signup" ? (
+        <label>
+          <span>비밀번호 확인</span>
+          <input type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} autoComplete="new-password" disabled={disabled} required />
+        </label>
+      ) : null}
+      <button type="submit" className="clicker-primary" disabled={off}>
+        {busy ? "처리 중…" : mode === "login" ? "로그인" : "가입하고 진행 저장"}
+      </button>
+    </form>
+  )
+}
+
+export function ClickerAccountMessage({ state }: { state: ClickerAccountState }) {
+  if (!state.message) return null
+  return (
+    <p className={`clicker-account-msg is-${state.message.tone}`} role="status">
+      {state.message.text}
+    </p>
+  )
+}
+
+/** Settings → 계정: log in or sign up, then keep the run in the cloud. */
+export function ClickerAccountPanel({ state }: { state: ClickerAccountState }) {
   const [confirmLoad, setConfirmLoad] = useState(false)
   if (!state.available) return null
-  const { account, cloud, busy, message } = state
+  const { account, cloud, busy } = state
   if (!state.storage) {
     return (
       <section className="clicker-account" aria-labelledby="clicker-account-title">
@@ -24,15 +118,6 @@ export function ClickerAccountPanel({ state }: { state: ClickerAccountState }) {
         <p className="clicker-account-note">로그인·회원가입은 준비 중입니다. 지금은 아래 저장 코드로 진행을 옮길 수 있습니다.</p>
       </section>
     )
-  }
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault()
-    if (busy) return
-    if (mode === "login") void state.login(loginId, password)
-    else void state.signup({ loginId, nickname, password, passwordConfirm })
-    setPassword("")
-    setPasswordConfirm("")
   }
 
   return (
@@ -74,61 +159,12 @@ export function ClickerAccountPanel({ state }: { state: ClickerAccountState }) {
           {confirmLoad ? <p className="clicker-account-note is-warn">지금 이 기기의 진행은 백업된 뒤 클라우드 진행으로 바뀝니다.</p> : null}
         </>
       ) : (
-        <form className="clicker-account-form" onSubmit={submit}>
-          <div className="clicker-account-tabs" role="tablist">
-            <button type="button" role="tab" aria-selected={mode === "login"} className={mode === "login" ? "is-on" : ""} onClick={() => setMode("login")}>
-              로그인
-            </button>
-            <button type="button" role="tab" aria-selected={mode === "signup"} className={mode === "signup" ? "is-on" : ""} onClick={() => setMode("signup")}>
-              회원가입
-            </button>
-          </div>
-          <label>
-            <span>아이디</span>
-            <input
-              value={loginId}
-              onChange={(e) => setLoginId(e.target.value)}
-              autoComplete="username"
-              autoCapitalize="none"
-              spellCheck={false}
-              placeholder="영문 소문자·숫자 3~20자"
-              required
-            />
-          </label>
-          {mode === "signup" ? (
-            <label>
-              <span>닉네임</span>
-              <input value={nickname} onChange={(e) => setNickname(e.target.value)} maxLength={12} placeholder="게임에서 보일 이름" required />
-            </label>
-          ) : null}
-          <label>
-            <span>비밀번호</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              placeholder={mode === "signup" ? "6자 이상" : ""}
-              required
-            />
-          </label>
-          {mode === "signup" ? (
-            <label>
-              <span>비밀번호 확인</span>
-              <input type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} autoComplete="new-password" required />
-            </label>
-          ) : null}
-          <button type="submit" className="clicker-primary" disabled={busy}>
-            {busy ? "처리 중…" : mode === "login" ? "로그인" : "가입하고 진행 저장"}
-          </button>
+        <>
+          <ClickerAccountForm state={state} />
           <p className="clicker-account-note">로그인하면 진행이 클라우드에 저장돼 다른 기기에서도 이어 할 수 있습니다.</p>
-        </form>
+        </>
       )}
-      {message ? (
-        <p className={`clicker-account-msg is-${message.tone}`} role="status">
-          {message.text}
-        </p>
-      ) : null}
+      <ClickerAccountMessage state={state} />
     </section>
   )
 }

@@ -25,7 +25,11 @@ type Options = {
 export type ClickerAccountState = ReturnType<typeof useClickerAccount>
 
 export function useClickerAccount({ getSaveJson, applySaveJson }: Options) {
+  /** The first account check has answered (until then `available` is unknown). */
+  const [checked, setChecked] = useState(false)
   const [available, setAvailable] = useState(false)
+  /** A session cookie was already valid when the page loaded. */
+  const [signedInAtBoot, setSignedInAtBoot] = useState(false)
   const [storage, setStorage] = useState(true)
   const [account, setAccount] = useState<ClickerAccountInfo | null>(null)
   const [cloud, setCloud] = useState<ClickerCloudSave["meta"] | null>(null)
@@ -40,37 +44,49 @@ export function useClickerAccount({ getSaveJson, applySaveJson }: Options) {
 
   const refreshCloud = useCallback(async () => {
     const r = await fetchCloudSave()
-    setCloud(r.ok ? (r.value.save?.meta ?? null) : null)
+    const meta = r.ok ? (r.value.save?.meta ?? null) : null
+    setCloud(meta)
+    return meta
   }, [])
 
   useEffect(() => {
     let alive = true
+    // A slow or hung account server must not hold the game behind the boot screen.
+    const giveUp = window.setTimeout(() => alive && setChecked(true), 5000)
     fetchClickerAccount().then((r) => {
       if (!alive) return
       setAvailable(r.available)
       setStorage(r.storage)
       setAccount(r.account)
+      setSignedInAtBoot(Boolean(r.account))
+      setChecked(true)
       if (r.account) void refreshCloud()
     })
     return () => {
       alive = false
+      window.clearTimeout(giveUp)
     }
   }, [refreshCloud])
 
+  /** Runs one account job; resolves true when it succeeded. */
   const run = useCallback(async (job: () => Promise<{ tone: "ok" | "error"; text: string } | null>) => {
     setBusy(true)
     setMessage(null)
     try {
-      setMessage(await job())
+      const result = await job()
+      setMessage(result)
+      return result?.tone !== "error"
     } finally {
       setBusy(false)
     }
   }, [])
 
+  /** Whether the signed-in account has a cloud save (known once login or signup resolves). */
+  const hasCloudRef = useRef(false)
   const signedIn = useCallback(
     async (next: ClickerAccountInfo, verb: string) => {
       setAccount(next)
-      await refreshCloud()
+      hasCloudRef.current = Boolean(await refreshCloud())
       return { tone: "ok" as const, text: `${next.nickname}님, ${verb}` }
     },
     [refreshCloud],
@@ -155,5 +171,8 @@ export function useClickerAccount({ getSaveJson, applySaveJson }: Options) {
     }
   }, [signedInId])
 
-  return { available, storage, account, cloud, busy, message, login, signup, logout, upload, download }
+  /** After a successful login: true when a cloud save is waiting to be loaded. */
+  const cloudWaiting = useCallback(() => hasCloudRef.current, [])
+
+  return { checked, signedInAtBoot, available, storage, account, cloud, busy, message, login, signup, logout, upload, download, cloudWaiting }
 }

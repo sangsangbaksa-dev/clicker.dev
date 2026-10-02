@@ -52,6 +52,7 @@ import { ClickerPurchaseFx } from "@/components/clicker/clicker-purchase-fx"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerLoading } from "@/components/clicker/clicker-loading"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
+import { ClickerLoginGate } from "@/components/clicker/clicker-login-gate"
 import { ClickerBossScene } from "@/components/clicker/clicker-boss-scene"
 import { ClickerForge } from "@/components/clicker/clicker-forge"
 import { ClickerRelicVault } from "@/components/clicker/clicker-relic-vault"
@@ -193,12 +194,33 @@ function StageBg({ src, className }: { src: string; className: string }) {
 
 const PRELOAD_IMAGES = collectImagePaths(CLICKER_ASSETS, MineArt, clickerConfig)
 
+const GATE_KEY = "aurelia-clicker-login-gate"
+
+/** Guest choice lasts for this tab only, so every new visit starts at the login screen. */
+function readGatePassed(): boolean {
+  try {
+    return typeof window !== "undefined" && window.sessionStorage.getItem(GATE_KEY) === "1"
+  } catch {
+    return false
+  }
+}
+
+function rememberGatePassed() {
+  try {
+    window.sessionStorage.setItem(GATE_KEY, "1")
+  } catch {
+    /* private mode: the gate simply shows again next load */
+  }
+}
+
 export function ClickerApp() {
   const game = useClicker()
   const account = useClickerAccount({
     getSaveJson: game.exportSaveJson,
     applySaveJson: (json) => game.importSaveJson(json, "클라우드 진행을 불러왔습니다"),
   })
+  /** The login gate was passed in this tab (logged in, or chose to play as a guest). */
+  const [gatePassed, setGatePassed] = useState(readGatePassed)
   useImagePreload(PRELOAD_IMAGES)
   // Door-walk entry cinematic between Enter Mine and the timed session (carries its own SFX).
   const [enteringMine, setEnteringMine] = useState(false)
@@ -731,6 +753,25 @@ export function ClickerApp() {
 
   if (!game.save || !game.hud) {
     return <ClickerLoading bgSrc={CLICKER_ASSETS.bgLoading} />
+  }
+
+  // Login comes first; the account check is quick, so hold the boot screen until it answers.
+  if (!account.checked) return <ClickerLoading bgSrc={CLICKER_ASSETS.bgLoading} />
+  // Already logged in when the page loaded: no gate. A login made on the gate closes it through
+  // onDone, so the gate can still ask which run to keep.
+  if (account.available && !gatePassed && !(account.signedInAtBoot && account.account)) {
+    return (
+      <div data-clicker className="clicker-shell clicker-shell-title">
+        <ClickerLoginGate
+          state={account}
+          hasLocalRun={game.save.settings.gameStarted}
+          onDone={() => {
+            rememberGatePassed()
+            setGatePassed(true)
+          }}
+        />
+      </div>
+    )
   }
 
   if (game.isCompleted) {
