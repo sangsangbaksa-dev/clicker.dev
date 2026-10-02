@@ -11,6 +11,7 @@ import {
   writeSharedBlobJson,
 } from "@/infrastructure/persistence/shared-json-store"
 import { SharedStoreUnavailableError } from "@/infrastructure/persistence/shared-store-error"
+import { supabaseProjectUrl, supabaseServiceRoleKey } from "@/infrastructure/persistence/supabase-admin"
 
 /*
  * Game accounts and cloud saves, one JSON object per key in the shared durable store
@@ -25,6 +26,18 @@ const saveKey = (accountId: string) => `clicker-saves/${accountId}`
 /** False on a serverless host with no durable store: accounts would land in /tmp and vanish. */
 export function clickerAccountStorageReady(): boolean {
   return !(durableStorageRequired() && !sharedBlobEnabled())
+}
+
+/**
+ * Names (never values) of the store settings the server cannot see, so a host whose env
+ * vars did not land can be diagnosed from the outside. Empty when storage is ready.
+ */
+export function clickerAccountStorageMissing(): string[] {
+  if (clickerAccountStorageReady()) return []
+  return [
+    supabaseProjectUrl() ? null : "SUPABASE_URL",
+    supabaseServiceRoleKey() ? null : "SUPABASE_SERVICE_ROLE_KEY",
+  ].filter((name): name is string => name !== null)
 }
 
 function assertDurable(): void {
