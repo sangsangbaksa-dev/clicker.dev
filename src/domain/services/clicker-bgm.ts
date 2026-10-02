@@ -6,8 +6,7 @@ export type BgmTrackId =
   | "hub"
   | "mine"
   | "chamber"
-  | "rebirthIntro"
-  | "rebirthHq"
+  | "rebirth"
   | "boss"
   | "relay"
   | "vault"
@@ -15,10 +14,7 @@ export type BgmTrackId =
   | "fault"
   | "heart"
 
-/** `rebirth` plays HQ intro once, then crossfades to `rebirthHq` loop. */
-export type BgmScene = BgmTrackId | "silent" | "rebirth"
-
-export type BgmRebirthBedPhase = "intro" | "loop"
+export type BgmScene = BgmTrackId | "silent"
 
 const WORLD_TRACK: Record<string, BgmTrackId> = {
   signal_relay: "relay",
@@ -59,14 +55,8 @@ export function bgmTrackFadeTarget(
   scene: BgmScene,
   tabHidden: boolean,
   playerGain: number,
-  rebirthBed: BgmRebirthBedPhase = "intro",
 ): number {
   if (tabHidden || playerGain <= 0 || scene === "silent") return 0
-  if (scene === "rebirth") {
-    if (rebirthBed === "intro" && track === "rebirthIntro") return 1
-    if (rebirthBed === "loop" && track === "rebirthHq") return 1
-    return 0
-  }
   return scene === track ? 1 : 0
 }
 
@@ -77,14 +67,23 @@ export function bgmFadeStep(current: number, target: number, dtMs: number, fadeM
   return target > current ? Math.min(target, current + delta) : Math.max(target, current - delta)
 }
 
-/** Element / gain-node level for a track at a given fade position. */
-export function bgmOutputLevel(fade: number, playerGain: number): number {
-  return Math.min(1, fade * playerGain) * BGM_MASTER_LEVEL
+/**
+ * Loudness trim per track. The 9/29 loops (hub/mine/chamber/world) sit near -9 LUFS; the new
+ * loading / rebirth / boss loops were rendered at -16 LUFS, ~7 dB (x2.24) quieter, so they get
+ * that back here and every scene lands at the same perceived level.
+ */
+export const BGM_TRACK_TRIM: Partial<Record<BgmTrackId, number>> = {
+  loading: 2.24,
+  rebirth: 2.24,
+  boss: 2.24,
+}
+
+/** Element / gain-node level for a track at a given fade position (may exceed 1 on a gain node). */
+export function bgmOutputLevel(fade: number, playerGain: number, track?: BgmTrackId): number {
+  return Math.min(1, fade * playerGain) * BGM_MASTER_LEVEL * (track ? (BGM_TRACK_TRIM[track] ?? 1) : 1)
 }
 
 export type BgmOverlayState = {
-  /** Save still loading (boot screen). */
-  bootLoading?: boolean
   enteringMine: boolean
   regionIntro: unknown
   endingPhase: unknown
@@ -92,7 +91,9 @@ export type BgmOverlayState = {
   endingOpen: boolean
   playSurface: "hub" | "mine" | string
   currentRegionId: string | undefined
-  /** Core guardian (or other region boss) fight in progress. */
+  /** Save still loading (boot screen). */
+  bootLoading?: boolean
+  /** Final boss or a lair boss fight in progress. */
   bossFight?: boolean
 }
 
@@ -107,11 +108,10 @@ export function bgmMayTouchTrack(hasUserGesture: boolean, musicMuted: boolean): 
 /** Scene preload is allowed under the same policy (silent scenes need no fetch). */
 export function bgmTracksToWarm(scene: BgmScene): BgmTrackId[] {
   if (scene === "silent") return []
-  if (scene === "rebirth") return ["rebirthIntro", "rebirthHq"]
   return [scene]
 }
 
-/** Cinematics silence the score; active rebirth uses HQ intro→loop; ending keeps chamber v2. */
+/** Cinematics silence the score; boot, boss and rebirth have their own loops; the ending keeps the chamber cue. */
 export function resolveBgmScene(overlay: BgmOverlayState): BgmScene {
   if (overlay.enteringMine || overlay.regionIntro || overlay.endingPhase) return "silent"
   if (overlay.bootLoading) return "loading"

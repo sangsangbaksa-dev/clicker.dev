@@ -36,13 +36,7 @@ function wrapTrack(rec: TrackRecord): BgmLoopTrack {
     },
     setOutputLevel(level: number) {
       if (rec.gain) rec.gain.gain.value = level
-      else rec.audio.volume = level
-    },
-    onEnded(listener: () => void) {
-      rec.audio.addEventListener("ended", listener)
-    },
-    rewind() {
-      rec.audio.currentTime = 0
+      else rec.audio.volume = Math.min(1, level) // element volume cannot boost; the gain node can
     },
   }
 }

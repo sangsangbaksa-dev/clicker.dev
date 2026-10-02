@@ -12,7 +12,6 @@ export const CLICKER_ASSETS = {
   bgMineEntrance: MineArt.entranceGate,
   /** Timed mine session — hi-tech interior chamber. */
   bgMine: MineArt.chamberBg,
-  mineCoreOre: MineArt.coreOre,
   bgTranscendence: "/clicker/bg/transcendence_room_base.webp",
   coreIdle: "/clicker/core/core_idle.webp",
   coreFever: "/clicker/core/core_fever.webp",
@@ -30,12 +29,14 @@ const baseConfig: GameConfig = {
   comboPerStack: 0.02,
   comboMultiplierCap: 2,
   feverGaugeMax: 100,
-  feverDuration: 20,
+  feverDuration: 12, // was 20 — shorter bursts
+  // Gauge fills at half speed (was 1×) and the post-FEVER cool-down grows 2s → 30s.
+  feverGaugeFillScale: 0.5,
   feverClickMultiplier: 2,
   feverProductionMultiplier: 1.2,
   feverCritChanceAdd: 0.1,
   feverComboCap: 10,
-  feverCoolDown: 2,
+  feverCoolDown: 30,
   // Final unit ÷1000: goals 1B → 1.2T → 1.4Qa … With the Heart Key capstone and the boosted
   // AUTOMATION branch, ×1200 keeps worldlines 2–5 at ~8–9 min and the last climb to Core Heart at
   // ~20 min, ~80 min in all (scripts/playtime-sim.ts); ×550 left that last climb at ~6 min.

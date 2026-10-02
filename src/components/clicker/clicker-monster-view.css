@@ -1,0 +1,26 @@
+/* MonsterView: key art is cover-fitted by script into its box (translate/scale on the <img>). */
+.clicker-monster-view {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.clicker-monster-view img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  max-width: none;
+  transform-origin: 0 0;
+  will-change: transform;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.boss-scene-box.is-keyart { background: #04060a; }
+.clicker-boss.has-keyart .clicker-boss-target {
+  position: relative;
+  width: min(100%, clamp(260px, 60vmin, 560px));
+  aspect-ratio: 16 / 10;
+  max-height: min(62vh, 540px);
+  overflow: hidden;
+  border-radius: 6px;
+}

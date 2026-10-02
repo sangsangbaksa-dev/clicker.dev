@@ -607,9 +607,10 @@
   height: 56px;
   padding: 5px;
   border-radius: 14px;
-  border: 1px solid color-mix(in srgb, #4fb8d0 60%, transparent);
+  /* Tree colour (mining blue / production green) comes from --skill-main / --skill-glow. */
+  border: 2px solid var(--skill-main, #4fb8d0);
   background: color-mix(in srgb, #070b14 78%, transparent);
-  box-shadow: 0 0 12px rgb(0 200 255 / 0.18);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--skill-glow, #7fd0ff) 45%, transparent);
   cursor: pointer;
   appearance: none;
   overflow: hidden;
@@ -628,15 +629,29 @@
   background: conic-gradient(rgb(3 8 14 / 0.72) var(--cd, 0%), transparent 0);
   pointer-events: none;
 }
+/* Cooldown gauge in the tree colour: fills left→right as the skill recharges. */
+[data-clicker] .clicker-mine-skill.is-cooldown::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  height: 4px;
+  width: calc((100% - 6px) * (1 - var(--cd, 0%) / 100%));
+  border-radius: 2px;
+  background: var(--skill-main, #4fb8d0);
+  box-shadow: 0 0 6px var(--skill-glow, #7fd0ff);
+  pointer-events: none;
+}
 [data-clicker] .clicker-mine-skill.is-active {
-  border-color: #ffd36a;
-  box-shadow: 0 0 18px rgb(255 200 80 / 0.6);
+  border-color: var(--skill-glow, #7fd0ff);
+  box-shadow: 0 0 18px var(--skill-glow, #7fd0ff);
 }
 [data-clicker] .clicker-mine-skill.is-crisis,
 [data-clicker] .clicker-mine-skill:disabled:not(.is-active) {
   cursor: not-allowed;
 }
 [data-clicker] .clicker-mine-skill.is-crisis { opacity: 0.45; }
+[data-clicker] .clicker-mine-skill.is-empty { opacity: 0.38; filter: grayscale(0.8); cursor: default; }
 [data-clicker] .clicker-mine-skill-time {
   position: absolute;
   inset: 0;
@@ -649,7 +664,7 @@
   text-shadow: 0 0 6px #000, 0 0 2px #000;
   pointer-events: none;
 }
-[data-clicker] .clicker-mine-skill.is-active .clicker-mine-skill-time { color: #ffe39a; }
+[data-clicker] .clicker-mine-skill.is-active .clicker-mine-skill-time { color: var(--skill-glow, #ffe39a); }
 [data-clicker] .clicker-mine-skill-key {
   position: absolute;
   left: 3px;
@@ -658,7 +673,7 @@
   padding: 0 3px;
   border-radius: 5px;
   background: color-mix(in srgb, #041018 85%, transparent);
-  color: #9fdcff;
+  color: var(--skill-glow, #9fdcff);
   font-size: 10px;
   font-weight: 600;
   line-height: 1.4;

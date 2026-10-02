@@ -28,6 +28,8 @@ import {
   type CurrencyCost,
 } from "./clicker-engine"
 import { formatNumber } from "./clicker-format"
+import { milestoneMultiplier, nextMilestone } from "./clicker-milestones"
+import { gaugeFeverUnlocked, isSpecialSkill, skillColor, skillTreeOf } from "./clicker-special-skills"
 
 export type CoreVisual = "idle" | "fever" | "crisis"
 
@@ -37,6 +39,8 @@ export type MainHudViewModel = {
   comboText: string
   comboRemainText: string
   fever: {
+    /** False until the blue "fever core" skill is unlocked; the FEVER button stays hidden. */
+    unlocked: boolean
     active: boolean
     ready: boolean
     progress: number
@@ -88,6 +92,7 @@ export function buildHud(
   const comboRemain = Math.max(0, (run.combo.expiresAt - now) / 1000)
   const instLevel = instabilityLevel(run.instability)
   const coolDownMax = Math.max(0.001, config.feverCoolDown)
+  const feverUnlocked = gaugeFeverUnlocked(meta, config)
   return {
     coreEnergyText: formatNumber(run.coreEnergy),
     productionPerSecondText: `+${formatNumber(prod.perSecond)}/s`,
@@ -95,7 +100,8 @@ export function buildHud(
     comboRemainText: run.combo.count > 1 ? `남음 ${comboRemain.toFixed(1)}초` : "",
     fever: {
       active: feverOn,
-      ready: !feverOn && run.fever.gauge >= config.feverGaugeMax && run.fever.phase === "IDLE",
+      unlocked: feverUnlocked,
+      ready: feverUnlocked && !feverOn && run.fever.gauge >= config.feverGaugeMax && run.fever.phase === "IDLE",
       progress: feverOn
         ? run.fever.duration > 0
           ? clampRatio(run.fever.remainingTime / run.fever.duration)
@@ -160,6 +166,10 @@ export type ProducerView = {
   assetId: string
   level: number
   productionText: string
+  /** Output multiplier from owned-count milestones (×1 until the first at 10). */
+  milestoneMult: number
+  /** Next owned count that doubles output, or null when all are passed. */
+  nextMilestone: number | null
   nextCostText: string
   unlocked: boolean
   canBuy: boolean
@@ -184,7 +194,9 @@ export function buildProducerViews(
       description: p.description,
       assetId: p.assetId,
       level,
-      productionText: `+${formatNumber(snapshot.byProducer[p.id] ?? 0)} / sec`,
+      productionText: `+${formatNumber(snapshot.byProducer[p.id] ?? 0)}/s`,
+      milestoneMult: milestoneMultiplier(level),
+      nextMilestone: nextMilestone(level),
       nextCostText: formatNumber(cost),
       unlocked,
       canBuy,
@@ -313,6 +325,10 @@ export type ActiveSkillShopView = {
   canBuy: boolean
   effectSummary: string
   cooldownSeconds: number
+  /** Colour group (mining blue / production green) for the icon frame. */
+  tree: "mining" | "production"
+  colorMain: string
+  colorGlow: string
 }
 
 export type SkillNodeView = {
@@ -559,9 +575,13 @@ export function buildRegionViews(run: RunState, config: GameConfig, now = Date.n
 }
 
 export function buildActiveSkillShopViews(run: RunState, config: GameConfig): ActiveSkillShopView[] {
-  return [...config.activeSkills]
+  return config.activeSkills
+    .filter((skill) => !isSpecialSkill(skill))
     .sort((a, b) => a.shopCost - b.shopCost)
     .map((skill) => ({
+      tree: skillTreeOf(skill),
+      colorMain: skillColor(skill).main,
+      colorGlow: skillColor(skill).glow,
       id: skill.id,
       name: skill.name,
       description: skill.description,

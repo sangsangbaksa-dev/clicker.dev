@@ -5,7 +5,6 @@ import {
   bgmPlayerGain,
   bgmTrackFadeTarget,
   bgmTracksToWarm,
-  type BgmRebirthBedPhase,
   type BgmTrackId,
 } from "@/domain/services/clicker-bgm"
 import type { BgmEngineState, BgmLoopTrack, ClickerBgmPorts } from "@/application/clicker-audio-ports"
@@ -17,8 +16,6 @@ type Runtime = {
   hidden: boolean
   raf: number
   last: number
-  rebirthBed: BgmRebirthBedPhase
-  rebirthIntroHooked: boolean
 }
 
 export function createClickerBgmEngine(ports: ClickerBgmPorts) {
@@ -30,8 +27,6 @@ export function createClickerBgmEngine(ports: ClickerBgmPorts) {
     hidden: typeof document !== "undefined" ? document.visibilityState === "hidden" : false,
     raf: 0,
     last: 0,
-    rebirthBed: "intro",
-    rebirthIntroHooked: false,
   }
 
   let state: BgmEngineState = {
@@ -53,24 +48,6 @@ export function createClickerBgmEngine(ports: ClickerBgmPorts) {
     })
   }
 
-  const hookRebirthIntroEnded = (track: BgmLoopTrack) => {
-    if (runtime.rebirthIntroHooked || !track.onEnded) return
-    runtime.rebirthIntroHooked = true
-    track.onEnded(() => {
-      if (state.scene !== "rebirth") return
-      runtime.rebirthBed = "loop"
-      const loop = runtime.tracks.rebirthHq
-      loop?.rewind?.()
-      kick()
-    })
-  }
-
-  const resetRebirthBed = () => {
-    runtime.rebirthBed = "intro"
-    runtime.tracks.rebirthIntro?.rewind?.()
-    runtime.tracks.rebirthHq?.rewind?.()
-  }
-
   const step = (t: number) => {
     const dt = runtime.last ? t - runtime.last : 16
     runtime.last = t
@@ -78,7 +55,7 @@ export function createClickerBgmEngine(ports: ClickerBgmPorts) {
     const mayTouch = allowNetwork()
     let moving = false
     for (const key of ports.allTrackIds()) {
-      const target = bgmTrackFadeTarget(key, state.scene, runtime.hidden, playerGain, runtime.rebirthBed)
+      const target = bgmTrackFadeTarget(key, state.scene, runtime.hidden, playerGain)
       let track = runtime.tracks[key]
       if (!track) {
         if (target === 0) continue
@@ -87,12 +64,11 @@ export function createClickerBgmEngine(ports: ClickerBgmPorts) {
         if (!acquired) continue
         track = acquired
         runtime.tracks[key] = track
-        if (key === "rebirthIntro") hookRebirthIntroEnded(track)
       }
       if (target > 0 && mayTouch) tryPlay(key, track)
       const nextLevel = bgmFadeStep(runtime.levels[key], target, dt)
       runtime.levels[key] = nextLevel
-      track.setOutputLevel(bgmOutputLevel(nextLevel, playerGain))
+      track.setOutputLevel(bgmOutputLevel(nextLevel, playerGain, key))
       if (nextLevel === 0) track.pause()
       if (nextLevel !== target) moving = true
     }
@@ -110,7 +86,6 @@ export function createClickerBgmEngine(ports: ClickerBgmPorts) {
 
   return {
     setState(next: Omit<BgmEngineState, "hasUserGesture"> & { hasUserGesture?: boolean }) {
-      const prevScene = state.scene
       const sceneChanged = next.scene !== undefined && next.scene !== state.scene
       state = {
         ...state,
@@ -118,12 +93,6 @@ export function createClickerBgmEngine(ports: ClickerBgmPorts) {
         hasUserGesture: next.hasUserGesture ?? state.hasUserGesture,
       }
       if (sceneChanged) {
-        if (prevScene === "rebirth") resetRebirthBed()
-        if (state.scene === "rebirth") {
-          resetRebirthBed()
-          const intro = runtime.tracks.rebirthIntro
-          if (intro) hookRebirthIntroEnded(intro)
-        }
         warmForScene()
       }
       kick()

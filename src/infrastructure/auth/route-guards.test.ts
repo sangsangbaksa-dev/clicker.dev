@@ -10,6 +10,10 @@ const PUBLIC_ROUTES: Record<string, string> = {
   "auth/login/route.ts": "로그인",
   "auth/signup/route.ts": "회원가입",
   "auth/logout/route.ts": "쿠키 삭제만 함",
+  "clicker/auth/login/route.ts": "클리커 로그인(아이디/비번 검증)",
+  "clicker/auth/signup/route.ts": "클리커 회원가입",
+  "clicker/auth/logout/route.ts": "클리커 쿠키 삭제만 함",
+  "clicker/auth/me/route.ts": "클리커 세션 쿠키 확인(없으면 null)",
   "auth/bootstrap/route.ts": "첫 회원 필요 여부만 알려 줌",
 }
 

@@ -94,6 +94,8 @@
   min-height: 100dvh;
   overflow: hidden;
   position: relative;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 100dvh;
 }
 
 .clicker-loading-bg {
@@ -777,6 +779,7 @@ button.clicker-metric-action.is-fever-ready em {
 .clicker-potion-item.is-busy,
 .clicker-potion-item.is-empty,
 .clicker-skill-item.is-empty,
+.clicker-skill-item.is-crisis,
 .clicker-skill-item.is-cooldown {
   opacity: 0.55;
 }
@@ -785,8 +788,22 @@ button.clicker-metric-action.is-fever-ready em {
   border-color: color-mix(in srgb, var(--danger, #c44) 50%, var(--line));
 }
 
+.clicker-skill-item {
+  /* Tree colour (mining blue / production green) from --skill-main / --skill-glow. */
+  border: 2px solid var(--skill-main, var(--line));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--skill-glow, transparent) 40%, transparent);
+}
+
 .clicker-skill-item.is-ready {
-  border-color: color-mix(in srgb, var(--core) 40%, var(--line));
+  border-color: var(--skill-glow, color-mix(in srgb, var(--core) 40%, var(--line)));
+}
+
+/* Cooldown gauge in the tree colour along the bottom edge. */
+.clicker-skill-item.is-cooldown {
+  background-image: linear-gradient(var(--skill-main, var(--core)), var(--skill-main, var(--core)));
+  background-repeat: no-repeat;
+  background-size: 100% 3px;
+  background-position: 0 100%;
 }
 
 .clicker-shop-potion-body {

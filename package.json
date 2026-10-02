@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start --hostname :: --port 8080",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test src/domain/services/*.test.ts src/application/*.test.ts src/infrastructure/persistence/*.test.ts src/infrastructure/auth/*.test.ts src/infrastructure/architecture/*.test.ts",
+    "test": "node --experimental-strip-types --test src/domain/services/*.test.ts src/application/*.test.ts src/infrastructure/persistence/*.test.ts src/infrastructure/auth/*.test.ts src/infrastructure/architecture/*.test.ts src/infrastructure/cloud/*.test.ts",
     "test:smoke": "node --test scripts/clicker-app-smoke.test.mjs",
     "cf:test": "npm --prefix cloudflare test",
     "cf:dev": "npm --prefix cloudflare run dev",

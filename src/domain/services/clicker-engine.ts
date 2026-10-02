@@ -23,6 +23,8 @@ import {
   pruneEventBoosts,
 } from "./clicker-bonus.ts"
 import { clearMinePause, resumeMine } from "./clicker-mine-pause.ts"
+import { milestoneMultiplier } from "./clicker-milestones.ts"
+import { gaugeFeverUnlocked, isSpecialSkill, specialSkillUnlocked } from "./clicker-special-skills.ts"
 
 /** Base timed-mine length before skill-tree extensions. Balance PROVISIONAL. */
 export const MINE_SESSION_BASE_MS = 10_000
@@ -144,7 +146,7 @@ export function canTriggerTrueEnding(meta: MetaState, config: GameConfig): boole
 export function applyTrueEnding(save: SaveData, config: GameConfig, now: number): { save: SaveData; error?: string } {
   if (save.metaState.gameCompleted) return { save, error: "이미 완료된 기록입니다." }
   if (!canTriggerTrueEnding(save.metaState, config)) {
-    return { save, error: "아직 코어 수호자를 쓰러뜨리지 않았습니다." }
+    return { save, error: "아직 심핵의 수호자를 쓰러뜨리지 않았습니다." }
   }
   return {
     save: {
@@ -792,7 +794,8 @@ export function productionSnapshot(
       byProducer[producer.id] = 0
       continue
     }
-    let rate = producer.productionPerSecond * level
+    // Owning 10 / 25 / 50 / 100 / 200 of one producer doubles its output each time.
+    let rate = producer.productionPerSecond * level * milestoneMultiplier(level)
     for (const u of upgrades) {
       if (u.productionMultiplier && u.producerId === producer.id) rate *= u.productionMultiplier
       if (u.productionMultiplier && u.producerTag && producer.tags.includes(u.producerTag)) {
@@ -884,8 +887,8 @@ export function processClick(
       !feverState.finisherUsed &&
       (feverState.combo >= config.feverComboCap || feverState.critsThisFever >= 5)
     combo.expiresAt += 400
-  } else if (feverState.phase === "IDLE") {
-    const gain = 1 + (isCritical ? 4 : 0) + (combo.count > 0 && combo.count % 10 === 0 ? 6 : 0)
+  } else if (feverState.phase === "IDLE" && gaugeFeverUnlocked(meta, config)) {
+    const gain = (1 + (isCritical ? 4 : 0) + (combo.count > 0 && combo.count % 10 === 0 ? 6 : 0)) * (config.feverGaugeFillScale ?? 1)
     feverState.gauge = clamp(feverState.gauge + gain, 0, config.feverGaugeMax)
   }
 
@@ -951,6 +954,7 @@ export function buyActiveSkillItem(
 ): { run: RunState; error?: string } {
   const skill = config.activeSkills.find((s) => s.id === skillId)
   if (!skill) return { run, error: "스킬을 찾을 수 없습니다." }
+  if (isSpecialSkill(skill)) return { run, error: "특수 스킬은 환생 횟수로 해금됩니다." }
   const cost = scaledCost(run, skill.shopCost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, skill.shopCost))
@@ -980,6 +984,9 @@ export function startFever(
   if (source === "POTION") {
     if (!potion) return { run, error: "물약이 없습니다." }
     if ((run.potions[potion.id] ?? 0) <= 0) return { run, error: "물약이 부족합니다." }
+  }
+  if (source === "GAUGE" && !gaugeFeverUnlocked(meta, config)) {
+    return { run, error: "피버 코어 스킬을 먼저 해금하세요." }
   }
   if (source === "GAUGE" && run.fever.gauge < config.feverGaugeMax) {
     return { run, error: "FEVER 게이지가 부족합니다." }
@@ -1047,6 +1054,7 @@ export function processTick(
   if (now > next.combo.expiresAt && next.combo.count > 0) {
     next.combo = { ...next.combo, count: 0, multiplier: 1 }
   }
+  let timeFrozen = false
   if (skillClockRunning(next)) {
     next.activeBuffs = next.activeBuffs.filter((b) => b.expiresAt > now)
     const cooldowns: Record<string, number> = {}
@@ -1055,6 +1063,11 @@ export function processTick(
       if (left > 0) cooldowns[id] = left
     }
     next.skillCooldowns = cooldowns
+    // Time stop: while its buff runs the mine session clock stands still.
+    if (next.mineSessionEndsAt > 0 && next.activeBuffs.some((b) => config.activeSkills.find((s) => s.id === b.id)?.freezeMine)) {
+      next.mineSessionEndsAt += dt * 1000
+      timeFrozen = true
+    }
   } else if (next.activeBuffs.length) {
     // Outside the mine a running buff keeps its remaining time for the next session.
     const away = Math.max(0, now - run.lastTickAt)
@@ -1107,7 +1120,7 @@ export function processTick(
     coreEnergy: next.coreEnergy + gained,
     lifetimeCoreEnergy: next.lifetimeCoreEnergy + gained,
   }
-  if (!next.crisisActive) next = applyInstabilityDelta(next, hoardInstabilityPerSecond(next, snapshot.perSecond) * dt)
+  if (!next.crisisActive && !timeFrozen) next = applyInstabilityDelta(next, hoardInstabilityPerSecond(next, snapshot.perSecond) * dt)
   if (next.instability >= 100 || next.crisisActive) next = collapseCore(next, now)
   next = tickBoss(next, config, now)
   next = refreshSkillPoints(next, config)
@@ -1143,7 +1156,7 @@ function refreshObjective(run: RunState, meta: MetaState, config: GameConfig): R
         : obj.kind === "ENERGY"
           ? run.lifetimeCoreEnergy >= obj.target
           : obj.kind === "FEVER"
-            ? run.feverStarts >= obj.target
+            ? run.feverStarts >= obj.target || !gaugeFeverUnlocked(meta, config) // gauge FEVER is locked until the fever_core skill
             : obj.kind === "SKILL"
               ? run.ownedSkillNodeIds.length >= obj.target
               : obj.kind === "POTION"
@@ -1339,11 +1352,16 @@ export function activateSkill(
   if (!skillClockRunning(run)) return { run, error: "스킬은 광산 안에서만 쓸 수 있습니다." }
   const skill = config.activeSkills.find((s) => s.id === skillId)
   if (!skill) return { run, error: "스킬이 없습니다." }
-  if ((run.skillItems[skillId] ?? 0) <= 0) return { run, error: "스킬이 부족합니다." }
+  const special = isSpecialSkill(skill)
+  if (special) {
+    if (skill.unlocksFever) return { run, error: "패시브 스킬입니다." }
+    if (!specialSkillUnlocked(skill, meta)) return { run, error: `환생 ${skill.unlockRebirth}회 후 해금됩니다.` }
+  } else if ((run.skillItems[skillId] ?? 0) <= 0) return { run, error: "스킬이 부족합니다." }
   if ((run.skillCooldowns[skillId] ?? 0) > 0) return { run, error: "쿨다운 중입니다." }
   let next = {
     ...run,
-    skillItems: { ...run.skillItems, [skillId]: Math.max(0, (run.skillItems[skillId] ?? 0) - 1) },
+    // Special skills need no charges; only their cooldown limits them.
+    skillItems: special ? run.skillItems : { ...run.skillItems, [skillId]: Math.max(0, (run.skillItems[skillId] ?? 0) - 1) },
     skillCooldowns: { ...run.skillCooldowns, [skillId]: skill.cooldown },
   }
   if (skill.instabilityDelta) next = applyInstabilityDelta(next, skill.instabilityDelta)
@@ -1352,6 +1370,11 @@ export function activateSkill(
       ...next.activeBuffs.filter((b) => b.id !== skillId),
       { id: skillId, expiresAt: now + skill.duration * 1000 },
     ]
+  }
+  if (skill.burstClicks) {
+    // A burst of strikes at today's click power (same yield scaling as a real strike).
+    const burst = derivedClick(next, meta, config).click * skill.burstClicks * mineYieldMultiplier(next, config)
+    next = { ...next, coreEnergy: next.coreEnergy + burst, lifetimeCoreEnergy: next.lifetimeCoreEnergy + burst }
   }
   if (skill.energyBurstSeconds) {
     const snapshot = productionSnapshot(next, meta, config, now)

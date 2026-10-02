@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react"
 import type { BossDef, BossFight } from "@/application/clicker-ui"
-import { formatNumber } from "@/application/clicker-ui"
+import { formatNumber, playGameSfxOr } from "@/application/clicker-ui"
 import { playSfx } from "@/lib/clicker-sfx"
 import { MonsterArt } from "@/components/clicker/clicker-monster"
+import { MonsterView } from "@/components/clicker/clicker-monster-view"
 import "./clicker-monster.css"
 
 type Props = {
@@ -30,13 +31,17 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
       setAttack((n) => n + 1)
       playSfx("playerHurt")
     }
+    // Phase change when the guardian drops under half health.
+    if (before && fight && before.hp > before.maxHp / 2 && fight.hp <= fight.maxHp / 2) {
+      playGameSfxOr("bossPhaseChange", () => playSfx("bossRoar"))
+    }
     if (before && !fight && !defeated) setLost(true)
     if (fight) setLost(false)
   }, [fight, defeated])
 
   const left = fight ? Math.max(0, fight.endsAt - now) / 1000 : def.timeLimitSec
   return (
-    <div className={`clicker-boss${attack ? " is-attack" : ""}${def.imageSrc ? " has-art" : ""}${fight ? " is-fighting" : ""}`} key={attack}>
+    <div className={`clicker-boss${attack ? " is-attack" : ""}${def.imageSrc ? " has-art" : ""}${def.keyArt ? " has-keyart" : ""}${fight ? " is-fighting" : ""}`} key={attack}>
       <strong>{def.name}</strong>
       {fight ? (
         <div className="clicker-boss-bars">
@@ -67,7 +72,9 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
           onStrike(e.clientX, e.clientY)
         }}
       >
-        {def.imageSrc ? (
+        {def.keyArt ? (
+          <MonsterView src={def.keyArt} hitKey={hit} className="boss-keyart" />
+        ) : def.imageSrc ? (
           <span className="boss-art-enter">
             <span className="boss-art-idle">
               <span className={`boss-art-hit${hit ? ` hit-${hit % 2}` : ""}`}>
