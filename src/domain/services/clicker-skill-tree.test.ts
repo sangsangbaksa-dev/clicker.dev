@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import test from "node:test"
 import { clickerConfig as config } from "../../data/clicker/catalog.ts"
 import { layoutSkillTree, connectorPath, SKILL_FINAL_NODE_ID } from "../../data/clicker/skill-tree-layout.ts"
+import { CORE_UNIT, EXTRA_SKILL_NODES, PRICE_CUT, TRANSCENDENCE_COST_SCALE } from "../../data/clicker/catalog-extra.ts"
 import {
   applyRebirth,
   buySkillNode,
@@ -146,4 +147,17 @@ test("mining drones add CORE every tick", () => {
   assert.ok(rate > 0)
   const ticked = processTick({ ...run, lastTickAt: now }, meta, config, now + 1000).run
   assert.ok(Math.abs(ticked.coreEnergy - run.coreEnergy - rate) < 1e-6)
+})
+
+test("skill prices: TRANSCENDENCE circuits cost 3× their listed price, other branches unchanged", () => {
+  const listed = new Map(EXTRA_SKILL_NODES.map((n) => [n.id, n.cost]))
+  const unit = CORE_UNIT * PRICE_CUT
+  for (const id of ["trans_spark", "trans_deep", "trans_heart"]) {
+    const node = config.skillNodes.find((n) => n.id === id)!
+    assert.equal(node.cost, listed.get(id)! * unit * TRANSCENDENCE_COST_SCALE, id)
+  }
+  assert.equal(TRANSCENDENCE_COST_SCALE, 3)
+  for (const id of ["focus_star", "auto_mega", "hunt_apex"]) {
+    assert.equal(config.skillNodes.find((n) => n.id === id)!.cost, listed.get(id)! * unit, id)
+  }
 })

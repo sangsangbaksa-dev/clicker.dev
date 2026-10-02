@@ -193,6 +193,8 @@ function boostAutomation(n: SkillNodeDef): SkillNodeDef {
 
 /** Raw prices are cut by this before the unit change: cheaper items, more of them. */
 export const PRICE_CUT = 0.5
+/** TRANSCENDENCE circuits cost this many times their listed price: the worldline branch is a long-haul buy. */
+export const TRANSCENDENCE_COST_SCALE = 3
 /** Display/economy unit: everything earned and spent is divided by 1000. */
 export const CORE_UNIT = 1 / 1000
 
@@ -239,7 +241,7 @@ export function finalizeCatalog(base: GameConfig): GameConfig {
       .sort((a, b) => a.cost - b.cost),
     skillNodes: [...base.skillNodes, ...EXTRA_SKILL_NODES].map(boostAutomation).map(nameSkillNode).map((n) => ({
       ...n,
-      cost: n.cost * c,
+      cost: n.cost * c * (n.branch === "TRANSCENDENCE" ? TRANSCENDENCE_COST_SCALE : 1),
       startingEnergy: n.startingEnergy === undefined ? undefined : n.startingEnergy * u,
       assetId: n.assetId ?? `/clicker/skill-node/${n.id}.webp`,
     })),
