@@ -170,7 +170,8 @@ function ParticleOverlayPlate({
   const keyVisual = Boolean(keyBackdrop)
   return (
     <div
-      className={`clicker-rebirth-particles-plate${keyVisual ? " clicker-rebirth-particles-plate--key-visual" : ""}`}
+      key={phase}
+      className={`clicker-rebirth-particles-plate clicker-rebirth-plate--${phase}${keyVisual ? " clicker-rebirth-particles-plate--key-visual" : ""}`}
       style={{ opacity: keyVisual ? Math.max(opacity, 0.55) : opacity }}
       aria-hidden
     >
@@ -603,6 +604,12 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
         <em>{worldlineLabel}</em>
       </div>
       <div className="clicker-rebirth-stamp-wrap">
+        {!stillOnly && frame.phase === "stamp" ? (
+          <>
+            <span className="clicker-rebirth-stamp-rays" aria-hidden />
+            <span className="clicker-rebirth-stamp-shock" aria-hidden />
+          </>
+        ) : null}
         <StampGlyph variant={variant} intensity={stillOnly ? 1 : frame.stampScale} reducedMotion={reducedMotion} />
         <p className="clicker-rebirth-stamp-label">{worldlineLabel}</p>
         {stillOnly || frame.phase === "settle" ? (

@@ -12,7 +12,7 @@ const SLUG: Record<string, string> = {
 
 /** Stamps for worldlines outside the Wave A pack: a legacy geometric stamp, or the late lines' sigils. */
 const STAMP_FALLBACK: Record<string, string> = {
-  hybrid_line: "/clicker/stamp/stamp_adaptive_architect.webp",
+  hybrid_line: `${DIR}/rebirth_stamp_adaptive_architect_v2.webp`,
   // Late worldlines stamp with their own sigil.
   hunt_line: "/clicker/buff/buff_hunt.webp",
   forge_line: "/clicker/buff/buff_forge.webp",
@@ -29,10 +29,11 @@ export const RebirthPhaseArt = {
   worldlineSelectBg: `${DIR}/rebirth_worldline_select_bg_v1.png`,
   /** Key visual: void tear + nascent core; also settle-phase flash backdrop. */
   keyVisualVoidTear: `${DIR}/rebirth_key_visual_void_tear_v1.png`,
-  collapseShared: `${DIR}/rebirth_collapse_shared_v1.webp`,
-  rebuildShared: `${DIR}/rebirth_rebuild_shared_v1.webp`,
-  settleShared: `${DIR}/rebirth_settle_shared_v1.webp`,
-  particlesShared: `${DIR}/rebirth_particles_shared_v1.webp`,
+  // v2: painted 1920×1080 plates (Canva) replacing the flat Wave A placeholders.
+  collapseShared: `${DIR}/rebirth_collapse_shared_v2.webp`,
+  rebuildShared: `${DIR}/rebirth_rebuild_shared_v2.webp`,
+  settleShared: `${DIR}/rebirth_settle_shared_v2.webp`,
+  particlesShared: `${DIR}/rebirth_particles_shared_v2.webp`,
   particlesResonanceProtocol: `${DIR}/rebirth_particles_resonance_protocol_v2.png`,
   particlesVolatileCore: `${DIR}/rebirth_particles_volatile_core_v2.png`,
   voidTearShared: `${DIR}/rebirth_void_tear_shared_v1.webp`,
@@ -45,13 +46,14 @@ export const RebirthPhaseArt = {
 
   stampFor(transcendenceId: string): string | undefined {
     const slug = SLUG[transcendenceId]
-    return slug ? `${DIR}/rebirth_stamp_${slug}_v1.webp` : STAMP_FALLBACK[transcendenceId]
+    return slug ? `${DIR}/rebirth_stamp_${slug}_v2.webp` : STAMP_FALLBACK[transcendenceId]
   },
 
   /** Sheet 09 still for prefers-reduced-motion; geometric glyph when absent. */
   reducedMotionStillFor(transcendenceId: string): string | undefined {
     const slug = SLUG[transcendenceId]
-    return slug ? `${DIR}/rebirth_reduced_motion_${slug}_v1.webp` : undefined
+    // The painted stamp doubles as the reduced-motion still.
+    return slug ? `${DIR}/rebirth_stamp_${slug}_v2.webp` : STAMP_FALLBACK[transcendenceId]
   },
 
   /** Stamp-phase particle plate; resonance / volatile worldlines use v2 PNG overlays. */
@@ -73,7 +75,9 @@ export const RebirthPhaseArt = {
   /** HUD plate crossfade for rebuild→settle (MW-03 / sheet 11). */
   hudPlateFor(phase: "rebuild" | "settle", phaseT: number): string {
     if (phase === "settle") return RebirthPhaseArt.settleShared
-    return phaseT < 0.55 ? RebirthPhaseArt.hudRebuildWire : RebirthPhaseArt.hudRebuildFill
+    // The painted rebuild plate replaces the flat wire → fill HUD sketches.
+    void phaseT
+    return RebirthPhaseArt.rebuildShared
   },
 
   /** Full-screen backdrop for void tear / settle (HUD chrome layers above). */
