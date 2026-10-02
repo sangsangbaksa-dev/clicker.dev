@@ -41,7 +41,6 @@ import {
   MINE_MAX_CPS,
   type Rng,
   accrueRegionCurrency,
-  scaledCost,
   mineYieldMultiplier,
   regionUnlockThreshold,
   buyRelic,

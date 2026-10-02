@@ -18,7 +18,7 @@ export function normalizeClickerUiLang(raw: string | null | undefined): ClickerU
   if (!raw) return CLICKER_UI_LANG_DEFAULT
   const tag = clampTag(raw)
   if (ALLOWED.has(tag)) return tag as ClickerUiLang
-  const [primary, region] = tag.split("-")
+  const [primary] = tag.split("-")
   if (primary === "zh") {
     if (tag.includes("tw") || tag.includes("hant")) return "zh-tw"
     if (tag.includes("cn") || tag.includes("hans")) return "zh-cn"

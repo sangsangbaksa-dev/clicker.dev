@@ -12,7 +12,7 @@ function CurrencyCosts({ costs }: { costs: CurrencyCostView[] }) {
   ))
 }
 
-export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) {
+export function ClickerShopPanel({ game, popIcons, bumpIcon }: PanelProps) {
   return (
     <div className="clicker-shop">
       <h3 className="clicker-shop-section">물약 · FEVER</h3>

@@ -19,7 +19,6 @@ import {
   buySkillNode,
   buyUpgrade,
   canRebirth,
-  canTriggerTrueEnding,
   createInitialSave,
   derivedClick,
   droneEnergyPerSecond,
@@ -158,7 +157,6 @@ function shop(): void {
     if (relic) {
       const r = buyRelic(save.runState, save.metaState, config, relic.id)
       save = { ...save, runState: r.run, metaState: r.meta }
-      relicBuys++
       continue
     }
     options.sort((a, b) => a.score - b.score || a.cost - b.cost)
@@ -187,7 +185,6 @@ function step(dt: number): void {
 }
 
 // Lines print as they happen, so a run cut short still reports how far it got.
-let relicBuys = 0
 const runLog = { push: (line: string) => console.log(line) }
 const sources: Record<string, number> = {}
 const credit = (key: string, before: number) => {

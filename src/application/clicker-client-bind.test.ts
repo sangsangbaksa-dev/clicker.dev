@@ -48,7 +48,7 @@ test("tab session delegates to the bound tab-lock port", () => {
     claimLease(tabId, now) {
       leaseStorage.setItem("aurelia-clicker-writer-v1", JSON.stringify({ tabId, claimedAt: now }))
     },
-    canWriteSave(tabId, now) {
+    canWriteSave(tabId) {
       const raw = leaseStorage.getItem("aurelia-clicker-writer-v1")
       if (!raw) return true
       const owner = JSON.parse(raw).tabId as string
