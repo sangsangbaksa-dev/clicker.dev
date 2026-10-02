@@ -105,11 +105,9 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onCho
                 } as CSSProperties
               }
               onMouseEnter={() => {
-                if (focusId !== buff.id) playSfx("worldlineHover")
                 setFocusId(buff.id)
               }}
               onFocus={() => {
-                if (focusId !== buff.id) playSfx("worldlineHover")
                 setFocusId(buff.id)
               }}
             >

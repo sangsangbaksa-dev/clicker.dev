@@ -61,6 +61,8 @@ import {
   resetClickerPersistence,
   createInitialSave,
 } from "@/application/clicker"
+import { bindClickerAccountSaveFlush } from "@/application/clicker-account-client-bind"
+import { CLICKER_ACCOUNT_CHANGED_EVENT } from "@/application/ports/clicker-account-client"
 import {
   clickerCanWriteSave,
   clickerClaimLease,
@@ -95,8 +97,10 @@ import {
   ADMIN_DEFAULT_MODES,
   nextAdminSpeed,
   type AdminModes,
+  playGameSfxOr,
+  skillSfxEvent,
 } from "@/application/clicker-ui"
-import { playActiveSkillSfx, playSfx, setSfxMuted } from "@/lib/clicker-sfx"
+import { playSfx, setSfxMuted } from "@/lib/clicker-sfx"
 
 export type FloatNumber = {
   id: number
@@ -184,6 +188,17 @@ export function useClicker() {
 
   useEffect(() => {
     loadAsOwner()
+  }, [loadAsOwner])
+
+  useEffect(() => {
+    bindClickerAccountSaveFlush(() => persistNow(undefined, true))
+    return () => bindClickerAccountSaveFlush(null)
+  }, [persistNow])
+
+  useEffect(() => {
+    const onAccountChange = () => loadAsOwner()
+    window.addEventListener(CLICKER_ACCOUNT_CHANGED_EVENT, onAccountChange)
+    return () => window.removeEventListener(CLICKER_ACCOUNT_CHANGED_EVENT, onAccountChange)
   }, [loadAsOwner])
 
   useEffect(() => {
@@ -350,7 +365,7 @@ export function useClicker() {
     const result = clickerBuyPotion(saveRef.current, id)
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("purchase")
+    playGameSfxOr("uiPurchase", () => playSfx("purchase"))
     const name = clickerGameConfig.potions.find((p) => p.id === id)?.name ?? id
     flash(`구매 · ${name}`)
   }, [commit, flash, refuse])
@@ -360,7 +375,7 @@ export function useClicker() {
     const result = clickerBuyActiveSkill(saveRef.current, id)
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("purchase")
+    playGameSfxOr("uiPurchase", () => playSfx("purchase"))
     const name = clickerGameConfig.activeSkills.find((s) => s.id === id)?.name ?? id
     flash(`구매 · ${name}`)
   }, [commit, flash, refuse])
@@ -370,7 +385,7 @@ export function useClicker() {
     const result = clickerBuyProducer(saveRef.current, id, count)
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("producerBuy")
+    playGameSfxOr("producerBuy", () => playSfx("purchase"))
   }, [commit, refuse])
 
   const buyUpgrade = useCallback((id: string) => {
@@ -378,7 +393,7 @@ export function useClicker() {
     const result = clickerBuyUpgrade(saveRef.current, id)
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("upgrade")
+    playGameSfxOr("upgrade", () => playSfx("upgrade"))
     const def = clickerGameConfig.upgrades.find((u) => u.id === id)
     setPurchaseFx({ key: ++fxKey.current, kind: def?.category ?? "UTILITY", assetId: def?.assetId })
     const name = def?.name ?? id
@@ -390,7 +405,7 @@ export function useClicker() {
     const result = clickerBuySkill(saveRef.current, id)
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("skillUnlock")
+    playGameSfxOr("skillUnlock", () => playSfx("skillUnlock"))
     const def = clickerGameConfig.skillNodes.find((s) => s.id === id)
     setPurchaseFx({ key: ++fxKey.current, kind: def?.branch ?? "FOCUS", assetId: def?.assetId })
     const name = def?.name ?? id
@@ -420,7 +435,8 @@ export function useClicker() {
     const result = clickerUseSkill(saveRef.current, id, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playActiveSkillSfx(id)
+    // Special skills have their own file; shop skills share one (synth cast cue if a file is missing).
+    playGameSfxOr(skillSfxEvent(id) ?? "shopSkillUse", () => playSfx("skillUse"))
     const name = clickerGameConfig.activeSkills.find((s) => s.id === id)?.name ?? id
     flash(`${name} 발동`)
   }, [commit, flash, refuse])
@@ -661,7 +677,7 @@ export function useClicker() {
     if (!result.error && next.settings.playSurface === "mine") {
       if (!mineStartRef.current) mineStartRef.current = clickerMineSessionStart(next, t)
       setMineSummary(null)
-      playSfx("enterMine")
+      playGameSfxOr("enterMine", () => playSfx("toggle"))
     }
     commit(next)
     persistNow(next)
@@ -750,7 +766,7 @@ export function useClicker() {
   const exitMine = useCallback(() => {
     if (!saveRef.current) return
     const before = saveRef.current
-    if (before.settings.playSurface === "mine") playSfx("exitMine")
+    if (before.settings.playSurface === "mine") playGameSfxOr("exitMine", () => playSfx("toggle"))
     const exited = clickerExitMine(before, now())
     const next = before.settings.playSurface === "mine" ? finishMine(before, exited) : exited
     commit(next)
@@ -773,7 +789,7 @@ export function useClicker() {
       const result = clickerSlayMonster(saveRef.current, regionId, now())
       if (!result.ok) return 0
       commit(result.value.save)
-      playSfx("monsterDie")
+      playGameSfxOr("monsterDefeat", () => playSfx("monsterDie"))
       const id = ++floatId.current
       setFloats((prev) => [...prev.slice(-12), { id, text: `+${formatNumber(result.value.reward)}`, critical: true, x: clientX, y: clientY }])
       window.setTimeout(() => setFloats((prev) => prev.filter((f) => f.id !== id)), 1000)
@@ -788,7 +804,7 @@ export function useClicker() {
     const result = clickerEnterLair(saveRef.current, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("bossRoar")
+    playGameSfxOr("monsterAppear", () => playSfx("bossRoar"))
   }, [commit, refuse])
 
   const leaveLair = useCallback(() => {
@@ -809,7 +825,7 @@ export function useClicker() {
       setFloats((prev) => [...prev.slice(-12), { id, text, critical: result.defeated, x: clientX, y: clientY }])
       window.setTimeout(() => setFloats((prev) => prev.filter((f) => f.id !== id)), result.defeated ? 1100 : 600)
       if (result.defeated) {
-        playSfx("monsterDie")
+        playGameSfxOr("monsterDefeat", () => playSfx("monsterDie"))
         persistNow(result.save)
       }
       return result.defeated
@@ -870,7 +886,7 @@ export function useClicker() {
     const result = clickerStartBoss(saveRef.current, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("bossAppear")
+    playGameSfxOr("bossAppear", () => playSfx("bossRoar"))
   }, [commit, refuse])
 
   /** Strike the guardian. Returns true on the killing blow. */
@@ -879,7 +895,7 @@ export function useClicker() {
       if (!saveRef.current) return false
       const result = clickerStrikeBoss(saveRef.current, now())
       if (result.damage <= 0) return false
-      playSfx("bossHit")
+      playGameSfxOr("bossHit", () => playSfx("bossHurt"))
       commit(result.save)
       const id = ++floatId.current
       setFloats((prev) => [...prev.slice(-12), { id, text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }])

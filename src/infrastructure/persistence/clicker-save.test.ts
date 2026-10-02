@@ -6,7 +6,10 @@ import {
   backupClickerRaw,
   readClickerBackups,
   readClickerRaw,
+  readClickerRawAtLoginId,
+  setClickerSaveSlotLoginId,
   writeClickerRaw,
+  writeClickerRawAtLoginId,
 } from "./clicker-save.ts"
 
 class MemoryStorage {
@@ -28,7 +31,18 @@ let store: MemoryStorage
 
 beforeEach(() => {
   store = new MemoryStorage()
+  setClickerSaveSlotLoginId(null)
   ;(globalThis as { window?: unknown }).window = { localStorage: store }
+})
+
+test("per-account slots do not overwrite the guest save", () => {
+  writeClickerRaw('{"guest":true}')
+  writeClickerRawAtLoginId("alice", '{"alice":true}')
+  setClickerSaveSlotLoginId("alice")
+  assert.equal(readClickerRaw(), '{"alice":true}')
+  setClickerSaveSlotLoginId(null)
+  assert.equal(readClickerRaw(), '{"guest":true}')
+  assert.equal(readClickerRawAtLoginId("alice"), '{"alice":true}')
 })
 
 test("backups live under their own key, so autosave cannot overwrite them", () => {

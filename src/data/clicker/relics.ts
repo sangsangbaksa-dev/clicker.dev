@@ -27,7 +27,7 @@ export const CLICKER_RELICS: RelicDef[] = [
   {
     id: "relic_storm_eye",
     name: "폭풍의 눈",
-    lore: "뇌운 드래곤의 둥지에서 건진 수정. 안에서 아직 천둥이 친다.",
+    lore: "폭풍룡의 둥지에서 건진 수정. 안에서 아직 천둥이 친다.",
     regionId: "storm_spire",
     maxLevel: 5,
     perLevel: { lightningChanceAdd: 0.02, criticalMultiplier: 1.2 },

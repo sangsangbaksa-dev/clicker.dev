@@ -6,9 +6,6 @@ export type BgmLoopTrack = {
   play(): Promise<void>
   pause(): void
   setOutputLevel(level: number): void
-  /** One-shot beds fire when natural playback ends. */
-  onEnded?(listener: () => void): void
-  rewind?(): void
 }
 
 export type BgmEngineState = {

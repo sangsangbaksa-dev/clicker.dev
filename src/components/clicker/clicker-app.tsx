@@ -1,5 +1,6 @@
 "use client"
 
+import { ClickerAccount } from "@/components/clicker/clicker-account"
 import {
   useCallback,
   useEffect,
@@ -32,6 +33,14 @@ import {
   activeSkillBarStatusLine,
   isActiveSkillBarDisabled,
   resolveActiveSkillBarState,
+  ownedActiveSkills,
+  skillCharges,
+  skillColor,
+  skillNovaColor,
+  playCoreStrike,
+  playGameSfxOr,
+  syncSkillLoops,
+  warmGameSfx,
 } from "@/application/clicker-ui"
 import { useClicker } from "@/hooks/use-clicker"
 import { useClickerBgm } from "@/hooks/use-clicker-bgm"
@@ -59,7 +68,7 @@ import { ClickerBossFight } from "@/components/clicker/clicker-boss"
 import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
 import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
-import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
+import { playSfx, unlockSfx } from "@/lib/clicker-sfx"
 import { ClickerAchievementsPanel } from "@/components/clicker/panels/achievements-panel"
 import { ClickerProducersPanel } from "@/components/clicker/panels/producers-panel"
 import { ClickerUpgradesPanel } from "@/components/clicker/panels/upgrades-panel"
@@ -80,14 +89,6 @@ const LIGHTNING_SKILL_ID = "storm_spark"
 /** How long a finished boss fight stays on screen (death / knockout) before returning to the world still. */
 const BOSS_EXIT_DELAY_MS = 2200
 
-const SKILL_NOVA_COLOR: Record<string, string> = {
-  overclock: "rgb(255 120 60 / 0.9)",
-  core_pulse: "rgb(120 240 255 / 0.9)",
-  stabilizer: "rgb(120 255 190 / 0.85)",
-  laser_focus: "rgb(255 90 140 / 0.9)",
-  time_warp: "rgb(190 140 255 / 0.9)",
-  grid_boost: "rgb(255 220 110 / 0.9)",
-}
 
 /** Number keys 1–9 cast owned skills in bar order (ignored while typing). */
 function ClickerSkillHotkeys({ onSlot }: { onSlot: (slot: number) => void }) {
@@ -203,11 +204,15 @@ export function ClickerApp() {
   // Prime Web Audio on first gesture so click/laser SFX are not stuck suspended.
   useEffect(() => {
     // Capture phase so mine ore stopPropagation() can't swallow the unlock gesture.
-    window.addEventListener("pointerdown", unlockSfx, true)
-    window.addEventListener("keydown", unlockSfx, true)
+    const unlock = () => {
+      unlockSfx()
+      warmGameSfx() // decode the legacy effect files once audio is allowed
+    }
+    window.addEventListener("pointerdown", unlock, true)
+    window.addEventListener("keydown", unlock, true)
     return () => {
-      window.removeEventListener("pointerdown", unlockSfx, true)
-      window.removeEventListener("keydown", unlockSfx, true)
+      window.removeEventListener("pointerdown", unlock, true)
+      window.removeEventListener("keydown", unlock, true)
     }
   }, [])
 
@@ -217,7 +222,9 @@ export function ClickerApp() {
       const el = e.target instanceof Element ? e.target.closest("button") : null
       if (!el || el.disabled || !el.closest("[data-clicker]")) return
       if (el.closest(".clicker-mine-crystal, .clicker-mine-vein-gold, [data-sfx='off']")) return
-      playSfx(buttonCue(el))
+      const cue = buttonCue(el)
+      if (cue === "tap") playGameSfxOr("uiTap", () => playSfx("tap"))
+      else playSfx(cue)
     }
     window.addEventListener("click", onClick, true)
     return () => window.removeEventListener("click", onClick, true)
@@ -259,6 +266,7 @@ export function ClickerApp() {
   useClickerBgm(bgm.visual, {
     scene: clickerBgmScene({
       bootLoading: !game.save,
+      bossFight: Boolean(game.save?.runState.boss || game.save?.runState.lair),
       enteringMine,
       regionIntro: game.regionIntro,
       endingPhase,
@@ -266,7 +274,6 @@ export function ClickerApp() {
       endingOpen,
       playSurface: game.save?.settings.playSurface ?? "hub",
       currentRegionId: game.save?.runState.currentRegionId,
-      bossFight: Boolean(game.save?.runState.boss),
     }),
     muted: bgm.muted,
     volume: bgm.volume,
@@ -510,10 +517,11 @@ export function ClickerApp() {
   const [arrivedRegion, setArrivedRegion] = useState<string | null>(null)
   /** Cast a skill with its full-screen nova (button or number-key hotkey). */
   const castSkill = (id: string) => {
+    const def = game.config.activeSkills.find((s) => s.id === id)
     bumpIcon(id)
     flashStage()
     game.useSkill(id)
-    setSkillNova((prev) => ({ key: (prev?.key ?? 0) + 1, color: SKILL_NOVA_COLOR[id] ?? "rgb(150 230 255 / 0.85)" }))
+    setSkillNova((prev) => ({ key: (prev?.key ?? 0) + 1, color: def ? skillNovaColor(def) : "rgb(150 230 255 / 0.85)" }))
   }
 
   useEffect(() => {
@@ -644,7 +652,7 @@ export function ClickerApp() {
   useEffect(() => {
     if (prevInMine.current && !inMineSurface) {
       const timedOut = mineEndsRef.current > 0 && Date.now() >= mineEndsRef.current - 150
-      if (timedOut) playSfx("sessionTimerEnd")
+      if (timedOut) playGameSfxOr("sessionTimerEnd", () => playSfx("sessionEnd"))
     }
     prevInMine.current = inMineSurface
   }, [inMineSurface])
@@ -673,7 +681,7 @@ export function ClickerApp() {
       preloadCinematic("/clicker/ending/ending_core_awaken.mp4")
     }
     if (prevBossDefeated.current === false && bossDefeated) {
-      playSfx("bossDown")
+      playGameSfxOr("bossDefeat", () => playSfx("bossDown"))
       setEndingPhase("fall")
     }
     prevBossDefeated.current = bossDefeated
@@ -718,6 +726,18 @@ export function ClickerApp() {
     const t = window.setTimeout(() => setEngagedRegion(null), BOSS_EXIT_DELAY_MS)
     return () => window.clearTimeout(t)
   }, [fightOn])
+
+  // Green skills hum while their buff is up (stops when it ends, on leaving the mine, or when muted).
+  const loopRun = game.save?.runState
+  const loopTick = loopRun?.lastTickAt ?? 0
+  const loopKey =
+    loopRun && !game.otherTabActive && game.save?.settings.playSurface === "mine" && !game.save.settings.muted
+      ? loopRun.activeBuffs.filter((b) => b.expiresAt > loopTick).map((b) => b.id).sort().join(",")
+      : ""
+  useEffect(() => {
+    syncSkillLoops(loopKey ? loopKey.split(",") : [])
+  }, [loopKey])
+  useEffect(() => () => syncSkillLoops([]), [])
 
   if (game.otherTabActive) {
     return (
@@ -817,12 +837,7 @@ export function ClickerApp() {
   const worldsOpen = game.config.regions.filter((r) => !r.isHome && isRegionUnlocked(run, game.config, r.id)).length
   const fxTier = Math.min(4, FX_TIER_BY_WORLDS[Math.min(worldsOpen, 5)] + (coreVisual === "fever" ? 1 : 0)) as MineFxTier
   const skillStorm = inMine && run.activeBuffs.some((b) => b.expiresAt > tickNow)
-  const ownedSkills = game.config.activeSkills.filter(
-    (skill) =>
-      (run.skillItems[skill.id] ?? 0) > 0 ||
-      (run.skillCooldowns[skill.id] ?? 0) > 0 ||
-      run.activeBuffs.some((b) => b.id === skill.id && b.expiresAt > tickNow),
-  )
+  const ownedSkills = ownedActiveSkills(run, game.save.metaState, game.config, tickNow)
   const monsterIsAlive = monsterDef ? monsterAlive(run, run.currentRegionId, tickNow) : false
   const lair = run.lair && run.lair.regionId === run.currentRegionId ? run.lair : null
   const shieldMs = shieldRemainingMs(run, run.currentRegionId, tickNow)
@@ -921,7 +936,7 @@ export function ClickerApp() {
             <em>자동 퇴장</em>
           </div>
         )}
-        {hud.fever.ready && !hud.fever.active && !hud.crisisActive ? (
+        {!hud.fever.unlocked && !hud.fever.active && run.fever.phase !== "COOL_DOWN" ? null : hud.fever.ready && !hud.fever.active && !hud.crisisActive ? (
           <button
             type="button"
             className="clicker-metric clicker-metric-action is-fever-ready"
@@ -1043,6 +1058,7 @@ export function ClickerApp() {
         >
           설정
         </button>
+        <ClickerAccount />
       </header>
 
       <div className="clicker-stage">
@@ -1074,7 +1090,7 @@ export function ClickerApp() {
             tauntKey={tauntKey}
             onEnter={game.enterLair}
             onStrike={(x, y) => {
-              playLaser(game.save!.settings.muted, false)
+              playCoreStrike(game.save!.settings.muted, false)
               return game.strikeLair(x, y)
             }}
           />
@@ -1177,6 +1193,7 @@ export function ClickerApp() {
                   <span>남은 시간</span>
                   <strong>{mineRemainSec.toFixed(1)}s</strong>
                 </div>
+                {hud.fever.unlocked || hud.fever.active || run.fever.phase === "COOL_DOWN" ? (
                 <button
                   type="button"
                   className={`clicker-mine-hud-stat clicker-mine-fever${hud.fever.active ? " is-active" : ""}${hud.fever.ready && !hud.fever.active ? " is-ready" : ""}`}
@@ -1205,6 +1222,7 @@ export function ClickerApp() {
                   </strong>
                   <i style={{ width: `${Math.round(hud.fever.progress * 100)}%` }} aria-hidden />
                 </button>
+                ) : null}
                 {game.drill?.owned ? (
                   <button
                     type="button"
@@ -1224,7 +1242,7 @@ export function ClickerApp() {
                       {game.drill.overdriveLeftMs > 0
                         ? `${Math.ceil(game.drill.overdriveLeftMs / 1000)}s`
                         : game.drill.readyInMs > 0
-                          ? `${Math.ceil(game.drill.readyInMs / 60_000)}분`
+                          ? `${Math.ceil(game.drill.readyInMs / 1000)}s`
                           : "READY"}
                     </strong>
                   </button>
@@ -1245,7 +1263,7 @@ export function ClickerApp() {
                       const feverBusy = hud.fever.active || run.fever.phase === "COOL_DOWN"
                       const isActivePotion = hud.fever.active && run.fever.potionId === potion.id
                       const needsConfirm = potion.id === "overdrive" && confirmPotion === potion.id
-                      let state: "ready" | "active" | "busy" | "crisis" | "confirm" = "ready"
+                      let state: "ready" | "active" | "busy" | "crisis" | "confirm" | "empty" = "ready"
                       let statusLabel = "준비"
                       if (hud.crisisActive) {
                         state = "crisis"
@@ -1256,6 +1274,9 @@ export function ClickerApp() {
                       } else if (feverBusy) {
                         state = "busy"
                         statusLabel = run.fever.phase === "COOL_DOWN" ? "쿨다운" : "FEVER"
+                      } else if (count <= 0) {
+                        state = "empty"
+                        statusLabel = "없음"
                       } else if (needsConfirm) {
                         state = "confirm"
                         statusLabel = "확인"
@@ -1265,10 +1286,10 @@ export function ClickerApp() {
                         <button
                           key={potion.id}
                           type="button"
-                          className={`clicker-mine-potion is-${state}${count <= 0 ? " is-empty" : ""}${(popIcons[potion.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
+                          className={`clicker-mine-potion is-${state}${(popIcons[potion.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
                           disabled={disabled}
                           aria-label={`${potion.name} · ${statusLabel} · 보유 ${count}`}
-                          title={`${potion.name} · ${potion.description}`}
+                          title={count <= 0 ? `${potion.name} · 충전 없음 · 상점에서 충전` : `${potion.name} · ${potion.description}`}
                           onClick={() => {
                             if (potion.id === "overdrive" && confirmPotion !== potion.id) {
                               setConfirmPotion(potion.id)
@@ -1291,21 +1312,22 @@ export function ClickerApp() {
                 <div className="clicker-mine-skills" role="toolbar" aria-label="보유 스킬">
                   {ownedSkills.map((skill, slot) => {
                     const cd = run.skillCooldowns[skill.id] ?? 0
-                    const charges = run.skillItems[skill.id] ?? 0
+                    const charges = skillCharges(run, skill)
+                    const tint = skillColor(skill)
                     const buff = run.activeBuffs.find((b) => b.id === skill.id && b.expiresAt > tickNow)
                     const buffLeft = buff ? Math.ceil((buff.expiresAt - tickNow) / 1000) : 0
-                    const state = hud.crisisActive ? "crisis" : buff ? "active" : cd > 0 ? "cooldown" : "ready"
+                    const state = hud.crisisActive ? "crisis" : buff ? "active" : cd > 0 ? "cooldown" : charges <= 0 ? "empty" : "ready"
                     const status =
-                      state === "active" ? `${buffLeft}초 지속` : state === "cooldown" ? `쿨다운 ${Math.ceil(cd)}초` : state === "crisis" ? "위기" : "준비"
+                      state === "empty" ? "없음" : state === "active" ? `${buffLeft}초 지속` : state === "cooldown" ? `쿨다운 ${Math.ceil(cd)}초` : state === "crisis" ? "위기" : "준비"
                     return (
                       <button
                         key={skill.id}
                         type="button"
                         className={`clicker-mine-skill is-${state}${(popIcons[skill.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
                         disabled={cd > 0 || charges <= 0 || hud.crisisActive}
-                        aria-label={`${skill.name} · ${status} · 보유 ${charges}`}
-                        title={`${skill.name} · ${skill.description}`}
-                        style={cd > 0 ? ({ "--cd": `${Math.min(100, (cd / skill.cooldown) * 100)}%` } as React.CSSProperties) : undefined}
+                        aria-label={`${skill.name} · ${status}${Number.isFinite(charges) ? ` · 보유 ${charges}` : ""}`}
+                        title={state === "empty" ? `${skill.name} · 충전 없음 · 상점에서 충전` : `${skill.name} · ${skill.description}`}
+                        style={{ "--skill-main": tint.main, "--skill-glow": tint.glow, ...(cd > 0 ? { "--cd": `${Math.min(100, (cd / skill.cooldown) * 100)}%` } : {}) } as React.CSSProperties}
                         onClick={() => castSkill(skill.id)}
                       >
                         <img key={`${skill.id}-${popIcons[skill.id] ?? 0}`} src={skill.assetId} alt="" />
@@ -1313,7 +1335,7 @@ export function ClickerApp() {
                         {state === "active" || state === "cooldown" ? (
                           <b className="clicker-mine-skill-time">{state === "active" ? buffLeft : Math.ceil(cd)}</b>
                         ) : null}
-                        <span className="clicker-mine-potion-count">{charges}</span>
+                        <span className="clicker-mine-potion-count">{Number.isFinite(charges) ? charges : "∞"}</span>
                       </button>
                     )
                   })}
@@ -1329,7 +1351,7 @@ export function ClickerApp() {
                   setPop(true)
                   window.setTimeout(() => setPop(false), 100)
                 }}
-                playLaser={playLaser}
+                playLaser={playCoreStrike}
                 autoRate={game.drill?.rate ?? 0}
                 onOreBroken={game.oreBroken}
                 fxTier={fxTier}
@@ -1380,7 +1402,7 @@ export function ClickerApp() {
               defeated={bossDefeated}
               onStart={game.startBoss}
               onStrike={(x, y) => {
-                playLaser(game.save!.settings.muted, false)
+                playCoreStrike(game.save!.settings.muted, false)
                 game.strikeBoss(x, y)
               }}
             />
@@ -1437,7 +1459,7 @@ export function ClickerApp() {
                   e.preventDefault()
                   const paid = game.drillVein(e.clientX, e.clientY)
                   if (paid === null) return
-                  playLaser(game.save?.settings.muted ?? false, paid > 0)
+                  playCoreStrike(game.save?.settings.muted ?? false, paid > 0)
                   if (paid > 0) flashStage()
                   setDrillHits((n) => n + 1)
                 }}
@@ -1499,14 +1521,15 @@ export function ClickerApp() {
       <ClickerSkillHotkeys
         onSlot={(n) => {
           const skill = ownedSkills[n]
-          if (!inMine || !skill || (run.skillItems[skill.id] ?? 0) <= 0 || (run.skillCooldowns[skill.id] ?? 0) > 0 || game.hud?.crisisActive) return
+          if (!inMine || !skill || skillCharges(run, skill) <= 0 || (run.skillCooldowns[skill.id] ?? 0) > 0 || game.hud?.crisisActive) return
           castSkill(skill.id)
         }}
       />
       <div className="clicker-actions">
         {ownedSkills.map((skill, slot) => {
           const cd = run.skillCooldowns[skill.id] ?? 0
-          const charges = run.skillItems[skill.id] ?? 0
+          const charges = skillCharges(run, skill)
+          const tint = skillColor(skill)
           const skillTip = `${skill.name} — ${skill.description}`
           const skillState = resolveActiveSkillBarState({
             crisisActive: hud.crisisActive,
@@ -1522,6 +1545,7 @@ export function ClickerApp() {
                 disabled={isActiveSkillBarDisabled(skillState)}
                 aria-label={`${skillTip} · ${skillStatus}`}
                 title={skillTip}
+                style={{ "--skill-main": tint.main, "--skill-glow": tint.glow } as React.CSSProperties}
                 onClick={() => castSkill(skill.id)}
               >
                 <img key={`${skill.id}-${popIcons[skill.id] ?? 0}`} src={skill.assetId} alt="" />
@@ -1530,7 +1554,7 @@ export function ClickerApp() {
                   {skill.name}
                   <br />
                   <small>
-                    {charges} · {activeSkillBarShortLabel(skillState)}
+                    {Number.isFinite(charges) ? charges : "∞"} · {activeSkillBarShortLabel(skillState)}
                   </small>
                 </span>
               </button>
@@ -1603,18 +1627,22 @@ export function ClickerApp() {
         </div>
 
         <nav className="clicker-tabs" aria-label="하단 패널 탭">
-          {drawerTabs.map(([id, label, ko]) => (
+          {drawerTabs.map(([id, label, ko]) => {
+            const locked = id === "forge" && !forgeUnlocked
+            return (
             <button
               key={id}
               type="button"
               data-active={tab === id}
-              aria-label={ko}
+              className={locked ? "is-locked" : undefined}
+              aria-label={locked ? `${ko} · 잠김` : ko}
               aria-current={tab === id ? "page" : undefined}
               onClick={() => selectTab(id)}
             >
               {label}
             </button>
-          ))}
+            )
+          })}
         </nav>
 
         <section className="clicker-panel">
@@ -1640,7 +1668,7 @@ export function ClickerApp() {
             meta={game.save.metaState}
             onSelectTab={selectTab}
             onChoose={(buff) => {
-              playSfx("rebirthOpen")
+              playGameSfxOr("rebirthOpen", () => playSfx("tap"))
               setPendingRebirth({ id: buff.id, label: buff.name })
             }}
           />

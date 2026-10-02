@@ -1,3 +1,7 @@
+"use client"
+
+import { useClickerUiLang } from "@/hooks/use-clicker-ui-lang"
+
 type Props = {
   bgSrc: string
   label?: string
@@ -5,8 +9,16 @@ type Props = {
 
 /** Boot / save-load screen with a frosted panel and indeterminate shimmer bar. */
 export function ClickerLoading({ bgSrc, label = "CORE를 깨우는 중…" }: Props) {
+  const [uiLang] = useClickerUiLang()
   return (
-    <div data-clicker className="clicker-shell clicker-loading" role="status" aria-busy="true" aria-live="polite">
+    <div
+      data-clicker
+      className="clicker-shell clicker-loading"
+      role="status"
+      aria-busy="true"
+      aria-live="polite"
+      lang={uiLang}
+    >
       <div className="clicker-loading-bg" style={{ backgroundImage: `url(${bgSrc})` }} aria-hidden />
       <div className="clicker-loading-panel">
         <p className="clicker-loading-text">{label}</p>

@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react"
 import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
 import { formatNumber, registerSecretTap, type ParsedSaveCode, type SecretTapState } from "@/application/clicker-ui"
+import { parseSavePaste } from "@/application/clicker-gmail-backup"
+import { ClickerSaveBackup } from "@/components/clicker/clicker-save-backup"
 
 type Props = {
   muted: boolean
@@ -153,6 +155,13 @@ export function ClickerSettings({
         </ul>
 
         <ClickerSaveTransfer
+          onExportCode={onExportCode}
+          onParseCode={(text) => parseSavePaste(text, onParseCode)}
+          onImportJson={onImportJson}
+          onImported={onClose}
+        />
+
+        <ClickerSaveBackup
           onExportCode={onExportCode}
           onParseCode={onParseCode}
           onImportJson={onImportJson}

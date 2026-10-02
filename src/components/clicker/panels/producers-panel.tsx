@@ -27,6 +27,10 @@ export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automatio
               </div>
               <p className="clicker-producer-effect">
                 Lv. {p.level} · <em>{p.productionText}</em>
+                {p.milestoneMult > 1 ? <span className="clicker-producer-milestone"> · ×{p.milestoneMult}</span> : null}
+                {p.nextMilestone !== null ? (
+                  <small className="clicker-producer-milestone-next"> · {p.nextMilestone}개에서 생산 ×2</small>
+                ) : null}
               </p>
               <p className="clicker-producer-cost">
                 {/* The status badge already says "CORE 부족" / "잠김" — don't repeat it here. */}

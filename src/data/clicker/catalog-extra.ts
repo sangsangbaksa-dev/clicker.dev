@@ -170,6 +170,23 @@ export const EXTRA_ACTIVE_SKILLS: ActiveSkillDef[] = [
 ]
 
 /**
+ * Special skills: unlocked by rebirth count (no shop, no charges). Blue = mining, green = production
+ * (colours live in clicker-special-skills). `fever_core` is passive: it is what lets gauge FEVER start.
+ * Icons reuse the existing skill art until dedicated icons are made.
+ * (Waldode's "overclock" is "overclock_grid" here: the shop already has an OVERCLOCK.)
+ */
+export const SPECIAL_ACTIVE_SKILLS: ActiveSkillDef[] = [
+  { id: "seismic_wave", name: "대지 진동", description: "발밑을 뒤흔들어 광맥에 강한 충격 · 즉시 채굴 30회분", cooldown: 45, duration: 0, shopCost: 0, burstClicks: 30, tree: "mining", unlockRebirth: 0, assetId: "/clicker/skill/skill_core_pulse.webp" },
+  { id: "overdrive", name: "광부의 혼", description: "15초 동안 곡괭이질 ×3", cooldown: 90, duration: 15, shopCost: 0, clickMultiplier: 3, tree: "mining", unlockRebirth: 0, assetId: "/clicker/skill/skill_laser_focus.webp" },
+  { id: "fever_core", name: "열광의 핵", description: "패시브 · 피버 타임 해금 (12초, 게이지 ½ 속도, 쿨 30초)", cooldown: 0, duration: 0, shopCost: 0, unlocksFever: true, tree: "mining", unlockRebirth: 1, assetId: "/clicker/skill/skill_overclock.webp" },
+  { id: "pulse_burst", name: "맥동 폭파", description: "압축한 에너지를 터뜨려 즉시 채굴 80회분", cooldown: 60, duration: 0, shopCost: 0, burstClicks: 80, tree: "mining", unlockRebirth: 1, assetId: "/clicker/skill/skill_core_pulse.webp" },
+  { id: "time_freeze", name: "시간 정지", description: "8초 동안 광산 시간·불안정도가 멈춤", cooldown: 150, duration: 8, shopCost: 0, freezeMine: true, tree: "mining", unlockRebirth: 2, assetId: "/clicker/skill/skill_time_warp.webp" },
+  { id: "core_overload", name: "코어 폭주", description: "코어를 한계까지 몰아붙여 즉시 채굴 250회분", cooldown: 180, duration: 0, shopCost: 0, burstClicks: 250, tree: "mining", unlockRebirth: 3, assetId: "/clicker/skill/skill_stabilizer.webp" },
+  { id: "assembly_line", name: "풀가동 라인", description: "20초 동안 생산 ×2", cooldown: 90, duration: 20, shopCost: 0, productionMultiplier: 2, tree: "production", unlockRebirth: 0, assetId: "/clicker/skill/skill_grid_boost.webp" },
+  { id: "overclock_grid", name: "한계 돌파", description: "15초 동안 생산 ×3.5", cooldown: 150, duration: 15, shopCost: 0, productionMultiplier: 3.5, tree: "production", unlockRebirth: 2, assetId: "/clicker/skill/skill_overclock.webp" },
+]
+
+/**
  * AUTOMATION circuits hit harder than their raw numbers: the production bonus part of every
  * multiplier ×1.75 (×1.2 → ×1.35, ×2 → ×2.75), assist drill and drone strikes ×1.5, drone
  * efficiency ×1.5. Unlock and producer-list descriptions pick up the new numbers.
@@ -226,9 +243,13 @@ export function finalizeCatalog(base: GameConfig): GameConfig {
       assetId: n.assetId ?? `/clicker/skill-node/${n.id}.webp`,
     })),
     potions: [...base.potions, ...EXTRA_POTIONS].map((p) => ({ ...p, shopCost: p.shopCost * c })).sort((a, b) => a.shopCost - b.shopCost),
-    activeSkills: [...base.activeSkills, ...EXTRA_ACTIVE_SKILLS]
-      .map((s) => ({ ...s, shopCost: s.shopCost * c }))
-      .sort((a, b) => a.shopCost - b.shopCost),
+    activeSkills: [
+      ...[...base.activeSkills, ...EXTRA_ACTIVE_SKILLS]
+        .map((s) => ({ ...s, shopCost: s.shopCost * c }))
+        .sort((a, b) => a.shopCost - b.shopCost),
+      // Special skills follow the shop ones (never bought, so no price to sort by).
+      ...SPECIAL_ACTIVE_SKILLS,
+    ],
     objectives: base.objectives.map((o) => (o.kind === "ENERGY" ? { ...o, target: o.target * u } : o)),
     transcendence: base.transcendence.map((t) => ({
       ...t,

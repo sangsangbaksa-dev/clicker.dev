@@ -51,11 +51,11 @@ Vercel에 Next.js를 올리고, **Vercel Blob 대신 Supabase Storage**에 회�
 1. [Supabase](https://supabase.com/dashboard) → New project
 2. SQL Editor에서 `supabase/migrations/20260920110000_hsms_storage.sql` 실행
 3. Project Settings → API → **URL**, **service_role** 키 복사
-4. [Vercel](https://vercel.com/waldo5/hsms-md/settings/environment-variables) → Environment Variables:
+4. [Vercel](https://vercel.com/waldo5/clicker-dev/settings/environment-variables) (clicker.dev) 또는 hsms-md → Environment Variables:
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY` (Sensitive)
    - `AUTH_SECRET` (Sensitive, `openssl rand -base64 32`)
-5. 재배포 후 `node scripts/supabase-setup.mjs`로 Storage 연결 확인
+5. 재배포 후 `SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/connect-clicker-supabase.mjs` 로 Storage·클리커 계정 경로 확인 (`GET /api/clicker/storage-health`)
 
 `BLOB_READ_WRITE_TOKEN`은 더 이상 필요하지 않습니다(설정돼 있어도 코드가 사용하지 않음).
 

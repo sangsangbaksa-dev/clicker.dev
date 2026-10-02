@@ -15,6 +15,7 @@ import {
   type WorldlineMotionVariant,
 } from "@/data/clicker/rebirth-motion"
 import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
+import { playGameSfxOr } from "@/application/clicker-ui"
 import { playRebirthCue } from "@/lib/clicker-sfx"
 import "./clicker-rebirth-motion.css"
 
@@ -401,7 +402,14 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
 
       if (!cuesFired.current.has(phase) && !mutedRef.current) {
         cuesFired.current.add(phase)
-        playRebirthCue(cueName(phase, variant))
+        // Each phase fires once (cuesFired). Legacy-0929 files per step; synth cue when a file is missing.
+        const synth = () => playRebirthCue(cueName(phase, variant))
+        if (phase === "collapse") playGameSfxOr("rebirthCollapse", synth)
+        else if (phase === "void_tear") playGameSfxOr("rebirthVoidTear", synth)
+        else if (phase === "stamp") playGameSfxOr("rebirthStamp", synth)
+        else if (phase === "rebuild") playGameSfxOr("rebirthRebuild", synth)
+        else if (phase === "settle") playGameSfxOr("rebirthSettle", synth)
+        else synth()
       }
 
       setFrame({
@@ -495,6 +503,8 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
           })
           completeTimerRef.current = window.setTimeout(() => {
             completeTimerRef.current = 0
+            // The finale plays once, when the sequence really ends (settle chime already fired earlier).
+            if (!mutedRef.current) playGameSfxOr("rebirthComplete", () => {})
             onCompleteRef.current()
           }, 180)
         }

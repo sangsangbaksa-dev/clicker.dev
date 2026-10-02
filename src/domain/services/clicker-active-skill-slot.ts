@@ -26,7 +26,7 @@ export function activeSkillBarStatusLine(state: ActiveSkillBarState, charges: nu
         : state === "empty"
           ? "없음"
           : "준비"
-  return `${charges} · ${tag}`
+  return `${Number.isFinite(charges) ? charges : "∞"} · ${tag}`
 }
 
 /** Label under the skill name in the button. */

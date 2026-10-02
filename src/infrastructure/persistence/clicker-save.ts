@@ -1,6 +1,22 @@
-const KEY = "aurelia-clicker-save-v1"
+import { clickerSaveStorageKey } from "../../domain/services/clicker-account-save-slot.ts"
+
+/** Active slot: null = guest (legacy key). */
+let activeSaveLoginId: string | null = null
+
+export function getClickerSaveSlotLoginId(): string | null {
+  return activeSaveLoginId
+}
+
+export function setClickerSaveSlotLoginId(loginId: string | null): void {
+  activeSaveLoginId = loginId
+}
+
+function activeKey(): string {
+  return clickerSaveStorageKey(activeSaveLoginId)
+}
+
 /** Raw saves that failed to load cleanly, newest first; never touched by autosave. */
-export const BACKUP_KEY = `${KEY}:backups`
+export const BACKUP_KEY = `${clickerSaveStorageKey(null)}:backups`
 export const MAX_CLICKER_BACKUPS = 3
 
 export type ClickerSaveBackup = { at: number; reason: string; raw: string }
@@ -14,25 +30,40 @@ function storage(): Storage | null {
   }
 }
 
-export function readClickerRaw(): string | null {
+export function readClickerRawAtLoginId(loginId: string | null): string | null {
   try {
-    return storage()?.getItem(KEY) ?? null
+    return storage()?.getItem(clickerSaveStorageKey(loginId)) ?? null
   } catch {
     return null
   }
 }
 
-export function writeClickerRaw(value: string): void {
+export function writeClickerRawAtLoginId(loginId: string | null, value: string): void {
   try {
-    storage()?.setItem(KEY, value)
+    storage()?.setItem(clickerSaveStorageKey(loginId), value)
   } catch {
     // quota / private mode — keep playing in memory
   }
 }
 
+export function copyClickerRawBetweenSlots(fromLoginId: string | null, toLoginId: string | null): boolean {
+  const raw = readClickerRawAtLoginId(fromLoginId)
+  if (!raw) return false
+  writeClickerRawAtLoginId(toLoginId, raw)
+  return true
+}
+
+export function readClickerRaw(): string | null {
+  return readClickerRawAtLoginId(activeSaveLoginId)
+}
+
+export function writeClickerRaw(value: string): void {
+  writeClickerRawAtLoginId(activeSaveLoginId, value)
+}
+
 export function clearClickerRaw(): void {
   try {
-    storage()?.removeItem(KEY)
+    storage()?.removeItem(activeKey())
   } catch {
     /* ignore */
   }

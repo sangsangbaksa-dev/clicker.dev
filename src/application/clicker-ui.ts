@@ -3,10 +3,30 @@
  * Domain rules stay in domain; this module is the outward-facing import surface.
  */
 export { spawnMineOres } from "@/application/spawn-mine-ores"
-export { ORE_ART } from "@/infrastructure/ore-art"
 export { loadAlphaMask } from "@/infrastructure/image/alpha-mask-loader"
 export { oreHitBox, oreStrikePoint, type OreNode } from "@/domain/services/ore-node"
 export { formatNumber } from "@/domain/services/clicker-format"
+export {
+  playCoreStrike,
+  playGameSfx,
+  playGameSfxOr,
+  syncSkillLoops,
+  skillSfxEvent,
+  warmGameSfx,
+  type GameSfxEvent,
+} from "@/application/clicker-sfx-events"
+export { frameState, frameTransform } from "@/application/clicker-monster-view"
+export { startLoop } from "@/infrastructure/animation/raf-loop"
+export {
+  SKILL_TREE_COLOR,
+  gaugeFeverUnlocked,
+  ownedActiveSkills,
+  skillCharges,
+  skillColor,
+  skillNovaColor,
+  skillTreeOf,
+} from "@/domain/services/clicker-special-skills"
+export { PRODUCER_MILESTONES, milestoneMultiplier, nextMilestone } from "@/domain/services/clicker-milestones"
 export {
   bulkAffordable,
   bulkCostText,
@@ -105,3 +125,5 @@ export {
   playerMaxHp,
   shieldRemainingMs,
 } from "@/domain/services/clicker-lair"
+export { compareSaveAge, type CloudSaveAvailability } from "@/domain/services/clicker-cloud-save"
+export type { BackupChannel } from "@/domain/services/clicker-gmail-backup"

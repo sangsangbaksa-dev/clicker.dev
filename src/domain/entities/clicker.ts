@@ -341,6 +341,9 @@ export type AchievementDef = {
   target: number
 }
 
+/** Special skills come in two trees: mining (blue) and production (green). */
+export type SkillTree = "mining" | "production"
+
 export type ActiveSkillDef = {
   id: string
   name: string
@@ -354,6 +357,19 @@ export type ActiveSkillDef = {
   instabilityPerSecond?: number
   instabilityDelta?: number
   assetId: string
+  /**
+   * Special skill: unlocked by rebirth count instead of bought in the shop. Needs no charges;
+   * its cooldown lives in `RunState.skillCooldowns` and its buff in `activeBuffs` like any skill.
+   */
+  unlockRebirth?: number
+  /** Colour group of a special skill (mining = blue, production = green). */
+  tree?: SkillTree
+  /** Instant CORE worth this many strikes at the current click power. */
+  burstClicks?: number
+  /** While the buff runs the mine session clock and instability stand still. */
+  freezeMine?: boolean
+  /** Passive: owning it (by rebirth count) is what lets gauge FEVER start. Cannot be cast. */
+  unlocksFever?: boolean
 }
 
 export type RegionActivityKind =
@@ -424,6 +440,8 @@ export type BossDef = {
   kind: string
   /** Optional painted art (transparent PNG/WebP); replaces the inline SVG creature. */
   imageSrc?: string
+  /** Full-frame 16:9 key art, cover-fitted and animated by `MonsterView` (wins over `imageSrc`). */
+  keyArt?: string
   /** Guardian health in CORE-strike damage. */
   hp: number
   playerHp: number
@@ -514,6 +532,8 @@ export type GameConfig = {
   feverCritChanceAdd: number
   feverComboCap: number
   feverCoolDown: number
+  /** Share of the base gauge gain per click a FEVER gauge takes (1 = the old speed). */
+  feverGaugeFillScale: number
   /** Lifetime CORE needed for the first rebirth. */
   rebirthEnergy: number
   /** Each rebirth multiplies the next requirement by this. */

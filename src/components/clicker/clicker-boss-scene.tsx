@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
+import { playGameSfxOr } from "@/application/clicker-ui"
 import { playSfx } from "@/lib/clicker-sfx"
+import { MonsterView } from "@/components/clicker/clicker-monster-view"
 import "./clicker-boss-scene.css"
 
 /*
@@ -16,6 +18,8 @@ import "./clicker-boss-scene.css"
 type Pt = { x: number; y: number }
 type SceneDef = {
   src: string
+  /** 16:9 key art: when set the scene is MonsterView (cover-fit + code idle/hit) instead of the masked 9:16 rig. */
+  keyArt?: string
   /** Monster body: hitbox and the centre of the breathing mask. */
   body: { x: number; y: number; w: number; h: number }
   eyes: Pt[]
@@ -31,6 +35,7 @@ type SceneDef = {
 export const BOSS_SCENES: Record<string, SceneDef> = {
   stormbird: {
     src: "/clicker/boss/storm_spire.webp",
+    keyArt: "/clicker/boss/monster_storm_dragon_key.webp",
     body: { x: 50, y: 30, w: 98, h: 56 },
     eyes: [{ x: 44.1, y: 23 }, { x: 52.6, y: 23 }],
     strike: { x: 48.8, y: 30 },
@@ -41,6 +46,7 @@ export const BOSS_SCENES: Record<string, SceneDef> = {
   },
   golem: {
     src: "/clicker/boss/phase_vault.webp",
+    keyArt: "/clicker/boss/monster_crystal_titan_key.webp",
     body: { x: 52, y: 37, w: 94, h: 62 },
     eyes: [{ x: 49.5, y: 20.6 }, { x: 56.7, y: 21.1 }],
     strike: { x: 50, y: 80 },
@@ -51,6 +57,7 @@ export const BOSS_SCENES: Record<string, SceneDef> = {
   },
   worm: {
     src: "/clicker/boss/deep_fault.webp",
+    keyArt: "/clicker/boss/monster_lava_behemoth_key.webp",
     body: { x: 52, y: 40, w: 80, h: 72 },
     eyes: [{ x: 45, y: 12 }, { x: 52, y: 12 }],
     strike: { x: 50, y: 82 },
@@ -143,7 +150,7 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
       setDying(true)
       later(() => setDying(false), 2400)
     } else {
-      playSfx("bossHurt")
+      playGameSfxOr("monsterHit", () => playSfx("bossHurt"))
     }
   }
 
@@ -172,25 +179,31 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
     .join(" ")
   return (
     <div className={`clicker-boss-scene ${state}`} style={vars}>
-      {/* Blurred copy of the painting fills the letterbox on wide screens. */}
-      <img className="boss-scene-ambient" src={scene.src} alt="" draggable={false} aria-hidden />
+      {/* Blurred copy of the painting fills the letterbox on wide screens (9:16 art only). */}
+      {scene.keyArt ? null : <img className="boss-scene-ambient" src={scene.src} alt="" draggable={false} aria-hidden />}
       {/* Hits alternate between two identical animations so each tap restarts it without remounting the art. */}
-      <div className={`boss-scene-box${hitKey ? ` hit-${hitKey % 2}` : ""}`}>
-        <img className="boss-scene-base" src={scene.src} alt="" draggable={false} />
-        {/* The monster: same painting, masked to its body, animated on its own. */}
-        {/* Three nested layers so nothing ever snaps: the rig loops the idle forever, the pose
-            eases between rest / rear up / lunge / collapse, the flesh flinches under hits. The
-            eyes ride inside so they stay on the head through every move. */}
-        <div className="boss-scene-rig">
-          <div className="boss-scene-pose">
-            <div className="boss-scene-flesh">
-              <img className="boss-scene-body" src={scene.src} alt="" draggable={false} />
-              {scene.eyes.map((p, i) => (
-                <span key={i} className="boss-scene-eye" style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-hidden />
-              ))}
+      <div className={`boss-scene-box${scene.keyArt ? " is-keyart" : ""}${hitKey ? ` hit-${hitKey % 2}` : ""}`}>
+        {scene.keyArt ? (
+          /* 16:9 key art: cover-fit + code-driven idle/hit pose (domain/application/infrastructure split). */
+          <MonsterView src={scene.keyArt} hitKey={hitKey} className="boss-scene-keyart" />
+        ) : (
+          <>
+            <img className="boss-scene-base" src={scene.src} alt="" draggable={false} />
+            {/* Three nested layers so nothing ever snaps: the rig loops the idle forever, the pose
+                eases between rest / rear up / lunge / collapse, the flesh flinches under hits. The
+                eyes ride inside so they stay on the head through every move. */}
+            <div className="boss-scene-rig">
+              <div className="boss-scene-pose">
+                <div className="boss-scene-flesh">
+                  <img className="boss-scene-body" src={scene.src} alt="" draggable={false} />
+                  {scene.eyes.map((p, i) => (
+                    <span key={i} className="boss-scene-eye" style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-hidden />
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
         <div className="boss-scene-weather" aria-hidden>
           {Array.from({ length: 16 }, (_, i) => (
             <i key={i} style={{ "--i": i } as CSSProperties} />

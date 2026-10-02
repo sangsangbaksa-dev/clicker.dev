@@ -110,7 +110,7 @@ test("buying a producer spends CORE and tick adds production", () => {
 
 test("fever starts from gauge or potion and ends after duration", () => {
   const now = 3_000_000
-  const meta = createInitialMeta()
+  const meta = { ...createInitialMeta(), rebirthCount: 1 } // gauge FEVER needs the fever_core skill
   let run = createInitialRun(now, meta, config)
   run = { ...run, fever: { ...run.fever, gauge: 100 } }
   const fromGauge = startFever(run, meta, config, "GAUGE", null)
@@ -742,7 +742,7 @@ test("instability: hoarding CORE and world currency pushes it up", async () => {
 test("fever: its timer and bonuses hold while you are outside the mine", async () => {
   const eng = await import("./clicker-engine.ts")
   const config = clickerConfig
-  const meta = eng.createInitialMeta()
+  const meta = { ...eng.createInitialMeta(), rebirthCount: 1 }
   const now = 5_000_000
   const base = eng.createInitialRun(now, meta, config)
   const charged = { ...base, fever: { ...base.fever, gauge: config.feverGaugeMax } }

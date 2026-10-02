@@ -41,6 +41,10 @@ test("bgmFadeStep approaches target over fadeMs", () => {
 test("bgmOutputLevel applies master headroom", () => {
   assert.equal(bgmOutputLevel(1, 1), 0.5)
   assert.equal(bgmOutputLevel(0, 1), 0)
+  // The -16 LUFS loops get ~7 dB back so they match the older -9 LUFS ones.
+  assert.equal(bgmOutputLevel(1, 1, "hub"), 0.5)
+  const boosted = bgmOutputLevel(1, 1, "boss")
+  assert.ok(Math.abs(20 * Math.log10(boosted / 0.5) - 7) < 0.1)
 })
 
 test("bgmMayTouchTrack blocks cold load and muted sessions", () => {
@@ -52,14 +56,6 @@ test("bgmMayTouchTrack blocks cold load and muted sessions", () => {
 test("bgmTracksToWarm skips silent scenes", () => {
   assert.deepEqual(bgmTracksToWarm("silent"), [])
   assert.deepEqual(bgmTracksToWarm("mine"), ["mine"])
-  assert.deepEqual(bgmTracksToWarm("rebirth"), ["rebirthIntro", "rebirthHq"])
-})
-
-test("bgmTrackFadeTarget drives rebirth intro then loop beds", () => {
-  assert.equal(bgmTrackFadeTarget("rebirthIntro", "rebirth", false, 0.5, "intro"), 1)
-  assert.equal(bgmTrackFadeTarget("rebirthHq", "rebirth", false, 0.5, "intro"), 0)
-  assert.equal(bgmTrackFadeTarget("rebirthHq", "rebirth", false, 0.5, "loop"), 1)
-  assert.equal(bgmTrackFadeTarget("rebirthIntro", "rebirth", false, 0.5, "loop"), 0)
 })
 
 test("resolveBgmScene picks mine, chamber, silent, and world themes", () => {
@@ -79,4 +75,5 @@ test("resolveBgmScene picks mine, chamber, silent, and world themes", () => {
   assert.equal(resolveBgmScene({ ...base, enteringMine: true }), "silent")
   assert.equal(resolveBgmScene({ ...base, bootLoading: true }), "loading")
   assert.equal(resolveBgmScene({ ...base, bossFight: true }), "boss")
+  assert.equal(resolveBgmScene({ ...base, bossFight: true, enteringMine: true }), "silent")
 })
