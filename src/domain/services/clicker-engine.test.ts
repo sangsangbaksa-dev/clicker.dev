@@ -529,13 +529,33 @@ test("mine session length grows from skill-tree dwell nodes", () => {
   }
   let run = buySkillNode(save.runState, config, "focus_click").run
   run = buySkillNode(run, config, "mine_dwell").run
-  run = buySkillNode(run, config, "mine_extend").run
   save = { ...save, runState: run }
-  assert.equal(mineSessionDurationMs(run, config), MINE_SESSION_MS + 15_000)
+  assert.equal(mineSessionDurationMs(run, config), MINE_SESSION_MS + 10_000)
   const entered = enterClickerMine(save, now, config, "ko")
   assert.equal(entered.error, undefined)
-  assert.equal(entered.save.runState.mineSessionDurationMs, MINE_SESSION_MS + 15_000)
-  assert.equal(entered.save.runState.mineSessionEndsAt, now + MINE_SESSION_MS + 15_000)
+  assert.equal(entered.save.runState.mineSessionDurationMs, MINE_SESSION_MS + 10_000)
+  assert.equal(entered.save.runState.mineSessionEndsAt, now + MINE_SESSION_MS + 10_000)
+})
+
+test("only three circuits extend the mine session, +80s in all", () => {
+  const timed = config.skillNodes.filter((n) => (n.mineSessionSecondsAdd ?? 0) > 0)
+  assert.deepEqual(timed.map((n) => n.id).sort(), ["mine_deepcut", "mine_dwell", "mine_endless"])
+  assert.equal(timed.reduce((sum, n) => sum + n.mineSessionSecondsAdd!, 0), 80)
+})
+
+test("a save owning the former mine-time circuits loads with their new effects", () => {
+  const now = 12_500_000
+  const former = ["focus_click", "mine_dwell", "mine_quick", "mine_extend", "mine_marathon", "trans_start", "trans_mine"]
+  const base = startClickerGame(createInitialSave(now, config))
+  const raw = JSON.parse(JSON.stringify({ ...base, runState: { ...base.runState, ownedSkillNodeIds: former } }))
+  const loaded = sanitizeSave(raw, config, now)
+  assert.deepEqual(loaded.runState.ownedSkillNodeIds, former)
+  assert.equal(mineSessionDurationMs(loaded.runState, config), MINE_SESSION_MS + 10_000)
+  for (const id of ["mine_quick", "mine_extend", "mine_marathon", "trans_mine"]) {
+    const node = config.skillNodes.find((n) => n.id === id)!
+    assert.equal(node.mineSessionSecondsAdd, undefined, id)
+    assert.ok(node.clickMultiplier || node.comboWindowAdd || node.criticalMultiplier || node.productionMultiplier, id)
+  }
 })
 
 test("true ending unlocks once the Core Heart guardian falls", () => {
