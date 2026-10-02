@@ -6,12 +6,18 @@ import type { PanelProps } from "./types"
 
 export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automationBuff }: PanelProps & { automationBuff: boolean }) {
   const [selectedProducerId, setSelectedProducerId] = useState<string | null>(null)
+  const [showLocked, setShowLocked] = useState(false)
+  // Unlocked producers, then the next one to aim for; the rest wait behind a single row.
+  const firstLocked = game.producers.findIndex((p) => !p.unlocked)
+  const visible = showLocked || firstLocked < 0 ? game.producers : game.producers.slice(0, firstLocked + 1)
+  const hidden = game.producers.length - visible.length
   return (
     <div className="clicker-producers">
-      {game.producers.map((p) => {
+      {visible.map((p) => {
         const selected = selectedProducerId === p.id
         const statusClass = !p.unlocked ? "is-locked" : p.canBuy ? "is-affordable" : "is-poor"
         const statusLabel = !p.unlocked ? "잠김" : p.canBuy ? "구매 가능" : "CORE 부족"
+        const sharePct = Math.round(p.share * 100)
         return (
           <article
             key={p.id}
@@ -19,7 +25,10 @@ export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automatio
             aria-current={selected ? "true" : undefined}
             onClick={() => setSelectedProducerId(p.id)}
           >
-            <img className="clicker-zoomable" src={p.assetId} alt="" />
+            <span className="clicker-producer-icon">
+              <img className="clicker-zoomable" src={p.assetId} alt="" />
+              {p.level > 0 ? <b className="clicker-producer-level">{p.level}</b> : null}
+            </span>
             <div className="clicker-producer-body">
               <div className="clicker-producer-title-row">
                 <strong>{p.name}</strong>
@@ -28,18 +37,24 @@ export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automatio
               <p className="clicker-producer-effect">
                 Lv. {p.level} · <em>{p.productionText}</em>
               </p>
-              <p className="clicker-producer-cost">
-                {/* The status badge already says "CORE 부족" / "잠김" — don't repeat it here. */}
-                {p.unlocked ? (
-                  <>
-                    다음 <strong>{p.nextCostText}</strong> CORE
-                  </>
-                ) : (
-                  <>
-                    누적 <strong>{p.lockReason}</strong>
-                  </>
-                )}
-              </p>
+              {p.level > 0 ? (
+                <div className="clicker-producer-share" aria-label={`생산 비중 ${sharePct}%`}>
+                  <i style={{ width: `${Math.max(2, sharePct)}%` }} />
+                  <span>생산 비중 {sharePct}%</span>
+                </div>
+              ) : (
+                <p className="clicker-producer-cost">
+                  {p.unlocked ? (
+                    <>
+                      다음 <strong>{p.nextCostText}</strong> CORE
+                    </>
+                  ) : (
+                    <>
+                      누적 <strong>{p.lockReason}</strong>
+                    </>
+                  )}
+                </p>
+              )}
             </div>
             <div className="clicker-buy" onClick={(e) => e.stopPropagation()}>
               {(["1", "10", "MAX"] as const).map((mode) => {
@@ -59,9 +74,7 @@ export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automatio
                     }}
                   >
                     {mode === "MAX" ? "최대" : `×${mode}`}
-                    <span className="clicker-buy-cost">
-                      {bulkCostText(run, game.config, p.id, buyMode)}
-                    </span>
+                    <span className="clicker-buy-cost">{bulkCostText(run, game.config, p.id, buyMode)}</span>
                   </button>
                 )
               })}
@@ -69,6 +82,15 @@ export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automatio
           </article>
         )
       })}
+      {hidden > 0 ? (
+        <button type="button" className="clicker-producers-more" onClick={() => setShowLocked(true)}>
+          잠긴 생산자 {hidden}개 더 보기
+        </button>
+      ) : showLocked && firstLocked >= 0 ? (
+        <button type="button" className="clicker-producers-more" onClick={() => setShowLocked(false)}>
+          잠긴 생산자 접기
+        </button>
+      ) : null}
     </div>
   )
 }

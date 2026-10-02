@@ -165,6 +165,8 @@ export type ProducerView = {
   unlocked: boolean
   canBuy: boolean
   lockReason: string
+  /** This producer's share of all production, 0–1. */
+  share: number
 }
 
 export function buildProducerViews(
@@ -186,6 +188,7 @@ export function buildProducerViews(
       assetId: p.assetId,
       level,
       productionText: `+${formatNumber(snapshot.byProducer[p.id] ?? 0)} / sec`,
+      share: snapshot.perSecond > 0 ? (snapshot.byProducer[p.id] ?? 0) / snapshot.perSecond : 0,
       nextCostText: formatNumber(cost),
       unlocked,
       canBuy,

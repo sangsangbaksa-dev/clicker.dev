@@ -4794,7 +4794,7 @@ button.clicker-metric-action.is-fever-ready em {
     box-sizing: border-box;
   }
 
-  .clicker-producer-card > img,
+  .clicker-producer-card > .clicker-producer-icon,
   .clicker-world-card > img {
     grid-area: icon;
     width: 48px;
