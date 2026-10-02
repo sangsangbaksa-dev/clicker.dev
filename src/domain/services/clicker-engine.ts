@@ -595,14 +595,23 @@ export function regionPresenceMultipliers(run: RunState, config: GameConfig): {
   }
 }
 
+/**
+ * Bought multipliers (upgrades + skill circuits) past `stackSoftCap` count only as a power of
+ * the excess, so buying out the catalog late in a worldline is a climb, not a ×10⁸ cliff.
+ */
+export function softStack(multiplier: number, config: GameConfig): number {
+  const cap = config.stackSoftCap
+  if (!cap || multiplier <= cap) return multiplier
+  return cap * (multiplier / cap) ** (config.stackSoftExponent ?? 1)
+}
+
 export function derivedClick(run: RunState, meta: MetaState, config: GameConfig) {
   const upgrades = ownedUpgrades(run, config)
   const skills = ownedSkills(run, config)
   const trans = ownedTranscendence(meta, config)
   const region = regionPresenceMultipliers(run, config)
   let click = config.baseClick
-  click *= product(upgrades.map((u) => u.clickMultiplier ?? 1))
-  click *= product(skills.map((s) => s.clickMultiplier ?? 1))
+  click *= softStack(product(upgrades.map((u) => u.clickMultiplier ?? 1)) * product(skills.map((s) => s.clickMultiplier ?? 1)), config)
   click *= product(trans.map((t) => t.clickMultiplier ?? 1))
   click *= worldlineMultiplier(meta, config)
   click *= region.click
@@ -771,9 +780,10 @@ export function productionSnapshot(
   const instab = instabilityReward(run.instability, instabBonus)
   const buffs = buffMultiplier(run, now, "productionMultiplier", config)
   const region = regionPresenceMultipliers(run, config)
-  const globalProd =
+  const boughtGlobal =
     product(upgrades.filter((u) => !u.producerId && !u.producerTag).map((u) => u.productionMultiplier ?? 1)) *
-    product(skills.filter((s) => !s.producerTag).map((s) => s.productionMultiplier ?? 1)) *
+    product(skills.filter((s) => !s.producerTag).map((s) => s.productionMultiplier ?? 1))
+  const globalProd =
     product(trans.map((t) => t.productionMultiplier ?? 1)) *
     fever.production *
     instab *
@@ -792,18 +802,19 @@ export function productionSnapshot(
       byProducer[producer.id] = 0
       continue
     }
-    let rate = producer.productionPerSecond * level
+    let bought = boughtGlobal
     for (const u of upgrades) {
-      if (u.productionMultiplier && u.producerId === producer.id) rate *= u.productionMultiplier
+      if (u.productionMultiplier && u.producerId === producer.id) bought *= u.productionMultiplier
       if (u.productionMultiplier && u.producerTag && producer.tags.includes(u.producerTag)) {
-        rate *= u.productionMultiplier
+        bought *= u.productionMultiplier
       }
     }
     for (const s of skills) {
       if (s.productionMultiplier && s.producerTag && producer.tags.includes(s.producerTag)) {
-        rate *= s.productionMultiplier
+        bought *= s.productionMultiplier
       }
     }
+    let rate = producer.productionPerSecond * level * softStack(bought, config)
     for (const syn of config.synergies) {
       if (
         (run.producerLevels[syn.producerId] ?? 0) >= syn.minLevel &&
@@ -944,6 +955,19 @@ export function buyPotion(run: RunState, config: GameConfig, potionId: string): 
   }
 }
 
+/** Active skill charges cost this many times their catalog price… */
+export const ACTIVE_SKILL_PRICE_MULT = 12
+/** …or this share of the CORE mined this run (scaled up for pricier skills), whichever is more. */
+export const ACTIVE_SKILL_LIFETIME_SHARE = 0.012
+
+/** The cheapest skill's catalog price (LASER FOCUS); the lifetime share scales from it. */
+const ACTIVE_SKILL_REFERENCE_COST = 20
+
+/** Price of one active skill charge: it keeps pace with the run instead of going trivial. */
+export function activeSkillCost(run: RunState, skill: ActiveSkillDef): number {
+  const share = ACTIVE_SKILL_LIFETIME_SHARE * Math.sqrt(skill.shopCost / ACTIVE_SKILL_REFERENCE_COST)
+  return Math.ceil(Math.max(scaledCost(run, skill.shopCost * ACTIVE_SKILL_PRICE_MULT), run.lifetimeCoreEnergy * share))
+}
 export function buyActiveSkillItem(
   run: RunState,
   config: GameConfig,
@@ -951,7 +975,7 @@ export function buyActiveSkillItem(
 ): { run: RunState; error?: string } {
   const skill = config.activeSkills.find((s) => s.id === skillId)
   if (!skill) return { run, error: "스킬을 찾을 수 없습니다." }
-  const cost = scaledCost(run, skill.shopCost)
+  const cost = activeSkillCost(run, skill)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, skill.shopCost))
   if (short) return { run, error: `${short.name}이(가) 부족합니다.` }

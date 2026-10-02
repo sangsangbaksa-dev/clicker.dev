@@ -26,6 +26,7 @@ import {
   feverPaused,
   payCurrencyCosts,
   type CurrencyCost,
+  activeSkillCost,
 } from "./clicker-engine"
 import { formatNumber } from "./clicker-format"
 
@@ -412,9 +413,9 @@ function activeSkillEffectSummary(skill: {
   return parts.join(" · ") || "효과 없음"
 }
 
-function shopCurrency(run: RunState, config: GameConfig, shopCost: number) {
+function shopCurrency(run: RunState, config: GameConfig, shopCost: number, coreCost = scaledCost(run, shopCost)) {
   const { views, short } = currencyCostViews(run, config, purchaseCurrencyCosts(run, config, shopCost))
-  const coreShort = run.coreEnergy < scaledCost(run, shopCost)
+  const coreShort = run.coreEnergy < coreCost
   return {
     extraCosts: views,
     canBuy: !coreShort && !short,
@@ -566,8 +567,8 @@ export function buildActiveSkillShopViews(run: RunState, config: GameConfig): Ac
       name: skill.name,
       description: skill.description,
       assetId: skill.assetId,
-      shopCostText: formatNumber(scaledCost(run, skill.shopCost)),
-      ...shopCurrency(run, config, skill.shopCost),
+      shopCostText: formatNumber(activeSkillCost(run, skill)),
+      ...shopCurrency(run, config, skill.shopCost, activeSkillCost(run, skill)),
       owned: run.skillItems[skill.id] ?? 0,
       effectSummary: activeSkillEffectSummary(skill),
       cooldownSeconds: skill.cooldown,

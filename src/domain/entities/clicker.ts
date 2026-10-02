@@ -520,6 +520,12 @@ export type GameConfig = {
   rebirthGrowth: number
   /** Each rebirth multiplies every CORE price (producers, upgrades, circuits, shop) by this. */
   priceGrowth: number
+  /**
+   * Soft cap on the bought multiplier stack (upgrades + skill circuits): above this, further
+   * multipliers count only as (excess)^stackSoftExponent. Unset = no cap.
+   */
+  stackSoftCap?: number
+  stackSoftExponent?: number
   /** Permanent click & production multiplier gained per rebirth (compounding). */
   worldlineBonus: number
   skillPointEveryLevels: number

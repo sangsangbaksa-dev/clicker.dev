@@ -12,6 +12,8 @@ import {
   applyRebirth,
   applyTrueEnding,
   buyActiveSkillItem,
+  activeSkillCost,
+  ACTIVE_SKILL_PRICE_MULT,
   buyPotion,
   returnHomeRegion,
   travelToRegion,
@@ -291,7 +293,7 @@ test("active skill shop purchase adds charges and use consumes one", () => {
   const now = 6_500_000
   const meta = createInitialMeta()
   const skill = config.activeSkills[0]
-  const run = grantAdminEnergy(createInitialRun(now, meta, config), skill.shopCost + 100)
+  const run = grantAdminEnergy(createInitialRun(now, meta, config), skill.shopCost * ACTIVE_SKILL_PRICE_MULT + 100)
   const bought = buyActiveSkillItem(run, config, skill.id)
   assert.equal(bought.error, undefined)
   assert.equal(bought.run.skillItems[skill.id], 1)
@@ -303,11 +305,22 @@ test("active skill shop purchase adds charges and use consumes one", () => {
   assert.equal(used.run.skillItems[skill.id], 0)
 })
 
+test("active skill prices keep pace with the run", () => {
+  const meta = createInitialMeta()
+  const run = createInitialRun(1, meta, config)
+  const skill = config.activeSkills[0]
+  assert.equal(activeSkillCost(run, skill), Math.ceil(skill.shopCost * ACTIVE_SKILL_PRICE_MULT))
+  const rich = { ...run, lifetimeCoreEnergy: 1e12 }
+  assert.ok(activeSkillCost(rich, skill) >= 1e12 * 0.01, "a share of this run's CORE")
+  const pricier = config.activeSkills[config.activeSkills.length - 1]
+  assert.ok(activeSkillCost(rich, pricier) > activeSkillCost(rich, skill))
+})
+
 test("active skill cooldowns and buffs only run inside the mine", () => {
   const now = 6_600_000
   const meta = createInitialMeta()
   const skill = config.activeSkills.find((s) => s.duration > 0 && s.clickMultiplier)!
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), skill.shopCost + 100)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), skill.shopCost * ACTIVE_SKILL_PRICE_MULT + 100)
   run = buyActiveSkillItem(run, config, skill.id).run
   run = activateSkill({ ...run, mineSessionEndsAt: now + 60_000 }, meta, config, skill.id, now).run
   const expiresAt = run.activeBuffs[0].expiresAt

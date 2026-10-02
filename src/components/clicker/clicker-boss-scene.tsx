@@ -178,15 +178,14 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
       <img className="boss-scene-ambient" src={scene.src} alt="" draggable={false} aria-hidden />
       {/* Hits alternate between two identical animations so each tap restarts it without remounting the art. */}
       <div className={`boss-scene-box${hitKey ? ` hit-${hitKey % 2}` : ""}`}>
-        <img className="boss-scene-base" src={scene.src} alt="" draggable={false} />
-        {/* The monster: same painting, masked to its body, animated on its own. */}
-        {/* Three nested layers so nothing ever snaps: the rig loops the idle forever, the pose
-            eases between rest / rear up / lunge / collapse, the flesh flinches under hits. The
-            eyes ride inside so they stay on the head through every move. */}
+        {/* The whole painting moves as one picture — no masked second copy sliding over a still
+            backdrop, which doubled and smeared the outline. Three nested layers so nothing
+            snaps: the rig loops a slow breath forever, the pose eases between rest / wind-up /
+            strike / collapse, the flesh shakes under hits. The eyes ride inside. */}
         <div className="boss-scene-rig">
           <div className="boss-scene-pose">
             <div className="boss-scene-flesh">
-              <img className="boss-scene-body" src={scene.src} alt="" draggable={false} />
+              <img className="boss-scene-base" src={scene.src} alt="" draggable={false} decoding="async" />
               {scene.eyes.map((p, i) => (
                 <span key={i} className="boss-scene-eye" style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-hidden />
               ))}
