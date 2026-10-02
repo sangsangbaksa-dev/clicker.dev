@@ -950,10 +950,11 @@ const baseConfig: GameConfig = {
       branch: "AUTOMATION",
       tier: 5,
       name: "Perpetual Engine",
-      description: "생산 ×2.5",
+      description: "생산 ×1.4",
       cost: 25_000_000_000,
       requires: ["auto_late"],
-      productionMultiplier: 2.5,
+      // Was ×2.5; it landed in the same second as the other capstones (see LATE_PRODUCTION_SCALE).
+      productionMultiplier: 1.4,
     },
     {
       id: "auto_link",

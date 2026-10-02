@@ -78,6 +78,8 @@ config.rebirthGrowth = knob("GROWTH", config.rebirthGrowth)
 config.priceGrowth = knob("PRICE", config.priceGrowth)
 config.worldlineBonus = knob("WL", config.worldlineBonus)
 config.rebirthEnergy = knob("GOAL", config.rebirthEnergy)
+config.stackSoftCap = knob("STACK_T", config.stackSoftCap ?? 0) || undefined
+config.stackSoftExponent = knob("STACK_E", config.stackSoftExponent ?? 1)
 if (process.env.NO_ACT) for (const r of config.regions) delete r.activity
 if (process.env.NO_BURST) for (const r of config.regions) if (r.activity?.kind === "PRODUCTION_BURST") delete r.activity
 for (const t of config.transcendence) {
@@ -162,7 +164,19 @@ function shop(): void {
     options.sort((a, b) => a.score - b.score || a.cost - b.cost)
     const pick = options.find((o) => o.score < 3600)
     if (!pick || pick.cost > run.coreEnergy) return
+    const prodBefore = process.env.JUMPS ? productionSnapshot(save.runState, save.metaState, config, now).perSecond : 0
+    const levelsBefore = save.runState.producerLevels
+    const ownedBefore = new Set([...save.runState.ownedUpgradeIds, ...save.runState.ownedSkillNodeIds])
     save = pick.apply()
+    if (process.env.JUMPS && prodBefore > 0) {
+      const after = productionSnapshot(save.runState, save.metaState, config, now).perSecond
+      if (after / prodBefore >= Number(process.env.JUMPS)) {
+        const what =
+          [...save.runState.ownedUpgradeIds, ...save.runState.ownedSkillNodeIds].find((id) => !ownedBefore.has(id)) ??
+          Object.keys(save.runState.producerLevels).find((k) => save.runState.producerLevels[k] !== levelsBefore[k])
+        console.log(`  JUMP ×${(after / prodBefore).toFixed(1)} wl=${save.metaState.rebirthCount + 1} t=${fmt(elapsed())} ${what} (prod ${prodBefore.toExponential(1)} → ${after.toExponential(1)})`)
+      }
+    }
   }
 }
 
@@ -232,6 +246,42 @@ function bestRegion(): void {
   }
 }
 
+// INCOME=1: CORE earned per 60 s window; flags windows that earn far more than the one before.
+let winStart = 0
+let winLife = 0
+let winRate = 0
+let winSources: Record<string, number> = {}
+let winWl = 1
+function incomeWindow(): void {
+  if (!process.env.INCOME) return
+  const wl = save.metaState.rebirthCount + 1
+  if (wl !== winWl) {
+    winWl = wl
+    winStart = elapsed()
+    winLife = save.runState.lifetimeCoreEnergy
+    winRate = 0
+    winSources = { ...sources }
+    return
+  }
+  if (elapsed() - winStart < 60) return
+  const rate = (save.runState.lifetimeCoreEnergy - winLife) / (elapsed() - winStart)
+  const delta = Object.entries(sources)
+    .map(([k, v]) => [k, v - (winSources[k] ?? 0)] as const)
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1])
+  const total = delta.reduce((a, [, v]) => a + v, 0) || 1
+  const ratio = winRate > 0 ? rate / winRate : 0
+  const flag = ratio >= Number(process.env.INCOME) ? " <<<" : ""
+  if (process.env.INCOME_ALL || flag)
+    console.log(
+      `  income t=${fmt(elapsed())} wl=${wl} rate=${rate.toExponential(2)}/s ×${ratio.toFixed(1)}${flag} · ${delta.slice(0, 3).map(([k, v]) => `${k} ${((v / total) * 100).toFixed(0)}%`).join(" ")}`,
+    )
+  winRate = rate
+  winStart = elapsed()
+  winLife = save.runState.lifetimeCoreEnergy
+  winSources = { ...sources }
+}
+
 const regionOpenedAt = new Map<string, string>()
 while (elapsed() < MAX_HOURS * 3600) {
   for (const r of config.regions) {
@@ -281,12 +331,13 @@ while (elapsed() < MAX_HOURS * 3600) {
   }
   save = { ...save, metaState: awardAchievements(save.runState, save.metaState, config.achievements).meta }
   shop()
+  incomeWindow()
 
   if (process.env.TRACE && (process.env.TRACE === "all" || Math.floor(elapsed()) % 60 < 12)) {
     const r = save.runState
     const d = derivedClick(r, save.metaState, config)
     console.log(
-      `t=${fmt(elapsed())} wl=${save.metaState.rebirthCount + 1} life=${r.lifetimeCoreEnergy.toExponential(2)} bank=${r.coreEnergy.toExponential(2)} prod/s=${productionSnapshot(r, save.metaState, config, now).perSecond.toExponential(2)} click=${d.click.toExponential(2)} crit=${d.critMult.toFixed(1)} drone/s=${droneEnergyPerSecond(r, save.metaState, config, now).toExponential(2)} fever=${r.fever.phase} lv=${Object.values(r.producerLevels).reduce((a, b) => a + b, 0)} skills=${r.ownedSkillNodeIds.length}`,
+      `t=${fmt(elapsed())} wl=${save.metaState.rebirthCount + 1} life=${r.lifetimeCoreEnergy.toExponential(2)} bank=${r.coreEnergy.toExponential(2)} prod/s=${productionSnapshot(r, save.metaState, config, now).perSecond.toExponential(2)} upg=${r.ownedUpgradeIds.length} costScale=${r.costScale} click=${d.click.toExponential(2)} crit=${d.critMult.toFixed(1)} drone/s=${droneEnergyPerSecond(r, save.metaState, config, now).toExponential(2)} fever=${r.fever.phase} lv=${Object.values(r.producerLevels).reduce((a, b) => a + b, 0)} skills=${r.ownedSkillNodeIds.length}`,
     )
   }
   if (canRebirth(save.runState, save.metaState, config)) {

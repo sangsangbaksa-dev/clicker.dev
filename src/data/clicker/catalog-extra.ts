@@ -87,7 +87,7 @@ export const EXTRA_UPGRADES: UpgradeDef[] = [
   { id: "heat_sink", name: "Heat Sink", description: "전체 생산 ×1.25", category: "UTILITY", cost: 1_500_000, productionMultiplier: 1.25 },
   { id: "grid_sync", name: "Grid Sync", description: "전체 생산 ×1.5", category: "UTILITY", cost: 400_000_000, productionMultiplier: 1.5 },
   { id: "core_lattice", name: "Core Lattice", description: "전체 생산 ×2", category: "UTILITY", cost: 50_000_000_000, productionMultiplier: 2 },
-  { id: "world_engine", name: "World Engine", description: "전체 생산 ×3", category: "UTILITY", cost: 20_000_000_000_000, productionMultiplier: 3 },
+  { id: "world_engine", name: "World Engine", description: "전체 생산 ×1.8", category: "UTILITY", cost: 20_000_000_000_000, productionMultiplier: 1.8 },
 ]
 
 type NodeSpec = [id: string, branch: SkillBranch, tier: number, name: string, cost: number, requires: string, effect: Partial<SkillNodeDef>, description: string]
@@ -115,7 +115,7 @@ const NODE_SPECS: NodeSpec[] = [
   ["auto_press", "AUTOMATION", 2, "Hydraulic Press", 2_000_000, "auto_gear", { productionMultiplier: 1.25 }, "생산 ×1.25"],
   ["auto_robot", "AUTOMATION", 3, "Robot Arm", 30_000_000, "auto_press", { productionMultiplier: 1.35 }, "생산 ×1.35"],
   ["auto_ai", "AUTOMATION", 4, "Plant AI", 900_000_000, "auto_robot", { productionMultiplier: 1.6 }, "생산 ×1.6"],
-  ["auto_mega", "AUTOMATION", 5, "Megastructure", 60_000_000_000, "auto_ai", { productionMultiplier: 2.2 }, "생산 ×2.2"],
+  ["auto_mega", "AUTOMATION", 5, "Megastructure", 60_000_000_000, "auto_ai", { productionMultiplier: 1.4 }, "생산 ×1.4"],
   ["auto_end2", "AUTOMATION", 5, "Nova Tap", 80_000_000_000, "auto_end", { productionMultiplier: 1.8, producerTag: "END" }, "END 생산자 ×1.8"],
   ["drone_bay", "AUTOMATION", 3, "Drone Bay", 15_000_000, "drone_pair", { droneStrikesPerSecond: 1 }, "드론 +1회/초"],
   ["drone_ai", "AUTOMATION", 4, "Swarm Brain", 800_000_000, "drone_bay", { droneEfficiencyAdd: 0.5 }, "드론 효율 +50%"],
@@ -143,7 +143,7 @@ const NODE_SPECS: NodeSpec[] = [
   ["hunt_bane", "HUNT", 4, "Warden's Bane", 29_000_000_000, "hunt_slayer", { bossDamageMultiplier: 1.5 }, "수호자 피해 ×1.5"],
   ["hunt_apex", "HUNT", 5, "Apex Predator", 150_000_000_000, "hunt_bane", { bossDamageMultiplier: 2, monsterRewardMultiplier: 3 }, "수호자 피해 ×2 · 크리처 보상 ×3"],
   // The tree's final key: one purchase that redraws the whole economy.
-  ["trans_heart", "TRANSCENDENCE", 5, "Heart Key", 1_000_000_000_000, "trans_convergence", { clickMultiplier: 10, productionMultiplier: 10, criticalMultiplier: 2, droneStrikesPerSecond: 5 }, "채굴·생산 ×10 · 치명타 배율 ×2 · 드론 +5회/초"],
+  ["trans_heart", "TRANSCENDENCE", 5, "Heart Key", 1_000_000_000_000, "trans_convergence", { clickMultiplier: 3, productionMultiplier: 3, criticalMultiplier: 2, droneStrikesPerSecond: 5 }, "채굴·생산 ×3 · 치명타 배율 ×2 · 드론 +5회/초"],
 ]
 
 export const EXTRA_SKILL_NODES: SkillNodeDef[] = NODE_SPECS.map(([id, branch, tier, name, cost, requires, effect, description]) => ({
@@ -197,6 +197,24 @@ export const PRICE_CUT = 0.5
 export const CORE_UNIT = 1 / 1000
 
 /**
+ * Late producers carry the END / LATE / RISK circuits (up to ×238 stacked), which made each
+ * new one pay for itself faster than the tier before it — the first Nova Forge alone lifted
+ * income ×69. These factors set their fully-upgraded payback on a steady climb
+ * (Resonance Array ≈ 4.7k s → Void 6k → … → Heart Engine 30k), so every new producer is a
+ * step up, never a jump.
+ */
+const LATE_PRODUCTION_SCALE: Record<string, number> = {
+  void_condenser: 0.15,
+  singularity_plant: 0.18,
+  horizon_engine: 0.067,
+  nova_forge: 0.098,
+  aurora_reactor: 0.22,
+  star_anvil: 0.52,
+  worldline_loom: 0.48,
+  heart_engine: 0.48,
+}
+
+/**
  * Merge the extras, give every upgrade/circuit its own icon, sort by price, then apply the
  * price cut and the unit change to every CORE amount in the catalog.
  */
@@ -214,7 +232,7 @@ export function finalizeCatalog(base: GameConfig): GameConfig {
       ...p,
       baseCost: p.baseCost * c,
       unlockAt: p.unlockAt * c,
-      productionPerSecond: p.productionPerSecond * u,
+      productionPerSecond: p.productionPerSecond * u * (LATE_PRODUCTION_SCALE[p.id] ?? 1),
     })),
     upgrades: upgrades
       .map((x) => ({ ...x, cost: x.cost * c, assetId: x.assetId ?? `/clicker/upgrade/${x.id}.webp` }))
