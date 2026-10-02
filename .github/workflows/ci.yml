@@ -32,4 +32,7 @@ jobs:
       - name: Install Chromium for smoke test
         run: npx playwright install chromium
       - name: App smoke (production start)
+        timeout-minutes: 10
+        env:
+          CI: true
         run: npm run test:smoke

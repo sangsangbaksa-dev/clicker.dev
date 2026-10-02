@@ -31,6 +31,15 @@ function waitForPort(host, port, timeoutMs = 120_000) {
   })
 }
 
+function killServer(server) {
+  if (!server?.pid) return
+  try {
+    server.kill("SIGKILL")
+  } catch {
+    /* already exited */
+  }
+}
+
 test("production clicker home loads without client exceptions", { timeout: 180_000 }, async () => {
   const server = spawn(
     "npx",
@@ -38,7 +47,9 @@ test("production clicker home loads without client exceptions", { timeout: 180_0
     {
       cwd: new URL("..", import.meta.url).pathname,
       env: { ...process.env, NODE_ENV: "production" },
-      stdio: ["ignore", "pipe", "pipe"],
+      // Do not pipe stdout/stderr — an unread pipe can block `next start` on CI.
+      stdio: "ignore",
+      detached: process.platform !== "win32",
     },
   )
 
@@ -46,13 +57,19 @@ test("production clicker home loads without client exceptions", { timeout: 180_0
   let browser
   try {
     await waitForPort(HOST, PORT)
-    browser = await chromium.launch({ headless: true })
+    browser = await chromium.launch({
+      headless: true,
+      timeout: 60_000,
+      args: process.env.CI ? ["--no-sandbox", "--disable-setuid-sandbox"] : [],
+    })
     const page = await browser.newPage()
+    page.setDefaultNavigationTimeout(60_000)
+    page.setDefaultTimeout(30_000)
     page.on("pageerror", (err) => {
       pageErrors.push(err instanceof Error ? err.message : String(err))
     })
 
-    const response = await page.goto(BASE, { waitUntil: "networkidle", timeout: 60_000 })
+    const response = await page.goto(BASE, { waitUntil: "load", timeout: 60_000 })
     assert.ok(response?.ok(), `HTTP ${response?.status()}`)
 
     await page.waitForSelector("[data-clicker]", { timeout: 30_000 })
@@ -61,7 +78,14 @@ test("production clicker home loads without client exceptions", { timeout: 180_0
     assert.deepEqual(pageErrors, [], `pageerror: ${pageErrors.join("; ")}`)
   } finally {
     if (browser) await browser.close().catch(() => {})
-    server.kill("SIGTERM")
-    await Promise.race([once(server, "exit"), new Promise((r) => setTimeout(r, 5000))])
+    killServer(server)
+    if (server.detached && server.pid) {
+      try {
+        process.kill(-server.pid, "SIGKILL")
+      } catch {
+        /* process group already gone */
+      }
+    }
+    await Promise.race([once(server, "exit"), new Promise((r) => setTimeout(r, 3000))])
   }
 })
