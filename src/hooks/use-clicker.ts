@@ -97,7 +97,7 @@ import {
   nextAdminSpeed,
   type AdminModes,
 } from "@/application/clicker-ui"
-import { playActiveSkillSfx, playSfx, setSfxMuted } from "@/lib/clicker-sfx"
+import { playSfx, setSfxMuted } from "@/lib/clicker-sfx"
 
 export type FloatNumber = {
   id: number
@@ -371,7 +371,7 @@ export function useClicker() {
     const result = clickerBuyProducer(saveRef.current, id, count)
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("producerBuy")
+    playSfx("purchase")
   }, [commit, refuse])
 
   const buyUpgrade = useCallback((id: string) => {
@@ -421,7 +421,7 @@ export function useClicker() {
     const result = clickerUseSkill(saveRef.current, id, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playActiveSkillSfx(id)
+    playSfx("skillUse")
     const name = clickerGameConfig.activeSkills.find((s) => s.id === id)?.name ?? id
     flash(`${name} 발동`)
   }, [commit, flash, refuse])
@@ -662,7 +662,6 @@ export function useClicker() {
     if (!result.error && next.settings.playSurface === "mine") {
       if (!mineStartRef.current) mineStartRef.current = clickerMineSessionStart(next, t)
       setMineSummary(null)
-      playSfx("enterMine")
     }
     commit(next)
     persistNow(next)
@@ -751,7 +750,6 @@ export function useClicker() {
   const exitMine = useCallback(() => {
     if (!saveRef.current) return
     const before = saveRef.current
-    if (before.settings.playSurface === "mine") playSfx("exitMine")
     const exited = clickerExitMine(before, now())
     const next = before.settings.playSurface === "mine" ? finishMine(before, exited) : exited
     commit(next)
@@ -871,7 +869,7 @@ export function useClicker() {
     const result = clickerStartBoss(saveRef.current, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("bossAppear")
+    playSfx("bossRoar")
   }, [commit, refuse])
 
   /** Strike the guardian. Returns true on the killing blow. */
@@ -880,7 +878,6 @@ export function useClicker() {
       if (!saveRef.current) return false
       const result = clickerStrikeBoss(saveRef.current, now())
       if (result.damage <= 0) return false
-      playSfx("bossHit")
       commit(result.save)
       const id = ++floatId.current
       setFloats((prev) => [...prev.slice(-12), { id, text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }])

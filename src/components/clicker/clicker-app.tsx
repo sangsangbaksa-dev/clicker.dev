@@ -642,16 +642,9 @@ export function ClickerApp() {
     return () => timers.forEach((t) => window.clearTimeout(t))
   }, [inMineSurface, mineEndsAt])
 
-  const mineEndsRef = useRef(0)
-  useEffect(() => {
-    if (inMineSurface && mineEndsAt) mineEndsRef.current = mineEndsAt
-  }, [inMineSurface, mineEndsAt])
   const prevInMine = useRef(inMineSurface)
   useEffect(() => {
-    if (prevInMine.current && !inMineSurface) {
-      const timedOut = mineEndsRef.current > 0 && Date.now() >= mineEndsRef.current - 150
-      if (timedOut) playSfx("sessionTimerEnd")
-    }
+    if (prevInMine.current && !inMineSurface) playSfx("sessionEnd")
     prevInMine.current = inMineSurface
   }, [inMineSurface])
 
@@ -1648,7 +1641,6 @@ export function ClickerApp() {
             meta={game.save.metaState}
             onSelectTab={selectTab}
             onChoose={(buff) => {
-              playSfx("rebirthOpen")
               setPendingRebirth({ id: buff.id, label: buff.name })
             }}
           />
