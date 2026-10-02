@@ -18,6 +18,7 @@ import {
   productionSnapshot,
   isSkillNodeVisible,
   rebirthRequirement,
+  isRegionUnlocked,
   regionUnlockThreshold,
   scaledCost,
   worldlineMultiplier,
@@ -519,7 +520,7 @@ function regionActivityActiveMs(run: RunState, kind: string, now: number): numbe
 export function buildRegionViews(run: RunState, config: GameConfig, now = Date.now()): RegionView[] {
   return config.regions.map((region) => {
     const threshold = regionUnlockThreshold(run, config, region)
-    const unlocked = run.lifetimeCoreEnergy >= threshold
+    const unlocked = isRegionUnlocked(run, config, region.id)
     const remaining = Math.max(0, threshold - run.lifetimeCoreEnergy)
     const unlockRequirement =
       threshold <= 0 ? "시작 시 개방" : `${formatNumber(threshold)} 누적 CORE`

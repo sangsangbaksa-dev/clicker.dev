@@ -80,6 +80,7 @@ config.worldlineBonus = knob("WL", config.worldlineBonus)
 config.rebirthEnergy = knob("GOAL", config.rebirthEnergy)
 config.stackSoftCap = knob("STACK_T", config.stackSoftCap ?? 0) || undefined
 config.stackSoftExponent = knob("STACK_E", config.stackSoftExponent ?? 1)
+for (const r of config.regions) if (r.boss) r.unlockAtLifetimeEnergy *= knob("HEART", 1)
 if (process.env.NO_ACT) for (const r of config.regions) delete r.activity
 if (process.env.NO_BURST) for (const r of config.regions) if (r.activity?.kind === "PRODUCTION_BURST") delete r.activity
 for (const t of config.transcendence) {

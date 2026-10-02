@@ -32,30 +32,17 @@ export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; ru
         <p className="clicker-world-meta">
           누적 CORE <strong>{formatNumber(run.lifetimeCoreEnergy)}</strong>
           {" · "}
-          해금 {game.regions.filter((r) => r.unlocked).length}/{game.regions.length}
-          {" · "}해금 조건은 각 목적지 카드에 표시됩니다
+          개방된 지역 {game.regions.filter((r) => r.unlocked).length}곳
         </p>
-        {(() => {
-          const nextLocked = game.regions.find((r) => !r.unlocked)
-          if (!nextLocked) {
-            return (
-              <p className="clicker-world-next" role="status">
-                모든 지역이 해금되었습니다. 목적지를 선택해 이동하세요.
-              </p>
-            )
-          }
-          return (
-            <p className="clicker-world-next" role="status">
-              다음 해금 후보 · <strong>{nextLocked.name}</strong>
-              {" — "}
-              {nextLocked.unlockText}
-              {" · "}필요 {nextLocked.unlockRequirement}
-            </p>
-          )
-        })()}
+        {/* Locked worlds stay hidden — no name, art or count — until they open. */}
+        <p className="clicker-world-next" role="status">
+          {game.regions.some((r) => !r.unlocked)
+            ? "누적 CORE를 더 모으면 미지의 지역이 열립니다."
+            : "모든 지역이 해금되었습니다. 목적지를 선택해 이동하세요."}
+        </p>
       </header>
       <div className="clicker-world-list">
-        {game.regions.map((region) => {
+        {game.regions.filter((region) => region.unlocked).map((region) => {
           const regionTip = `${region.name} — ${region.description} (${region.unlockText} · ${region.unlockRequirement})`
           return (
             <span key={region.id} className="clicker-world-slot">

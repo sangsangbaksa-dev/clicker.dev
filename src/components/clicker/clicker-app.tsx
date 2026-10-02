@@ -1664,7 +1664,7 @@ export function ClickerApp() {
             {tab === "skills"
               ? ` · 회로 ${visibleSkillNodes.filter((n) => n.status === "OWNED").length}/${visibleSkillNodes.length}`
               : tab === "world"
-                ? ` · 해금 ${game.regions.filter((r) => r.unlocked).length}/${game.regions.length}`
+                ? ` · 개방 ${game.regions.filter((r) => r.unlocked).length}곳`
                 : tab === "transcendence"
                   ? ` · 세계선 ${transcendenceOwned}/${transcendenceTotal}`
                   : ""}
