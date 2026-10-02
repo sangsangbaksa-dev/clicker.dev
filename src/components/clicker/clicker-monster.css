@@ -752,7 +752,8 @@
 .boss-art-canvas {
   display: block;
   width: 100%;
-  aspect-ratio: 4 / 5;
+  /* The guardian painting's own shape, so nothing is cropped. */
+  aspect-ratio: 768 / 1011;
   max-height: min(62vh, 540px);
   overflow: hidden;
   border-radius: 4px;
@@ -762,7 +763,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 38%;
+  object-position: center;
   user-select: none;
   -webkit-user-drag: none;
   transform: translateZ(0);
@@ -866,7 +867,7 @@
 
 /* Keep the guardian, its bars and the start button clear of the hub dock on short screens. */
 .clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-target {
-  width: min(100%, clamp(200px, 46vmin, 480px), calc((100dvh - 420px) * 0.8));
+  width: min(100%, clamp(200px, 46vmin, 480px), calc((100dvh - 420px) * 0.76));
 }
 .clicker-shell.is-region-hub .clicker-boss.has-art .boss-art-canvas {
   max-height: max(200px, calc(100dvh - 420px));

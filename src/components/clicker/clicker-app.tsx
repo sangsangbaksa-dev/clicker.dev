@@ -57,6 +57,7 @@ import { ClickerForge } from "@/components/clicker/clicker-forge"
 import { ClickerRelicVault } from "@/components/clicker/clicker-relic-vault"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
 import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
+import { ClickerHpBar } from "@/components/clicker/clicker-hpbar"
 import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
@@ -1389,13 +1390,15 @@ export function ClickerApp() {
               <p className="clicker-region-station-kicker">{game.currentRegion?.name} · {lair ? "토벌 중" : "보스의 둥지"}</p>
               {lair ? (
                 <>
-                  <div className="clicker-lair-player" aria-label={`내 체력 ${lair.playerHp}/${lair.playerMaxHp}`}>
-                    <span className="clicker-lair-player-label">
-                      내 체력 <b>{lair.playerHp}</b> / {lair.playerMaxHp}
-                    </span>
-                    <div className="clicker-lair-hpbar">
-                      <i style={{ width: `${(lair.playerHp / lair.playerMaxHp) * 100}%` }} />
-                    </div>
+                  <div className="clicker-lair-player">
+                    <ClickerHpBar
+                      tone="player"
+                      value={lair.playerHp}
+                      max={lair.playerMaxHp}
+                      label="내 체력"
+                      valueText={`${Math.max(0, lair.playerHp)} / ${lair.playerMaxHp}`}
+                      ariaLabel={`내 체력 ${lair.playerHp}/${lair.playerMaxHp}`}
+                    />
                   </div>
                   <p className="clicker-drill-hint">
                     {WEAPONS[gear.weapon].name} (피해 {WEAPONS[gear.weapon].damage}) · {ARMORS[gear.armor].name}

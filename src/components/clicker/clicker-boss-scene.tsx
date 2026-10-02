@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
 import { playSfx } from "@/lib/clicker-sfx"
+import { formatNumber } from "@/application/clicker-ui"
+import { ClickerHpBar } from "@/components/clicker/clicker-hpbar"
 import "./clicker-boss-scene.css"
 
 /*
@@ -219,9 +221,15 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
         />
       </div>
       {battle ? (
-        <div className="boss-scene-hp" aria-label={`${name} 체력 ${battle.bossHp}/${battle.bossMaxHp}`}>
-          <i style={{ width: `${(battle.bossHp / battle.bossMaxHp) * 100}%` }} />
-          <span>{name}</span>
+        <div className="boss-scene-hp">
+          <ClickerHpBar
+            tone="boss"
+            value={battle.bossHp}
+            max={battle.bossMaxHp}
+            label={name}
+            valueText={`${formatNumber(Math.max(0, battle.bossHp))} / ${formatNumber(battle.bossMaxHp)}`}
+            ariaLabel={`${name} 체력 ${battle.bossHp}/${battle.bossMaxHp}`}
+          />
         </div>
       ) : null}
     </div>

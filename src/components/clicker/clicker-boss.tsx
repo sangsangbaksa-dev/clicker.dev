@@ -5,6 +5,7 @@ import type { BossDef, BossFight } from "@/application/clicker-ui"
 import { formatNumber } from "@/application/clicker-ui"
 import { playSfx } from "@/lib/clicker-sfx"
 import { MonsterArt } from "@/components/clicker/clicker-monster"
+import { ClickerHpBar } from "@/components/clicker/clicker-hpbar"
 import "./clicker-monster.css"
 
 type Props = {
@@ -37,21 +38,25 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
   const left = fight ? Math.max(0, fight.endsAt - now) / 1000 : def.timeLimitSec
   return (
     <div className={`clicker-boss${attack ? " is-attack" : ""}${def.imageSrc ? " has-art" : ""}${fight ? " is-fighting" : ""}`} key={attack}>
-      <strong>{def.name}</strong>
+      {fight ? null : <strong>{def.name}</strong>}
       {fight ? (
         <div className="clicker-boss-bars">
-          <div className="clicker-boss-bar" role="progressbar" aria-label="수호자 체력" aria-valuenow={Math.round((fight.hp / fight.maxHp) * 100)}>
-            <i style={{ width: `${(fight.hp / fight.maxHp) * 100}%` }} />
-            <span>
-              {formatNumber(fight.hp)} / {formatNumber(fight.maxHp)}
-            </span>
-          </div>
-          <div className="clicker-boss-bar is-player" role="progressbar" aria-label="내 체력" aria-valuenow={fight.playerHp}>
-            <i style={{ width: `${(fight.playerHp / fight.playerMaxHp) * 100}%` }} />
-            <span>
-              내 체력 {Math.max(0, fight.playerHp)} / {fight.playerMaxHp} · {left.toFixed(1)}초
-            </span>
-          </div>
+          <ClickerHpBar
+            tone="boss"
+            value={fight.hp}
+            max={fight.maxHp}
+            label={def.name}
+            valueText={`${formatNumber(Math.max(0, fight.hp))} / ${formatNumber(fight.maxHp)}`}
+            ariaLabel="수호자 체력"
+          />
+          <ClickerHpBar
+            tone="player"
+            value={fight.playerHp}
+            max={fight.playerMaxHp}
+            label="내 체력"
+            valueText={`${Math.max(0, fight.playerHp)} / ${fight.playerMaxHp} · ${left.toFixed(1)}초`}
+            ariaLabel="내 체력"
+          />
         </div>
       ) : null}
       <button

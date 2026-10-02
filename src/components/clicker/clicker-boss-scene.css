@@ -319,31 +319,11 @@
 .boss-scene-hp {
   position: absolute;
   left: 50%;
-  top: 14%;
+  top: 6%;
   z-index: 3;
-  width: min(260px, 70%);
-  height: 16px;
+  width: min(420px, 82%);
   translate: -50% 0;
-  border-radius: 8px;
-  overflow: hidden;
-  background: rgb(0 0 0 / 0.65);
-  border: 1px solid rgb(255 200 120 / 0.5);
-}
-.boss-scene-hp i {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: linear-gradient(90deg, #d4231a, #ff9b3d);
-  transition: width 340ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-.boss-scene-hp span {
-  position: relative;
-  display: block;
-  font-size: 11px;
-  line-height: 16px;
-  font-weight: 800;
-  color: #fff3dc;
-  text-align: center;
-  text-shadow: 0 1px 2px #000;
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -376,7 +356,25 @@
 /* Laptop / short wide stages: keep the painting edge-to-edge without side letterboxing. */
 @media (min-width: 720px) and (max-height: 980px) {
   .boss-scene-hp {
-    top: 10%;
-    width: min(300px, 62%);
+    top: 4%;
   }
+}
+
+/* Wide stages (laptops): show the whole painting — the full monster, head to feet — at the
+   stage height above the dock, with the blurred copy filling the sides. The box keeps the
+   art's 2:3 shape, so eyes, mask and hitbox stay pinned to the painting. */
+@container (min-aspect-ratio: 3/4) {
+  .boss-scene-box {
+    --boss-room: calc(var(--boss-dock-room, 104px) + var(--boss-top-room, 54px));
+    top: var(--boss-top-room, 54px);
+    left: calc(50cqw - (100cqh - var(--boss-room)) / 3);
+    width: calc((100cqh - var(--boss-room)) * 2 / 3);
+    height: calc(100cqh - var(--boss-room));
+    border-radius: 18px;
+    box-shadow: 0 0 60px rgb(0 0 0 / 0.75);
+  }
+  .boss-scene-base,
+  .boss-scene-body { object-position: center; }
+  .boss-scene-ambient { filter: blur(24px) brightness(0.45) saturate(1.2); }
+  .boss-scene-hp { top: 8px; }
 }
