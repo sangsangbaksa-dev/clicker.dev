@@ -12,7 +12,10 @@ import {
 import { flushClickerSaveBeforeAccountHandoff } from "@/application/clicker-account-client-bind"
 import { readClickerLocalSession, writeClickerLocalSession } from "@/infrastructure/auth/clicker-local-session"
 import { handoffClickerSaveForAccount } from "@/infrastructure/persistence/clicker-account-save-handoff"
-import { browserClickerAccountPorts } from "@/infrastructure/persistence/browser-clicker-account-ports"
+import {
+  browserClickerAccountPorts,
+  readBrowserClickerAccountBook,
+} from "@/infrastructure/persistence/browser-clicker-account-ports"
 import { setClickerSaveSlotLoginId } from "@/infrastructure/persistence/clicker-save"
 
 let serverAuthAvailable: boolean | null = null
@@ -51,6 +54,22 @@ function toResult(
   return { ok: true, account: result.value.account }
 }
 
+async function syncLocalAccountBookToServer() {
+  if (!(await serverReachable())) return
+  const book = readBrowserClickerAccountBook()
+  if (!Object.keys(book).length) return
+  try {
+    await fetch("/api/clicker/auth/merge-local", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ accounts: book }),
+    })
+  } catch {
+    /* best-effort */
+  }
+}
+
 function applySession(account: ClickerPublicAccount | null) {
   const previous = readClickerLocalSession()?.loginId ?? null
   flushClickerSaveBeforeAccountHandoff()
@@ -59,6 +78,11 @@ function applySession(account: ClickerPublicAccount | null) {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(CLICKER_ACCOUNT_CHANGED_EVENT))
   }
+}
+
+async function applySessionWithServerSync(account: ClickerPublicAccount | null, usedServer: boolean) {
+  applySession(account)
+  if (usedServer && account) await syncLocalAccountBookToServer()
 }
 
 export function createBrowserClickerAccountClient(): ClickerAccountClientPort {
@@ -97,7 +121,7 @@ export function createBrowserClickerAccountClient(): ClickerAccountClientPort {
           })
           if (staticBuildStatus(res.status)) serverAuthAvailable = false
           else if (res.ok && data.account) {
-            applySession(data.account)
+            await applySessionWithServerSync(data.account, true)
             return { ok: true, account: data.account }
           } else if (!staticBuildStatus(res.status)) {
             return { ok: false, status: res.status, error: data.error ?? "요청을 처리하지 못했어요." }
@@ -120,7 +144,7 @@ export function createBrowserClickerAccountClient(): ClickerAccountClientPort {
           })
           if (staticBuildStatus(res.status)) serverAuthAvailable = false
           else if (res.ok && data.account) {
-            applySession(data.account)
+            await applySessionWithServerSync(data.account, true)
             return { ok: true, account: data.account }
           } else if (!staticBuildStatus(res.status)) {
             return { ok: false, status: res.status, error: data.error ?? "요청을 처리하지 못했어요." }

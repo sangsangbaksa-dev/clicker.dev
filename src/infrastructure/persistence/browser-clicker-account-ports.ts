@@ -13,7 +13,7 @@ function storage(): Storage | null {
   }
 }
 
-function readBook(): Book {
+export function readBrowserClickerAccountBook(): Book {
   try {
     const parsed: unknown = JSON.parse(storage()?.getItem(BOOK_KEY) ?? "{}")
     if (!parsed || typeof parsed !== "object") return {}
@@ -21,6 +21,10 @@ function readBook(): Book {
   } catch {
     return {}
   }
+}
+
+function readBook(): Book {
+  return readBrowserClickerAccountBook()
 }
 
 function writeBook(book: Book): boolean {

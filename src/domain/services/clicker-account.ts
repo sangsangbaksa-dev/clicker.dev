@@ -3,6 +3,14 @@ export const PASSWORD_MIN = 6
 export const PASSWORD_MAX = 64
 export const NICKNAME_MAX = 12
 
+export type ClickerStoredAccount = {
+  id: string
+  loginId: string
+  nickname: string
+  passwordHash: string
+  createdAt: string
+}
+
 export type ClickerAccountInput = { loginId: string; nickname: string; password: string; passwordConfirm?: string }
 
 export function normalizeLoginId(raw: string): string {

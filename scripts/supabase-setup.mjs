@@ -42,3 +42,4 @@ if (download.error) {
 
 await supabase.storage.from("hsms-md").remove([probe])
 console.log("Supabase Storage bucket hsms-md is ready.")
+console.log("Clicker accounts JSON key: hsms-md/clicker-accounts.json (shared store id: clicker-accounts)")

@@ -1,7 +1,12 @@
-import { normalizeLoginId, validateSignup, type ClickerAccountInput } from "../domain/services/clicker-account.ts"
+import {
+  normalizeLoginId,
+  validateSignup,
+  type ClickerAccountInput,
+  type ClickerStoredAccount,
+} from "../domain/services/clicker-account.ts"
 import { fail, ok, type UseCaseResult } from "./use-case-result.ts"
 
-export type ClickerAccount = { id: string; loginId: string; nickname: string; passwordHash: string; createdAt: string }
+export type ClickerAccount = ClickerStoredAccount
 export type ClickerPublicAccount = { id: string; loginId: string; nickname: string }
 
 export type ClickerAccountPorts = {

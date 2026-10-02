@@ -1,6 +1,7 @@
 import { loginClickerAccount } from "@/application/clicker-account"
 import { clickerSessionCookie, signClickerSession } from "@/infrastructure/auth/clicker-session"
 import { clickerAccountPorts } from "@/infrastructure/persistence/clicker-account-store"
+import { SharedStoreUnavailableError } from "@/infrastructure/persistence/shared-store-error"
 import { NextResponse } from "next/server"
 
 export const dynamic = "force-dynamic"
@@ -16,6 +17,9 @@ export async function POST(request: Request) {
     res.cookies.set(c.name, c.value, c)
     return res
   } catch (error) {
+    if (error instanceof SharedStoreUnavailableError) {
+      return NextResponse.json({ error: error.message }, { status: 503 })
+    }
     return NextResponse.json({ error: error instanceof Error ? error.message : "요청을 처리하지 못했어요." }, { status: 500 })
   }
 }
