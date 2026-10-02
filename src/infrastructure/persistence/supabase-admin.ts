@@ -5,11 +5,17 @@ let admin: SupabaseClient | null = null
 export const HSMS_STORAGE_BUCKET = "hsms-md"
 
 export function supabaseProjectUrl(): string | null {
-  return (
-    process.env.SUPABASE_URL?.trim() ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
-    null
-  )
+  const raw = process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || null
+  return raw ? normalizeSupabaseUrl(raw) : null
+}
+
+/** Keep only the origin: a pasted ".../rest/v1/" or trailing slash would break every request. */
+export function normalizeSupabaseUrl(raw: string): string {
+  try {
+    return new URL(raw).origin
+  } catch {
+    return raw.replace(/\/+$/, "")
+  }
 }
 
 export function supabaseServiceRoleKey(): string | null {
