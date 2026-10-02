@@ -26,6 +26,7 @@ import {
   clickerExportCode,
   clickerImportSave,
   clickerParseSaveCode,
+  clickerSaveJson,
   clickerFinishMineSession,
   clickerGameConfig,
   clickerMineSessionStart,
@@ -908,17 +909,25 @@ export function useClicker() {
     return clickerExportCode(current)
   }, [persistNow])
 
+  /** Current save as stored JSON (for the cloud save). */
+  const exportSaveJson = useCallback((): string | null => {
+    const current = saveRef.current
+    if (!current) return null
+    persistNow()
+    return clickerSaveJson(current)
+  }, [persistNow])
+
   const parseSaveCode = useCallback((code: string) => clickerParseSaveCode(code, now()), [])
 
   /** Replace this device's save with an imported one (the old save is backed up first). */
   const importSaveJson = useCallback(
-    (json: string): boolean => {
+    (json: string, message = "저장 코드를 불러왔습니다"): boolean => {
       if (!clickerImportSave(json, now())) return false
       loadAsOwner()
       setMineSummary(null)
       setRegionIntro(null)
       playSfx("save")
-      flash("저장 코드를 불러왔습니다")
+      flash(message)
       return true
     },
     [loadAsOwner, flash],
@@ -1004,6 +1013,7 @@ export function useClicker() {
     resumeHere,
     forceSave,
     exportSaveCode,
+    exportSaveJson,
     parseSaveCode,
     importSaveJson,
     dismissToast,

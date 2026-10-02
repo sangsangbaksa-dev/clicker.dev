@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react"
 import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
 import { formatNumber, registerSecretTap, type ParsedSaveCode, type SecretTapState } from "@/application/clicker-ui"
+import { ClickerAccountPanel } from "@/components/clicker/clicker-account"
+import type { ClickerAccountState } from "@/hooks/use-clicker-account"
 
 type Props = {
   muted: boolean
@@ -18,6 +20,8 @@ type Props = {
   onImportJson: (json: string) => boolean
   /** Hidden: tapping the title a few times quickly reveals the admin tools. */
   onSecretAdmin?: () => void
+  /** Login / signup / cloud save; hidden where there is no account server. */
+  account?: ClickerAccountState
   onClose: () => void
 }
 
@@ -46,6 +50,7 @@ export function ClickerSettings({
   onParseCode,
   onImportJson,
   onSecretAdmin,
+  account,
   onClose,
 }: Props) {
   const secretTaps = useRef<SecretTapState>({ count: 0, first: 0 })
@@ -83,6 +88,8 @@ export function ClickerSettings({
             닫기
           </button>
         </header>
+
+        {account ? <ClickerAccountPanel state={account} /> : null}
 
         <ul className="clicker-settings-list">
           <li className="clicker-settings-row">

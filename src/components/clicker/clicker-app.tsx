@@ -58,6 +58,7 @@ import { ClickerRelicVault } from "@/components/clicker/clicker-relic-vault"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
 import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
 import { ClickerHpBar } from "@/components/clicker/clicker-hpbar"
+import { useClickerAccount } from "@/hooks/use-clicker-account"
 import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
@@ -194,6 +195,10 @@ const PRELOAD_IMAGES = collectImagePaths(CLICKER_ASSETS, MineArt, clickerConfig)
 
 export function ClickerApp() {
   const game = useClicker()
+  const account = useClickerAccount({
+    getSaveJson: game.exportSaveJson,
+    applySaveJson: (json) => game.importSaveJson(json, "클라우드 진행을 불러왔습니다"),
+  })
   useImagePreload(PRELOAD_IMAGES)
   // Door-walk entry cinematic between Enter Mine and the timed session (carries its own SFX).
   const [enteringMine, setEnteringMine] = useState(false)
@@ -1684,6 +1689,7 @@ export function ClickerApp() {
           onExportCode={game.exportSaveCode}
           onParseCode={game.parseSaveCode}
           onImportJson={game.importSaveJson}
+          account={account}
           onSecretAdmin={() => {
             try {
               window.localStorage.setItem(CLICKER_ADMIN_REMEMBER_KEY, "1")

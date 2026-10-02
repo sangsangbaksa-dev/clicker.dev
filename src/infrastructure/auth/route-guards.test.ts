@@ -11,11 +11,15 @@ const PUBLIC_ROUTES: Record<string, string> = {
   "auth/signup/route.ts": "회원가입",
   "auth/logout/route.ts": "쿠키 삭제만 함",
   "auth/bootstrap/route.ts": "첫 회원 필요 여부만 알려 줌",
+  "clicker/auth/login/route.ts": "게임 계정 로그인",
+  "clicker/auth/signup/route.ts": "게임 계정 회원가입",
+  "clicker/auth/logout/route.ts": "게임 세션 쿠키 삭제만 함",
+  "clicker/auth/me/route.ts": "게임 세션이 없으면 null만 돌려줌",
 }
 
 const HANDLER = /export\s+async\s+function\s+(GET|POST|PUT|PATCH|DELETE)\b/g
 const GUARD =
-  /\b(requireApprovedUser|requireEditorUser|requireMemberManager|requireWaldoOwner|requireWaldoAdmin|getUserFromRequest|getSessionFromRequest)\s*\(/
+  /\b(requireApprovedUser|requireEditorUser|requireMemberManager|requireWaldoOwner|requireWaldoAdmin|getUserFromRequest|getSessionFromRequest|clickerAccountFromCookies)\s*\(/
 
 function routeFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

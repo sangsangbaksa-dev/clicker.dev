@@ -2155,3 +2155,66 @@
     transform: translateY(50%);
   }
 }
+
+/* ---------- Settings → 계정 (login / signup / cloud save) ---------- */
+[data-clicker] .clicker-account {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--core) 40%, var(--edge));
+  border-radius: 14px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--core) 8%, transparent), rgb(255 255 255 / 0.02));
+}
+[data-clicker] .clicker-account h3 { margin: 0; font-size: 14px; letter-spacing: 0.06em; }
+[data-clicker] .clicker-account-who { margin: 0; font-size: 16px; }
+[data-clicker] .clicker-account-who small { opacity: 0.6; font-size: 12px; }
+[data-clicker] .clicker-account-note { margin: 0; font-size: 12px; opacity: 0.72; line-height: 1.45; }
+[data-clicker] .clicker-account-note.is-warn { color: #ffb38a; opacity: 1; }
+[data-clicker] .clicker-account-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+[data-clicker] .clicker-account-actions > button { flex: 1 1 auto; min-height: 38px; }
+[data-clicker] .clicker-account-form { display: grid; gap: 10px; }
+[data-clicker] .clicker-account-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: rgb(0 0 0 / 0.35);
+}
+[data-clicker] .clicker-account-tabs button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  opacity: 0.65;
+  cursor: pointer;
+}
+[data-clicker] .clicker-account-tabs button.is-on {
+  opacity: 1;
+  background: color-mix(in srgb, var(--core) 26%, rgb(255 255 255 / 0.06));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--core) 55%, transparent);
+}
+[data-clicker] .clicker-account-form label { display: grid; gap: 4px; font-size: 12px; }
+[data-clicker] .clicker-account-form label span { opacity: 0.75; }
+[data-clicker] .clicker-account-form input {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.4);
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+}
+[data-clicker] .clicker-account-form input:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--core-bright) 80%, white);
+  outline-offset: 1px;
+}
+[data-clicker] .clicker-account-form .clicker-primary { min-height: 42px; }
+[data-clicker] .clicker-account-msg { margin: 0; padding: 8px 10px; border-radius: 10px; font-size: 13px; }
+[data-clicker] .clicker-account-msg.is-ok { background: rgb(40 200 120 / 0.14); color: #b8f5d4; }
+[data-clicker] .clicker-account-msg.is-error { background: rgb(255 90 70 / 0.14); color: #ffc2b8; }

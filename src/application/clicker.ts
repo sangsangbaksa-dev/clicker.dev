@@ -150,6 +150,11 @@ export function clickerExportCode(save: SaveData): string {
   return encodeSaveCode(encodeClickerSave({ ...save, savedAt: Date.now() }).json)
 }
 
+/** The save exactly as the loader stores it — what a cloud save holds. */
+export function clickerSaveJson(save: SaveData): string {
+  return encodeClickerSave({ ...save, savedAt: Date.now() }).json
+}
+
 export function clickerParseSaveCode(code: string, now: number): ParsedSaveCode {
   return parseSaveCode(code, config, now)
 }
