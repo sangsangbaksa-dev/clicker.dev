@@ -101,7 +101,7 @@ const NODE_SPECS: NodeSpec[] = [
   ["focus_deep", "FOCUS", 3, "Deep Bite", 70_000_000, "focus_split", { criticalMultiplier: 1.3 }, "치명타 배율 ×1.3"],
   ["focus_titan", "FOCUS", 4, "Titan Arm", 1_200_000_000, "focus_deep", { clickMultiplier: 1.8 }, "채굴 ×1.8"],
   ["focus_star", "FOCUS", 5, "Star Breaker", 40_000_000_000, "focus_titan", { clickMultiplier: 2.5 }, "채굴 ×2.5"],
-  ["mine_quick", "FOCUS", 1, "Quick Shift", 12_000, "mine_dwell", { mineSessionSecondsAdd: 3 }, "광산 세션 +3초"],
+  ["mine_quick", "FOCUS", 1, "Steady Swing", 12_000, "mine_dwell", { comboWindowAdd: 0.3 }, "콤보 유지 +0.3초"],
   ["mine_turn", "FOCUS", 2, "Fast Turnaround", 400_000, "mine_quick", { cooldownReduceSec: 5 }, "광산·시추 대기 -5초"],
   ["mine_lamp", "FOCUS", 2, "Head Lamp", 500_000, "mine_quick", { clickMultiplier: 1.15 }, "채굴 ×1.15"],
   ["storm_static", "FOCUS", 2, "Static Hair", 900_000, "storm_spark", { lightningChanceAdd: 0.02 }, "번개 +2%"],
