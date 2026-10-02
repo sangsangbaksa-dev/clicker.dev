@@ -36,13 +36,17 @@ const baseConfig: GameConfig = {
   feverCritChanceAdd: 0.1,
   feverComboCap: 10,
   feverCoolDown: 2,
-  // Final unit ÷1000: goals 1B → 1.2T → 1.4Qa … With the Heart Key capstone and the boosted
-  // AUTOMATION branch, ×1200 keeps worldlines 2–5 at ~8–9 min and the last climb to Core Heart at
-  // ~20 min, ~80 min in all (scripts/playtime-sim.ts); ×550 left that last climb at ~6 min.
+  // Final unit ÷1000: goals 1B → 120B → 14T … Prices ×5 per worldline keep pace with the ×5
+  // worldline bonus, so a new worldline replays the catalog instead of buying it out in seconds;
+  // goals ×120 then give ~4h to the Core Heart with no worldline over ~45 min
+  // (scripts/playtime-sim.ts). ×2 prices let wl2+ buy the whole tree at once: income ×10⁸ a minute.
   rebirthEnergy: 1e12,
-  rebirthGrowth: 1_200,
-  // Prices double per worldline while goals grow ×1200, so each worldline climbs further.
-  priceGrowth: 2,
+  rebirthGrowth: 120,
+  priceGrowth: 5,
+  // Bought multipliers (upgrades + circuits) past ×300 count as (excess)^0.45: buying out the
+  // catalog late in a worldline is a climb, not a cliff.
+  stackSoftCap: 300,
+  stackSoftExponent: 0.45,
   // ×5 permanent click & production per rebirth: every worldline plays about five times faster.
   worldlineBonus: 4,
   skillPointEveryLevels: 10,
@@ -950,10 +954,11 @@ const baseConfig: GameConfig = {
       branch: "AUTOMATION",
       tier: 5,
       name: "Perpetual Engine",
-      description: "생산 ×2.5",
+      description: "생산 ×1.4",
       cost: 25_000_000_000,
       requires: ["auto_late"],
-      productionMultiplier: 2.5,
+      // Was ×2.5; it landed in the same second as the other capstones (see LATE_PRODUCTION_SCALE).
+      productionMultiplier: 1.4,
     },
     {
       id: "auto_link",

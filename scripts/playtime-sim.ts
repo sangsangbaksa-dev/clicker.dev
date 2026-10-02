@@ -360,7 +360,7 @@ while (elapsed() < MAX_HOURS * 3600) {
   const heart = config.regions.find((r) => r.boss)
   if (heart && isRegionUnlocked(save.runState, config, heart.id)) {
     const d = derivedClick(save.runState, save.metaState, config)
-    runLog.push(`worldline 6 → Core Heart: ${fmt(elapsed() - runStart)} · click ${d.click.toExponential(2)} · crit ×${d.critMult.toFixed(1)} · boss hp ${heart.boss!.hp.toExponential(2)}`)
+    runLog.push(`last worldline → Core Heart: ${fmt(elapsed() - runStart)} · click ${d.click.toExponential(2)} · crit ×${d.critMult.toFixed(1)} · boss hp ${heart.boss!.hp.toExponential(2)}`)
     heartReached = true
     break
   }
