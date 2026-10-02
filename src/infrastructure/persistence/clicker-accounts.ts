@@ -22,9 +22,13 @@ type StoredSave = { json: string; savedAt: number }
 const accountKey = (loginId: string) => `clicker-accounts/${loginId}`
 const saveKey = (accountId: string) => `clicker-saves/${accountId}`
 
-/** A serverless host without a durable store would keep accounts in /tmp and lose them. */
+/** False on a serverless host with no durable store: accounts would land in /tmp and vanish. */
+export function clickerAccountStorageReady(): boolean {
+  return !(durableStorageRequired() && !sharedBlobEnabled())
+}
+
 function assertDurable(): void {
-  if (durableStorageRequired() && !sharedBlobEnabled()) {
+  if (!clickerAccountStorageReady()) {
     throw new SharedStoreUnavailableError("계정 저장소가 설정되지 않았습니다.")
   }
 }

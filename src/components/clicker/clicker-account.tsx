@@ -17,6 +17,14 @@ export function ClickerAccountPanel({ state }: { state: ClickerAccountState }) {
   const [confirmLoad, setConfirmLoad] = useState(false)
   if (!state.available) return null
   const { account, cloud, busy, message } = state
+  if (!state.storage) {
+    return (
+      <section className="clicker-account" aria-labelledby="clicker-account-title">
+        <h3 id="clicker-account-title">계정</h3>
+        <p className="clicker-account-note">로그인·회원가입은 준비 중입니다. 지금은 아래 저장 코드로 진행을 옮길 수 있습니다.</p>
+      </section>
+    )
+  }
 
   const submit = (e: FormEvent) => {
     e.preventDefault()

@@ -25,9 +25,11 @@ async function call<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> 
   }
 }
 
-export async function fetchClickerAccount(): Promise<{ available: boolean; account: ClickerAccountInfo | null }> {
-  const r = await call<{ account: ClickerAccountInfo | null }>("/api/clicker/auth/me")
-  return r.ok ? { available: true, account: r.value.account } : { available: !r.unavailable, account: null }
+/** `available`: there is an account server; `storage`: it can actually keep accounts. */
+export async function fetchClickerAccount(): Promise<{ available: boolean; storage: boolean; account: ClickerAccountInfo | null }> {
+  const r = await call<{ account: ClickerAccountInfo | null; storage?: boolean }>("/api/clicker/auth/me")
+  if (!r.ok) return { available: !r.unavailable, storage: false, account: null }
+  return { available: true, storage: r.value.storage !== false, account: r.value.account }
 }
 
 export function signupClickerAccount(input: { loginId: string; nickname: string; password: string; passwordConfirm: string }) {

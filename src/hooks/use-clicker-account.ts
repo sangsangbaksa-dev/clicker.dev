@@ -26,6 +26,7 @@ export type ClickerAccountState = ReturnType<typeof useClickerAccount>
 
 export function useClickerAccount({ getSaveJson, applySaveJson }: Options) {
   const [available, setAvailable] = useState(false)
+  const [storage, setStorage] = useState(true)
   const [account, setAccount] = useState<ClickerAccountInfo | null>(null)
   const [cloud, setCloud] = useState<ClickerCloudSave["meta"] | null>(null)
   const [busy, setBusy] = useState(false)
@@ -47,6 +48,7 @@ export function useClickerAccount({ getSaveJson, applySaveJson }: Options) {
     fetchClickerAccount().then((r) => {
       if (!alive) return
       setAvailable(r.available)
+      setStorage(r.storage)
       setAccount(r.account)
       if (r.account) void refreshCloud()
     })
@@ -153,5 +155,5 @@ export function useClickerAccount({ getSaveJson, applySaveJson }: Options) {
     }
   }, [signedInId])
 
-  return { available, account, cloud, busy, message, login, signup, logout, upload, download }
+  return { available, storage, account, cloud, busy, message, login, signup, logout, upload, download }
 }
