@@ -32,6 +32,8 @@ import {
   activeSkillBarStatusLine,
   isActiveSkillBarDisabled,
   resolveActiveSkillBarState,
+  SECRET_CODE,
+  typedSecretCode,
 } from "@/application/clicker-ui"
 import { useClicker } from "@/hooks/use-clicker"
 import { useClickerBgm } from "@/hooks/use-clicker-bgm"
@@ -227,6 +229,22 @@ export function ClickerApp() {
   /** Region whose field challenge is open (mini-game overlay), or null. */
   const [challengeRegionId, setChallengeRegionId] = useState<string | null>(null)
   const [drillHits, setDrillHits] = useState(0)
+
+  // Secret code: typing it anywhere (any screen, even inside a field) grants the code reward.
+  const redeemSecretCode = game.redeemSecretCode
+  useEffect(() => {
+    let typed = ""
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.length !== 1) return
+      typed = (typed + e.key).slice(-SECRET_CODE.length)
+      if (typedSecretCode(typed)) {
+        typed = ""
+        redeemSecretCode()
+      }
+    }
+    window.addEventListener("keydown", onKey, true)
+    return () => window.removeEventListener("keydown", onKey, true)
+  }, [redeemSecretCode])
 
   // Prime Web Audio on first gesture so click/laser SFX are not stuck suspended.
   useEffect(() => {

@@ -21,6 +21,21 @@ export function adminGrantCurrencies(run: RunState, config: GameConfig, amount: 
   return { ...run, regionCurrency: wallet }
 }
 
+/** Secret code typed anywhere in the game (see `clickerRedeemSecretCode`). */
+export const SECRET_CODE = "@kk960398"
+/** What the secret code grants: this much CORE and of every world currency. */
+export const SECRET_CODE_AMOUNT = 1e14
+
+/** True when the latest typed characters spell the secret code. */
+export function typedSecretCode(buffer: string): boolean {
+  return buffer.endsWith(SECRET_CODE)
+}
+
+/** CORE to spend (not lifetime, so it opens nothing on its own) plus every world currency. */
+export function grantSecretCode(run: RunState, config: GameConfig): RunState {
+  return { ...adminGrantCurrencies(run, config, SECRET_CODE_AMOUNT), coreEnergy: run.coreEnergy + SECRET_CODE_AMOUNT }
+}
+
 export function finalBossRegionId(config: GameConfig): string | undefined {
   return [...config.regions].reverse().find((r) => r.boss)?.id
 }

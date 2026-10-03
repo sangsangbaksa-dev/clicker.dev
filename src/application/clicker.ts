@@ -67,6 +67,7 @@ import {
   adminReplayTutorial,
   applyGodMode,
   applySpeedBoost,
+  grantSecretCode,
   type AdminModes,
 } from "@/domain/services/clicker-admin-tools"
 import { allowStrike } from "@/domain/services/clicker-strike-limiter"
@@ -345,6 +346,10 @@ export function clickerAdminGrant(save: SaveData, amount: number): SaveData {
     runState: run,
     metaState: { ...save.metaState, totalCoreEnergy: save.metaState.totalCoreEnergy + amount },
   }
+}
+
+export function clickerRedeemSecretCode(save: SaveData): SaveData {
+  return { ...save, runState: grantSecretCode(save.runState, config) }
 }
 
 export function clickerAdminPatch(save: SaveData, patch: Partial<SaveData["runState"]>): SaveData {

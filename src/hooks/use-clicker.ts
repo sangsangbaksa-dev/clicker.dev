@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   clickerAdminGrant,
   clickerAdminGrantCurrencies,
+  clickerRedeemSecretCode,
   clickerAdminJumpToFinalBoss,
   clickerAdminReplayTutorial,
   clickerApplyAdminModes,
@@ -82,6 +83,7 @@ import {
   buildSkillNodeViews,
   buildUpgradeViews,
   formatNumber,
+  SECRET_CODE_AMOUNT,
   GEAR,
   gearOf,
   isClickerAdminAllowed,
@@ -525,6 +527,16 @@ export function useClicker() {
     },
     [commit, flash],
   )
+
+  /** The secret code typed anywhere: 100T CORE and of every world currency. */
+  const redeemSecretCode = useCallback(() => {
+    if (!saveRef.current) return
+    const next = clickerRedeemSecretCode(saveRef.current)
+    commit(next)
+    persistNow(next)
+    playSfx("achievement")
+    flash(`비밀 코드 · CORE와 모든 지역 재화 +${formatNumber(SECRET_CODE_AMOUNT)}`)
+  }, [commit, persistNow, flash])
 
   const adminJumpFinalBoss = useCallback(() => {
     if (!isClickerAdminAllowed() || !saveRef.current) return
@@ -1110,6 +1122,7 @@ export function useClicker() {
     forge,
     buyRelic,
     buyWorldTreeNode,
+    redeemSecretCode,
     pullGacha,
     drillVein,
     purchaseFx,

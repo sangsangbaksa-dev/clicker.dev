@@ -849,3 +849,15 @@ test("worlds are late-run events: each opens in the back half of every worldline
     }
   }
 })
+
+test("secret code: typed anywhere, grants 100T CORE and of every world currency", async () => {
+  const admin = await import("./clicker-admin-tools.ts")
+  const eng = await import("./clicker-engine.ts")
+  assert.equal(admin.typedSecretCode("xyz@kk960398"), true)
+  assert.equal(admin.typedSecretCode("@kk96039"), false)
+  const run = eng.createInitialRun(0, eng.createInitialMeta(), clickerConfig)
+  const rich = admin.grantSecretCode(run, clickerConfig)
+  assert.equal(rich.coreEnergy, run.coreEnergy + 1e14)
+  assert.equal(rich.lifetimeCoreEnergy, run.lifetimeCoreEnergy, "spendable CORE only; it opens nothing on its own")
+  for (const r of clickerConfig.regions.filter((x) => x.currency)) assert.equal(eng.regionCurrencyBalance(rich, r.id), 1e14)
+})

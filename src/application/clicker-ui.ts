@@ -86,6 +86,9 @@ export {
   clampTutorialStep,
   nextAdminSpeed,
   registerSecretTap,
+  SECRET_CODE,
+  SECRET_CODE_AMOUNT,
+  typedSecretCode,
   type AdminModes,
   type SecretTapState,
 } from "@/domain/services/clicker-admin-tools"
