@@ -170,7 +170,9 @@ function shop(): void {
       continue
     }
     options.sort((a, b) => a.score - b.score || a.cost - b.cost)
-    const pick = options.find((o) => o.score < 3600)
+    // Past the instability warning a player spends down instead of saving for the best buy.
+    const panic = run.instability >= 60
+    const pick = panic ? options.find((o) => o.cost <= run.coreEnergy && Number.isFinite(o.score)) : options.find((o) => o.score < 3600)
     if (!pick || pick.cost > run.coreEnergy) return
     const prodBefore = process.env.JUMPS ? productionSnapshot(save.runState, save.metaState, config, now).perSecond : 0
     const levelsBefore = save.runState.producerLevels

@@ -521,9 +521,13 @@ export const HOARD_CURVE = 0.8
 /** Ceiling on hoard-driven instability: 100 takes at least 50 seconds. */
 export const HOARD_MAX_RATE = 2
 
-export function hoardInstabilityPerSecond(run: RunState, perSecond: number): number {
+/** A new run's first minutes are free of hoard pressure (carried-over CORE, no producers yet). */
+export const HOARD_GRACE_MS = 180_000
+
+export function hoardInstabilityPerSecond(run: RunState, perSecond: number, now?: number): number {
   // No production yet (fresh run): nothing to measure the hoard against.
   if (!(perSecond > 0)) return 0
+  if (now !== undefined && now - run.runStartedAt < HOARD_GRACE_MS) return 0
   const held = run.coreEnergy + Object.values(run.regionCurrency ?? {}).reduce((s, v) => s + (v > 0 ? v : 0), 0)
   const minutes = held / (perSecond * 60)
   if (!(minutes > HOARD_FREE_MINUTES)) return 0
@@ -1146,7 +1150,7 @@ export function processTick(
     coreEnergy: next.coreEnergy + gained,
     lifetimeCoreEnergy: next.lifetimeCoreEnergy + gained,
   }
-  if (!next.crisisActive) next = applyInstabilityDelta(next, hoardInstabilityPerSecond(next, snapshot.perSecond) * dt)
+  if (!next.crisisActive) next = applyInstabilityDelta(next, hoardInstabilityPerSecond(next, snapshot.perSecond, now) * dt)
   if (next.instability >= 100 || next.crisisActive) next = collapseCore(next, now)
   next = tickBoss(next, config, now)
   next = refreshSkillPoints(next, config)
