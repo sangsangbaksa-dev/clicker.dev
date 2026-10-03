@@ -90,6 +90,14 @@ for (const t of config.transcendence) {
   if (t.productionMultiplier) t.productionMultiplier **= knob("BUFF_POW", 1)
 }
 const MAX_HOURS = knob("MAX_HOURS", 9)
+// SCALE: override goal-table entries, e.g. "0=683000,7=19.7" (index = worldline - 1).
+if (process.env.SCALE) {
+  config.rebirthGoalScale = [...(config.rebirthGoalScale ?? [])]
+  for (const pair of process.env.SCALE.split(",")) {
+    const [k, v] = pair.split("=").map(Number)
+    config.rebirthGoalScale[k] = v
+  }
+}
 // CALIBRATE: worldline lengths in minutes (e.g. "120,50,30"). Each worldline rebirths exactly at its
 // target and prints the goal scale that would end it there; paste those into REBIRTH_GOAL_SCALE.
 const TARGETS = process.env.CALIBRATE ? process.env.CALIBRATE.split(",").map(Number) : null
