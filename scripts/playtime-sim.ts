@@ -46,6 +46,8 @@ import {
   claimRegionChallenge,
   regionChallengeError,
   slayMonster,
+  buyWorldTreeNode,
+  worldTreeNodeError,
 } from "../src/domain/services/clicker-engine.ts"
 import { autoDrillRate, awardAchievements, claimGoldenVein, VEIN_SPAWN_CHANCE } from "../src/domain/services/clicker-bonus.ts"
 
@@ -88,6 +90,11 @@ for (const t of config.transcendence) {
   if (t.productionMultiplier) t.productionMultiplier **= knob("BUFF_POW", 1)
 }
 const MAX_HOURS = knob("MAX_HOURS", 9)
+// CALIBRATE: worldline lengths in minutes (e.g. "120,50,30"). Each worldline rebirths exactly at its
+// target and prints the goal scale that would end it there; paste those into REBIRTH_GOAL_SCALE.
+const TARGETS = process.env.CALIBRATE ? process.env.CALIBRATE.split(",").map(Number) : null
+if (TARGETS) config.rebirthGoalScale = []
+const calibrated: number[] = []
 let seed = 11
 const rng = () => (seed = (seed * 16807) % 2147483647) / 2147483647
 
@@ -210,6 +217,8 @@ const CHALLENGE_SCORE = 0.8
 let runStart = 0
 let mineCycles = 0
 let heartReached = false
+let collapses = 0
+let lastCollapseAt = 0
 
 function bestRegion(): void {
   const run = save.runState
@@ -331,7 +340,17 @@ while (elapsed() < MAX_HOURS * 3600) {
     step(1)
   }
   save = { ...save, metaState: awardAchievements(save.runState, save.metaState, config.achievements).meta }
+  if ((save.runState.lastCollapse?.at ?? 0) > lastCollapseAt) {
+    lastCollapseAt = save.runState.lastCollapse!.at
+    collapses++
+  }
   shop()
+  // World skill trees cost only their own currency, so buy every node that is affordable.
+  for (const node of config.worldTrees ?? []) {
+    if (worldTreeNodeError(save.runState, config, node.id)) continue
+    save = { ...save, runState: buyWorldTreeNode(save.runState, config, node.id).run }
+    if (process.env.TREES) console.log(`  tree ${node.id} wl=${save.metaState.rebirthCount + 1} t=${fmt(elapsed() - runStart)}`)
+  }
   incomeWindow()
 
   if (process.env.TRACE && (process.env.TRACE === "all" || Math.floor(elapsed()) % 60 < 12)) {
@@ -340,6 +359,17 @@ while (elapsed() < MAX_HOURS * 3600) {
     console.log(
       `t=${fmt(elapsed())} wl=${save.metaState.rebirthCount + 1} life=${r.lifetimeCoreEnergy.toExponential(2)} bank=${r.coreEnergy.toExponential(2)} prod/s=${productionSnapshot(r, save.metaState, config, now).perSecond.toExponential(2)} upg=${r.ownedUpgradeIds.length} costScale=${r.costScale} click=${d.click.toExponential(2)} crit=${d.critMult.toFixed(1)} drone/s=${droneEnergyPerSecond(r, save.metaState, config, now).toExponential(2)} fever=${r.fever.phase} lv=${Object.values(r.producerLevels).reduce((a, b) => a + b, 0)} skills=${r.ownedSkillNodeIds.length}`,
     )
+  }
+  if (TARGETS && save.metaState.rebirthCount < TARGETS.length) {
+    const k = save.metaState.rebirthCount
+    if (elapsed() - runStart >= TARGETS[k] * 60) {
+      // Set this worldline's goal to exactly what was earned by its target time.
+      const base = config.rebirthEnergy * config.rebirthGrowth ** k
+      calibrated[k] = save.runState.lifetimeCoreEnergy / base
+      config.rebirthGoalScale![k] = calibrated[k]
+    } else {
+      config.rebirthGoalScale![k] = Infinity // not before the target time
+    }
   }
   if (canRebirth(save.runState, save.metaState, config)) {
     const buff = config.transcendence.find((b) => !save.metaState.transcendenceIds.includes(b.id)) ?? config.transcendence[0]
@@ -353,8 +383,9 @@ while (elapsed() < MAX_HOURS * 3600) {
     }
     if (process.env.LEVELS) runLog.push("   levels " + Object.entries(save.runState.producerLevels).filter(([, v]) => v > 0).map(([k, v]) => `${k}:${v}`).join(" ") + " · regions " + config.regions.filter((r) => isRegionUnlocked(save.runState, config, r.id)).length)
     runLog.push(
-      `worldline ${save.metaState.rebirthCount + 1}: ${fmt(elapsed() - runStart)} (goal ${need.toExponential(0)}, skills ${skills}/${config.skillNodes.length}, relic lv ${Object.values(save.metaState.relicLevels).reduce((a, b) => a + b, 0)}) → ${buff.id}`,
+      `worldline ${save.metaState.rebirthCount + 1}: ${fmt(elapsed() - runStart)} (goal ${need.toExponential(0)}, skills ${skills}/${config.skillNodes.length}, relic lv ${Object.values(save.metaState.relicLevels).reduce((a, b) => a + b, 0)}, collapses ${collapses}) → ${buff.id}`,
     )
+    collapses = 0
     save = { ...save, runState: r.run, metaState: r.meta }
     runStart = elapsed()
   }
@@ -367,5 +398,6 @@ while (elapsed() < MAX_HOURS * 3600) {
   }
 }
 
+if (TARGETS) console.log(`REBIRTH_GOAL_SCALE = [${calibrated.map((v) => Number(v.toPrecision(4))).join(", ")}]`)
 console.log(`clicks/s ${CLICKS_PER_SEC} · mine sessions ${mineCycles}`)
 console.log(`total ${fmt(elapsed())}${heartReached ? " · Core Heart open" : " · NOT FINISHED"}`)
