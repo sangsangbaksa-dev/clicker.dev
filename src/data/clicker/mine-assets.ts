@@ -26,6 +26,8 @@ export const MINE_ORE_PLATE = {
 export const MineArt = {
   /** Hub pre-enter closed door; matches door-walk f000 (seam x=640 @ 720p). */
   entranceGate: "/clicker/mine/mine_entrance_hub_closed_door_v2.webp",
+  /** Same gate, cropped so the door's centre is the image centre (title screen). */
+  titleGate: "/clicker/mine/title_door_centered.webp",
   /** Door-walk v12 entry cinematic (1920×1080, with SFX); seam x≈960. */
   enterCinematic: "/clicker/mine/mine_enter_door_walk_v12.mp4",
   /** Previous 720p door-walk (kept on disk for reference). */

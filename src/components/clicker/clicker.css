@@ -3274,6 +3274,8 @@ button.clicker-metric-action.is-fever-ready em {
 .clicker-title-bg {
   position: absolute;
   inset: 0;
+  /* title_door_centered.webp is cropped so the door's centre is the image centre; cover and the
+     slow breathing zoom both work around the centre, so the door stays dead centre on any screen. */
   background: center / cover no-repeat;
   transform: scale(1.08);
   filter: saturate(0.9) brightness(0.62) contrast(1.05);
@@ -3427,10 +3429,10 @@ button.clicker-metric-action.is-fever-ready em {
 
 @keyframes clicker-title-bg-drift {
   from {
-    transform: scale(1.06) translate3d(-1.2%, 0.6%, 0);
+    transform: scale(1.06);
   }
   to {
-    transform: scale(1.1) translate3d(1.2%, -0.8%, 0);
+    transform: scale(1.1);
   }
 }
 

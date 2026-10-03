@@ -10,6 +10,7 @@ export const CLICKER_ASSETS = {
   bgChamber: "/clicker/bg/region_core_chamber.webp",
   /** Hub pre-enter — exterior gate only. */
   bgMineEntrance: MineArt.entranceGate,
+  bgTitleGate: MineArt.titleGate,
   /** Timed mine session — hi-tech interior chamber. */
   bgMine: MineArt.chamberBg,
   mineCoreOre: MineArt.coreOre,

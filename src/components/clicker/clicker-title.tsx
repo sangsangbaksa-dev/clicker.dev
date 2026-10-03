@@ -19,7 +19,7 @@ export function ClickerTitle({ muted, onToggleMute, onStart }: Props) {
     >
       <div
         className="clicker-title-bg"
-        style={{ backgroundImage: `url(${CLICKER_ASSETS.bgMineEntrance})` }}
+        style={{ backgroundImage: `url(${CLICKER_ASSETS.bgTitleGate})` }}
         aria-hidden
       />
       <div className="clicker-title-veil" aria-hidden />
