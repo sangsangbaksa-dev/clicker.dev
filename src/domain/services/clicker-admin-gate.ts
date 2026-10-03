@@ -10,6 +10,30 @@ export const CLICKER_PRELAUNCH = false
 /** localStorage key that remembers a pre-launch `?admin=1` visit. */
 export const CLICKER_ADMIN_REMEMBER_KEY = "clicker-admin"
 
+/** localStorage key set when the secret code is typed: admin stays on in this browser, even in production. */
+export const CLICKER_ADMIN_CODE_KEY = "clicker-admin-code"
+
+function codeAdmin(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    return window.localStorage.getItem(CLICKER_ADMIN_CODE_KEY) === "1"
+  } catch {
+    return false
+  }
+}
+
+/** The secret code was typed: turn admin on for this browser. */
+export function grantClickerAdminByCode(): void {
+  try {
+    window.localStorage.setItem(CLICKER_ADMIN_CODE_KEY, "1")
+  } catch {
+    /* storage blocked — admin stays on for this visit only */
+  }
+  codeAdminThisVisit = true
+}
+
+let codeAdminThisVisit = false
+
 function rememberedAdmin(): boolean {
   if (typeof window === "undefined") return false
   try {
@@ -27,6 +51,8 @@ export type ClickerAdminGateInput = {
   prelaunch?: boolean
   /** This browser opened `?admin=1` before (pre-launch only). Defaults to reading localStorage. */
   remembered?: boolean
+  /** The secret code was typed in this browser. Defaults to reading localStorage. */
+  code?: boolean
 }
 
 export function isClickerAdminHost(hostname: string): boolean {
@@ -50,6 +76,8 @@ export function isClickerAdminAllowed(input: ClickerAdminGateInput = {}): boolea
   ).toLowerCase()
   // Playtest builds opt in explicitly; otherwise production never exposes admin helpers.
   if (process.env.NEXT_PUBLIC_CLICKER_ADMIN === "1" && input.nodeEnv === undefined) return true
+
+  if (input.code ?? (codeAdminThisVisit || codeAdmin())) return true
 
   if (!input.hostname && typeof window === "undefined") return false
 

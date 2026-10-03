@@ -18,6 +18,7 @@ import {
   drillCooldownMs,
   formatNumber,
   gearOf,
+  grantClickerAdminByCode,
   isClickerAdminAllowed,
   isRegionUnlocked,
   monsterAlive,
@@ -229,22 +230,6 @@ export function ClickerApp() {
   const [challengeRegionId, setChallengeRegionId] = useState<string | null>(null)
   const [drillHits, setDrillHits] = useState(0)
 
-  // Secret code: typing it anywhere (any screen, even inside a field) grants the code reward.
-  const redeemSecretCode = game.redeemSecretCode
-  useEffect(() => {
-    let typed = ""
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key.length !== 1) return
-      typed = (typed + e.key).slice(-SECRET_CODE.length)
-      if (typedSecretCode(typed)) {
-        typed = ""
-        redeemSecretCode()
-      }
-    }
-    window.addEventListener("keydown", onKey, true)
-    return () => window.removeEventListener("keydown", onKey, true)
-  }, [redeemSecretCode])
-
   // Prime Web Audio on first gesture so click/laser SFX are not stuck suspended.
   useEffect(() => {
     // Capture phase so mine ore stopPropagation() can't swallow the unlock gesture.
@@ -273,6 +258,7 @@ export function ClickerApp() {
   // Hub splits into the mine entrance scene and a full-screen management screen.
   const [hubView, setHubView] = useState<"entrance" | "manage">("entrance")
   const [adminOpen, setAdminOpen] = useState(false)
+
   const [adminAllowed, setAdminAllowed] = useState(false)
   const [pop, setPop] = useState(false)
   const [shake, setShake] = useState(false)
@@ -285,6 +271,25 @@ export function ClickerApp() {
   const [adminResetArmed, setAdminResetArmed] = useState(false)
   const prevVisual = useRef<string | null>(null)
   const prevObjectiveId = useRef<string | null>(null)
+
+  // Secret code: typing it anywhere (any screen, even inside a field) grants the code reward.
+  const redeemSecretCode = game.redeemSecretCode
+  useEffect(() => {
+    let typed = ""
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.length !== 1) return
+      typed = (typed + e.key).slice(-SECRET_CODE.length)
+      if (typedSecretCode(typed)) {
+        typed = ""
+        redeemSecretCode()
+        grantClickerAdminByCode()
+        setAdminAllowed(true)
+      }
+    }
+    window.addEventListener("keydown", onKey, true)
+    return () => window.removeEventListener("keydown", onKey, true)
+  }, [redeemSecretCode])
+
   const prevRegionId = useRef<string | null>(null)
   const prevUnlockedRegionIds = useRef<Set<string> | null>(null)
   const [regionTransition, setRegionTransition] = useState(false)
@@ -319,7 +324,7 @@ export function ClickerApp() {
 
 
   useClickerDialogFocus(storyBeatRef, Boolean(storyBeat))
-  useClickerDialogFocus(adminRef, CLICKER_ADMIN_UI && adminAllowed && adminOpen)
+  useClickerDialogFocus(adminRef, adminAllowed && adminOpen)
 
   // One auto-dismiss for every story beat. The triggers below used to own their timers,
   // but their effects re-run on every tick and the cleanup kept cancelling them.
@@ -450,7 +455,8 @@ export function ClickerApp() {
     // Defense in depth: build strip + host/?admin gate (never production).
     // Do not auto-open the panel — launch button keeps the mine playable.
     if (!CLICKER_ADMIN_UI) {
-      setAdminAllowed(false)
+      // Production: only the secret code turns admin on.
+      setAdminAllowed(isClickerAdminAllowed())
       setAdminOpen(false)
       return
     }
@@ -476,7 +482,7 @@ export function ClickerApp() {
         // Ending owns Esc (confirm cancel vs close) via ClickerEnding.
         return
       }
-      if (CLICKER_ADMIN_UI && adminOpen) {
+      if (adminAllowed && adminOpen) {
         e.preventDefault()
         setAdminResetArmed(false)
         setAdminOpen(false)
@@ -1839,7 +1845,7 @@ export function ClickerApp() {
           <span className="clicker-toast-msg">{game.toast}</span>
         </button>
       ) : null}
-      {CLICKER_ADMIN_UI && adminAllowed && !adminOpen ? (
+      {adminAllowed && !adminOpen ? (
         <button
           type="button"
           className="clicker-admin-launch"
@@ -1876,7 +1882,7 @@ export function ClickerApp() {
       ) : null}
 
       {game.save.settings.gameStarted && !game.save.settings.tutorialSeen ? (
-        <ClickerTutorial onDone={game.finishTutorial} admin={CLICKER_ADMIN_UI && adminAllowed} hidden={inMine} />
+        <ClickerTutorial onDone={game.finishTutorial} admin={adminAllowed} hidden={inMine} />
       ) : null}
 
       {endingPhase ? (
@@ -1911,7 +1917,7 @@ export function ClickerApp() {
         />
       ) : null}
 
-      {CLICKER_ADMIN_UI && adminAllowed && adminOpen ? (
+      {adminAllowed && adminOpen ? (
         <aside
           ref={adminRef}
           className="clicker-admin"

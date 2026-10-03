@@ -69,6 +69,7 @@ export {
 export {
   CLICKER_ADMIN_REMEMBER_KEY,
   CLICKER_PRELAUNCH,
+  grantClickerAdminByCode,
   isClickerAdminAllowed,
 } from "@/domain/services/clicker-admin-gate"
 export { isConfirmReady } from "@/domain/services/clicker-confirm-guard"
