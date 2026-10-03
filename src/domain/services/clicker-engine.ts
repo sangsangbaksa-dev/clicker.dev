@@ -512,20 +512,22 @@ export function applyInstabilityDelta(run: RunState, delta: number): RunState {
 
 /**
  * Hoarding destabilises the core: CORE plus every world currency held, measured in minutes of
- * current production, pushes instability up (logarithmically, so it is a nudge to spend, not a
- * trap). Under ~2 minutes of income held, nothing happens.
+ * current production, pushes instability up — and the more is held, the much faster it climbs
+ * (a power curve, not a gentle log). Under ~2 minutes of income held, nothing happens.
  */
 export const HOARD_FREE_MINUTES = 2
-export const HOARD_INSTABILITY_RATE = 0.04
-/** Ceiling on hoard-driven instability: 100 takes at least ~10 minutes. */
-export const HOARD_MAX_RATE = 0.16
+export const HOARD_INSTABILITY_RATE = 0.06
+export const HOARD_CURVE = 0.8
+/** Ceiling on hoard-driven instability: 100 takes at least 50 seconds. */
+export const HOARD_MAX_RATE = 2
 
 export function hoardInstabilityPerSecond(run: RunState, perSecond: number): number {
+  // No production yet (fresh run): nothing to measure the hoard against.
+  if (!(perSecond > 0)) return 0
   const held = run.coreEnergy + Object.values(run.regionCurrency ?? {}).reduce((s, v) => s + (v > 0 ? v : 0), 0)
-  const minutes = held / Math.max(perSecond * 60, 1)
+  const minutes = held / (perSecond * 60)
   if (!(minutes > HOARD_FREE_MINUTES)) return 0
-  // Capped so a stalled economy (near-zero income) never races to CRISIS.
-  return Math.min(HOARD_MAX_RATE, HOARD_INSTABILITY_RATE * Math.log2(minutes / HOARD_FREE_MINUTES))
+  return Math.min(HOARD_MAX_RATE, HOARD_INSTABILITY_RATE * (minutes / HOARD_FREE_MINUTES) ** HOARD_CURVE)
 }
 
 /**

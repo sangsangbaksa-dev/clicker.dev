@@ -16,10 +16,15 @@ test("every catalog image path points at a real file in public/", () => {
   assert.deepEqual(missing, [])
 })
 
-test("hoard instability is capped when income is near zero", async () => {
+test("hoard instability: none before production, much faster the more is held, capped", async () => {
   const { hoardInstabilityPerSecond, HOARD_MAX_RATE } = await import("./clicker-engine.ts")
-  const run = { coreEnergy: 1e12, regionCurrency: {} } as unknown as Parameters<typeof hoardInstabilityPerSecond>[0]
-  assert.equal(hoardInstabilityPerSecond(run, 0), HOARD_MAX_RATE)
+  const held = (coreEnergy: number) => ({ coreEnergy, regionCurrency: {} }) as unknown as Parameters<typeof hoardInstabilityPerSecond>[0]
+  assert.equal(hoardInstabilityPerSecond(held(1e12), 0), 0, "a fresh run with no production is left alone")
+  assert.equal(hoardInstabilityPerSecond(held(60), 1), 0, "a minute of income held is free")
+  const ten = hoardInstabilityPerSecond(held(600), 1)
+  const sixty = hoardInstabilityPerSecond(held(3600), 1)
+  assert.ok(sixty > ten * 3, "six times the hoard fills well over three times faster")
+  assert.equal(hoardInstabilityPerSecond(held(1e12), 1e-6), HOARD_MAX_RATE)
 })
 
 test("every world (home included) has an entry video and a landing still on disk", async () => {

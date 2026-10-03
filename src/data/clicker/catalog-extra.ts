@@ -214,6 +214,20 @@ const LATE_PRODUCTION_SCALE: Record<string, number> = {
   heart_engine: 0.2,
 }
 
+/** The rebirth (TRANSCENDENCE) circuits start at 200M and climb steeply from there. */
+const TRANSCENDENCE_FIRST_COST = 2e8
+const TRANSCENDENCE_COST_CURVE = 0.6
+
+/** Re-prices the TRANSCENDENCE branch: cheapest = TRANSCENDENCE_FIRST_COST, order kept. */
+function priceTranscendence<T extends { branch: string; cost: number }>(nodes: T[]): T[] {
+  const branch = nodes.filter((n) => n.branch === "TRANSCENDENCE")
+  if (!branch.length) return nodes
+  const min = Math.min(...branch.map((n) => n.cost))
+  return nodes.map((n) =>
+    n.branch === "TRANSCENDENCE" ? { ...n, cost: Math.round(TRANSCENDENCE_FIRST_COST * (n.cost / min) ** TRANSCENDENCE_COST_CURVE) } : n,
+  )
+}
+
 /**
  * Merge the extras, give every upgrade/circuit its own icon, sort by price, then apply the
  * price cut and the unit change to every CORE amount in the catalog.
@@ -237,12 +251,14 @@ export function finalizeCatalog(base: GameConfig): GameConfig {
     upgrades: upgrades
       .map((x) => ({ ...x, cost: x.cost * c, assetId: x.assetId ?? `/clicker/upgrade/${x.id}.webp` }))
       .sort((a, b) => a.cost - b.cost),
-    skillNodes: [...base.skillNodes, ...EXTRA_SKILL_NODES].map(boostAutomation).map(nameSkillNode).map((n) => ({
-      ...n,
-      cost: n.cost * c,
-      startingEnergy: n.startingEnergy === undefined ? undefined : n.startingEnergy * u,
-      assetId: n.assetId ?? `/clicker/skill-node/${n.id}.webp`,
-    })),
+    skillNodes: priceTranscendence(
+      [...base.skillNodes, ...EXTRA_SKILL_NODES].map(boostAutomation).map(nameSkillNode).map((n) => ({
+        ...n,
+        cost: n.cost * c,
+        startingEnergy: n.startingEnergy === undefined ? undefined : n.startingEnergy * u,
+        assetId: n.assetId ?? `/clicker/skill-node/${n.id}.webp`,
+      })),
+    ),
     potions: [...base.potions, ...EXTRA_POTIONS].map((p) => ({ ...p, shopCost: p.shopCost * c })).sort((a, b) => a.shopCost - b.shopCost),
     activeSkills: [...base.activeSkills, ...EXTRA_ACTIVE_SKILLS]
       .map((s) => ({ ...s, shopCost: s.shopCost * c }))
