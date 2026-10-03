@@ -93,7 +93,9 @@ const MAX_HOURS = knob("MAX_HOURS", 9)
 // CALIBRATE: worldline lengths in minutes (e.g. "120,50,30"). Each worldline rebirths exactly at its
 // target and prints the goal scale that would end it there; paste those into REBIRTH_GOAL_SCALE.
 const TARGETS = process.env.CALIBRATE ? process.env.CALIBRATE.split(",").map(Number) : null
-if (TARGETS) config.rebirthGoalScale = []
+// The catalog goal table stays in place (worlds open at a share of it); rebirth is held back until
+// each target time instead, then that worldline's goal is set to what was earned.
+if (TARGETS) config.rebirthGoalScale = [...(config.rebirthGoalScale ?? [])]
 const calibrated: number[] = []
 let seed = 11
 const rng = () => (seed = (seed * 16807) % 2147483647) / 2147483647
@@ -370,11 +372,10 @@ while (elapsed() < MAX_HOURS * 3600) {
       calibrated[k] = save.runState.lifetimeCoreEnergy / base
       config.rebirthGoalScale![k] = calibrated[k]
       console.log(`  calibrated[${k}] = ${calibrated[k].toPrecision(6)}`)
-    } else {
-      config.rebirthGoalScale![k] = Infinity // not before the target time
     }
   }
-  if (canRebirth(save.runState, save.metaState, config)) {
+  const held = TARGETS && save.metaState.rebirthCount < TARGETS.length && elapsed() - runStart < TARGETS[save.metaState.rebirthCount] * 60
+  if (!held && canRebirth(save.runState, save.metaState, config)) {
     const buff = config.transcendence.find((b) => !save.metaState.transcendenceIds.includes(b.id)) ?? config.transcendence[0]
     const need = rebirthRequirement(save.metaState, config)
     const skills = save.runState.ownedSkillNodeIds.length
