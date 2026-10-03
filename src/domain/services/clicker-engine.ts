@@ -489,7 +489,7 @@ export function scaledCost(run: RunState, cost: number): number {
 
 /** Lifetime CORE the current worldline must reach before it can fold. */
 export function rebirthRequirement(meta: MetaState, config: GameConfig): number {
-  return config.rebirthEnergy * config.rebirthGrowth ** meta.rebirthCount * (config.rebirthGoalScale?.[meta.rebirthCount] ?? 1)
+  return worldlineGoal(config, meta.rebirthCount)
 }
 
 function startingEnergy(meta: MetaState, config: GameConfig): number {
@@ -1613,7 +1613,13 @@ export function claimRegionChallenge(
  * world opens at the same share of every worldline.
  */
 export function regionUnlockThreshold(run: RunState, config: GameConfig, region: { unlockAtLifetimeEnergy: number }): number {
-  return region.unlockAtLifetimeEnergy * config.rebirthGrowth ** Math.max(0, run.currentWorldLine - 1)
+  // The catalog value is a share of the first worldline's goal; keep that share of this worldline's goal.
+  return (region.unlockAtLifetimeEnergy / config.rebirthEnergy) * worldlineGoal(config, Math.max(0, run.currentWorldLine - 1))
+}
+
+/** Lifetime CORE that ends the worldline after `rebirths` rebirths (the per-worldline goal table applied). */
+export function worldlineGoal(config: GameConfig, rebirths: number): number {
+  return config.rebirthEnergy * config.rebirthGrowth ** rebirths * (config.rebirthGoalScale?.[rebirths] ?? 1)
 }
 
 export function isRegionUnlocked(run: RunState, config: GameConfig, regionId: string): boolean {
