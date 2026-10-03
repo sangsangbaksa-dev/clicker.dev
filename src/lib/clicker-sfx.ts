@@ -26,6 +26,8 @@ const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   lightning: 220,
   quake: 380,
   echoStrike: 120,
+  bossHit: 70,
+  worldSkill: 200,
 }
 const lastPlayed = new Map<string, number>()
 
@@ -188,6 +190,19 @@ function bell(c: AudioContext, freq: number, gain: number, start: number, dur: n
   tone(c, "sine", freq * 2.76, freq * 2.76, gain * 0.18, start, dur * 0.5, { attack: 0.002, dest })
 }
 
+/** Reward glitter: a fast rising run of tiny bells (the "you got something" sparkle). */
+function sparkle(c: AudioContext, start: number, base = 1568, count = 6, gain = 0.018, step = 0.028) {
+  for (let i = 0; i < count; i++) {
+    const f = base * 2 ** ((i * 3 + Math.random()) / 12)
+    tone(c, "sine", f, f * 1.01, gain, start + i * step, 0.16)
+  }
+}
+
+/** Sub-bass kick under a reward, so it lands in the chest and not just the ears. */
+function thump(c: AudioContext, start: number, gain = 0.09, from = 140) {
+  tone(c, "sine", from, 42, gain, start, 0.22, { attack: 0.002 })
+}
+
 /** ±6% pitch drift so looping creature sounds never repeat exactly. */
 const vary = () => 0.94 + Math.random() * 0.12
 
@@ -245,6 +260,8 @@ const CUES = {
     const e = echo(c, 0.08, 0.18, 0.18)
     bell(c, root, 0.04, t, 0.18, e)
     bell(c, root * 1.5, 0.035, t + 0.05, 0.26, e)
+    sparkle(c, t + 0.07, root * 2, 3, 0.012)
+    thump(c, t, 0.045, 120)
   },
   /** Permanent upgrade: two-note rise with a sparkle tail. */
   upgrade(c: AudioContext, t: number) {
@@ -252,6 +269,8 @@ const CUES = {
     tone(c, "triangle", 659, 659, 0.05, t, 0.12, { dest: e })
     tone(c, "triangle", 988, 988, 0.055, t + 0.07, 0.22, { dest: e })
     tone(c, "sine", 1976, 1976, 0.018, t + 0.1, 0.3, { dest: e })
+    sparkle(c, t + 0.12, 1760, 5)
+    thump(c, t, 0.07)
   },
   /** Can't afford / refused: muted low double bump. */
   deny(c: AudioContext, t: number) {
@@ -263,6 +282,9 @@ const CUES = {
     const e = echo(c, 0.11, 0.3, 0.3)
     noise(c, "bandpass", 2400, 3, 0.03, t, 0.18, { sweepTo: 7000 })
     ;[523, 659, 784, 1046].forEach((f, i) => tone(c, "triangle", f, f, 0.045, t + i * 0.055, 0.2, { dest: e }))
+    tone(c, "triangle", 1568, 1568, 0.04, t + 0.24, 0.45, { dest: e })
+    sparkle(c, t + 0.26, 2093, 6)
+    thump(c, t, 0.08)
   },
   /** FEVER on (gauge or potion): whoosh riser into a power chord. */
   fever(c: AudioContext, t: number) {
@@ -344,6 +366,10 @@ const CUES = {
       tone(c, "sine", f, f, 0.05, t + i * 0.07, 0.5, { dest: e })
       tone(c, "sine", f * 2.01, f * 2.01, 0.012, t + i * 0.07, 0.3, { dest: e })
     })
+    // Closing major chord + glitter shower.
+    ;[523, 659, 784, 1046].forEach((f) => tone(c, "triangle", f, f, 0.03, t + 0.3, 0.8, { dest: e }))
+    sparkle(c, t + 0.32, 2093, 8, 0.016, 0.035)
+    thump(c, t + 0.3, 0.09)
   },
   /** Region travel: warp sweep. */
   travel(c: AudioContext, t: number) {
@@ -371,12 +397,16 @@ const CUES = {
       tone(c, "sine", f, f * 0.9, 0.02, t + 0.02 + i * 0.03, 0.12)
     }
     tone(c, "sine", 90, 45, 0.08, t, 0.3)
+    sparkle(c, t + 0.12, 1318, 7, 0.02, 0.03)
+    thump(c, t, 0.11, 160)
   },
   /** Golden vein claimed: jackpot chime. */
   vein(c: AudioContext, t: number) {
     const e = echo(c, 0.1, 0.35, 0.35)
     ;[1046, 1318, 1568, 2093, 2637].forEach((f, i) => tone(c, "triangle", f, f, 0.045, t + i * 0.045, 0.35, { dest: e }))
     noise(c, "highpass", 7000, 0.7, 0.025, t, 0.4)
+    sparkle(c, t + 0.22, 2637, 8, 0.02, 0.03)
+    thump(c, t, 0.1)
   },
   /** Golden vein appeared. */
   veinSpawn(c: AudioContext, t: number) {
@@ -412,6 +442,8 @@ const CUES = {
     const e = echo(c)
     ;[523, 659, 784].forEach((f) => tone(c, "triangle", f, f, 0.035, t, 0.5, { dest: e }))
     tone(c, "sine", 1046, 1046, 0.03, t + 0.12, 0.5, { dest: e })
+    sparkle(c, t + 0.15, 1568, 6)
+    thump(c, t, 0.08)
   },
   /** Transcendence panel / worldline row open. */
   transcend(c: AudioContext, t: number) {
@@ -447,6 +479,54 @@ const CUES = {
     bell(c, 1175, 0.035, t + 0.06, 0.24, e)
   },
   /** Dangerous choice (crisis options, reset): low muted thud with a minor second. */
+  /** Gacha: crank ratchet + capsule rattle + drop. */
+  gachaPull(c: AudioContext, t: number) {
+    for (let i = 0; i < 5; i++) noise(c, "bandpass", 1800 + i * 150, 6, 0.035, t + i * 0.05, 0.04)
+    for (let i = 0; i < 4; i++) pluck(c, 900 + Math.random() * 500, 0.02, t + 0.3 + i * 0.045, 0.06)
+    thump(c, t + 0.5, 0.07, 180)
+  },
+  /** Gacha reveal · rare: bright two-chime pop. */
+  gachaRare(c: AudioContext, t: number) {
+    const e = echo(c, 0.09, 0.25, 0.25)
+    bell(c, 1175, 0.045, t, 0.3, e)
+    bell(c, 1760, 0.04, t + 0.06, 0.4, e)
+    sparkle(c, t + 0.1, 2093, 5)
+    thump(c, t, 0.06)
+  },
+  /** Gacha reveal · epic: whoosh riser into a shimmering minor-to-major lift. */
+  gachaEpic(c: AudioContext, t: number) {
+    const e = echo(c, 0.12, 0.35, 0.35)
+    noise(c, "bandpass", 600, 1.4, 0.05, t, 0.4, { sweepTo: 6000, attack: 0.15 })
+    ;[587, 740, 880, 1175, 1480].forEach((f, i) => tone(c, "triangle", f, f, 0.045, t + 0.3 + i * 0.06, 0.5, { dest: e }))
+    sparkle(c, t + 0.55, 2349, 8, 0.02)
+    thump(c, t + 0.3, 0.1)
+  },
+  /** Gacha reveal · legendary: big riser, impact, golden fanfare and a glitter shower. */
+  gachaLegendary(c: AudioContext, t: number) {
+    const e = echo(c, 0.16, 0.42, 0.42)
+    noise(c, "bandpass", 300, 1.2, 0.06, t, 0.7, { sweepTo: 8000, attack: 0.4 })
+    tone(c, "sawtooth", 110, 440, 0.035, t, 0.7, { attack: 0.5 })
+    thump(c, t + 0.7, 0.16, 180)
+    noise(c, "highpass", 5000, 0.7, 0.05, t + 0.7, 0.6)
+    ;[523, 659, 784, 1046].forEach((f) => tone(c, "triangle", f, f, 0.05, t + 0.72, 1.4, { dest: e }))
+    ;[1046, 1318, 1568, 2093, 2637].forEach((f, i) => tone(c, "sine", f, f, 0.04, t + 0.8 + i * 0.07, 0.6, { dest: e }))
+    sparkle(c, t + 1.0, 2093, 12, 0.02, 0.04)
+  },
+  /** World skill learned: deep gong + rising chime. */
+  worldSkill(c: AudioContext, t: number) {
+    const e = echo(c, 0.18, 0.4, 0.4)
+    tone(c, "sine", 196, 196, 0.08, t, 1.1, { dest: e })
+    tone(c, "sine", 294, 294, 0.04, t, 0.9, { dest: e })
+    ;[784, 988, 1175, 1568].forEach((f, i) => tone(c, "triangle", f, f, 0.04, t + 0.12 + i * 0.06, 0.4, { dest: e }))
+    sparkle(c, t + 0.4, 1760, 6)
+    thump(c, t, 0.1, 120)
+  },
+  /** Guardian struck: short meaty impact. */
+  bossHit(c: AudioContext, t: number) {
+    noise(c, "bandpass", 1600, 1.5, 0.05, t, 0.07)
+    tone(c, "square", 260 * vary(), 140, 0.035, t, 0.09)
+    thump(c, t, 0.08, 150)
+  },
   danger(c: AudioContext, t: number) {
     pluck(c, 196, 0.07, t, 0.18, 0.8)
     pluck(c, 208, 0.04, t + 0.02, 0.18, 0.8)
@@ -456,6 +536,8 @@ const CUES = {
     tone(c, "sawtooth", 420, 90, 0.06, t, 0.25, { attack: 0.002 })
     noise(c, "lowpass", 1200, 1, 0.08, t, 0.25, { sweepTo: 200 })
     ;[1318, 1568, 2093].forEach((f, i) => tone(c, "triangle", f, f, 0.03, t + 0.18 + i * 0.05, 0.15))
+    sparkle(c, t + 0.32, 2093, 6, 0.016)
+    thump(c, t, 0.11)
   },
   /** Guardian wakes. */
   bossRoar(c: AudioContext, t: number) {

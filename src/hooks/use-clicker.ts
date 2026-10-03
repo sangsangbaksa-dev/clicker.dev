@@ -865,7 +865,7 @@ export function useClicker() {
       if (!result.ok) return refuse(result.error)
       commit(result.value)
       persistNow(result.value)
-      playSfx("skillUnlock")
+      playSfx("worldSkill")
       const node = (clickerGameConfig.worldTrees ?? []).find((n) => n.id === nodeId)
       flash(`월드 스킬 습득 · ${node?.name ?? nodeId}`)
     },
@@ -883,12 +883,15 @@ export function useClicker() {
       }
       commit(result.value.save)
       persistNow(result.value.save)
+      playSfx("gachaPull")
       const best = result.value.rewards.some((r) => r.rarity === "legendary")
-        ? "achievement"
+        ? "gachaLegendary"
         : result.value.rewards.some((r) => r.rarity === "epic")
-          ? "upgrade"
-          : "purchase"
-      playSfx(best)
+          ? "gachaEpic"
+          : result.value.rewards.some((r) => r.rarity === "rare")
+            ? "gachaRare"
+            : "purchase"
+      window.setTimeout(() => playSfx(best), 550)
       return result.value.rewards
     },
     [commit, persistNow, refuse],
@@ -928,6 +931,7 @@ export function useClicker() {
       if (!saveRef.current) return false
       const result = clickerStrikeBoss(saveRef.current, now())
       if (result.damage <= 0) return false
+      playSfx("bossHit")
       commit(result.save)
       const id = ++floatId.current
       setFloats((prev) => [...prev.slice(-12), { id, text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }])
