@@ -369,6 +369,7 @@ while (elapsed() < MAX_HOURS * 3600) {
       const base = config.rebirthEnergy * config.rebirthGrowth ** k
       calibrated[k] = save.runState.lifetimeCoreEnergy / base
       config.rebirthGoalScale![k] = calibrated[k]
+      console.log(`  calibrated[${k}] = ${calibrated[k].toPrecision(6)}`)
     } else {
       config.rebirthGoalScale![k] = Infinity // not before the target time
     }
