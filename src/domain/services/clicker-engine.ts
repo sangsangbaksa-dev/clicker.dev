@@ -529,7 +529,11 @@ export function hoardInstabilityPerSecond(run: RunState, perSecond: number, now?
   if (!(perSecond > 0)) return 0
   if (now !== undefined && now - run.runStartedAt < HOARD_GRACE_MS) return 0
   const held = run.coreEnergy + Object.values(run.regionCurrency ?? {}).reduce((s, v) => s + (v > 0 ? v : 0), 0)
-  const minutes = held / (perSecond * 60)
+  // Income = the better of production and this run's average earnings (mining included), so a
+  // mine haul early on is not mistaken for a long hoard.
+  const runSeconds = now !== undefined ? Math.max(60, (now - run.runStartedAt) / 1000) : Infinity
+  const income = Math.max(perSecond, (run.lifetimeCoreEnergy || 0) / runSeconds)
+  const minutes = held / (income * 60)
   if (!(minutes > HOARD_FREE_MINUTES)) return 0
   return Math.min(HOARD_MAX_RATE, HOARD_INSTABILITY_RATE * (minutes / HOARD_FREE_MINUTES) ** HOARD_CURVE)
 }
