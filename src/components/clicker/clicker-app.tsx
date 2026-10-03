@@ -764,7 +764,7 @@ export function ClickerApp() {
       <div data-clicker className="clicker-shell clicker-shell-title">
         <ClickerLoginGate
           state={account}
-          hasLocalRun={game.save.settings.gameStarted}
+          localTotal={game.save.metaState.totalCoreEnergy}
           onDone={() => {
             rememberGatePassed()
             setGatePassed(true)

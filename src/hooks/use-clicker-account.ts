@@ -81,12 +81,12 @@ export function useClickerAccount({ getSaveJson, applySaveJson }: Options) {
     }
   }, [])
 
-  /** Whether the signed-in account has a cloud save (known once login or signup resolves). */
-  const hasCloudRef = useRef(false)
+  /** The signed-in account's cloud save info, known once login or signup resolves. */
+  const cloudRef = useRef<ClickerCloudSave["meta"] | null>(null)
   const signedIn = useCallback(
     async (next: ClickerAccountInfo, verb: string) => {
       setAccount(next)
-      hasCloudRef.current = Boolean(await refreshCloud())
+      cloudRef.current = await refreshCloud()
       return { tone: "ok" as const, text: `${next.nickname}님, ${verb}` }
     },
     [refreshCloud],
@@ -135,6 +135,7 @@ export function useClickerAccount({ getSaveJson, applySaveJson }: Options) {
         const r = await uploadCloudSave(json)
         if (!r.ok) return { tone: "error", text: r.error }
         setCloud(r.value.meta)
+        if (r.value.meta.kept) return { tone: "error", text: "클라우드에 누적 CORE가 더 높은 진행이 있어 그대로 두었습니다. 불러오려면 「클라우드에서 불러오기」를 누르세요." }
         return { tone: "ok", text: "이 기기의 진행을 클라우드에 저장했습니다." }
       }),
     [run],
@@ -171,8 +172,8 @@ export function useClickerAccount({ getSaveJson, applySaveJson }: Options) {
     }
   }, [signedInId])
 
-  /** After a successful login: true when a cloud save is waiting to be loaded. */
-  const cloudWaiting = useCallback(() => hasCloudRef.current, [])
+  /** After a successful login: total CORE of the cloud run, or null when the account has none. */
+  const cloudTotal = useCallback(() => (cloudRef.current ? (cloudRef.current.totalCore ?? 0) : null), [])
 
-  return { checked, signedInAtBoot, available, storage, account, cloud, busy, message, login, signup, logout, upload, download, cloudWaiting }
+  return { checked, signedInAtBoot, available, storage, account, cloud, busy, message, login, signup, logout, upload, download, cloudTotal }
 }

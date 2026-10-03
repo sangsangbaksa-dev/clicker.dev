@@ -4,6 +4,7 @@ import { CLICKER_ASSETS } from "@/data/clicker/catalog"
 import { formatNumber } from "@/application/clicker-ui"
 import type { RunState } from "@/application/clicker-ui"
 import type { ClickerGame } from "./types"
+import { ClickerWorldTree } from "../clicker-world-tree"
 
 export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; run: RunState; onBack: () => void }) {
   return (
@@ -68,6 +69,7 @@ export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; ru
                       필요 {region.unlockRequirement}
                     </span>
                   </p>
+                  {region.isHome ? null : <ClickerWorldTree game={game} run={run} regionId={region.id} />}
                 </div>
                 {region.isCurrent ? (
                   <span className="clicker-world-here" aria-label="현재 위치">

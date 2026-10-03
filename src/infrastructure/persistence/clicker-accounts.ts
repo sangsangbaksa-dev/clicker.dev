@@ -75,7 +75,7 @@ export async function readCloudSave(accountId: string): Promise<StoredSave | nul
   return readKey<StoredSave>(saveKey(accountId))
 }
 
-export async function writeCloudSave(accountId: string, json: string, savedAt: number): Promise<CloudSaveMeta> {
+export async function writeCloudSave(accountId: string, json: string, savedAt: number): Promise<Omit<CloudSaveMeta, "totalCore">> {
   await writeKey(saveKey(accountId), { json, savedAt } satisfies StoredSave)
   return { savedAt, size: json.length }
 }

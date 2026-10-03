@@ -4,6 +4,7 @@ import { MineArt } from "./mine-assets.ts"
 import { CLICKER_ACHIEVEMENTS } from "./achievements.ts"
 import { finalizeCatalog } from "./catalog-extra.ts"
 import { CLICKER_RELICS } from "./relics.ts"
+import { CLICKER_WORLD_TREES, REGION_CURRENCY_RATE } from "./world-trees.ts"
 
 export const CLICKER_ASSETS = {
   bgLoading: "/clicker/bg/loading_core_awakening.webp",
@@ -1608,6 +1609,8 @@ const baseConfig: GameConfig = {
     },
   ],
   relics: CLICKER_RELICS,
+  worldTrees: CLICKER_WORLD_TREES,
+  regionCurrencyRate: REGION_CURRENCY_RATE,
   regions: CLICKER_REGIONS,
   achievements: CLICKER_ACHIEVEMENTS,
   synergies: [

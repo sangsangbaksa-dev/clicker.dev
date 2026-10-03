@@ -44,6 +44,8 @@ import {
   mineYieldMultiplier,
   regionUnlockThreshold,
   buyRelic,
+  buyWorldTreeNode,
+  pullGacha,
 } from "@/domain/services/clicker-engine"
 import {
   awardAchievements,
@@ -440,6 +442,20 @@ export function clickerBuyRelic(save: SaveData, relicId: string): UseCaseResult<
   const next = buyRelic(save.runState, save.metaState, config, relicId)
   if (next.error) return { ok: false, status: 400, error: next.error }
   return ok({ ...save, runState: next.run, metaState: next.meta })
+}
+
+/* ---------- World skill trees · gacha ---------- */
+
+export function clickerBuyWorldTreeNode(save: SaveData, nodeId: string): UseCaseResult<SaveData> {
+  const next = buyWorldTreeNode(save.runState, config, nodeId)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ ...save, runState: next.run })
+}
+
+export function clickerPullGacha(save: SaveData, count: 1 | 10, now: number) {
+  const next = pullGacha(save.runState, save.metaState, config, now, rng, count)
+  if (next.error) return { ok: false as const, status: 400, error: next.error }
+  return ok({ save: withAchievements({ ...save, runState: next.run, metaState: next.meta }), rewards: next.rewards })
 }
 
 export function clickerStartBoss(save: SaveData, now: number): UseCaseResult<SaveData> {

@@ -4,7 +4,8 @@
  */
 
 export type ClickerAccountInfo = { id: string; loginId: string; nickname: string }
-export type ClickerCloudSave = { json: string; meta: { savedAt: number; size: number } }
+/** `totalCore`: lifetime CORE across worldlines; `kept`: the upload lost to a more progressed cloud run. */
+export type ClickerCloudSave = { json: string; meta: { savedAt: number; size: number; totalCore?: number; kept?: boolean } }
 
 type ApiResult<T> = { ok: true; value: T } | { ok: false; error: string; unavailable?: boolean }
 

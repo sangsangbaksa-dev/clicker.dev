@@ -621,86 +621,80 @@ test("upgrade purchase is rejected when CORE is short or already owned", () => {
   assert.equal(again.error, "이미 보유함")
 })
 
-test("region currency: earned where you stand, spent by late upgrades", async () => {
+test("region currency: a trickle where you stand, raised only by that world's tree", async () => {
   const eng = await import("./clicker-engine.ts")
   const config = clickerConfig
+  const rate = config.regionCurrencyRate!
+  assert.ok(rate > 0 && rate < 0.1, "worlds start by minting only a small share")
   const run0 = eng.createInitialRun(0, eng.createInitialMeta(), config)
   const away = { ...run0, currentRegionId: "signal_relay" }
-  const earned = eng.accrueRegionCurrency(away, { ...away, lifetimeCoreEnergy: away.lifetimeCoreEnergy + 500 }, config)
-  assert.equal(eng.regionCurrencyBalance(earned, "signal_relay"), 500)
-  const home = eng.accrueRegionCurrency(run0, { ...run0, lifetimeCoreEnergy: run0.lifetimeCoreEnergy + 500 }, config)
+  const earned = eng.accrueRegionCurrency(away, { ...away, lifetimeCoreEnergy: away.lifetimeCoreEnergy + 1000 }, config)
+  assert.equal(eng.regionCurrencyBalance(earned, "signal_relay"), 1000 * rate)
+  const home = eng.accrueRegionCurrency(run0, { ...run0, lifetimeCoreEnergy: run0.lifetimeCoreEnergy + 1000 }, config)
   assert.equal(eng.regionCurrencyBalance(home, "signal_relay"), 0)
 
+  // CORE purchases no longer charge world currency.
   const late = [...config.upgrades].sort((a, b) => b.cost - a.cost)[0]
-  const costs = eng.upgradeCurrencyCosts(run0, config, late)
-  const eligible = config.regions.filter((r) => r.currency && !r.isHome && r.unlockAtLifetimeEnergy * 0.05 <= late.cost)
-  assert.deepEqual(
-    costs.map((c) => c.regionId),
-    eligible.slice(-2).reverse().map((r) => r.id),
-    "late upgrades cost the two newest worlds opened before their price",
-  )
-  assert.ok(costs[0].amount > costs[1].amount, "the newest world takes the bigger share")
-  // Later worldlines open worlds later, so the currency gate moves with them.
-  const wl3 = { ...run0, currentWorldLine: 3 }
-  const cost3 = eng.scaledCost(wl3, late.cost)
-  assert.deepEqual(
-    eng.upgradeCurrencyCosts(wl3, config, late).map((c) => c.regionId),
-    config.regions
-      .filter((r) => r.currency && !r.isHome && eng.regionUnlockThreshold(wl3, config, r) * 0.05 <= cost3)
-      .slice(-2)
-      .reverse()
-      .map((r) => r.id),
-  )
-  assert.equal(eng.upgradeCurrencyCosts(run0, config, [...config.upgrades].sort((a, b) => a.cost - b.cost)[0]).length, 0)
-  const rich = {
-    ...run0,
-    coreEnergy: late.cost * 10,
-    feverStarts: 999,
-    producerLevels: late.unlockProducerId ? { [late.unlockProducerId]: 1 } : {},
-  }
-  assert.ok(eng.buyUpgrade(rich, config, late.id).error)
-  const wallet = Object.fromEntries(costs.map((c) => [c.regionId, c.amount]))
-  const bought = eng.buyUpgrade({ ...rich, regionCurrency: wallet }, config, late.id)
-  assert.equal(bought.error, undefined)
-  for (const c of costs) assert.equal(eng.regionCurrencyBalance(bought.run, c.regionId), 0)
-
-  // An older world's shortfall is covered by newer worlds' currency.
-  const [newer, older] = costs
-  const covered = eng.buyUpgrade(
-    { ...rich, regionCurrency: { [older.regionId]: 1, [newer.regionId]: newer.amount + older.amount } },
-    config,
-    late.id,
-  )
-  assert.equal(covered.error, undefined)
-  assert.equal(eng.regionCurrencyBalance(covered.run, older.regionId), 0)
-  assert.equal(eng.regionCurrencyBalance(covered.run, newer.regionId), 1)
-  assert.ok(
-    eng.buyUpgrade({ ...rich, regionCurrency: { [older.regionId]: older.amount - 1, [newer.regionId]: newer.amount } }, config, late.id).error,
-  )
+  assert.equal(eng.upgradeCurrencyCosts(run0, config, late).length, 0)
+  const node = [...config.skillNodes].sort((a, b) => b.cost - a.cost)[0]
+  assert.equal(eng.purchaseCurrencyCosts(run0, config, node.cost).length, 0)
 })
 
-test("world currencies: skill circuits and shop items charge them too", async () => {
+test("world skill trees: one per world, bought in order with that world's currency only", async () => {
   const eng = await import("./clicker-engine.ts")
   const config = clickerConfig
-  const run0 = eng.createInitialRun(0, eng.createInitialMeta(), config)
-  const node = [...config.skillNodes].filter((n) => !n.requires?.length).sort((a, b) => b.cost - a.cost)[0]
-  const pricey = [...config.skillNodes].sort((a, b) => b.cost - a.cost).find((n) => eng.purchaseCurrencyCosts(run0, config, n.cost).length > 0)!
-  assert.ok(pricey, "the late circuits cost world currency")
-  const costs = eng.purchaseCurrencyCosts(run0, config, pricey.cost)
-  const rich = { ...run0, coreEnergy: pricey.cost * 10, ownedSkillNodeIds: pricey.requires ?? [] }
-  assert.match(eng.buySkillNode(rich, config, pricey.id).error ?? "", /부족/)
-  const wallet = Object.fromEntries(costs.map((c) => [c.regionId, c.amount]))
-  const bought = eng.buySkillNode({ ...rich, regionCurrency: wallet }, config, pricey.id)
-  assert.equal(bought.error, undefined)
-  for (const c of costs) assert.equal(eng.regionCurrencyBalance(bought.run, c.regionId), 0)
-  assert.equal(eng.purchaseCurrencyCosts(run0, config, node.cost).length <= 2, true)
-
-  const potion = [...config.potions].sort((a, b) => b.shopCost - a.shopCost)[0]
-  const potionCosts = eng.purchaseCurrencyCosts(run0, config, potion.shopCost)
-  if (potionCosts.length) {
-    const poor = eng.buyPotion({ ...run0, coreEnergy: potion.shopCost * 10 }, config, potion.id)
-    assert.match(poor.error ?? "", /부족/)
+  const worlds = config.regions.filter((r) => r.currency && !r.isHome)
+  for (const w of worlds) assert.equal(eng.worldTreeNodes(config, w.id).length, 5, `${w.id} has a tree`)
+  const open = {
+    ...eng.createInitialRun(0, eng.createInitialMeta(), config),
+    lifetimeCoreEnergy: eng.regionUnlockThreshold(eng.createInitialRun(0, eng.createInitialMeta(), config), config, worlds[0]),
   }
+  const [first, second] = eng.worldTreeNodes(config, "signal_relay")
+  const cost = eng.worldTreeNodeCost(open, config, first)
+  assert.match(eng.worldTreeNodeError(open, config, first.id) ?? "", /부족/)
+  // Another world's currency does not pay for this tree.
+  assert.match(eng.worldTreeNodeError({ ...open, regionCurrency: { phase_vault: cost * 100 } }, config, first.id) ?? "", /부족/)
+  assert.match(eng.worldTreeNodeError({ ...open, regionCurrency: { signal_relay: cost * 100 } }, config, second.id) ?? "", /먼저/)
+  const bought = eng.buyWorldTreeNode({ ...open, regionCurrency: { signal_relay: cost } }, config, first.id)
+  assert.equal(bought.error, undefined)
+  assert.equal(eng.regionCurrencyBalance(bought.run, "signal_relay"), 0)
+  // Its effect (×3 mint) applies to Signal Relay only.
+  const there = { ...bought.run, currentRegionId: "signal_relay" }
+  const minted = eng.accrueRegionCurrency(there, { ...there, lifetimeCoreEnergy: there.lifetimeCoreEnergy + 1000 }, config)
+  assert.equal(eng.regionCurrencyBalance(minted, "signal_relay"), 1000 * config.regionCurrencyRate! * 3)
+  assert.equal(eng.regionCurrencyRate(bought.run, config, "phase_vault"), config.regionCurrencyRate)
+  // Locked worlds cannot be bought into.
+  const locked = eng.worldTreeNodes(config, "core_heart")[0]
+  assert.match(eng.worldTreeNodeError({ ...open, regionCurrency: { core_heart: 1e30 } }, config, locked.id) ?? "", /열리지/)
+})
+
+test("gacha: pays CORE, guarantees a legendary by the pity counter, stars boost production", async () => {
+  const eng = await import("./clicker-engine.ts")
+  const config = clickerConfig
+  const meta = eng.createInitialMeta()
+  const run = { ...eng.createInitialRun(0, meta, config), coreEnergy: 1e40 }
+  const cost = eng.gachaCost(run, meta, config, 0)
+  assert.ok(cost > 0)
+  assert.ok(eng.gachaCost(run, meta, config, 0, 10) < cost * 10, "ten-pull is discounted")
+  assert.equal(eng.pullGacha({ ...run, coreEnergy: cost - 1 }, meta, config, 0, () => 0.99).error, "CORE가 부족합니다.")
+  // Always rolling "common": the pity counter still forces a legendary by pull 60.
+  let r = run
+  let m = meta
+  let legendary = 0
+  for (let i = 0; i < 6; i++) {
+    const out = eng.pullGacha(r, m, config, 0, () => 0.999, 10)
+    r = out.run
+    m = out.meta
+    legendary += out.rewards.filter((x) => x.rarity === "legendary").length
+  }
+  assert.equal(legendary, 1)
+  assert.equal(m.gachaStars, 1)
+  assert.equal(m.gachaPulls, 60)
+  assert.equal(eng.gachaStarMultiplier(m), eng.GACHA_STAR_PRODUCTION)
+  // A rare pull starts the production boost.
+  const rare = eng.pullGacha(run, meta, config, 0, () => 0.2)
+  assert.equal(rare.rewards[0].rarity, "rare")
+  assert.ok(rare.run.eventBoosts.some((b) => b.id === "gacha" && b.expiresAt > 0))
 })
 
 test("lair: enter, get knocked out → 3-minute shield; forge gear; kill pays out", async () => {

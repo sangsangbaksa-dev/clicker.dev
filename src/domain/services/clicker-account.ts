@@ -17,7 +17,11 @@ export type ClickerSignupInput = {
   passwordConfirm?: string
 }
 
-export type CloudSaveMeta = { savedAt: number; size: number }
+/**
+ * `totalCore`: the save's lifetime CORE across every worldline (meta.totalCoreEnergy), used to
+ * keep the most progressed run. `kept`: an upload was ignored because the cloud run is ahead.
+ */
+export type CloudSaveMeta = { savedAt: number; size: number; totalCore: number; kept?: boolean }
 
 export const LOGIN_ID_PATTERN = /^[a-z0-9_]{3,20}$/
 export const NICKNAME_MAX = 12
@@ -59,4 +63,23 @@ export function cloudSaveError(json: unknown): string | null {
     return "저장 데이터 형식이 올바르지 않습니다."
   }
   return null
+}
+
+/** Progress of a stored save: total CORE earned across all worldlines (0 when unreadable). */
+export function saveProgress(json: string): number {
+  try {
+    const total = (JSON.parse(json) as { metaState?: { totalCoreEnergy?: unknown } })?.metaState?.totalCoreEnergy
+    return typeof total === "number" && Number.isFinite(total) && total > 0 ? total : 0
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * When an account has more than one save (devices, a reset, a fresh guest run), the one with the
+ * most total CORE wins; a tie keeps the newer upload.
+ */
+export function shouldReplaceCloudSave(current: string | null, incoming: string): boolean {
+  if (!current) return true
+  return saveProgress(incoming) >= saveProgress(current)
 }

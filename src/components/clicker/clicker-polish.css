@@ -2447,3 +2447,54 @@
   [data-clicker] .clicker-login-bg,
   [data-clicker] .clicker-login-panel { animation: none; }
 }
+
+/* ---------- World skill tree (on each open world's card) ---------- */
+[data-clicker] .clicker-world-tree {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--core) 30%, var(--edge));
+  border-radius: 12px;
+  background: rgb(0 0 0 / 0.32);
+}
+[data-clicker] .clicker-world-tree-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 12px;
+}
+[data-clicker] .clicker-world-tree-head strong { font-size: 13px; letter-spacing: 0.04em; }
+[data-clicker] .clicker-world-tree-wallet { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+[data-clicker] .clicker-world-tree-rate { opacity: 0.7; }
+[data-clicker] .clicker-world-tree-nodes { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+[data-clicker] .clicker-world-tree-node {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 9px;
+  background: rgb(255 255 255 / 0.03);
+}
+[data-clicker] .clicker-world-tree-node.is-locked { opacity: 0.5; }
+[data-clicker] .clicker-world-tree-node.is-next { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--core) 50%, transparent); }
+[data-clicker] .clicker-world-tree-step {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
+  background: rgb(255 255 255 / 0.08);
+}
+[data-clicker] .clicker-world-tree-node.is-owned .clicker-world-tree-step { background: var(--core); color: #04121a; }
+[data-clicker] .clicker-world-tree-text { display: grid; min-width: 0; line-height: 1.3; }
+[data-clicker] .clicker-world-tree-text b { font-size: 13px; }
+[data-clicker] .clicker-world-tree-text small { font-size: 11px; opacity: 0.72; }
+[data-clicker] .clicker-world-tree-buy { min-height: 32px; padding: 4px 10px; font-size: 12px; white-space: nowrap; }
+[data-clicker] .clicker-world-tree-cost,
+[data-clicker] .clicker-world-tree-done { font-size: 12px; opacity: 0.75; white-space: nowrap; font-variant-numeric: tabular-nums; }
+[data-clicker] .clicker-world-tree-done { color: var(--core-bright); opacity: 1; font-weight: 700; }

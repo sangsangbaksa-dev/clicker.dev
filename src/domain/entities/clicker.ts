@@ -38,7 +38,7 @@ export type TimedBuff = {
 
 /** Golden-vein rewards: timed multipliers separate from skill buffs (which key into config). */
 /** Golden-vein and region-activity rewards. */
-export type EventBoostId = "surge" | "laser_rush" | "relay"
+export type EventBoostId = "surge" | "laser_rush" | "relay" | "gacha"
 
 export type EventBoost = {
   id: EventBoostId
@@ -78,6 +78,8 @@ export type RunState = {
   currentRegionId: string
   /** Per-region currency balances (region id → amount); resets with the run. */
   regionCurrency?: Record<string, number>
+  /** World skill-tree nodes bought this run (each world's tree is paid in its own currency). */
+  worldTreeIds?: string[]
   /** Last automatic core collapse (instability hit 100): when, and how much CORE it took. */
   lastCollapse?: { at: number; loss: number }
   /** Forged gear tiers (index into WEAPONS / ARMORS / HELMETS / AMULETS). */
@@ -169,6 +171,10 @@ export type MetaState = {
   monstersSlain: number
   /** Relic Vault: relic id → level. Permanent across rebirths. */
   relicLevels: Record<string, number>
+  /** Core capsule gacha: pulls since the last legendary (pity), lifetime pulls, legendary stars owned. */
+  gachaPity?: number
+  gachaPulls?: number
+  gachaStars?: number
 }
 
 export type ClickerSettings = {
@@ -483,6 +489,30 @@ export type TranscendenceDef = {
 }
 
 /**
+ * One node of a world's skill tree. Bought in order with that world's currency only, and every
+ * effect applies to that world only (its currency mint, its presence bonus, its activity,
+ * field challenge and monster). Run-scoped like the currency itself.
+ */
+export type WorldTreeNodeDef = {
+  id: string
+  regionId: string
+  name: string
+  description: string
+  /** Price as a share of the world's unlock threshold in this worldline, times the base mint rate. */
+  costShare: number
+  /** Multiplies the world's currency mint rate. */
+  currencyMultiplier?: number
+  /** Multiplies click and production while standing in the world. */
+  presenceMultiplier?: number
+  /** Strengthens the world's activity (boost size, deposit payout, storm length, burst size). */
+  activityMultiplier?: number
+  /** Multiplies the world's field-challenge reward. */
+  challengeMultiplier?: number
+  /** Multiplies the world's monster reward. */
+  monsterMultiplier?: number
+}
+
+/**
  * Relic Vault item: a permanent upgrade bought level by level with one world's currency. Each
  * level adds `perLevel` once more (multipliers compound, additions stack) through the same
  * pipeline as walked worldlines.
@@ -538,6 +568,10 @@ export type GameConfig = {
   regions: RegionDef[]
   transcendence: TranscendenceDef[]
   relics: RelicDef[]
+  /** Per-world skill trees, in purchase order within each world. */
+  worldTrees?: WorldTreeNodeDef[]
+  /** Share of the CORE earned in a world that mints its currency before any tree bonus. */
+  regionCurrencyRate?: number
   achievements: AchievementDef[]
   synergies: Array<{
     producerId: string

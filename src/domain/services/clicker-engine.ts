@@ -11,6 +11,7 @@ import type {
   ProductionSnapshot,
   RunState,
   SaveData,
+  WorldTreeNodeDef,
   SkillNodeDef,
   TimedBuff,
   RelicDef,
@@ -80,6 +81,7 @@ export function createInitialRun(now: number, meta: MetaState, config: GameConfi
     runStartedAt: now,
     lastTickAt: now,
     regionCurrency: {},
+    worldTreeIds: [],
     currentWorldLine: meta.rebirthCount + 1,
     currentRegionId: config.regions.find((r) => r.isHome)?.id ?? config.regions[0]?.id ?? "core_chamber",
     clickCount: 0,
@@ -589,9 +591,10 @@ export function regionPresenceMultipliers(run: RunState, config: GameConfig): {
   production: number
 } {
   const region = currentRegionDef(run, config)
+  const tree = region ? worldTreeMultiplier(run, config, region.id, "presenceMultiplier") : 1
   return {
-    click: region?.clickMultiplier ?? 1,
-    production: region?.productionMultiplier ?? 1,
+    click: (region?.clickMultiplier ?? 1) * tree,
+    production: (region?.productionMultiplier ?? 1) * tree,
   }
 }
 
@@ -791,6 +794,8 @@ export function productionSnapshot(
     region.production *
     eventBoostMultiplier(run, "surge", now) *
     eventBoostMultiplier(run, "relay", now) *
+    eventBoostMultiplier(run, "gacha", now) *
+    gachaStarMultiplier(meta) *
     worldlineMultiplier(meta, config) *
     achievementProductionMultiplier(meta)
 
@@ -1121,7 +1126,8 @@ export function processTick(
   const drones = next.crisisActive ? 0 : droneEnergyPerSecond(next, meta, config, now)
   let gained = (snapshot.perSecond + drones) * dt
   if (next.vaultDeposit > 0 && next.vaultReadyAt <= now) {
-    const payout = next.vaultDeposit * vaultMultiplier(config)
+    const interest = (vaultMultiplier(config) - 1) * worldTreeMultiplier(next, config, "phase_vault", "activityMultiplier")
+    const payout = next.vaultDeposit * (1 + interest)
     // The deposit left the bank but was already counted as earned; only the interest is new.
     gained += payout - next.vaultDeposit
     next = { ...next, coreEnergy: next.coreEnergy + next.vaultDeposit, vaultDeposit: 0, vaultReadyAt: 0 }
@@ -1218,10 +1224,17 @@ export function buyProducer(
 const REGION_CURRENCY_UNLOCK_LEAD = 0.05
 /** Newest world first. */
 const REGION_CURRENCY_COST_SHARES = [0.1, 0.05]
+/**
+ * Off: with currencies minted at a trickle until a world's own tree raises the rate, a surcharge
+ * on CORE purchases would stall the main climb. Kept switchable for tuning.
+ */
+const WORLD_CURRENCY_SURCHARGE = false
 
 export type CurrencyCost = { regionId: string; name: string; icon: string; amount: number }
 
 export function purchaseCurrencyCosts(run: RunState, config: GameConfig, baseCost: number): CurrencyCost[] {
+  // World currencies now only pay for their own world's skill tree and the Relic Vault.
+  if (!WORLD_CURRENCY_SURCHARGE) return []
   const cost = scaledCost(run, baseCost)
   return config.regions
     .filter((r) => r.currency && !r.isHome && regionUnlockThreshold(run, config, r) * REGION_CURRENCY_UNLOCK_LEAD <= cost)
@@ -1260,16 +1273,24 @@ export function regionCurrencyBalance(run: RunState, regionId: string): number {
   return run.regionCurrency?.[regionId] ?? 0
 }
 
-/** CORE earned while standing in a region also mints that region's currency, 1:1. */
+/**
+ * CORE earned while standing in a region also mints that region's currency: a small share at
+ * first (`regionCurrencyRate`), raised only by that world's own skill tree.
+ */
 export function accrueRegionCurrency(prev: RunState, next: RunState, config: GameConfig): RunState {
   const gained = next.lifetimeCoreEnergy - prev.lifetimeCoreEnergy
   if (!(gained > 0)) return next
   const region = config.regions.find((r) => r.id === prev.currentRegionId)
   if (!region?.currency) return next
+  const minted = gained * regionCurrencyRate(next, config, region.id)
   return {
     ...next,
-    regionCurrency: { ...next.regionCurrency, [region.id]: regionCurrencyBalance(next, region.id) + gained },
+    regionCurrency: { ...next.regionCurrency, [region.id]: regionCurrencyBalance(next, region.id) + minted },
   }
+}
+
+export function regionCurrencyRate(run: RunState, config: GameConfig, regionId: string): number {
+  return (config.regionCurrencyRate ?? 1) * worldTreeMultiplier(run, config, regionId, "currencyMultiplier")
 }
 
 /**
@@ -1496,7 +1517,7 @@ export function activateRegion(
     case "PRODUCTION_BOOST":
       next.eventBoosts = [
         ...next.eventBoosts.filter((b) => b.id !== "relay"),
-        { id: "relay", multiplier: activity.multiplier ?? 1, expiresAt: until },
+        { id: "relay", multiplier: 1 + ((activity.multiplier ?? 1) - 1) * worldTreeMultiplier(run, config, regionId, "activityMultiplier"), expiresAt: until },
       ]
       break
     case "PHASE_DEPOSIT": {
@@ -1507,14 +1528,14 @@ export function activateRegion(
       break
     }
     case "LIGHTNING_STORM":
-      next.lightningStormUntil = until
+      next.lightningStormUntil = now + (activity.durationSec ?? 0) * 1000 * worldTreeMultiplier(run, config, regionId, "activityMultiplier")
       break
     case "DRONE_SWARM":
       next.droneSwarmUntil = until
       break
     case "PRODUCTION_BURST": {
       const perSecond = productionSnapshot(next, meta, config, now).perSecond
-      const burst = perSecond * (activity.productionSeconds ?? 0)
+      const burst = perSecond * (activity.productionSeconds ?? 0) * worldTreeMultiplier(run, config, regionId, "activityMultiplier")
       next = { ...next, coreEnergy: next.coreEnergy + burst, lifetimeCoreEnergy: next.lifetimeCoreEnergy + burst }
       nextMeta = { ...meta, totalCoreEnergy: meta.totalCoreEnergy + burst }
       break
@@ -1551,7 +1572,8 @@ export function claimRegionChallenge(
   if (error) return { run, meta, reward: 0, error }
   const challenge = config.regions.find((r) => r.id === regionId)!.challenge!
   const ratio = Number.isFinite(score) ? clamp(score, 0, 1) : 0
-  const reward = productionSnapshot(run, meta, config, now).perSecond * challenge.rewardSeconds * ratio
+  const reward =
+    productionSnapshot(run, meta, config, now).perSecond * challenge.rewardSeconds * ratio * worldTreeMultiplier(run, config, regionId, "challengeMultiplier")
   return {
     run: refreshObjective(
       {
@@ -1692,6 +1714,9 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         bossDefeated: Boolean(meta.bossDefeated),
         monstersSlain: typeof meta.monstersSlain === "number" ? meta.monstersSlain : 0,
         relicLevels: sanitizeRelicLevels(meta.relicLevels, config),
+        gachaPity: nonNegativeInt(meta.gachaPity),
+        gachaPulls: nonNegativeInt(meta.gachaPulls),
+        gachaStars: nonNegativeInt(meta.gachaStars),
       },
       runState: {
         ...createInitialRun(now, createInitialMeta(), config),
@@ -1733,6 +1758,9 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
             ([, v]) => typeof v === "number" && Number.isFinite(v) && v >= 0,
           ),
         ),
+        worldTreeIds: Array.isArray(run.worldTreeIds)
+          ? run.worldTreeIds.filter((id) => typeof id === "string" && (config.worldTrees ?? []).some((n) => n.id === id))
+          : [],
         gear: {
           weapon: Number.isInteger(run.gear?.weapon) ? Math.max(0, run.gear!.weapon) : 0,
           armor: Number.isInteger(run.gear?.armor) ? Math.max(0, run.gear!.armor) : 0,
@@ -1779,7 +1807,8 @@ export function slayMonster(
   if (!monsterAlive(run, regionId, now)) return { run, meta, reward: 0, error: "아직 돌아오지 않았습니다." }
   const perSecond = productionSnapshot(run, meta, config, now).perSecond
   const skills = ownedSkills(run, config)
-  const rewardMul = skills.reduce((m, n) => m * (n.monsterRewardMultiplier ?? 1), 1)
+  const rewardMul =
+    skills.reduce((m, n) => m * (n.monsterRewardMultiplier ?? 1), 1) * worldTreeMultiplier(run, config, regionId, "monsterMultiplier")
   // Same cooldown cuts as the mine re-entry and the drill, plus hunting-specific ones.
   const respawnSec = Math.max(5, monster.respawnSec - skills.reduce((s, n) => s + (n.monsterRespawnReduce ?? 0), 0))
   // Hunting grounds are the region's main income, so their kills pay a much bigger click floor.
@@ -1924,4 +1953,181 @@ function sanitizeRelicLevels(raw: unknown, config: GameConfig): Record<string, n
     if (typeof v === "number" && Number.isFinite(v) && v > 0) out[relic.id] = Math.min(relic.maxLevel, Math.floor(v))
   }
   return out
+}
+
+function nonNegativeInt(v: unknown): number {
+  return typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0
+}
+
+/* ---------- World skill trees ---------- */
+
+type WorldTreeEffect = "currencyMultiplier" | "presenceMultiplier" | "activityMultiplier" | "challengeMultiplier" | "monsterMultiplier"
+
+export function worldTreeNodes(config: GameConfig, regionId: string): WorldTreeNodeDef[] {
+  return (config.worldTrees ?? []).filter((n) => n.regionId === regionId)
+}
+
+export function worldTreeOwned(run: RunState, nodeId: string): boolean {
+  return (run.worldTreeIds ?? []).includes(nodeId)
+}
+
+/** Product of one effect over the world's bought nodes (1 when none). */
+export function worldTreeMultiplier(run: RunState, config: GameConfig, regionId: string, effect: WorldTreeEffect): number {
+  const owned = run.worldTreeIds
+  if (!owned?.length) return 1
+  let m = 1
+  for (const n of config.worldTrees ?? []) if (n.regionId === regionId && owned.includes(n.id)) m *= n[effect] ?? 1
+  return m
+}
+
+/** Price in the world's own currency; grows with the worldline like the world's unlock threshold. */
+export function worldTreeNodeCost(run: RunState, config: GameConfig, node: WorldTreeNodeDef): number {
+  const region = config.regions.find((r) => r.id === node.regionId)
+  if (!region) return Infinity
+  return Math.ceil(regionUnlockThreshold(run, config, region) * node.costShare * (config.regionCurrencyRate ?? 1))
+}
+
+export function worldTreeNodeError(run: RunState, config: GameConfig, nodeId: string): string | undefined {
+  const node = (config.worldTrees ?? []).find((n) => n.id === nodeId)
+  if (!node) return "스킬이 없습니다."
+  if (worldTreeOwned(run, nodeId)) return "이미 배웠습니다."
+  const region = config.regions.find((r) => r.id === node.regionId)
+  if (!region || !isRegionUnlocked(run, config, region.id)) return "아직 열리지 않은 지역입니다."
+  const tree = worldTreeNodes(config, node.regionId)
+  const prev = tree[tree.indexOf(node) - 1]
+  if (prev && !worldTreeOwned(run, prev.id)) return `먼저 「${prev.name}」을(를) 배워야 합니다.`
+  if (regionCurrencyBalance(run, node.regionId) < worldTreeNodeCost(run, config, node)) {
+    return `${region.currency?.name ?? "지역 화폐"}이(가) 부족합니다.`
+  }
+  return undefined
+}
+
+/** Buy the node with its own world's currency (no other wallet covers it). */
+export function buyWorldTreeNode(run: RunState, config: GameConfig, nodeId: string): { run: RunState; error?: string } {
+  const error = worldTreeNodeError(run, config, nodeId)
+  if (error) return { run, error }
+  const node = (config.worldTrees ?? []).find((n) => n.id === nodeId)!
+  const cost = worldTreeNodeCost(run, config, node)
+  return {
+    run: {
+      ...run,
+      regionCurrency: { ...run.regionCurrency, [node.regionId]: regionCurrencyBalance(run, node.regionId) - cost },
+      worldTreeIds: [...(run.worldTreeIds ?? []), nodeId],
+    },
+  }
+}
+
+/* ---------- Core capsule gacha ---------- */
+
+export type GachaRarity = "common" | "rare" | "epic" | "legendary"
+
+export type GachaReward =
+  | { rarity: "common"; kind: "core"; amount: number }
+  | { rarity: "rare"; kind: "boost"; multiplier: number; seconds: number; amount: number }
+  | { rarity: "epic"; kind: "currency"; regionId: string; amount: number }
+  | { rarity: "epic"; kind: "core"; amount: number }
+  | { rarity: "legendary"; kind: "star"; stars: number }
+
+/** Pulls without a legendary before one is guaranteed. */
+export const GACHA_PITY = 60
+/** Each legendary star: permanent production ×1.08 (survives rebirth). */
+export const GACHA_STAR_PRODUCTION = 1.08
+export const GACHA_BOOST_MULTIPLIER = 2
+export const GACHA_BOOST_SECONDS = 180
+/** A ten-pull costs nine. */
+export const GACHA_TEN_PULL_DISCOUNT = 0.9
+const GACHA_RATES: Array<[GachaRarity, number]> = [
+  ["legendary", 0.02],
+  ["epic", 0.1],
+  ["rare", 0.28],
+  ["common", 0.6],
+]
+
+export function gachaStarMultiplier(meta: MetaState): number {
+  return GACHA_STAR_PRODUCTION ** (meta.gachaStars ?? 0)
+}
+
+/** Value of a second of play: production plus a slice of a click, never 0 (fresh runs). */
+function gachaUnit(run: RunState, meta: MetaState, config: GameConfig, now: number): number {
+  return Math.max(productionSnapshot(run, meta, config, now).perSecond, derivedClick(run, meta, config).click * 0.3, config.baseClick)
+}
+
+/** One capsule costs ten minutes of current income, so it stays meaningful all game. */
+export function gachaCost(run: RunState, meta: MetaState, config: GameConfig, now: number, count: 1 | 10 = 1): number {
+  const one = Math.ceil(gachaUnit(run, meta, config, now) * 600)
+  return count === 10 ? Math.ceil(one * 10 * GACHA_TEN_PULL_DISCOUNT) : one
+}
+
+function rollRarity(pity: number, rng: () => number): GachaRarity {
+  if (pity + 1 >= GACHA_PITY) return "legendary"
+  let r = rng()
+  for (const [rarity, rate] of GACHA_RATES) {
+    if (r < rate) return rarity
+    r -= rate
+  }
+  return "common"
+}
+
+/**
+ * Pull `count` capsules: pays CORE, rolls rarities (legendary guaranteed by the pity counter) and
+ * applies every reward. Epic pays the currency of a random open world (half its next tree node).
+ */
+export function pullGacha(
+  run: RunState,
+  meta: MetaState,
+  config: GameConfig,
+  now: number,
+  rng: () => number,
+  count: 1 | 10 = 1,
+): { run: RunState; meta: MetaState; rewards: GachaReward[]; error?: string } {
+  const cost = gachaCost(run, meta, config, now, count)
+  if (run.coreEnergy < cost) return { run, meta, rewards: [], error: "CORE가 부족합니다." }
+  const unit = gachaUnit(run, meta, config, now)
+  let next: RunState = { ...run, coreEnergy: run.coreEnergy - cost }
+  let nextMeta: MetaState = { ...meta }
+  let earned = 0
+  const rewards: GachaReward[] = []
+  for (let i = 0; i < count; i++) {
+    const rarity = rollRarity(nextMeta.gachaPity ?? 0, rng)
+    nextMeta = { ...nextMeta, gachaPulls: (nextMeta.gachaPulls ?? 0) + 1, gachaPity: rarity === "legendary" ? 0 : (nextMeta.gachaPity ?? 0) + 1 }
+    if (rarity === "common") {
+      const amount = unit * 480
+      earned += amount
+      rewards.push({ rarity, kind: "core", amount })
+    } else if (rarity === "rare") {
+      const amount = unit * 240
+      earned += amount
+      const current = next.eventBoosts.find((b) => b.id === "gacha")
+      const from = Math.max(now, current?.expiresAt ?? now)
+      next = {
+        ...next,
+        eventBoosts: [
+          ...next.eventBoosts.filter((b) => b.id !== "gacha"),
+          { id: "gacha", multiplier: GACHA_BOOST_MULTIPLIER, expiresAt: from + GACHA_BOOST_SECONDS * 1000 },
+        ],
+      }
+      rewards.push({ rarity, kind: "boost", multiplier: GACHA_BOOST_MULTIPLIER, seconds: GACHA_BOOST_SECONDS, amount })
+    } else if (rarity === "epic") {
+      const open = config.regions.filter((r) => r.currency && !r.isHome && isRegionUnlocked(next, config, r.id))
+      if (open.length) {
+        const region = open[Math.floor(rng() * open.length) % open.length]
+        const nextNode = worldTreeNodes(config, region.id).find((n) => !worldTreeOwned(next, n.id))
+        const amount = Math.ceil(
+          nextNode ? worldTreeNodeCost(next, config, nextNode) * 0.5 : regionUnlockThreshold(next, config, region) * (config.regionCurrencyRate ?? 1) * 0.2,
+        )
+        next = { ...next, regionCurrency: { ...next.regionCurrency, [region.id]: regionCurrencyBalance(next, region.id) + amount } }
+        rewards.push({ rarity, kind: "currency", regionId: region.id, amount })
+      } else {
+        const amount = unit * 1800
+        earned += amount
+        rewards.push({ rarity, kind: "core", amount })
+      }
+    } else {
+      nextMeta = { ...nextMeta, gachaStars: (nextMeta.gachaStars ?? 0) + 1 }
+      rewards.push({ rarity, kind: "star", stars: nextMeta.gachaStars ?? 1 })
+    }
+  }
+  next = { ...next, coreEnergy: next.coreEnergy + earned, lifetimeCoreEnergy: next.lifetimeCoreEnergy + earned }
+  nextMeta = { ...nextMeta, totalCoreEnergy: nextMeta.totalCoreEnergy + earned }
+  return { run: next, meta: nextMeta, rewards }
 }

@@ -52,6 +52,8 @@ import {
   clickerStrikeLair,
   clickerForge,
   clickerBuyRelic,
+  clickerBuyWorldTreeNode,
+  clickerPullGacha,
   allowMineStrike,
   clearClickerStoredSave,
   clickerPauseMine,
@@ -844,6 +846,42 @@ export function useClicker() {
     [commit, persistNow, refuse, flash],
   )
 
+  const buyWorldTreeNode = useCallback(
+    (nodeId: string) => {
+      if (!saveRef.current) return
+      const result = clickerBuyWorldTreeNode(saveRef.current, nodeId)
+      if (!result.ok) return refuse(result.error)
+      commit(result.value)
+      persistNow(result.value)
+      playSfx("skillUnlock")
+      const node = (clickerGameConfig.worldTrees ?? []).find((n) => n.id === nodeId)
+      flash(`월드 스킬 습득 · ${node?.name ?? nodeId}`)
+    },
+    [commit, persistNow, refuse, flash],
+  )
+
+  /** Pull core capsules; returns the rewards so the panel can reveal them (null when refused). */
+  const pullGacha = useCallback(
+    (count: 1 | 10) => {
+      if (!saveRef.current) return null
+      const result = clickerPullGacha(saveRef.current, count, now())
+      if (!result.ok) {
+        refuse(result.error)
+        return null
+      }
+      commit(result.value.save)
+      persistNow(result.value.save)
+      const best = result.value.rewards.some((r) => r.rarity === "legendary")
+        ? "achievement"
+        : result.value.rewards.some((r) => r.rarity === "epic")
+          ? "upgrade"
+          : "purchase"
+      playSfx(best)
+      return result.value.rewards
+    },
+    [commit, persistNow, refuse],
+  )
+
   /** One tap on the region drill rig. Returns the payout when this tap bored the vein, else 0 (null when refused). */
   const drillVein = useCallback(
     (clientX: number, clientY: number) => {
@@ -1071,6 +1109,8 @@ export function useClicker() {
     strikeLair,
     forge,
     buyRelic,
+    buyWorldTreeNode,
+    pullGacha,
     drillVein,
     purchaseFx,
     startBoss,

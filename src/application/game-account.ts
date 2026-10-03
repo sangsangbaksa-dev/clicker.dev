@@ -3,6 +3,8 @@ import "server-only"
 import {
   cloudSaveError,
   normalizeLoginId,
+  saveProgress,
+  shouldReplaceCloudSave,
   signupError,
   toPublicAccount,
   type ClickerAccountPublic,
@@ -44,11 +46,17 @@ export async function loginClicker(loginId: string | undefined, password: string
 
 export async function loadCloudSave(accountId: string): Promise<{ json: string; meta: CloudSaveMeta } | null> {
   const save = await readCloudSave(accountId)
-  return save ? { json: save.json, meta: { savedAt: save.savedAt, size: save.json.length } } : null
+  return save ? { json: save.json, meta: { savedAt: save.savedAt, size: save.json.length, totalCore: saveProgress(save.json) } } : null
 }
 
+/** Stores the upload unless the cloud already holds a run with more total CORE (then keeps that one). */
 export async function storeCloudSave(accountId: string, json: unknown): Promise<Result<CloudSaveMeta>> {
   const problem = cloudSaveError(json)
   if (problem) return { ok: false, error: problem, status: 400 }
-  return { ok: true, value: await writeCloudSave(accountId, json as string, Date.now()) }
+  const current = await readCloudSave(accountId)
+  if (current && !shouldReplaceCloudSave(current.json, json as string)) {
+    return { ok: true, value: { savedAt: current.savedAt, size: current.json.length, totalCore: saveProgress(current.json), kept: true } }
+  }
+  const meta = await writeCloudSave(accountId, json as string, Date.now())
+  return { ok: true, value: { ...meta, totalCore: saveProgress(json as string) } }
 }
