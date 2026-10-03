@@ -1749,7 +1749,8 @@ export function ClickerApp() {
           src={MineArt.enterCinematic}
           poster={MineArt.entranceGate}
           label="광산 입장 중"
-          muted={game.save.settings.muted}
+          muted={game.save.settings.musicMuted}
+          volume={game.save.settings.musicVolume}
           onDone={() => {
             setEnteringMine(false)
             setDrawerSnap("peek")
@@ -1789,6 +1790,7 @@ export function ClickerApp() {
             body: game.regionIntro.description,
           }}
           muted={game.save.settings.musicMuted}
+          volume={game.save.settings.musicVolume}
           onDone={game.dismissRegionIntro}
         />
       ) : null}
@@ -1889,6 +1891,7 @@ export function ClickerApp() {
           poster={endingPhase === "fall" ? "/clicker/bg/region_core_heart.jpg" : "/clicker/bg/loading_core_awakening.webp"}
           label="엔딩"
           muted={game.save.settings.musicMuted}
+          volume={game.save.settings.musicVolume}
           onDone={() => {
             if (endingPhase === "fall") setEndingPhase("awaken")
             else {

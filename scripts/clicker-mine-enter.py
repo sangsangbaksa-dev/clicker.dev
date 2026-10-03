@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Mine entry cinematic v14, rendered from the game's own stills so both cuts are seamless.
+"""Mine entry cinematic v15, rendered from the game's own stills so both cuts are seamless.
 
 A steady forward dolly like the region intros: frame 0 is the hub gate still
 (mine_entrance_hub_closed_door_v2.webp) exactly as the hub shows it; the camera walks toward the
 closed door, passes straight through it (the door never opens), and keeps gliding into the chamber
 until the last frame is the mine plate (mine_interior_mineral_ore_v2.webp) exactly as the timed
-mine shows it. Audio: v12's soundtrack, trimmed and faded.
+mine shows it. Steady camera, no bob. Audio: v12's full 10 s soundtrack.
 
     python3 scripts/clicker-mine-enter.py [ffmpeg]
 """
@@ -25,7 +25,7 @@ MINE = ROOT / "public" / "clicker" / "mine"
 GATE = MINE / "mine_entrance_hub_closed_door_v2.webp"
 PLATE = MINE / "mine_interior_mineral_ore_v2.webp"
 AUDIO_SRC = MINE / "mine_enter_door_walk_v12.mp4"
-OUT = MINE / "mine_enter_door_walk_v14.mp4"
+OUT = MINE / "mine_enter_door_walk_v15.mp4"
 
 SRC_W, SRC_H = 1280, 720
 W, H, FPS = 1920, 1080, 24
@@ -35,7 +35,7 @@ K = W / SRC_W  # source px → output px
 DOOR_C = (640, 377)
 
 # Timeline (s): approach the door, pass through it, glide into the chamber, settle.
-APPROACH, THROUGH, GLIDE, SETTLE = 2.6, 0.5, 2.0, 0.4
+APPROACH, THROUGH, GLIDE, SETTLE = 4.6, 0.8, 3.8, 0.8  # 10 s, the length of the original door walk
 T_THROUGH = APPROACH
 T_GLIDE = T_THROUGH + THROUGH
 DURATION = T_GLIDE + GLIDE + SETTLE
@@ -108,9 +108,7 @@ def main() -> None:
             a = min(1.0, t / (T_THROUGH + THROUGH))
             approach = a * a * (1.6 - 0.6 * a)
             z = GATE_ZOOM_END ** approach
-            # A gentle walking bob that fades as we near the door.
-            bob = math.sin(t * 2 * math.pi * 1.1) * 5 * (1 - approach)
-            tx, ty = dcx + (W / 2 - dcx) * approach, dcy + (H / 2 - dcy) * approach + bob
+            tx, ty = dcx + (W / 2 - dcx) * approach, dcy + (H / 2 - dcy) * approach
             gate_view = zoom_about(gate, z, dcx, dcy, tx, ty)
             # Inside: keeps moving forward and decelerates onto the exact mine framing.
             g = min(1.0, max(0.0, (t - T_THROUGH) / (THROUGH + GLIDE)))

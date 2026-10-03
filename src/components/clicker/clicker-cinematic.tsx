@@ -22,7 +22,9 @@ type Props = {
   label: string
   /** Optional title card over the video (region intros). */
   caption?: { kicker?: string; title: string; body: string }
+  /** Follows the background-music settings: muted with the music, at the music volume (0..1). */
   muted: boolean
+  volume?: number
   onDone: () => void
 }
 
@@ -33,7 +35,7 @@ const SAFETY_TIMEOUT_MS = 15_000
  * Full-screen video with its own soundtrack (mine entry, first-visit region intros).
  * Always completes: ended, skip, Esc/Enter/Space, load error, or the safety timeout.
  */
-export function ClickerCinematic({ src, poster, label, caption, muted, onDone }: Props) {
+export function ClickerCinematic({ src, poster, label, caption, muted, volume = 1, onDone }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const doneRef = useRef(false)
   const mutedAtStart = useRef(muted)
@@ -54,8 +56,10 @@ export function ClickerCinematic({ src, poster, label, caption, muted, onDone }:
 
   // Mute follows the setting live; it must not restart playback or the safety timer.
   useEffect(() => {
-    if (videoRef.current) videoRef.current.muted = muted
-  }, [muted])
+    if (!videoRef.current) return
+    videoRef.current.muted = muted
+    videoRef.current.volume = Math.min(1, Math.max(0, volume))
+  }, [muted, volume])
 
   useEffect(() => {
     const finish = finishRef.current
