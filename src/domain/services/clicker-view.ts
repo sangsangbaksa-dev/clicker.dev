@@ -7,7 +7,7 @@ import type {
   SkillBranch,
   UpgradeCategory,
   RegionChallengeKind,
-} from "../entities/clicker"
+} from "../entities/clicker.ts"
 import {
   canRebirth,
   instabilityLevel,
@@ -28,8 +28,8 @@ import {
   payCurrencyCosts,
   type CurrencyCost,
   activeSkillCost,
-} from "./clicker-engine"
-import { formatNumber } from "./clicker-format"
+} from "./clicker-engine.ts"
+import { formatNumber } from "./clicker-format.ts"
 
 export type CoreVisual = "idle" | "fever" | "crisis"
 
