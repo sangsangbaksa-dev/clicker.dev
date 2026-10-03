@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Mine entry cinematic v15, rendered from the game's own stills so both cuts are seamless.
+"""Mine entry cinematic v16, rendered from the game's own stills so both cuts are seamless.
 
-A steady forward dolly like the region intros: frame 0 is the hub gate still
-(mine_entrance_hub_closed_door_v2.webp) exactly as the hub shows it; the camera walks toward the
-closed door, passes straight through it (the door never opens), and keeps gliding into the chamber
-until the last frame is the mine plate (mine_interior_mineral_ore_v2.webp) exactly as the timed
-mine shows it. Steady camera, no bob. Audio: v12's full 10 s soundtrack.
+Frame 0 is the hub gate still (mine_entrance_hub_closed_door_v2.webp) exactly as the hub shows it;
+the camera creeps forward, the door panel splits along its seam (x=640) and slides behind the frame;
+the camera glides through
+the opening and the last frame is the mine plate (mine_interior_mineral_ore_v2.webp) exactly as the
+timed mine shows it, with the same crystal the player strikes. Audio: the first seconds of v12's
+soundtrack (door unlock + slide + whoosh), 10 s like the original door walk; steady camera.
 
-    python3 scripts/clicker-mine-enter.py [ffmpeg]
+    python3 scripts/clicker-mine-enter.py
 """
 from __future__ import annotations
 
@@ -25,23 +26,27 @@ MINE = ROOT / "public" / "clicker" / "mine"
 GATE = MINE / "mine_entrance_hub_closed_door_v2.webp"
 PLATE = MINE / "mine_interior_mineral_ore_v2.webp"
 AUDIO_SRC = MINE / "mine_enter_door_walk_v12.mp4"
-OUT = MINE / "mine_enter_door_walk_v15.mp4"
+OUT = MINE / "mine_enter_door_walk_v16.mp4"
 
 SRC_W, SRC_H = 1280, 720
 W, H, FPS = 1920, 1080, 24
 K = W / SRC_W  # source px → output px
 
-# Centre of the door panel in source px (seam at x=640).
+# Door panel (inside the frame) in source px; seam at x=640.
+DOOR = [(535, 175), (745, 175), (835, 310), (835, 440), (750, 580), (530, 580), (445, 440), (445, 310)]
+SEAM_X = 640
 DOOR_C = (640, 377)
 
-# Timeline (s): approach the door, pass through it, glide into the chamber, settle.
-APPROACH, THROUGH, GLIDE, SETTLE = 4.6, 0.8, 3.8, 0.8  # 10 s, the length of the original door walk
-T_THROUGH = APPROACH
-T_GLIDE = T_THROUGH + THROUGH
-DURATION = T_GLIDE + GLIDE + SETTLE
+# Timeline (s)
+HOLD, UNLOCK, OPEN, PUSH, SETTLE = 0.8, 0.8, 2.2, 5.0, 1.2  # 10 s
+T_UNLOCK = HOLD
+T_OPEN = T_UNLOCK + UNLOCK
+T_PUSH = T_OPEN + OPEN * 0.55  # the push starts while the panels are still sliding
+T_END = T_OPEN + OPEN + PUSH
+DURATION = T_END + SETTLE
 
-GATE_ZOOM_END = 4.2  # the door panel overfills the screen by the time we reach it
-INTERIOR_START = 0.72  # chamber scale just past the door; it grows to exactly 1.0
+INTERIOR_START = 0.5  # plate scale seen through the closed door (far away)
+GATE_ZOOM_END = 3.8
 
 
 def ease(t: float) -> float:
@@ -49,8 +54,28 @@ def ease(t: float) -> float:
     return t * t * (3 - 2 * t)
 
 
+def ease_in_out_cubic(t: float) -> float:
+    t = min(1.0, max(0.0, t))
+    return 4 * t * t * t if t < 0.5 else 1 - (-2 * t + 2) ** 3 / 2
+
+
 def load(path: Path) -> Image.Image:
     return Image.open(path).convert("RGB").resize((W, H), Image.LANCZOS)
+
+
+def door_mask(side: str = "both") -> Image.Image:
+    m = Image.new("L", (W, H), 0)
+    d = ImageDraw.Draw(m)
+    d.polygon([(x * K, y * K) for x, y in DOOR], fill=255)
+    if side != "both":
+        half = Image.new("L", (W, H), 0)
+        hd = ImageDraw.Draw(half)
+        if side == "left":
+            hd.rectangle([0, 0, SEAM_X * K, H], fill=255)
+        else:
+            hd.rectangle([SEAM_X * K, 0, W, H], fill=255)
+        m = Image.fromarray(np.minimum(np.asarray(m), np.asarray(half)))
+    return m
 
 
 def extended_interior(plate: Image.Image, pad: int = 3) -> tuple[Image.Image, float, float]:
@@ -87,13 +112,27 @@ def main() -> None:
     gate = load(GATE)
     plate = load(PLATE)
     interior_src, icx, icy = extended_interior(plate)
-    dcx, dcy = DOOR_C[0] * K, DOOR_C[1] * K
+    full_door = door_mask()
+    left_mask = door_mask(side="left")
+    right_mask = door_mask(side="right")
+    g = np.asarray(gate).astype(np.int16)
+    cyan = ((g[:, :, 1] > 110) & (g[:, :, 2] > 110) & (g[:, :, 0] < 90)).astype(np.float32)
+    cyan_glow = np.asarray(Image.fromarray((cyan * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(10))).astype(np.float32) / 255
+    # The gate with the door panel removed (frame + rock), and the two panel halves on their own.
+    frame_only = gate.copy()
+    left_panel = Image.new("RGBA", (W, H))
+    left_panel.paste(gate, (0, 0), left_mask)
+    right_panel = Image.new("RGBA", (W, H))
+    right_panel.paste(gate, (0, 0), right_mask)
+    door_w = (835 - 445) * K
+
     n = int(round(DURATION * FPS))
+    dcx, dcy = DOOR_C[0] * K, DOOR_C[1] * K
     with tempfile.TemporaryDirectory() as tmp:
         wav = Path(tmp) / "a.wav"
         subprocess.run(
             [FFMPEG, "-y", "-loglevel", "error", "-i", str(AUDIO_SRC), "-t", f"{DURATION:.2f}",
-             "-af", f"afade=t=out:st={DURATION - 0.7:.2f}:d=0.7", "-ac", "1", "-ar", "44100", str(wav)],
+             "-af", f"afade=t=out:st={DURATION - 0.6:.2f}:d=0.6", "-ac", "1", "-ar", "44100", str(wav)],
             check=True,
         )
         proc = subprocess.Popen(
@@ -104,25 +143,57 @@ def main() -> None:
         )
         for i in range(n):
             t = i / FPS
-            # Walk toward the door: slow start, building speed (ease-in), so it feels like moving forward.
-            a = min(1.0, t / (T_THROUGH + THROUGH))
-            approach = a * a * (1.6 - 0.6 * a)
-            z = GATE_ZOOM_END ** approach
-            tx, ty = dcx + (W / 2 - dcx) * approach, dcy + (H / 2 - dcy) * approach
-            gate_view = zoom_about(gate, z, dcx, dcy, tx, ty)
-            # Inside: keeps moving forward and decelerates onto the exact mine framing.
-            g = min(1.0, max(0.0, (t - T_THROUGH) / (THROUGH + GLIDE)))
-            glide = 1 - (1 - g) ** 3
-            k_int = INTERIOR_START ** (1 - glide)
-            interior = plate if g >= 1 else zoom_about(interior_src, k_int, icx, icy, W / 2, H / 2)
-            # Pass through the door: a short cross-dissolve with a soft cyan light bloom.
-            mix = ease((t - T_THROUGH) / THROUGH)
-            frame = Image.blend(gate_view, interior, mix) if 0 < mix < 1 else (interior if mix >= 1 else gate_view)
-            bloom = math.sin(math.pi * min(1.0, max(0.0, (t - T_THROUGH + 0.15) / (THROUGH + 0.3))))
-            if bloom > 0.01:
-                arr = np.asarray(frame).astype(np.float32)
-                arr += np.array([40, 120, 140], np.float32) * (0.32 * bloom)
-                frame = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
+            # Camera: push from the hub framing into the doorway; the door centre drifts to screen centre.
+            p = ease_in_out_cubic((t - T_PUSH) / (T_END - T_PUSH))
+            # A slow creep toward the door before the push, so the shot is always moving forward.
+            creep = 1 + 0.1 * ease(t / T_PUSH) * (1 - p)
+            z = creep * GATE_ZOOM_END ** p
+            tx, ty = dcx + (W / 2 - dcx) * p, dcy + (H / 2 - dcy) * p
+            # Interior is deeper than the gate, so it grows slower (parallax) and ends exactly full-frame.
+            k_int = INTERIOR_START ** (1 - p)
+            interior = plate if p >= 1 else zoom_about(interior_src, k_int, icx, icy, tx, ty)
+            open_t = ease_in_out_cubic((t - T_OPEN) / OPEN)
+            slide = open_t * door_w * 0.52
+            base = Image.new("RGB", (W, H))
+            base.paste(interior, (0, 0))
+            # Panels slide apart inside the door opening (they disappear behind the frame).
+            panels = Image.new("RGBA", (W, H))
+            panels.alpha_composite(left_panel.transform((W, H), Image.AFFINE, (1, 0, slide, 0, 1, 0)))
+            panels.alpha_composite(right_panel.transform((W, H), Image.AFFINE, (1, 0, -slide, 0, 1, 0)))
+            clip = Image.fromarray(np.minimum(np.asarray(panels.getchannel("A")), np.asarray(full_door)))
+            panels.putalpha(clip)
+            gate_layer = frame_only.copy().convert("RGBA")
+            hole = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+            gate_layer.paste(hole, (0, 0), full_door)  # punch the doorway
+            gate_layer.alpha_composite(panels)
+            arr = np.asarray(gate_layer).astype(np.float32)
+            # Unlock: trim lights flare, then a bright seam line before the split.
+            u = ease((t - T_UNLOCK) / UNLOCK) * (1 - ease((t - T_OPEN - 0.6) / 0.8))
+            if u > 0:
+                flare = cyan_glow * (70 * u) + cyan * (60 * u)
+                arr[:, :, 0] += flare * 0.35
+                arr[:, :, 1] += flare
+                arr[:, :, 2] += flare
+                if t < T_OPEN + 0.25:
+                    seam = np.zeros((H, W), np.float32)
+                    x0 = int(SEAM_X * K)
+                    y_top, y_bot = int(175 * K), int(580 * K)
+                    seam[y_top:y_bot, x0 - 2 : x0 + 2] = 1
+                    seam = np.asarray(Image.fromarray((seam * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(6))).astype(np.float32) / 255
+                    s_a = u * (1 - ease((t - T_OPEN) / 0.25))
+                    arr[:, :, 1] += seam * 255 * s_a
+                    arr[:, :, 2] += seam * 255 * s_a
+                    arr[:, :, 0] += seam * 160 * s_a
+            gate_layer = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), "RGBA")
+            gate_view = zoom_about(gate_layer, z, dcx, dcy, tx, ty)
+            # Fade the gate out once the doorway fills the screen.
+            gate_alpha = 1 - ease((p - 0.82) / 0.18)
+            if gate_alpha < 1:
+                a = np.asarray(gate_view.getchannel("A")).astype(np.float32) * gate_alpha
+                gate_view.putalpha(Image.fromarray(a.astype(np.uint8)))
+            frame = base.convert("RGBA")
+            frame.alpha_composite(gate_view)
+            frame = frame.convert("RGB")
             proc.stdin.write(frame.tobytes())
         proc.stdin.close()
         proc.wait()
