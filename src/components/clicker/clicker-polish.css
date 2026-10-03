@@ -2353,9 +2353,11 @@
 [data-clicker] .clicker-login {
   position: relative;
   display: grid;
-  align-items: center;
+  /* Top-anchored, not centred: switching login/signup or showing a message grows the panel
+     downward instead of shifting the whole screen. The offset centres the tallest state. */
+  align-items: start;
   min-height: 100dvh;
-  padding: clamp(16px, 4vw, 56px);
+  padding: max(24px, calc(50dvh - 370px)) clamp(16px, 4vw, 56px) clamp(16px, 4vw, 56px);
   overflow: hidden;
   isolation: isolate;
   background: #05080f;
@@ -2434,11 +2436,11 @@
 
 /* Phones: art across the top, panel below it. */
 @media (max-width: 720px) {
-  [data-clicker] .clicker-login { align-items: end; padding: 16px; }
+  [data-clicker] .clicker-login { padding: 16px; }
   [data-clicker] .clicker-login-veil {
     background: linear-gradient(180deg, transparent 0%, rgb(4 7 14 / 0.25) 30%, rgb(4 7 14 / 0.9) 58%, rgb(4 7 14 / 0.96) 100%);
   }
-  [data-clicker] .clicker-login-panel { width: 100%; margin-top: 30vh; }
+  [data-clicker] .clicker-login-panel { width: 100%; margin-top: 28svh; }
 }
 
 @media (prefers-reduced-motion: reduce) {
