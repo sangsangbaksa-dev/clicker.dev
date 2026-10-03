@@ -13,6 +13,7 @@ import {
   grantAdminEnergy,
   processClick,
   productionSnapshot,
+  rebirthRequirement,
 } from "./clicker-engine.ts"
 
 const rng = () => 0.99
@@ -92,7 +93,7 @@ test("critical multiplier and combo cap nodes apply to clicks", () => {
 test("startingEnergy nodes carry CORE into the next run", () => {
   const now = 2_000_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), config.rebirthEnergy)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), rebirthRequirement(meta, config))
   run = buySkillNode(run, config, "trans_start").run
   const reborn = applyRebirth(run, meta, config, "focus_line", now + 1)
   assert.equal(reborn.error, undefined)

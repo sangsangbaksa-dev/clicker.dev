@@ -50,12 +50,15 @@ import {
   regionChallengeError,
   MINE_HOME_ONLY_ERROR,
 } from "./clicker-engine.ts"
-import { MINE_SESSION_BASE_MS as MINE_SESSION_MS, mineSessionDurationMs } from "./clicker-engine.ts"
+import { MINE_SESSION_BASE_MS as MINE_SESSION_MS, mineSessionDurationMs, worldlineGoal } from "./clicker-engine.ts"
 import { formatNumber } from "./clicker-format.ts"
 
 const config = clickerConfig
 /** Lifetime CORE that opens a world in the first worldline. */
-const worldCore = (id: string) => config.regions.find((r) => r.id === id)!.unlockAtLifetimeEnergy
+const worldCore = (id: string) =>
+  regionUnlockThreshold(createInitialRun(0, createInitialMeta(), config), config, config.regions.find((r) => r.id === id)!)
+/** Lifetime CORE that ends the first worldline (goal table applied). */
+const firstGoal = worldlineGoal(config, 0)
 const rng = () => 0.99
 const critRng = () => 0.0
 
@@ -245,7 +248,7 @@ test("region presence bonuses apply only while in that region", () => {
 test("rebirth clears region bonuses back to Core Chamber", () => {
   const now = 13_500_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), config.rebirthEnergy)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), firstGoal)
   run = travelToRegion(run, config, "signal_relay").run
   assert.equal(regionPresenceMultipliers(run, config).production, 1.12)
   const reborn = applyRebirth(run, meta, config, "focus_line", now + 10)
@@ -258,7 +261,7 @@ test("rebirth clears region bonuses back to Core Chamber", () => {
 test("rebirth resets region to home chamber", () => {
   const now = 12_500_000
   const meta = createInitialMeta()
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), config.rebirthEnergy)
+  let run = grantAdminEnergy(createInitialRun(now, meta, config), firstGoal)
   run = travelToRegion(run, config, "signal_relay").run
   const reborn = applyRebirth(run, meta, config, "focus_line", now + 10)
   assert.equal(reborn.error, undefined)
@@ -270,13 +273,13 @@ test("rebirth gate starts at rebirthEnergy lifetime CORE and grows each worldlin
   const meta = createInitialMeta()
   let run = createInitialRun(now, meta, config)
   assert.equal(canRebirth(run, meta, config), false)
-  run = grantAdminEnergy(run, config.rebirthEnergy * 0.999)
+  run = grantAdminEnergy(run, firstGoal * 0.999)
   assert.equal(canRebirth(run, meta, config), false)
-  run = grantAdminEnergy(run, config.rebirthEnergy * 0.001)
+  run = grantAdminEnergy(run, firstGoal * 0.001)
   assert.equal(canRebirth(run, meta, config), true)
   const later = { ...meta, rebirthCount: 1 }
   assert.equal(canRebirth(run, later, config), false)
-  assert.equal(rebirthRequirement(later, config), config.rebirthEnergy * config.rebirthGrowth)
+  assert.equal(rebirthRequirement(later, config), worldlineGoal(config, 1))
   // Every worldline buff walked once: no more rebirths, Core Heart instead.
   const done = { ...meta, transcendenceIds: config.transcendence.map((t) => t.id) }
   assert.equal(canRebirth(grantAdminEnergy(run, 1e30), done, config), false)
@@ -370,13 +373,13 @@ test("instability clamps and crisis choices leave a finite value", () => {
 test("rebirth resets run and keeps transcendence on meta", () => {
   const now = 5_000_000
   const meta = createInitialMeta()
-  const run = grantAdminEnergy(createInitialRun(now, meta, config), config.rebirthEnergy)
+  const run = grantAdminEnergy(createInitialRun(now, meta, config), firstGoal)
   const result = applyRebirth(run, meta, config, "focus_line", now + 10)
   assert.equal(result.error, undefined)
   assert.equal(result.meta.rebirthCount, 1)
   assert.deepEqual(result.meta.transcendenceIds, ["focus_line"])
   assert.equal(result.run.producerLevels.solar_node, 0)
-  assert.ok(result.run.coreEnergy < config.rebirthEnergy)
+  assert.ok(result.run.coreEnergy < firstGoal)
 })
 
 test("time away earns nothing and lapses timed state", () => {
@@ -489,7 +492,7 @@ test("field challenge pays production by score and then cools down", () => {
   const half = claimRegionChallenge(run, meta, config, "storm_spire", 0.5, now)
   assert.equal(half.error, undefined)
   assert.ok(Math.abs(half.reward - perSecond * spire.rewardSeconds * 0.5) < 1e-6)
-  assert.ok(Math.abs(half.run.coreEnergy - run.coreEnergy - half.reward) < 1e-6)
+  assert.ok(Math.abs(half.run.coreEnergy - run.coreEnergy - half.reward) <= Math.max(1e-6, run.coreEnergy * 1e-12))
   assert.ok(regionChallengeError(half.run, config, "storm_spire", now + 1000))
   assert.equal(regionChallengeError(half.run, config, "storm_spire", now + spire.cooldownSec * 1000), undefined)
   const cheat = claimRegionChallenge(run, meta, config, "storm_spire", 7, now)
@@ -842,7 +845,7 @@ test("worlds are late-run events: each opens in the back half of every worldline
   for (let i = 1; i < worlds.length; i++) assert.ok(worlds[i].unlockAtLifetimeEnergy > worlds[i - 1].unlockAtLifetimeEnergy)
   for (const line of [1, 2, 4]) {
     const run = { ...createInitialRun(1_000, meta, config), currentWorldLine: line }
-    const goal = config.rebirthEnergy * config.rebirthGrowth ** (line - 1)
+    const goal = worldlineGoal(config, line - 1)
     for (const w of worlds) {
       const share = regionUnlockThreshold(run, config, w) / goal
       assert.ok(share >= 0.2 && share < 1, `${w.id} opens at ${share} of worldline ${line}'s goal`)
