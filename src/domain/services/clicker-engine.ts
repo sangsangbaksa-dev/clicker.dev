@@ -744,8 +744,8 @@ export function maxAffordable(
 export function isProducerUnlocked(run: RunState, config: GameConfig, producerId: string): boolean {
   const producer = config.producers.find((p) => p.id === producerId)
   if (!producer) return false
-  if ((producer.requiresWorldLine ?? 1) > run.currentWorldLine) return false
-  return run.lifetimeCoreEnergy >= scaledCost(run, producer.unlockAt) || (run.producerLevels[producerId] ?? 0) > 0
+  // Only the worldline gate remains: every producer of an open worldline can be bought right away.
+  return (producer.requiresWorldLine ?? 1) <= run.currentWorldLine
 }
 
 /** Active skills live in the mine: they can only be cast there, and their cooldowns and buffs stand still outside it. */
