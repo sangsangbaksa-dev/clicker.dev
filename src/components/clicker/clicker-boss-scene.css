@@ -373,3 +373,79 @@
   .boss-scene-ambient { filter: blur(24px) brightness(0.45) saturate(1.2); }
   .boss-scene-hp { top: 8px; }
 }
+
+/* Tap sparks: a ring of shards flying out from the exact hit point. */
+.boss-scene-spark {
+  position: absolute;
+  z-index: 6;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.boss-scene-spark i {
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 6px;
+  height: 18px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #fff, var(--tint, #ffd08a) 60%, transparent);
+  box-shadow: 0 0 10px var(--tint, #ffb347);
+  transform: rotate(calc(var(--i) * 36deg)) translateY(-6px);
+  animation: boss-spark 0.45s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+.boss-scene-spark::after {
+  content: "";
+  position: absolute;
+  left: -26px;
+  top: -26px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, color-mix(in srgb, var(--tint, #ffb347) 70%, transparent) 40%, transparent 70%);
+  animation: boss-spark-core 0.32s ease-out forwards;
+}
+@keyframes boss-spark {
+  to { transform: rotate(calc(var(--i) * 36deg)) translateY(-58px) scaleY(0.4); opacity: 0; }
+}
+@keyframes boss-spark-core {
+  from { transform: scale(0.4); opacity: 1; }
+  to { transform: scale(1.6); opacity: 0; }
+}
+
+/* Under 30% HP: red rage pulse over the guardian. */
+.clicker-boss-scene.is-enraged .boss-scene-box::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: radial-gradient(70% 70% at 50% 45%, transparent 40%, rgb(255 30 40 / 0.32));
+  animation: boss-rage 0.9s ease-in-out infinite alternate;
+}
+.clicker-boss-scene.is-enraged .boss-scene-eye { filter: hue-rotate(-40deg) saturate(2) brightness(1.4); }
+@keyframes boss-rage {
+  from { opacity: 0.45; }
+  to { opacity: 1; }
+}
+
+/* Killing blow: one white flash over the stage. */
+.boss-scene-killflash {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, #fff, rgb(255 230 180 / 0.6) 40%, transparent 75%);
+  animation: boss-killflash 0.9s ease-out forwards;
+}
+@keyframes boss-killflash {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boss-scene-spark i,
+  .boss-scene-spark::after,
+  .clicker-boss-scene.is-enraged .boss-scene-box::after { animation: none; opacity: 0.6; }
+}

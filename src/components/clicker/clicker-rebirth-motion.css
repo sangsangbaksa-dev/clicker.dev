@@ -709,3 +709,36 @@
   .clicker-rebirth-stamp-shock,
   .clicker-rebirth-motion[data-phase="stamp"] .clicker-rebirth-stamp-image { animation: none; }
 }
+
+/* Stamp impact: the seal slams down with a full-screen flash and a second, later shockwave. */
+.clicker-rebirth-stamp-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 46%, #fff 0%, color-mix(in srgb, var(--stamp-primary, #7fe9ff) 55%, white) 30%, transparent 72%);
+  mix-blend-mode: screen;
+  animation: rb-stamp-flash 700ms ease-out both;
+}
+@keyframes rb-stamp-flash {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.clicker-rebirth-stamp-shock.is-late {
+  animation-delay: 220ms;
+  border-color: color-mix(in srgb, var(--stamp-accent, #3d7eff) 80%, white);
+}
+.clicker-rebirth-motion[data-phase="stamp"] .clicker-rebirth-stamp-wrap {
+  animation: rb-stamp-slam 520ms cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+@keyframes rb-stamp-slam {
+  0% { scale: 1.6; filter: blur(3px); }
+  55% { scale: 0.94; filter: none; }
+  100% { scale: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clicker-rebirth-stamp-flash,
+  .clicker-rebirth-motion[data-phase="stamp"] .clicker-rebirth-stamp-wrap { animation: none; opacity: 0; }
+  .clicker-rebirth-motion[data-phase="stamp"] .clicker-rebirth-stamp-wrap { opacity: 1; }
+}

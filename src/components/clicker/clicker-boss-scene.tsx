@@ -88,6 +88,9 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
   const [hitKey, setHitKey] = useState(0)
   const [dying, setDying] = useState(false)
   const [taunting, setTaunting] = useState(false)
+  /** Spark bursts at the exact tap points (removed after their animation). */
+  const [sparks, setSparks] = useState<Array<{ id: number; x: number; y: number }>>([])
+  const sparkId = useRef(0)
   const shielded = shieldMs > 0 && !battle
   const timers = useRef<number[]>([])
   const later = (fn: () => void, ms: number) => timers.current.push(window.setTimeout(fn, ms))
@@ -140,6 +143,10 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
       return
     }
     setHitKey((k) => k + 1)
+    const box = e.currentTarget.getBoundingClientRect()
+    const id = ++sparkId.current
+    setSparks((list) => [...list.slice(-5), { id, x: ((e.clientX - box.left) / box.width) * 100, y: ((e.clientY - box.top) / box.height) * 100 }])
+    later(() => setSparks((list) => list.filter((sp) => sp.id !== id)), 460)
     if (onStrike(e.clientX, e.clientY)) {
       playSfx("bossDeath")
       setDying(true)
@@ -169,6 +176,8 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
     shielded ? "is-shielded" : "",
     taunting ? "is-taunting" : "",
     battle ? "is-battle" : "",
+    // Under 30% HP the guardian enrages: red pulse, so the last stretch feels like a finish.
+    battle && battle.bossHp / Math.max(1, battle.bossMaxHp) < 0.3 ? "is-enraged" : "",
   ]
     .filter(Boolean)
     .join(" ")
@@ -204,6 +213,14 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
             ))}
           </span>
         ) : null}
+        {sparks.map((sp) => (
+          <span key={sp.id} className="boss-scene-spark" style={{ left: `${sp.x}%`, top: `${sp.y}%` }} aria-hidden>
+            {Array.from({ length: 10 }, (_, i) => (
+              <i key={i} style={{ "--i": i } as CSSProperties} />
+            ))}
+          </span>
+        ))}
+        {dying ? <span className="boss-scene-killflash" aria-hidden /> : null}
         {shielded ? (
           <span className="boss-scene-shield" aria-hidden>
             <b>

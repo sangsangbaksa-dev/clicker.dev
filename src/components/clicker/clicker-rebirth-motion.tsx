@@ -608,6 +608,7 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
           <>
             <span className="clicker-rebirth-stamp-rays" aria-hidden />
             <span className="clicker-rebirth-stamp-shock" aria-hidden />
+            <span className="clicker-rebirth-stamp-shock is-late" aria-hidden />
           </>
         ) : null}
         <StampGlyph variant={variant} intensity={stillOnly ? 1 : frame.stampScale} reducedMotion={reducedMotion} />
@@ -616,6 +617,7 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
           <p className="clicker-rebirth-chamber-reminder">{REBIRTH_CHAMBER_REMINDER}</p>
         ) : null}
       </div>
+      {!stillOnly && frame.phase === "stamp" ? <div className="clicker-rebirth-stamp-flash" aria-hidden /> : null}
       {!stillOnly ? <div className="clicker-rebirth-chromatic" aria-hidden /> : null}
       <div className="clicker-rebirth-vignette" aria-hidden />
       <p className="clicker-rebirth-sr">{worldlineLabel} — {stillOnly ? "reduced motion still" : frame.phase.replace("_", " ")}</p>
