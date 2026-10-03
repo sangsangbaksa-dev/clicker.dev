@@ -45,7 +45,8 @@ const baseConfig: GameConfig = {
   // (scripts/playtime-sim.ts). ×2 prices let wl2+ buy the whole tree at once: income ×10⁸ a minute.
   rebirthEnergy: 1e12,
   rebirthGrowth: 120,
-  priceGrowth: 5,
+  // ×2 per worldline (was ×5): with rebirth circuits from 200M, later runs must still speed up.
+  priceGrowth: 2,
   // Bought multipliers (upgrades + circuits) past ×300 count as (excess)^0.45: buying out the
   // catalog late in a worldline is a climb, not a cliff.
   stackSoftCap: 300,
