@@ -126,7 +126,7 @@ const NODE_SPECS: NodeSpec[] = [
   ["reso_wave2", "RESONANCE", 3, "Standing Wave", 25_000_000, "reso_bell", { feverIntensity: 1.2 }, "FEVER 강도 +20%"],
   ["reso_peak", "RESONANCE", 4, "Peak Harmony", 700_000_000, "reso_wave2", { productionMultiplier: 1.4 }, "생산 ×1.4"],
   ["reso_crown", "RESONANCE", 5, "Harmonic Crown", 50_000_000_000, "reso_peak", { clickMultiplier: 1.8, productionMultiplier: 1.8 }, "채굴·생산 ×1.8"],
-  ["reso_risk", "RESONANCE", 3, "Edge Dance", 20_000_000, "reso_edge", { instabilityRewardBonus: 0.1 }, "불안정 보상 +10%"],
+  ["reso_risk", "RESONANCE", 3, "Edge Dance", 20_000_000, "reso_edge", { instabilityRewardBonus: 0.1 }, "생산 +10%"],
   ["trans_spark", "TRANSCENDENCE", 1, "Memory Spark", 25_000, "trans_start", { startingEnergy: 20 }, "다음 런 시작 +20 CORE"],
   ["trans_kin", "TRANSCENDENCE", 2, "Kinship", 400_000, "trans_spark", { clickMultiplier: 1.2 }, "채굴 ×1.2"],
   ["trans_flow", "TRANSCENDENCE", 2, "World Flow", 1_500_000, "trans_kin", { productionMultiplier: 1.2 }, "생산 ×1.2"],

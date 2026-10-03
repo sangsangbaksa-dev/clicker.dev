@@ -13,7 +13,6 @@ import {
   ARMORS,
   CLICKER_ADMIN_REMEMBER_KEY,
   CLICKER_PRELAUNCH,
-  INSTABILITY_WARNING,
   LAIR_BOSSES,
   WEAPONS,
   drillCooldownMs,
@@ -650,16 +649,6 @@ export function ClickerApp() {
     prevFeverActive.current = feverActive
   }, [feverActive])
 
-  // Instability: one warning on the way up past 70%, then at 100% the core collapses on its own.
-  const instabilityValue = game.hud?.instability.value ?? 0
-  const prevInstability = useRef(instabilityValue)
-  useEffect(() => {
-    if (instabilityValue >= INSTABILITY_WARNING && prevInstability.current < INSTABILITY_WARNING) {
-      playSfx("timerWarn")
-      game.notify(`경고 · 불안정 ${Math.round(instabilityValue)}% — 100%가 되면 CORE의 절반을 잃습니다`)
-    }
-    prevInstability.current = instabilityValue
-  }, [instabilityValue, game])
   const collapseAt = game.save?.runState.lastCollapse?.at ?? 0
   const prevCollapseAt = useRef(collapseAt)
   useEffect(() => {
@@ -900,14 +889,6 @@ export function ClickerApp() {
       ...(showTranscendenceTab ? ([["transcendence", "TRANSCENDENCE", "초월"]] as const) : []),
     ] as const
   )
-  const instClass =
-    hud.instability.level === "CRISIS"
-      ? "is-crisis"
-      : hud.instability.level === "HIGH"
-        ? "is-high"
-        : hud.instability.level === "MID"
-          ? "is-warn"
-          : ""
   const automationBuff =
     run.ownedSkillNodeIds.some((id) => id.startsWith("auto_")) ||
     game.save.metaState.transcendenceIds.includes("auto_line") ||
@@ -1029,18 +1010,6 @@ export function ClickerApp() {
             </em>
           </div>
         )}
-        <div
-          className="clicker-metric"
-          aria-label={`불안정 ${Math.round(hud.instability.value)}퍼센트 · ${hud.instability.label}`}
-        >
-          <span>불안정</span>
-          <div className={`clicker-bar ${instClass}`} aria-hidden>
-            <i style={{ width: `${Math.round(hud.instability.value)}%` }} />
-          </div>
-          <em>
-            {Math.round(hud.instability.value)}% · {hud.instability.label}
-          </em>
-        </div>
         {transcendenceUnlocked || game.save.metaState.rebirthCount > 0 ? (
           showTranscendenceTab ? (
             <button

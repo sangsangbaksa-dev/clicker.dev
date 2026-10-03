@@ -793,21 +793,20 @@ test("fever: its timer and bonuses hold while you are outside the mine", async (
   assert.ok(ran.fever.remainingTime < inside.fever.remainingTime)
 })
 
-test("instability 100: the core collapses on its own — half the CORE is lost, no choice", async () => {
+test("instability is switched off: the gauge stays at 0 and the core never collapses", async () => {
   const eng = await import("./clicker-engine.ts")
   const config = clickerConfig
   const meta = eng.createInitialMeta()
   const now = 7_000_000
   const run = { ...eng.createInitialRun(now, meta, config), coreEnergy: 1_000, instability: 100, lastTickAt: now }
   const after = eng.processTick(run, meta, config, now + 100).run
-  assert.equal(after.crisisActive, false)
-  assert.equal(after.instability, eng.CRISIS_RESET_INSTABILITY)
-  assert.equal(after.lastCollapse?.at, now + 100)
-  assert.ok(Math.abs((after.lastCollapse?.loss ?? 0) - after.coreEnergy) < 1e-6, "loss equals what is left: exactly half")
-  // An old save stuck in a crisis resolves the same way on its next tick.
+  assert.equal(after.instability, 0)
+  assert.equal(after.lastCollapse, undefined)
+  assert.ok(after.coreEnergy >= 1_000, "nothing is lost")
+  // An old save stuck in a crisis is simply released on its next tick.
   const stuck = eng.processTick({ ...run, instability: 50, crisisActive: true }, meta, config, now + 100).run
   assert.equal(stuck.crisisActive, false)
-  assert.equal(stuck.instability, eng.CRISIS_RESET_INSTABILITY)
+  assert.equal(stuck.instability, 0)
 })
 
 test("mine re-entry waits 10s and pays less per session so CORE per minute is unchanged", () => {

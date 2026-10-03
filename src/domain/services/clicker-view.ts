@@ -383,7 +383,6 @@ function potionEffectSummary(potion: {
   if (potion.clickMultiplier !== 1) parts.push(`채굴 ×${trimMult(potion.clickMultiplier)}`)
   if (potion.productionMultiplier !== 1) parts.push(`생산 ×${trimMult(potion.productionMultiplier)}`)
   if (potion.criticalChanceAdd) parts.push(`치명타 +${Math.round(potion.criticalChanceAdd * 100)}%`)
-  if (potion.instabilityPerSecond) parts.push(`불안정 +${potion.instabilityPerSecond}/초`)
   return parts.join(" · ") || "효과 없음"
 }
 
@@ -412,10 +411,6 @@ function activeSkillEffectSummary(skill: {
   if (skill.clickMultiplier != null && skill.clickMultiplier !== 1) {
     parts.push(`채굴 ×${trimMult(skill.clickMultiplier)}`)
   }
-  if (skill.instabilityDelta) {
-    parts.push(`불안정 ${skill.instabilityDelta > 0 ? "+" : ""}${skill.instabilityDelta}`)
-  }
-  if (skill.instabilityPerSecond) parts.push(`불안정 +${skill.instabilityPerSecond}/초`)
   if (skill.duration > 0) parts.push(`${skill.duration}초`)
   if (skill.cooldown > 0) parts.push(`쿨다운 ${skill.cooldown}초`)
   return parts.join(" · ") || "효과 없음"

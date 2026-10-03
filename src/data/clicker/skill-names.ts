@@ -194,7 +194,7 @@ export function describeSkillNode(n: SkillNodeDef): string {
   if (n.feverDurationAdd) parts.push(`FEVER 지속 +${n.feverDurationAdd}초 연장`)
   if (n.feverIntensity) parts.push(`FEVER 보상 강도 +${pct(n.feverIntensity - 1)}`)
   if (n.finisherReward) parts.push(`FEVER 피니셔 보상 ${times(n.finisherReward)}`)
-  if (n.instabilityRewardBonus) parts.push(`불안정 상태 보상 +${pct(n.instabilityRewardBonus)}`)
+  if (n.instabilityRewardBonus) parts.push(`생산 +${pct(n.instabilityRewardBonus)}`)
   if (n.monsterRewardMultiplier) parts.push(`크리처 처치 보상 ${times(n.monsterRewardMultiplier)}`)
   if (n.bossDamageMultiplier) parts.push(`수호자에게 주는 피해 ${times(n.bossDamageMultiplier)}`)
   return parts.join(" · ")

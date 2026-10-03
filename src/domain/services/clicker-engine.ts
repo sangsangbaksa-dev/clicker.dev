@@ -506,7 +506,11 @@ export function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n))
 }
 
+/** Instability is switched off: the gauge stays at 0 and the core never collapses. */
+export const INSTABILITY_ENABLED = false
+
 export function applyInstabilityDelta(run: RunState, delta: number): RunState {
+  if (!INSTABILITY_ENABLED) return { ...run, instability: 0 }
   return { ...run, instability: clamp(run.instability + delta, 0, 100) }
 }
 
@@ -1154,8 +1158,11 @@ export function processTick(
     coreEnergy: next.coreEnergy + gained,
     lifetimeCoreEnergy: next.lifetimeCoreEnergy + gained,
   }
-  if (!next.crisisActive) next = applyInstabilityDelta(next, hoardInstabilityPerSecond(next, snapshot.perSecond, now) * dt)
-  if (next.instability >= 100 || next.crisisActive) next = collapseCore(next, now)
+  if (!INSTABILITY_ENABLED) next = { ...next, instability: 0, crisisActive: false }
+  else {
+    if (!next.crisisActive) next = applyInstabilityDelta(next, hoardInstabilityPerSecond(next, snapshot.perSecond, now) * dt)
+    if (next.instability >= 100 || next.crisisActive) next = collapseCore(next, now)
+  }
   next = tickBoss(next, config, now)
   next = refreshSkillPoints(next, config)
   next = refreshObjective(next, meta, config)
