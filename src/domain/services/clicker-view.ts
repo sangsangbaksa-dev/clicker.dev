@@ -25,6 +25,7 @@ import {
   upgradeCurrencyCosts,
   purchaseCurrencyCosts,
   feverPaused,
+  feverUnlocked,
   payCurrencyCosts,
   type CurrencyCost,
   activeSkillCost,
@@ -40,6 +41,7 @@ export type MainHudViewModel = {
   comboRemainText: string
   fever: {
     active: boolean
+    locked: boolean
     ready: boolean
     progress: number
     remainingSeconds: number
@@ -97,7 +99,9 @@ export function buildHud(
     comboRemainText: run.combo.count > 1 ? `남음 ${comboRemain.toFixed(1)}초` : "",
     fever: {
       active: feverOn,
-      ready: !feverOn && run.fever.gauge >= config.feverGaugeMax && run.fever.phase === "IDLE",
+      /** Not unlocked yet (Fever Core circuit): the gauge does not fill. */
+      locked: !feverUnlocked(run, config),
+      ready: feverUnlocked(run, config) && !feverOn && run.fever.gauge >= config.feverGaugeMax && run.fever.phase === "IDLE",
       progress: feverOn
         ? run.fever.duration > 0
           ? clampRatio(run.fever.remainingTime / run.fever.duration)
@@ -108,7 +112,9 @@ export function buildHud(
       remainingSeconds: feverOn || feverCooling ? Math.max(0, run.fever.remainingTime) : 0,
       combo: run.fever.combo,
       finisherReady: run.fever.finisherReady,
-      phaseLabel: feverHeld
+      phaseLabel: !feverUnlocked(run, config)
+        ? "FEVER 잠김"
+        : feverHeld
         ? "FEVER 일시정지"
         : feverOn
         ? run.fever.finisherReady

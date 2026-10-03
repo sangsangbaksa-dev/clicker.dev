@@ -214,6 +214,9 @@ const LATE_PRODUCTION_SCALE: Record<string, number> = {
   heart_engine: 0.2,
 }
 
+/** Every producer's base output (×2 over the earlier catalog). */
+const PRODUCER_OUTPUT = 2
+
 /** The rebirth (TRANSCENDENCE) circuits start at 200M and climb steeply from there. */
 const TRANSCENDENCE_FIRST_COST = 2e8
 const TRANSCENDENCE_COST_CURVE = 0.6
@@ -246,7 +249,7 @@ export function finalizeCatalog(base: GameConfig): GameConfig {
       ...p,
       baseCost: p.baseCost * c,
       unlockAt: p.unlockAt * c,
-      productionPerSecond: p.productionPerSecond * u * (LATE_PRODUCTION_SCALE[p.id] ?? 1),
+      productionPerSecond: p.productionPerSecond * u * PRODUCER_OUTPUT * (LATE_PRODUCTION_SCALE[p.id] ?? 1),
     })),
     upgrades: upgrades
       .map((x) => ({ ...x, cost: x.cost * c, assetId: x.assetId ?? `/clicker/upgrade/${x.id}.webp` }))

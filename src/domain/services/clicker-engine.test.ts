@@ -114,7 +114,10 @@ test("fever starts from gauge or potion and ends after duration", () => {
   const now = 3_000_000
   const meta = createInitialMeta()
   let run = createInitialRun(now, meta, config)
-  run = { ...run, fever: { ...run.fever, gauge: 100 } }
+  run = { ...run, fever: { ...run.fever, gauge: config.feverGaugeMax } }
+  // Locked until the Fever Core circuit is owned.
+  assert.match(startFever(run, meta, config, "GAUGE", null).error ?? "", /해금/)
+  run = { ...run, ownedSkillNodeIds: ["focus_click", "fever_unlock"] }
   const fromGauge = startFever(run, meta, config, "GAUGE", null)
   assert.equal(fromGauge.run.fever.phase, "FEVER")
   // FEVER only counts down inside a mine session.
@@ -282,7 +285,7 @@ test("rebirth gate starts at rebirthEnergy lifetime CORE and grows each worldlin
 test("economy is in the ÷1000 unit and rebirths are worth ×5", () => {
   assert.ok(Math.abs(config.baseClick - 0.0065) < 1e-12)
   assert.equal(config.rebirthEnergy, 1e9)
-  assert.equal(config.producers[0]?.productionPerSecond, 0.0015)
+  assert.equal(config.producers[0]?.productionPerSecond, 0.003, "producers run at twice the earlier base output")
   assert.equal(config.worldlineBonus, 4)
   // Same tech, cheapest first.
   const costs = config.producers.map((p) => p.baseCost)
@@ -772,7 +775,7 @@ test("fever: its timer and bonuses hold while you are outside the mine", async (
   const meta = eng.createInitialMeta()
   const now = 5_000_000
   const base = eng.createInitialRun(now, meta, config)
-  const charged = { ...base, fever: { ...base.fever, gauge: config.feverGaugeMax } }
+  const charged = { ...base, ownedSkillNodeIds: ["focus_click", "fever_unlock"], fever: { ...base.fever, gauge: config.feverGaugeMax } }
   const lit = eng.startFever(charged, meta, config, "GAUGE", null)
   assert.equal(lit.error, undefined)
   const outside = { ...lit.run, mineSessionEndsAt: 0, lastTickAt: now }

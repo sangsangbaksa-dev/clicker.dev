@@ -489,7 +489,7 @@ export function scaledCost(run: RunState, cost: number): number {
 
 /** Lifetime CORE the current worldline must reach before it can fold. */
 export function rebirthRequirement(meta: MetaState, config: GameConfig): number {
-  return config.rebirthEnergy * config.rebirthGrowth ** meta.rebirthCount
+  return config.rebirthEnergy * config.rebirthGrowth ** meta.rebirthCount * (config.rebirthGoalScale?.[meta.rebirthCount] ?? 1)
 }
 
 function startingEnergy(meta: MetaState, config: GameConfig): number {
@@ -902,7 +902,7 @@ export function processClick(
       !feverState.finisherUsed &&
       (feverState.combo >= config.feverComboCap || feverState.critsThisFever >= 5)
     combo.expiresAt += 400
-  } else if (feverState.phase === "IDLE") {
+  } else if (feverState.phase === "IDLE" && feverUnlocked(run, config)) {
     const gain = 1 + (isCritical ? 4 : 0) + (combo.count > 0 && combo.count % 10 === 0 ? 6 : 0)
     feverState.gauge = clamp(feverState.gauge + gain, 0, config.feverGaugeMax)
   }
@@ -996,6 +996,12 @@ export function buyActiveSkillItem(
   }
 }
 
+/** FEVER stays locked until a circuit with `unlocksFever` is owned (always open if none exists). */
+export function feverUnlocked(run: RunState, config: GameConfig): boolean {
+  const gates = config.skillNodes.filter((n) => n.unlocksFever)
+  return !gates.length || gates.some((n) => run.ownedSkillNodeIds.includes(n.id))
+}
+
 export function startFever(
   run: RunState,
   meta: MetaState,
@@ -1003,6 +1009,7 @@ export function startFever(
   source: "GAUGE" | "POTION",
   potionId: string | null
 ): { run: RunState; error?: string } {
+  if (!feverUnlocked(run, config)) return { run, error: "스킬 「Fever Core」에서 FEVER를 해금해야 합니다." }
   if (run.crisisActive) return { run, error: "위기 중에는 FEVER를 열 수 없습니다." }
   if (feverActive(run.fever) || run.fever.phase === "COOL_DOWN") {
     return { run, error: "FEVER가 아직 끝나지 않았습니다." }

@@ -31,11 +31,12 @@ const baseConfig: GameConfig = {
   comboWindow: 1.8,
   comboPerStack: 0.02,
   comboMultiplierCap: 2,
-  feverGaugeMax: 100,
-  feverDuration: 20,
-  feverClickMultiplier: 2,
-  feverProductionMultiplier: 1.2,
-  feverCritChanceAdd: 0.1,
+  // FEVER is unlocked by the Fever Core circuit; rarer and shorter than before, but much stronger.
+  feverGaugeMax: 250,
+  feverDuration: 10,
+  feverClickMultiplier: 5,
+  feverProductionMultiplier: 2,
+  feverCritChanceAdd: 0.2,
   feverComboCap: 10,
   feverCoolDown: 2,
   // Final unit ÷1000: goals 1B → 120B → 14T … Prices ×5 per worldline keep pace with the ×5
@@ -452,6 +453,17 @@ const baseConfig: GameConfig = {
     },
   ],
   skillNodes: [
+    {
+      id: "fever_unlock",
+      branch: "FOCUS",
+      tier: 1,
+      name: "Fever Core",
+      description: "FEVER 해금 · 채굴로 게이지를 채우면 10초간 채굴 ×5 · 생산 ×2",
+      cost: 20_000,
+      requires: ["focus_click"],
+      unlocksFever: true,
+      assetId: "/clicker/upgrade/fever_core.webp",
+    },
     {
       id: "focus_click",
       branch: "FOCUS",

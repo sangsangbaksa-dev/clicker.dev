@@ -986,7 +986,9 @@ export function ClickerApp() {
                 ? `${hud.fever.phaseLabel} · 남음 ${hud.fever.remainingSeconds.toFixed(1)}초`
                 : run.fever.phase === "COOL_DOWN"
                   ? `쿨다운 · 남음 ${hud.fever.remainingSeconds.toFixed(1)}초`
-                  : `${hud.fever.phaseLabel} · 게이지 ${Math.round(run.fever.gauge)}퍼센트`
+                  : hud.fever.locked
+                    ? "FEVER 잠김 · 스킬 「Fever Core」에서 해금"
+                    : `${hud.fever.phaseLabel} · 게이지 ${Math.round(hud.fever.progress * 100)}퍼센트`
             }
           >
             <span>{hud.fever.phaseLabel}</span>
@@ -1003,7 +1005,9 @@ export function ClickerApp() {
                   : `${hud.fever.remainingSeconds.toFixed(1)}초`
                 : run.fever.phase === "COOL_DOWN"
                   ? `${hud.fever.remainingSeconds.toFixed(1)}초`
-                  : `${Math.round(run.fever.gauge)}%`}
+                  : hud.fever.locked
+                    ? "스킬에서 해금"
+                    : `${Math.round(hud.fever.progress * 100)}%`}
             </em>
           </div>
         )}
@@ -1226,7 +1230,9 @@ export function ClickerApp() {
                       ? `FEVER · ${hud.fever.remainingSeconds.toFixed(1)}초`
                       : hud.fever.ready
                         ? "FEVER 준비됨 — 탭하여 시작"
-                        : `FEVER 게이지 ${Math.round(run.fever.gauge)}%`
+                        : hud.fever.locked
+                          ? "FEVER 잠김 · 스킬에서 해금"
+                          : `FEVER 게이지 ${Math.round(hud.fever.progress * 100)}%`
                   }
                   onClick={() => {
                     flashStage()
@@ -1241,7 +1247,9 @@ export function ClickerApp() {
                         ? "쿨다운"
                         : hud.fever.ready
                           ? "READY"
-                          : `${Math.round(run.fever.gauge)}%`}
+                          : hud.fever.locked
+                            ? "잠김"
+                            : `${Math.round(hud.fever.progress * 100)}%`}
                   </strong>
                   <i style={{ width: `${Math.round(hud.fever.progress * 100)}%` }} aria-hidden />
                 </button>

@@ -294,6 +294,8 @@ export type SkillNodeDef = {
   finisherReward?: number
   instabilityRewardBonus?: number
   comboWindowAdd?: number
+  /** Owning this circuit unlocks FEVER (gauge, gauge start and potions); locked until then. */
+  unlocksFever?: boolean
   feverDurationAdd?: number
   feverIntensity?: number
   /** CORE carried into the next run when rebirthing with this node owned. */
@@ -548,6 +550,11 @@ export type GameConfig = {
   rebirthEnergy: number
   /** Each rebirth multiplies the next requirement by this. */
   rebirthGrowth: number
+  /**
+   * Per-worldline correction on that requirement (index = rebirths so far; missing = 1), so each
+   * worldline can be paced to its own length.
+   */
+  rebirthGoalScale?: number[]
   /** Each rebirth multiplies every CORE price (producers, upgrades, circuits, shop) by this. */
   priceGrowth: number
   /**
