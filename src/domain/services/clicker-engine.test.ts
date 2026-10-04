@@ -674,7 +674,7 @@ test("world skill trees: one per world, bought in order with that world's curren
   assert.match(eng.worldTreeNodeError({ ...open, regionCurrency: { core_heart: 1e30 } }, config, locked.id) ?? "", /열리지/)
 })
 
-test("gacha: pays CORE, guarantees a legendary by the pity counter, stars boost production", async () => {
+test("gacha: costs CORE, guarantees a legendary by the pity counter, stars boost production", async () => {
   const eng = await import("./clicker-engine.ts")
   const config = clickerConfig
   const meta = eng.createInitialMeta()
@@ -697,20 +697,32 @@ test("gacha: pays CORE, guarantees a legendary by the pity counter, stars boost 
   assert.equal(m.gachaStars, 1)
   assert.equal(m.gachaPulls, 60)
   assert.equal(eng.gachaStarMultiplier(m), eng.GACHA_STAR_PRODUCTION)
-  // A rare pull starts the production boost.
-  const rare = eng.pullGacha(run, meta, config, 0, () => 0.2)
-  assert.equal(rare.rewards[0].rarity, "rare")
-  assert.ok(rare.run.eventBoosts.some((b) => b.id === "gacha" && b.expiresAt > 0))
+  // Capsules never pay CORE: the balance only goes down, by exactly the price.
+  assert.equal(r.coreEnergy, run.coreEnergy - 6 * eng.gachaCost(run, meta, config, 0, 10))
 })
 
-test("gacha: a pull returns well under its cost on average, boost included", async () => {
+test("gacha: common = skill charges, rare = a free upgrade, epic = a free circuit, never rebirth nodes", async () => {
   const eng = await import("./clicker-engine.ts")
-  // Seconds of income, per pull: the ten-pull price against the expected CORE (no world open yet,
-  // so epic pays CORE) plus the rare boost's extra production.
-  const cost = 600 * eng.GACHA_TEN_PULL_DISCOUNT
-  const boost = (eng.GACHA_BOOST_MULTIPLIER - 1) * eng.GACHA_BOOST_SECONDS
-  const back = 0.6 * eng.GACHA_COMMON_SECONDS + 0.28 * (eng.GACHA_RARE_SECONDS + boost) + 0.1 * eng.GACHA_EPIC_SECONDS
-  assert.ok(back < cost * 0.6, `returns ${Math.round((back / cost) * 100)}% of the price`)
+  const config = clickerConfig
+  const meta = eng.createInitialMeta()
+  // A run with real production, so cheap upgrades and circuits are within a couple of pulls.
+  const levels = Object.fromEntries(config.producers.map((p) => [p.id, 40]))
+  const run = { ...eng.createInitialRun(0, meta, config), coreEnergy: 1e40, producerLevels: levels }
+  const at = (rarity: number) => () => rarity
+  const common = eng.pullGacha(run, meta, config, 0, at(0.9)).rewards[0]
+  assert.equal(common.kind, "skill")
+  const rare = eng.pullGacha(run, meta, config, 0, at(0.2))
+  assert.equal(rare.rewards[0].kind, "upgrade")
+  assert.equal(rare.run.ownedUpgradeIds.length, run.ownedUpgradeIds.length + 1)
+  const epic = eng.pullGacha(run, meta, config, 0, at(0.05))
+  const got = epic.rewards[0]
+  assert.equal(got.kind, "circuit")
+  const node = config.skillNodes.find((n) => got.kind === "circuit" && n.id === got.nodeId)
+  assert.notEqual(node?.branch, "TRANSCENDENCE")
+  // Nothing priced within reach (fresh run): rare falls back to skill charges instead.
+  const fresh = { ...eng.createInitialRun(0, meta, config), coreEnergy: 1e40 }
+  const poor = eng.pullGacha(fresh, meta, config, 0, at(0.2)).rewards[0]
+  assert.ok(poor.kind === "upgrade" || poor.kind === "skill")
 })
 
 test("lair: enter, get knocked out → 3-minute shield; forge gear; kill pays out", async () => {

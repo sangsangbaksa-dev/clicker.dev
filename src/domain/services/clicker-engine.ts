@@ -2052,27 +2052,27 @@ export function buyWorldTreeNode(run: RunState, config: GameConfig, nodeId: stri
 export type GachaRarity = "common" | "rare" | "epic" | "legendary"
 
 export type GachaReward =
-  | { rarity: "common"; kind: "core"; amount: number }
-  | { rarity: "rare"; kind: "boost"; multiplier: number; seconds: number; amount: number }
-  | { rarity: "epic"; kind: "currency"; regionId: string; amount: number }
-  | { rarity: "epic"; kind: "core"; amount: number }
+  | { rarity: GachaRarity; kind: "skill"; skillId: string; count: number }
+  | { rarity: GachaRarity; kind: "upgrade"; upgradeId: string }
+  | { rarity: GachaRarity; kind: "circuit"; nodeId: string }
   | { rarity: "legendary"; kind: "star"; stars: number }
 
 /** Pulls without a legendary before one is guaranteed. */
 export const GACHA_PITY = 60
 /** Each legendary star: permanent production ×1.08 (survives rebirth). */
 export const GACHA_STAR_PRODUCTION = 1.08
-export const GACHA_BOOST_MULTIPLIER = 2
-export const GACHA_BOOST_SECONDS = 180
-/**
- * CORE paid back, in seconds of income. Together with the rare boost a pull returns about half
- * its cost on average, so capsules are a gamble for stars — never a CORE fountain.
- */
-export const GACHA_COMMON_SECONDS = 200
-export const GACHA_RARE_SECONDS = 120
-export const GACHA_EPIC_SECONDS = 600
 /** A ten-pull costs nine. */
 export const GACHA_TEN_PULL_DISCOUNT = 0.9
+/**
+ * Capsules hand out things, never CORE: common = active skill charges, rare = a free upgrade,
+ * epic = a free skill circuit. Only items priced within a few pulls are in the pool, so a
+ * capsule saves a little time but never skips far ahead.
+ */
+export const GACHA_COMMON_CHARGES = 1
+export const GACHA_UPGRADE_MAX_PULLS = 2
+export const GACHA_CIRCUIT_MAX_PULLS = 4
+/** Each draw picks from this many of the cheapest eligible items. */
+const GACHA_POOL = 5
 const GACHA_RATES: Array<[GachaRarity, number]> = [
   ["legendary", 0.02],
   ["epic", 0.1],
@@ -2105,9 +2105,37 @@ function rollRarity(pity: number, rng: () => number): GachaRarity {
   return "common"
 }
 
+function pickCheapest<T>(items: T[], price: (item: T) => number, rng: () => number): T | undefined {
+  const pool = [...items].sort((x, y) => price(x) - price(y)).slice(0, GACHA_POOL)
+  return pool.length ? pool[Math.floor(rng() * pool.length) % pool.length] : undefined
+}
+
+/** Upgrades the player could buy right now (conditions met), priced within `maxCost`. */
+export function gachaUpgradePool(run: RunState, config: GameConfig, maxCost: number) {
+  return config.upgrades.filter(
+    (u) =>
+      !run.ownedUpgradeIds.includes(u.id) &&
+      (!u.unlockProducerId || (run.producerLevels[u.unlockProducerId] ?? 0) > 0) &&
+      (!u.unlockFeverStarts || run.feverStarts >= u.unlockFeverStarts) &&
+      scaledCost(run, u.cost) <= maxCost,
+  )
+}
+
+/** Circuits whose prerequisites are owned, priced within `maxCost`. Rebirth-side nodes never drop. */
+export function gachaCircuitPool(run: RunState, config: GameConfig, maxCost: number) {
+  return config.skillNodes.filter(
+    (n) =>
+      n.branch !== "TRANSCENDENCE" &&
+      !run.ownedSkillNodeIds.includes(n.id) &&
+      (n.requires ?? []).every((id) => run.ownedSkillNodeIds.includes(id)) &&
+      scaledCost(run, n.cost) <= maxCost,
+  )
+}
+
 /**
  * Pull `count` capsules: pays CORE, rolls rarities (legendary guaranteed by the pity counter) and
- * applies every reward. Epic pays the currency of a random open world (half its next tree node).
+ * grants each reward. A rarity with nothing left to give falls back a step: circuit → upgrade →
+ * skill charges.
  */
 export function pullGacha(
   run: RunState,
@@ -2119,52 +2147,43 @@ export function pullGacha(
 ): { run: RunState; meta: MetaState; rewards: GachaReward[]; error?: string } {
   const cost = gachaCost(run, meta, config, now, count)
   if (run.coreEnergy < cost) return { run, meta, rewards: [], error: "CORE가 부족합니다." }
-  const unit = gachaUnit(run, meta, config, now)
+  const one = gachaCost(run, meta, config, now, 1)
   let next: RunState = { ...run, coreEnergy: run.coreEnergy - cost }
   let nextMeta: MetaState = { ...meta }
-  let earned = 0
   const rewards: GachaReward[] = []
+  const giveCharges = (rarity: GachaRarity, charges: number) => {
+    const skill = config.activeSkills[Math.floor(rng() * config.activeSkills.length) % config.activeSkills.length]
+    if (!skill) return
+    next = { ...next, skillItems: { ...next.skillItems, [skill.id]: (next.skillItems[skill.id] ?? 0) + charges } }
+    rewards.push({ rarity, kind: "skill", skillId: skill.id, count: charges })
+  }
+  const giveUpgrade = (rarity: GachaRarity): boolean => {
+    const upgrade = pickCheapest(gachaUpgradePool(next, config, one * GACHA_UPGRADE_MAX_PULLS), (u) => u.cost, rng)
+    if (!upgrade) return false
+    next = { ...next, ownedUpgradeIds: [...next.ownedUpgradeIds, upgrade.id] }
+    rewards.push({ rarity, kind: "upgrade", upgradeId: upgrade.id })
+    return true
+  }
+  const giveCircuit = (rarity: GachaRarity): boolean => {
+    const node = pickCheapest(gachaCircuitPool(next, config, one * GACHA_CIRCUIT_MAX_PULLS), (n) => n.cost, rng)
+    if (!node) return false
+    next = { ...next, ownedSkillNodeIds: [...next.ownedSkillNodeIds, node.id] }
+    rewards.push({ rarity, kind: "circuit", nodeId: node.id })
+    return true
+  }
   for (let i = 0; i < count; i++) {
     const rarity = rollRarity(nextMeta.gachaPity ?? 0, rng)
     nextMeta = { ...nextMeta, gachaPulls: (nextMeta.gachaPulls ?? 0) + 1, gachaPity: rarity === "legendary" ? 0 : (nextMeta.gachaPity ?? 0) + 1 }
-    if (rarity === "common") {
-      const amount = unit * GACHA_COMMON_SECONDS
-      earned += amount
-      rewards.push({ rarity, kind: "core", amount })
-    } else if (rarity === "rare") {
-      const amount = unit * GACHA_RARE_SECONDS
-      earned += amount
-      const current = next.eventBoosts.find((b) => b.id === "gacha")
-      const from = Math.max(now, current?.expiresAt ?? now)
-      next = {
-        ...next,
-        eventBoosts: [
-          ...next.eventBoosts.filter((b) => b.id !== "gacha"),
-          { id: "gacha", multiplier: GACHA_BOOST_MULTIPLIER, expiresAt: from + GACHA_BOOST_SECONDS * 1000 },
-        ],
-      }
-      rewards.push({ rarity, kind: "boost", multiplier: GACHA_BOOST_MULTIPLIER, seconds: GACHA_BOOST_SECONDS, amount })
-    } else if (rarity === "epic") {
-      const open = config.regions.filter((r) => r.currency && !r.isHome && isRegionUnlocked(next, config, r.id))
-      if (open.length) {
-        const region = open[Math.floor(rng() * open.length) % open.length]
-        const nextNode = worldTreeNodes(config, region.id).find((n) => !worldTreeOwned(next, n.id))
-        const amount = Math.ceil(
-          nextNode ? worldTreeNodeCost(next, config, nextNode) * 0.5 : regionUnlockThreshold(next, config, region) * (config.regionCurrencyRate ?? 1) * 0.2,
-        )
-        next = { ...next, regionCurrency: { ...next.regionCurrency, [region.id]: regionCurrencyBalance(next, region.id) + amount } }
-        rewards.push({ rarity, kind: "currency", regionId: region.id, amount })
-      } else {
-        const amount = unit * GACHA_EPIC_SECONDS
-        earned += amount
-        rewards.push({ rarity, kind: "core", amount })
-      }
-    } else {
+    if (rarity === "legendary") {
       nextMeta = { ...nextMeta, gachaStars: (nextMeta.gachaStars ?? 0) + 1 }
       rewards.push({ rarity, kind: "star", stars: nextMeta.gachaStars ?? 1 })
+    } else if (rarity === "epic") {
+      if (!giveCircuit(rarity) && !giveUpgrade(rarity)) giveCharges(rarity, GACHA_COMMON_CHARGES * 3)
+    } else if (rarity === "rare") {
+      if (!giveUpgrade(rarity)) giveCharges(rarity, GACHA_COMMON_CHARGES * 2)
+    } else {
+      giveCharges(rarity, GACHA_COMMON_CHARGES)
     }
   }
-  next = { ...next, coreEnergy: next.coreEnergy + earned, lifetimeCoreEnergy: next.lifetimeCoreEnergy + earned }
-  nextMeta = { ...nextMeta, totalCoreEnergy: nextMeta.totalCoreEnergy + earned }
   return { run: next, meta: nextMeta, rewards }
 }

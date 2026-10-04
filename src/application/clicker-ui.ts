@@ -61,8 +61,6 @@ export {
   gachaStarMultiplier,
   GACHA_PITY,
   GACHA_STAR_PRODUCTION,
-  GACHA_BOOST_MULTIPLIER,
-  GACHA_BOOST_SECONDS,
   type GachaReward,
   type GachaRarity,
 } from "@/domain/services/clicker-engine"

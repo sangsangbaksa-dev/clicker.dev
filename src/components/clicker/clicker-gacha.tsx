@@ -5,8 +5,6 @@ import {
   formatNumber,
   gachaCost,
   gachaStarMultiplier,
-  GACHA_BOOST_MULTIPLIER,
-  GACHA_BOOST_SECONDS,
   GACHA_PITY,
   GACHA_STAR_PRODUCTION,
   type GachaRarity,
@@ -25,18 +23,23 @@ const ART = {
 
 const RARITY_LABEL: Record<GachaRarity, string> = { common: "일반", rare: "희귀", epic: "영웅", legendary: "전설" }
 
-function rewardText(reward: GachaReward, game: ClickerGame): string {
+/** What the capsule held: its name, a short kind label and its own icon. */
+function rewardInfo(reward: GachaReward, game: ClickerGame): { name: string; kind: string; icon?: string } {
   switch (reward.kind) {
-    case "core":
-      return `CORE +${formatNumber(reward.amount)}`
-    case "boost":
-      return `생산 ×${reward.multiplier} · ${reward.seconds}초 + CORE ${formatNumber(reward.amount)}`
-    case "currency": {
-      const region = game.config.regions.find((r) => r.id === reward.regionId)
-      return `${region?.currency?.name ?? "지역 화폐"} +${formatNumber(reward.amount)}`
+    case "skill": {
+      const skill = game.config.activeSkills.find((s) => s.id === reward.skillId)
+      return { name: `${skill?.name ?? "스킬"} ×${reward.count}`, kind: "액티브 스킬", icon: skill?.assetId }
+    }
+    case "upgrade": {
+      const upgrade = game.config.upgrades.find((u) => u.id === reward.upgradeId)
+      return { name: upgrade?.name ?? "업그레이드", kind: "업그레이드", icon: upgrade?.assetId }
+    }
+    case "circuit": {
+      const node = game.config.skillNodes.find((n) => n.id === reward.nodeId)
+      return { name: node?.name ?? "스킬 회로", kind: "스킬 회로", icon: node?.assetId }
     }
     case "star":
-      return `전설의 별 ${reward.stars}개 · 영구 생산 ×${GACHA_STAR_PRODUCTION}`
+      return { name: `전설의 별 ${reward.stars}개`, kind: `영구 생산 ×${GACHA_STAR_PRODUCTION}` }
   }
 }
 
@@ -66,9 +69,9 @@ export function ClickerGacha({ game, run }: { game: ClickerGame; run: RunState }
           전설 2% · 영웅 10% · 희귀 28% · 일반 60% — {GACHA_PITY}회 안에 전설 확정 (남은 {GACHA_PITY - pity}회)
         </p>
         <ul className="clicker-gacha-legend">
-          <li><img src={ART.common} alt="" /> 일반 · CORE</li>
-          <li><img src={ART.rare} alt="" /> 희귀 · 생산 ×{GACHA_BOOST_MULTIPLIER} {GACHA_BOOST_SECONDS}초</li>
-          <li><img src={ART.epic} alt="" /> 영웅 · 지역 화폐</li>
+          <li><img src={ART.common} alt="" /> 일반 · 액티브 스킬</li>
+          <li><img src={ART.rare} alt="" /> 희귀 · 랜덤 업그레이드</li>
+          <li><img src={ART.epic} alt="" /> 영웅 · 랜덤 스킬 회로</li>
           <li><img src={ART.legendary} alt="" /> 전설 · 영구 생산 ×{GACHA_STAR_PRODUCTION}</li>
         </ul>
         {stars > 0 ? (
@@ -87,15 +90,23 @@ export function ClickerGacha({ game, run }: { game: ClickerGame; run: RunState }
       </div>
       {last ? (
         <div className="clicker-gacha-result" role="status" aria-live="polite">
-          {last.map((reward, i) => (
-            <figure key={i} className={`clicker-gacha-capsule is-${reward.rarity}`} style={{ animationDelay: `${i * 70}ms` }}>
-              <img src={ART[reward.rarity]} alt="" />
-              <figcaption>
-                <b>{RARITY_LABEL[reward.rarity]}</b>
-                <small>{rewardText(reward, game)}</small>
-              </figcaption>
-            </figure>
-          ))}
+          {last.map((reward, i) => {
+            const info = rewardInfo(reward, game)
+            return (
+              <figure key={i} className={`clicker-gacha-capsule is-${reward.rarity}`} style={{ animationDelay: `${i * 70}ms` }}>
+                <span className="clicker-gacha-prize">
+                  <img src={ART[reward.rarity]} alt="" />
+                  {info.icon ? <img className="clicker-gacha-prize-icon" src={info.icon} alt="" /> : null}
+                </span>
+                <figcaption>
+                  <b>{info.name}</b>
+                  <small>
+                    {RARITY_LABEL[reward.rarity]} · {info.kind}
+                  </small>
+                </figcaption>
+              </figure>
+            )
+          })}
           <button type="button" className="clicker-ghost clicker-gacha-close" onClick={() => setLast(null)}>
             닫기
           </button>

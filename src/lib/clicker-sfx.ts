@@ -277,14 +277,17 @@ const CUES = {
     pluck(c, 220, 0.06, t, 0.1, 0.8)
     pluck(c, 185, 0.06, t + 0.11, 0.13, 0.8)
   },
-  /** Skill circuit unlocked: electric arc + ascending arpeggio. */
+  /** Skill circuit unlocked: power-on whoosh, electric arc, glassy arpeggio over a pad, bright bell. */
   skillUnlock(c: AudioContext, t: number) {
-    const e = echo(c, 0.11, 0.3, 0.3)
-    noise(c, "bandpass", 2400, 3, 0.03, t, 0.18, { sweepTo: 7000 })
-    ;[523, 659, 784, 1046].forEach((f, i) => tone(c, "triangle", f, f, 0.045, t + i * 0.055, 0.2, { dest: e }))
-    tone(c, "triangle", 1568, 1568, 0.04, t + 0.24, 0.45, { dest: e })
-    sparkle(c, t + 0.26, 2093, 6)
-    thump(c, t, 0.08)
+    const e = echo(c, 0.11, 0.34, 0.36)
+    noise(c, "bandpass", 600, 1.4, 0.035, t, 0.22, { sweepTo: 6500, attack: 0.12 })
+    noise(c, "highpass", 5000, 1, 0.04, t + 0.16, 0.08)
+    const go = t + 0.16
+    thump(c, go, 0.12, 160)
+    ;[261.6, 392, 523.3].forEach((f, i) => tone(c, "triangle", f, f, 0.03, go, 0.75, { attack: 0.02, detune: i % 2 ? 6 : -6, dest: e }))
+    ;[523, 659, 784, 1046, 1318].forEach((f, i) => tone(c, "triangle", f, f * 1.003, 0.05, go + i * 0.05, 0.24, { dest: e }))
+    bell(c, 2093, 0.05, go + 0.28, 0.7, e)
+    sparkle(c, go + 0.3, 2093, 8, 0.02, 0.024)
   },
   /** FEVER on (gauge or potion): whoosh riser into a power chord. */
   fever(c: AudioContext, t: number) {
@@ -313,6 +316,55 @@ const CUES = {
     )
     tone(c, "sine", 90, 38, 0.2, hit, 0.6)
     noise(c, "lowpass", 300, 1, 0.1, hit, 0.35)
+  },
+  /** Production buff (OVERCLOCK, GRID BOOST, STABILIZER): turbine spin-up, power-chord slam, engine thrum. */
+  skillPower(c: AudioContext, t: number) {
+    const e = echo(c, 0.13, 0.36, 0.4)
+    tone(c, "sawtooth", 80, 640, 0.05, t, 0.36, { attack: 0.25 })
+    tone(c, "square", 160, 1280, 0.018, t, 0.36, { attack: 0.25 })
+    noise(c, "bandpass", 300, 1.3, 0.07, t, 0.36, { sweepTo: 6000, attack: 0.28 })
+    const hit = t + 0.34
+    tone(c, "sine", 120, 36, 0.26, hit, 0.75, { attack: 0.002 })
+    noise(c, "lowpass", 500, 1, 0.14, hit, 0.3)
+    ;[146.8, 220, 293.7, 440].forEach((f, i) => tone(c, "sawtooth", f, f, 0.04, hit, 1.1, { detune: i % 2 ? 10 : -10, dest: e }))
+    tone(c, "triangle", 1174.7, 1174.7, 0.035, hit + 0.02, 0.6, { dest: e })
+    sparkle(c, hit + 0.05, 2093, 8, 0.02, 0.026)
+    // Engine thrum: the chord re-strikes and fades, so the buff feels like it keeps running.
+    ;[0.26, 0.42, 0.58].forEach((dt, i) => {
+      const g = 0.03 * (1 - i * 0.28)
+      tone(c, "sawtooth", 293.7, 293.7, g, hit + dt, 0.14, { detune: -8 })
+      tone(c, "sawtooth", 440, 440, g, hit + dt, 0.14, { detune: 8 })
+    })
+  },
+  /** Mining buff (LASER FOCUS): charging whine into a laser zap and a ringing crystal. */
+  skillLaser(c: AudioContext, t: number) {
+    const e = echo(c, 0.09, 0.32, 0.36)
+    tone(c, "sine", 400, 3200, 0.05, t, 0.28, { attack: 0.2 })
+    tone(c, "square", 800, 6400, 0.012, t, 0.28, { attack: 0.2 })
+    noise(c, "highpass", 2000, 1, 0.03, t, 0.28, { sweepTo: 9000, attack: 0.2 })
+    const zap = t + 0.27
+    tone(c, "sawtooth", 3200, 160, 0.09, zap, 0.26, { attack: 0.001, dest: e })
+    tone(c, "square", 1600, 90, 0.035, zap, 0.3, { attack: 0.001 })
+    noise(c, "highpass", 4500, 0.8, 0.12, zap, 0.06)
+    thump(c, zap, 0.14, 180)
+    ;[1318.5, 1975.5, 2637].forEach((f, i) => bell(c, f, 0.045 - i * 0.01, zap + 0.06 + i * 0.05, 0.7, e))
+    sparkle(c, zap + 0.12, 2637, 6, 0.016, 0.022)
+  },
+  /** Instant energy (CORE PULSE, TIME WARP): reverse swell, huge core impact, shower of coins. */
+  skillBurst(c: AudioContext, t: number) {
+    const e = echo(c, 0.15, 0.38, 0.42)
+    noise(c, "lowpass", 200, 1, 0.09, t, 0.32, { sweepTo: 4000, attack: 0.3 })
+    tone(c, "sine", 55, 110, 0.08, t, 0.32, { attack: 0.3 })
+    const hit = t + 0.3
+    tone(c, "sine", 160, 30, 0.3, hit, 0.9, { attack: 0.002 })
+    noise(c, "lowpass", 700, 1, 0.16, hit, 0.4)
+    noise(c, "bandpass", 2500, 2, 0.05, hit, 0.12)
+    ;[523.3, 659.3, 784, 1046.5].forEach((f, i) => tone(c, "triangle", f, f, 0.05, hit + i * 0.02, 0.9, { dest: e }))
+    // Coin shower: bright bells scattered over half a second.
+    for (let i = 0; i < 12; i++) {
+      const f = 2000 + Math.random() * 2200
+      bell(c, f, 0.022, hit + 0.08 + i * 0.045 + Math.random() * 0.02, 0.22)
+    }
   },
   /** Chain lightning strike: crackling arcs, a bright snap and rolling thunder. */
   lightning(c: AudioContext, t: number) {

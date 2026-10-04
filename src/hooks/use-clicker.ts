@@ -425,9 +425,10 @@ export function useClicker() {
     const result = clickerUseSkill(saveRef.current, id, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("skillUse")
-    const name = clickerGameConfig.activeSkills.find((s) => s.id === id)?.name ?? id
-    flash(`${name} 발동`)
+    const skill = clickerGameConfig.activeSkills.find((s) => s.id === id)
+    // Each kind of skill has its own cast: instant energy, mining laser, or a production surge.
+    playSfx(skill?.energyBurstSeconds ? "skillBurst" : skill?.clickMultiplier && !skill.productionMultiplier ? "skillLaser" : "skillPower")
+    flash(`${skill?.name ?? id} 발동`)
   }, [commit, flash, refuse])
 
   const resolveCrisis = useCallback((choice: CrisisChoice) => {

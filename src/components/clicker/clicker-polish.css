@@ -2552,7 +2552,19 @@
   background: rgb(255 255 255 / 0.04);
   animation: clicker-gacha-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
-[data-clicker] .clicker-gacha-capsule img { width: 56px; height: 56px; border-radius: 50%; }
+[data-clicker] .clicker-gacha-prize { position: relative; display: block; width: 56px; height: 56px; margin: 0 10px 10px 0; }
+[data-clicker] .clicker-gacha-prize img { width: 56px; height: 56px; border-radius: 50%; }
+/* The item itself sits on its capsule, slightly larger, so it reads as "this is what you got". */
+[data-clicker] .clicker-gacha-prize img.clicker-gacha-prize-icon {
+  position: absolute;
+  right: -10px;
+  bottom: -8px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow: 0 0 0 2px rgb(10 18 30 / 0.9), 0 4px 10px rgb(0 0 0 / 0.5);
+}
 [data-clicker] .clicker-gacha-capsule figcaption { display: grid; gap: 2px; font-size: 11px; line-height: 1.25; }
 [data-clicker] .clicker-gacha-capsule small { opacity: 0.8; word-break: keep-all; }
 [data-clicker] .clicker-gacha-capsule.is-rare { box-shadow: inset 0 0 0 1px rgb(80 160 255 / 0.6); }
