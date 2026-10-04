@@ -153,7 +153,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
       name: "코어 수호자",
       kind: "warden",
       imageSrc: "/clicker/boss/core_guardian.webp",
-      hp: 8e12,
+      hp: 2.7e12,
       playerHp: 100,
       attackDamage: 12,
       attackEverySec: 4,
