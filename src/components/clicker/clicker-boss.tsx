@@ -37,7 +37,7 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
 
   const left = fight ? Math.max(0, fight.endsAt - now) / 1000 : def.timeLimitSec
   return (
-    <div className={`clicker-boss${attack ? " is-attack" : ""}${def.imageSrc ? " has-art" : ""}${fight ? " is-fighting" : ""}`} key={attack}>
+    <div className={`clicker-boss${attack ? " is-attack" : ""}${def.imageSrc ? " has-art" : ""}${fight ? " is-fighting" : ""}`}>
       {fight ? null : <strong>{def.name}</strong>}
       {fight ? (
         <div className="clicker-boss-bars">
@@ -73,7 +73,8 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
         }}
       >
         {def.imageSrc ? (
-          <span className="boss-art-enter">
+          // Only the art re-mounts to replay the lunge; re-mounting the whole fight swallowed taps.
+          <span className="boss-art-enter" key={attack}>
             <span className="boss-art-idle">
               <span className={`boss-art-hit${hit ? ` hit-${hit % 2}` : ""}`}>
                 <span className="boss-art-canvas">

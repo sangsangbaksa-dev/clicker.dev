@@ -320,11 +320,13 @@ export function useClicker() {
   }, [])
 
   const mineStrikes = useRef<number[]>([])
-  const clickCore = useCallback((clientX?: number, clientY?: number) => {
+  const clickCore = useCallback((clientX?: number, clientY?: number, auto = false) => {
     const current = saveRef.current
     if (!current || current.metaState.gameCompleted) return null
-    // Mine and region drilling share the 12-strikes-per-second cap.
-    if (!allowMineStrike(mineStrikes.current, performance.now())) return null
+    // Taps (mine and region drilling) share the strikes-per-second cap. The assist drill has its own
+    // fixed rate and stays out of it: it used to eat the budget, so taps on phones (where the last
+    // touch keeps the drill aimed at the ore) failed on and off.
+    if (!auto && !allowMineStrike(mineStrikes.current, performance.now())) return null
     const result = clickerClick(current, now())
     commit(result.save)
     if (result.quake) playSfx("quake")

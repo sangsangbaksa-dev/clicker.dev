@@ -69,6 +69,7 @@ import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
 import { ClickerFloats } from "./clicker-floats"
+import { ClickerCountdown } from "./clicker-countdown"
 import { ClickerAchievementsPanel } from "@/components/clicker/panels/achievements-panel"
 import { ClickerProducersPanel } from "@/components/clicker/panels/producers-panel"
 import { ClickerUpgradesPanel } from "@/components/clicker/panels/upgrades-panel"
@@ -979,7 +980,7 @@ export function ClickerApp() {
             role="timer"
           >
             <span>MINE TIMER</span>
-            <strong>{mineRemainSec.toFixed(1)}s</strong>
+            <strong><ClickerCountdown endsAt={run.mineSessionEndsAt} fallbackMs={mineRemainMs} /></strong>
             <em>자동 퇴장</em>
           </div>
         )}
@@ -1229,7 +1230,7 @@ export function ClickerApp() {
                   aria-label={`남은 시간 ${mineRemainSec.toFixed(1)}초`}
                 >
                   <span>남은 시간</span>
-                  <strong>{mineRemainSec.toFixed(1)}s</strong>
+                  <strong><ClickerCountdown endsAt={run.mineSessionEndsAt} fallbackMs={mineRemainMs} /></strong>
                 </div>
                 <button
                   type="button"
@@ -1382,7 +1383,7 @@ export function ClickerApp() {
                 muted={game.save.settings.muted}
                 pop={pop}
                 shake={shake}
-                onMine={(clientX, clientY) => game.clickCore(clientX, clientY)}
+                onMine={(clientX, clientY, auto) => game.clickCore(clientX, clientY, auto)}
                 onPop={() => {
                   setPop(true)
                   window.setTimeout(() => setPop(false), 100)

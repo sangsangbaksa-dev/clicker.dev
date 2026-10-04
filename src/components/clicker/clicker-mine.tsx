@@ -71,7 +71,8 @@ type Props = {
   pop: boolean
   shake: boolean
   /** null = strike refused (mine CPS cap). */
-  onMine: (clientX: number, clientY: number) => MineStrikeResult | null
+  /** `auto` marks assist-drill strikes, which skip the tap rate cap. */
+  onMine: (clientX: number, clientY: number, auto?: boolean) => MineStrikeResult | null
   onPop: () => void
   playLaser: (muted: boolean, critical: boolean) => void
   /** Fires when the center ore's integrity hits zero (after ORE_HP strikes). */
@@ -257,7 +258,7 @@ export function ClickerMine({
       const cur = live.current
       if (!el || cur.broken) return
       const rect = el.getBoundingClientRect()
-      const strike = cur.onMine(rect.left + x, rect.top + y)
+      const strike = cur.onMine(rect.left + x, rect.top + y, drill)
       if (!strike) return
       const { critical } = strike
       if (!drill) {
