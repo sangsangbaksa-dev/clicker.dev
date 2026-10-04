@@ -27,7 +27,7 @@ test("currency grant credits every region currency", () => {
   const run = adminGrantCurrencies(fresh().runState, cfg, 500)
   for (const r of cfg.regions) if (r.currency) assert.equal(run.regionCurrency?.[r.id], 500)
   const again = adminGrantCurrencies(run, cfg, 500)
-  assert.equal(again.regionCurrency?.core_heart, 1000)
+  assert.equal(again.regionCurrency?.deep_fault, 1000)
 })
 
 test("final boss is the core heart guardian", () => {

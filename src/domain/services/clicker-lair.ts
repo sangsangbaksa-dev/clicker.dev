@@ -50,6 +50,12 @@ export const ARMORS: ArmorTier[] = [
   { id: "phase_cuirass", name: "위상 수정 흉갑", hp: 90, reduction: 0.2, cost: { core: 5_000, currencies: [cc("signal_relay", 1_200), cc("phase_vault", 2_000)] } },
   { id: "storm_plate", name: "뇌운 판금", hp: 160, reduction: 0.3, cost: { core: 60_000, currencies: [cc("phase_vault", 12_500), cc("storm_spire", 20_000)] } },
   { id: "magma_bulwark", name: "용암 요새 갑주", hp: 260, reduction: 0.4, cost: { core: 1_000_000, currencies: [cc("storm_spire", 200_000), cc("deep_fault", 300_000)] } },
+  // Deep tiers: forged past the last world, for players who want the lairs to stop hurting.
+  { id: "abyss_shell", name: "심연 갑각", hp: 330, reduction: 0.44, cost: { core: 4_000_000, currencies: [cc("deep_fault", 700_000)] } },
+  { id: "obsidian_aegis", name: "흑요 아이기스", hp: 410, reduction: 0.48, cost: { core: 10_000_000, currencies: [cc("deep_fault", 1_500_000)] } },
+  { id: "quake_fortress", name: "지진 성채 갑주", hp: 500, reduction: 0.52, cost: { core: 25_000_000, currencies: [cc("deep_fault", 3_000_000)] } },
+  { id: "core_vanguard", name: "코어 선봉 갑주", hp: 600, reduction: 0.56, cost: { core: 60_000_000, currencies: [cc("deep_fault", 6_000_000)] } },
+  { id: "worldline_armor", name: "세계선 갑주", hp: 720, reduction: 0.6, cost: { core: 150_000_000, currencies: [cc("deep_fault", 12_000_000)] } },
 ]
 
 export const HELMETS: HelmetTier[] = [

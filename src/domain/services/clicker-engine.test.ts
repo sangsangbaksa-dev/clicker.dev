@@ -671,8 +671,11 @@ test("world skill trees: one per world, bought in order with that world's curren
   assert.equal(eng.regionCurrencyBalance(minted, "signal_relay"), 1000 * config.regionCurrencyRate! * 3)
   assert.equal(eng.regionCurrencyRate(bought.run, config, "phase_vault"), config.regionCurrencyRate)
   // Locked worlds cannot be bought into.
-  const locked = eng.worldTreeNodes(config, "core_heart")[0]
-  assert.match(eng.worldTreeNodeError({ ...open, regionCurrency: { core_heart: 1e30 } }, config, locked.id) ?? "", /열리지/)
+  const locked = eng.worldTreeNodes(config, "deep_fault")[0]
+  assert.match(eng.worldTreeNodeError({ ...open, regionCurrency: { deep_fault: 1e30 } }, config, locked.id) ?? "", /열리지/)
+  // Core Heart has no currency and no tree.
+  assert.equal(config.regions.find((r) => r.id === "core_heart")?.currency, undefined)
+  assert.equal(eng.worldTreeNodes(config, "core_heart").length, 0)
 })
 
 test("gacha: costs CORE, guarantees a legendary by the pity counter, stars boost production", async () => {

@@ -139,7 +139,6 @@ export const CLICKER_REGIONS: RegionDef[] = [
   },
   {
     id: "core_heart",
-    currency: { name: "심장 파편", icon: "❤️‍🔥" },
     name: "Core Heart",
     description: "코어의 심장부. 수호자가 코어를 틀어막고 있습니다.",
     bgAssetId: "/clicker/bg/region_core_heart.jpg",
@@ -147,8 +146,9 @@ export const CLICKER_REGIONS: RegionDef[] = [
     // Three quarters of the final worldline's goal: the last run is a ~30-minute climb to the guardian.
     unlockAtLifetimeEnergy: 750_000_000_000,
     requiresRebirths: 8,
-    clickMultiplier: 1.2,
-    productionMultiplier: 1.2,
+    // No currency or world tree here: the region itself carries the bonus the old tree gave.
+    clickMultiplier: 4.5,
+    productionMultiplier: 4.5,
     boss: {
       name: "코어 수호자",
       kind: "warden",

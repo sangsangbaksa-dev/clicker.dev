@@ -14,7 +14,7 @@ const COST_SHARES = [0.02, 0.06, 0.15, 0.4, 1]
  * Late worlds unlock at a larger share of the goal, which made their trees climb steeply in price.
  * This scale brings them back to about the early worlds' price level.
  */
-const LATE_PRICE_SCALE: Record<string, number> = { storm_spire: 0.5, deep_fault: 0.36, core_heart: 0.33 }
+const LATE_PRICE_SCALE: Record<string, number> = { storm_spire: 0.5, deep_fault: 0.36 }
 
 function tree(regionId: string, nodes: Spec[]): WorldTreeNodeDef[] {
   const scale = LATE_PRICE_SCALE[regionId] ?? 1
@@ -49,13 +49,6 @@ export const CLICKER_WORLD_TREES: WorldTreeNodeDef[] = [
     { name: "지각 증폭", description: "지각 붕괴 획득량 ×1.5 · 단층 시추 보상 ×1.5", activityMultiplier: 1.5, challengeMultiplier: 1.5 },
     { name: "마그마 수확", description: "이 지역의 용암석 획득 ×4", currencyMultiplier: 4 },
     { name: "단층 지배", description: "Deep Fault에 있는 동안 클릭·생산 ×2 · 용암 베히모스 보상 ×2", presenceMultiplier: 2, monsterMultiplier: 2 },
-  ]),
-  ...tree("core_heart", [
-    { name: "파편 수집", description: "이 지역의 심장 파편 획득 ×3", currencyMultiplier: 3 },
-    { name: "심장 공명", description: "Core Heart에 있는 동안 클릭·생산 ×1.5", presenceMultiplier: 1.5 },
-    { name: "맥동 동조", description: "Core Heart에 있는 동안 클릭·생산 ×1.3", presenceMultiplier: 1.3 },
-    { name: "심장 수확", description: "이 지역의 심장 파편 획득 ×4", currencyMultiplier: 4 },
-    { name: "심장 지배", description: "Core Heart에 있는 동안 클릭·생산 ×2", presenceMultiplier: 2 },
   ]),
 ]
 
