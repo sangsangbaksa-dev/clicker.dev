@@ -14,9 +14,12 @@ const SUFFIXES = [
 
 /** CORE amounts: at most two decimals, K…Dc suffixes, scientific beyond. */
 export function formatNumber(value: number): string {
-  if (!Number.isFinite(value)) return "0"
-  const sign = value < 0 ? "-" : ""
+  if (Number.isNaN(value)) return "0"
+  if (!Number.isFinite(value)) return value < 0 ? "-∞" : "∞"
   const abs = Math.abs(value)
+  // Values that round to 0.00 are plain "0", never "-0".
+  if (abs < 0.005) return "0"
+  const sign = value < 0 ? "-" : ""
   if (abs < 999.995) return `${sign}${trimZeros(abs.toFixed(2))}`
   if (abs >= 1e36) return `${sign}${abs.toExponential(2).replace("e+", "e")}`
   for (let i = 0; i < SUFFIXES.length; i++) {
