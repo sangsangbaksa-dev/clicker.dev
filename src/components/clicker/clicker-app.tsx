@@ -89,6 +89,8 @@ const CLICKER_ADMIN_UI =
 const LIGHTNING_SKILL_ID = "storm_spark"
 /** How long a finished boss fight stays on screen (death / knockout) before returning to the world still. */
 const BOSS_EXIT_DELAY_MS = 2200
+/** Long enough to see the payout burst before the world's still returns. */
+const DRILL_EXIT_DELAY_MS = 1600
 
 const SKILL_NOVA_COLOR: Record<string, string> = {
   overclock: "rgb(255 120 60 / 0.9)",
@@ -565,6 +567,8 @@ export function ClickerApp() {
   const [skillNova, setSkillNova] = useState<{ key: number; color: string } | null>(null)
   /** Away from home a world opens on its intro still; picking its action reveals the live scene. */
   const [engagedRegion, setEngagedRegion] = useState<string | null>(null)
+  /** Region whose entry clip (still → hunt / drill) is playing. */
+  const [engagingRegion, setEngagingRegion] = useState<string | null>(null)
   const [arrivedRegion, setArrivedRegion] = useState<string | null>(null)
   /** Cast a skill with its full-screen nova (button or number-key hotkey). */
   const castSkill = (id: string) => {
@@ -692,18 +696,20 @@ export function ClickerApp() {
 
   // Warm the videos the player is about to see: mine entry at home, intros of unlocked unvisited regions.
   const atHomeNow = Boolean(game.currentRegion?.isHome)
+  const engageClip = game.config.regions.find((r) => r.id === game.save?.runState.currentRegionId)?.intro?.engageVideo
   const visited = game.save?.metaState.visitedRegionIds
   const unlockedKey = game.regions.filter((r) => r.unlocked).map((r) => r.id).join(",")
   useEffect(() => {
     const idle = window.setTimeout(() => {
       if (atHomeNow) preloadCinematic(MineArt.enterCinematic)
+      if (engageClip) preloadCinematic(engageClip)
       for (const id of unlockedKey.split(",")) {
         const intro = game.config.regions.find((r) => r.id === id)?.intro
         if (intro && !visited?.includes(id)) preloadCinematic(intro.video)
       }
     }, 1500)
     return () => window.clearTimeout(idle)
-  }, [atHomeNow, unlockedKey, visited, game.config.regions])
+  }, [atHomeNow, engageClip, unlockedKey, visited, game.config.regions])
 
   const bossDefeated = Boolean(game.save?.metaState.bossDefeated)
   const prevBossDefeated = useRef<boolean | null>(null)
@@ -770,6 +776,17 @@ export function ClickerApp() {
     const t = window.setTimeout(() => setEngagedRegion(null), BOSS_EXIT_DELAY_MS)
     return () => window.clearTimeout(t)
   }, [fightOn])
+
+  // A finished drill run (gauge paid out, rig cooling down) also steps back out to the still.
+  const drillCooldownUntil = game.save?.runState.drillCooldownUntil ?? 0
+  const prevDrillCooldown = useRef(drillCooldownUntil)
+  useEffect(() => {
+    const finished = drillCooldownUntil > prevDrillCooldown.current
+    prevDrillCooldown.current = drillCooldownUntil
+    if (!finished) return
+    const t = window.setTimeout(() => setEngagedRegion(null), DRILL_EXIT_DELAY_MS)
+    return () => window.clearTimeout(t)
+  }, [drillCooldownUntil])
 
   if (game.otherTabActive) {
     return (
@@ -860,6 +877,7 @@ export function ClickerApp() {
   if (arrivedRegion !== run.currentRegionId) {
     setArrivedRegion(run.currentRegionId)
     setEngagedRegion(null)
+    setEngagingRegion(null)
   }
   const hereDef = game.config.regions.find((r) => r.id === run.currentRegionId)
   const worldStill = !inMine && !hereDef?.isHome ? hereDef?.intro?.still : undefined
@@ -1421,8 +1439,13 @@ export function ClickerApp() {
               <button
                 type="button"
                 className="clicker-primary clicker-world-gate-go"
-                disabled={regionIntroPlaying}
-                onClick={() => setEngagedRegion(run.currentRegionId)}
+                disabled={regionIntroPlaying || engagingRegion !== null}
+                onClick={() => {
+                  const clip = regionDef.intro?.engageVideo
+                  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+                  if (clip && !reduced) setEngagingRegion(run.currentRegionId)
+                  else setEngagedRegion(run.currentRegionId)
+                }}
               >
                 {regionDef.boss
                   ? `${regionDef.boss.name}에게 맞서기`
@@ -1793,6 +1816,21 @@ export function ClickerApp() {
             setEnteringMine(false)
             setDrawerSnap("peek")
             game.enterMine()
+          }}
+        />
+      ) : null}
+
+      {engagingRegion && engagingRegion === run.currentRegionId && regionDef?.intro?.engageVideo ? (
+        <ClickerCinematic
+          key={engagingRegion}
+          src={regionDef.intro.engageVideo}
+          poster={regionDef.intro.still}
+          label={regionDef.huntMode ? "보스의 둥지로 들어가는 중" : "시추 갱으로 내려가는 중"}
+          muted={game.save.settings.musicMuted}
+          volume={game.save.settings.musicVolume}
+          onDone={() => {
+            setEngagingRegion(null)
+            setEngagedRegion(engagingRegion)
           }}
         />
       ) : null}

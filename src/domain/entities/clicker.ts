@@ -476,6 +476,8 @@ export type RegionIntroDef = {
   poster: string
   /** A frame from the video: the world's landing view until the player picks an action. */
   still: string
+  /** Short clip played when the player leaves the still for the action (hunt or drill). */
+  engageVideo?: string
 }
 
 export type ObjectiveDef = {
