@@ -459,12 +459,11 @@ const baseConfig: GameConfig = {
   skillNodes: [
     {
       id: "fever_unlock",
-      branch: "FOCUS",
+      branch: "RESONANCE",
       tier: 1,
       name: "Fever Core",
       description: "FEVER 해금 · 채굴로 게이지를 채우면 10초간 채굴 ×5 · 생산 ×2",
-      cost: 20_000,
-      requires: ["focus_click"],
+      cost: 7_000,
       unlocksFever: true,
       assetId: "/clicker/upgrade/fever_core.webp",
     },
@@ -1133,6 +1132,7 @@ const baseConfig: GameConfig = {
       description: "FEVER +4초",
       cost: 7000,
       feverDurationAdd: 4,
+      requires: ["fever_unlock"],
     },
     {
       id: "reso_intense",
