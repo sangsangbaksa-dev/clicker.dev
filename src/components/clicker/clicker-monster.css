@@ -872,3 +872,78 @@
 .clicker-shell.is-region-hub .clicker-boss.has-art .boss-art-canvas {
   max-height: max(200px, calc(100dvh - 420px));
 }
+
+/* Lair: damage taken pops out of the middle of the screen with the red flash. */
+.clicker-hurt-number {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  font: 900 clamp(34px, 7vw, 64px) / 1 var(--font-display, system-ui), system-ui;
+  color: #ff4a3d;
+  text-shadow: 0 0 18px rgb(255 40 20 / 0.8), 0 3px 0 #3a0000;
+  animation: clicker-hurt-number 700ms cubic-bezier(0.2, 0.9, 0.3, 1.2) forwards;
+}
+@keyframes clicker-hurt-number {
+  0% { opacity: 0; transform: translate(-50%, -30%) scale(1.8); }
+  18% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -120%) scale(0.9); }
+}
+.clicker-stage:has(.clicker-boss-hurt) .clicker-boss-scene { animation: clicker-lair-shake 320ms ease-out; }
+@keyframes clicker-lair-shake {
+  0%, 100% { translate: 0 0; }
+  20% { translate: -10px 4px; }
+  40% { translate: 8px -5px; }
+  60% { translate: -6px 3px; }
+  80% { translate: 3px -2px; }
+}
+
+/* Lair: end-of-fight banner. */
+.clicker-lair-result {
+  position: fixed;
+  left: 50%;
+  top: 38%;
+  z-index: 46;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 16px 34px;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  border-block: 2px solid currentColor;
+  background: linear-gradient(90deg, transparent, rgb(6 10 20 / 0.86) 18%, rgb(6 10 20 / 0.86) 82%, transparent);
+  animation: clicker-lair-result 2600ms ease-out forwards;
+}
+.clicker-lair-result strong {
+  font: 900 clamp(30px, 6vw, 56px) / 1 var(--font-display, system-ui), system-ui;
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 22px currentColor;
+}
+.clicker-lair-result span { font-size: 14px; color: #e8f2ff; text-align: center; }
+.clicker-lair-result.is-win { color: #ffd34a; }
+.clicker-lair-result.is-lose { color: #ff5a4a; }
+@keyframes clicker-lair-result {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(1.6); }
+  10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  82% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -60%) scale(0.98); }
+}
+
+/* Lair: fight forecast above the enter button. */
+.clicker-lair-forecast {
+  display: grid;
+  gap: 3px;
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: #bcd3ea;
+  text-align: center;
+}
+.clicker-lair-forecast b { font-size: 13px; color: #7dffb0; }
+.clicker-lair-forecast.is-hard b { color: #ffd34a; }
+.clicker-lair-forecast.is-danger b { color: #ff6a5a; }
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-stage:has(.clicker-boss-hurt) .clicker-boss-scene { animation: none; }
+  .clicker-hurt-number, .clicker-lair-result { animation-duration: 1ms; animation-delay: 0ms; }
+  .clicker-lair-result { animation: none; }
+}

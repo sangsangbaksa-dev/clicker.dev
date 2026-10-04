@@ -21,7 +21,9 @@ import {
   grantClickerAdminByCode,
   isClickerAdminAllowed,
   isRegionUnlocked,
+  lairAttackEveryMs,
   monsterAlive,
+  playerMaxHp,
   relicVaultOpen,
   shouldMountMineChamber,
   shouldShowManageScreen,
@@ -267,6 +269,8 @@ export function ClickerApp() {
   const [confirmPotion, setConfirmPotion] = useState<string | null>(null)
   const [endingOpen, setEndingOpen] = useState(false)
   const [pendingRebirth, setPendingRebirth] = useState<{ id: string; label: string } | null>(null)
+  /** Title card shown over the fresh worldline right after the rebirth sequence. */
+  const [arrival, setArrival] = useState<{ key: number; line: number; label: string; mult: number } | null>(null)
   const [storyBeat, setStoryBeat] = useState<string | null>(null)
   const [adminResetArmed, setAdminResetArmed] = useState(false)
   const prevVisual = useRef<string | null>(null)
@@ -721,9 +725,18 @@ export function ClickerApp() {
   const prevLairHp = useRef<number | undefined>(undefined)
   const prevShield = useRef(shieldUntil)
   const [hurtKey, setHurtKey] = useState(0)
+  const [hurtAmount, setHurtAmount] = useState(0)
   const [tauntKey, setTauntKey] = useState(0)
+  /** End-of-fight banner: win shows the loot, a knock-out says why and what to forge. */
+  const [lairResult, setLairResult] = useState<{ key: number; win: boolean; text: string } | null>(null)
+  const showLairResult = useCallback((win: boolean, text: string) => {
+    const key = Date.now()
+    setLairResult({ key, win, text })
+    window.setTimeout(() => setLairResult((r) => (r?.key === key ? null : r)), 2600)
+  }, [])
   useEffect(() => {
     if (lairPlayerHp !== undefined && prevLairHp.current !== undefined && lairPlayerHp < prevLairHp.current) {
+      setHurtAmount(prevLairHp.current - lairPlayerHp)
       setHurtKey((k) => k + 1)
       playSfx("playerHurt")
     }
@@ -734,12 +747,14 @@ export function ClickerApp() {
     const sameRegion = prevShieldRegion.current === lairRegion
     prevShieldRegion.current = lairRegion
     if (sameRegion && shieldUntil > prevShield.current) {
+      setHurtAmount(0)
       setHurtKey((k) => k + 1)
       setTauntKey((k) => k + 1)
       playSfx("playerHurt")
+      showLairResult(false, "쓰러졌습니다 · 대장간에서 장비를 강화하고 다시 도전하세요")
     }
     prevShield.current = shieldUntil
-  }, [shieldUntil, lairRegion])
+  }, [shieldUntil, lairRegion, showLairResult])
 
   // When a boss fight ends (knocked out or boss slain), let the finish play, then step back
   // out to the world's still screen.
@@ -1100,11 +1115,23 @@ export function ClickerApp() {
             onEnter={game.enterLair}
             onStrike={(x, y) => {
               playLaser(game.save!.settings.muted, false)
-              return game.strikeLair(x, y)
+              const reward = game.strikeLair(x, y)
+              if (reward !== null) showLairResult(true, `토벌 성공 · +${formatNumber(reward)} CORE`)
+              return reward !== null
             }}
           />
         ) : null}
-        {hurtKey ? <div key={hurtKey} className="clicker-boss-hurt" aria-hidden /> : null}
+        {hurtKey ? (
+          <div key={hurtKey} className="clicker-boss-hurt" aria-hidden>
+            {hurtAmount > 0 ? <b className="clicker-hurt-number">-{hurtAmount}</b> : null}
+          </div>
+        ) : null}
+        {lairResult ? (
+          <div key={lairResult.key} className={`clicker-lair-result ${lairResult.win ? "is-win" : "is-lose"}`} role="status">
+            <strong>{lairResult.win ? "VICTORY" : "KNOCKED OUT"}</strong>
+            <span>{lairResult.text}</span>
+          </div>
+        ) : null}
         <nav className="clicker-stage-region" aria-label="현재 지역">
           {game.currentRegion ? (
             <span className="clicker-stage-region-slot">
@@ -1437,6 +1464,25 @@ export function ClickerApp() {
                 </>
               ) : (
                 <>
+                  {monsterIsAlive && shieldMs <= 0 && LAIR_BOSSES[monsterDef.kind]
+                    ? (() => {
+                        const boss = LAIR_BOSSES[monsterDef.kind]
+                        const hitFor = Math.max(1, Math.round(boss.damage * (1 - ARMORS[gear.armor].reduction)))
+                        const survive = Math.max(0, Math.ceil(playerMaxHp(run) / hitFor) - 1)
+                        const strikes = Math.ceil(boss.hp / WEAPONS[gear.weapon].damage)
+                        const seconds = ((survive + 1) * lairAttackEveryMs(run)) / 1000
+                        const tps = strikes / Math.max(0.1, seconds)
+                        const verdict = survive === 0 ? "한 방에 쓰러집니다 — 대장간에서 방어구부터" : tps > 9 ? "너무 강합니다 — 무기를 강화하세요" : tps > 5 ? "빡빡한 싸움" : "해볼 만합니다"
+                        return (
+                          <p className={`clicker-lair-forecast${survive === 0 || tps > 9 ? " is-danger" : tps > 5 ? " is-hard" : ""}`}>
+                            {survive === 0
+                              ? `보스 한 방 ${hitFor} · 내 체력 ${playerMaxHp(run)}`
+                              : `보스 공격 ${survive}회 버팀 · 내 공격 ${strikes}회 필요 (초당 ${tps.toFixed(1)}회)`}
+                            <b>{verdict}</b>
+                          </p>
+                        )
+                      })()
+                    : null}
                   <button
                     type="button"
                     className="clicker-primary clicker-lair-enter"
@@ -1853,11 +1899,25 @@ export function ClickerApp() {
           muted={game.save.settings.muted}
           onComplete={() => {
             const chosen = pendingRebirth
+            const rebirths = (game.save?.metaState.rebirthCount ?? 0) + 1
             game.rebirth(chosen.id)
             setPendingRebirth((cur) => (cur?.id === chosen.id ? null : cur))
             setTab("producers")
+            const key = Date.now()
+            setArrival({ key, line: rebirths + 1, label: chosen.label, mult: (1 + clickerConfig.worldlineBonus) ** rebirths })
+            playSfx("achievement")
+            window.setTimeout(() => setArrival((a) => (a?.key === key ? null : a)), 3400)
           }}
         />
+      ) : null}
+
+      {arrival ? (
+        <div key={arrival.key} className="clicker-arrival" role="status">
+          <small>WORLD LINE</small>
+          <strong>#{String(arrival.line).padStart(3, "0")}</strong>
+          <span>{arrival.label}</span>
+          <em>세계선 보너스 · 모든 생산 ×{formatNumber(arrival.mult)}</em>
+        </div>
       ) : null}
 
       {skillMapOpen ? (

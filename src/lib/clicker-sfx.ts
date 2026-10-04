@@ -8,6 +8,8 @@
 
 let ctx: AudioContext | null = null
 let bus: GainNode | null = null
+/** Soft-clip send: impacts go through it so sub hits grow harmonics small speakers can play. */
+let drive: AudioNode | null = null
 let muted = false
 let noiseBuf: AudioBuffer | null = null
 
@@ -47,6 +49,19 @@ function audio(): AudioContext | null {
     bus.gain.value = MASTER_GAIN
     bus.connect(comp)
     comp.connect(ctx.destination)
+    const shaper = ctx.createWaveShaper()
+    const curve = new Float32Array(1024)
+    for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh(((i / (curve.length - 1)) * 2 - 1) * 3.2)
+    shaper.curve = curve
+    shaper.oversample = "2x"
+    const pre = ctx.createGain()
+    pre.gain.value = 2.2
+    const post = ctx.createGain()
+    post.gain.value = 0.42
+    pre.connect(shaper)
+    shaper.connect(post)
+    post.connect(bus)
+    drive = pre
   }
   // iOS parks the context in "interrupted" after a call or backgrounding, not "suspended".
   if (ctx.state !== "running" && ctx.state !== "closed") void ctx.resume().catch(() => {})
@@ -201,6 +216,29 @@ function sparkle(c: AudioContext, start: number, base = 1568, count = 6, gain = 
 /** Sub-bass kick under a reward, so it lands in the chest and not just the ears. */
 function thump(c: AudioContext, start: number, gain = 0.09, from = 140) {
   tone(c, "sine", from, 42, gain, start, 0.22, { attack: 0.002 })
+  // Saturated copy: the harmonics carry the kick on phone and laptop speakers.
+  tone(c, "sine", from * 1.6, 55, gain * 0.9, start, 0.12, { attack: 0.001, dest: drive ?? undefined })
+}
+
+/** Click transient: a few ms of bright noise that gives a hit its "tick" edge. */
+function snap(c: AudioContext, start: number, gain = 0.08, freq = 3800) {
+  noise(c, "highpass", freq, 0.7, gain, start, 0.018, { attack: 0.0008 })
+}
+
+/** Punchy kick: fast pitch drop through the drive bus, plus a snap on top. */
+function punch(c: AudioContext, start: number, gain = 0.2, from = 220, to = 48, dur = 0.2) {
+  const dest = drive ?? undefined
+  tone(c, "sine", from, to, gain, start, dur, { attack: 0.001, dest })
+  tone(c, "triangle", from * 2, to * 2, gain * 0.25, start, dur * 0.4, { attack: 0.001, dest })
+  snap(c, start, gain * 0.35)
+}
+
+/** Coin ding: bright bell pair with a metallic partial. */
+function coin(c: AudioContext, start: number, freq = 1976, gain = 0.035) {
+  tone(c, "square", freq, freq, gain * 0.35, start, 0.05, { attack: 0.001 })
+  tone(c, "sine", freq, freq, gain, start, 0.22, { attack: 0.001 })
+  tone(c, "sine", freq * 1.335, freq * 1.335, gain * 0.9, start + 0.06, 0.3, { attack: 0.001 })
+  tone(c, "sine", freq * 2.7, freq * 2.7, gain * 0.2, start + 0.06, 0.12)
 }
 
 /** ±6% pitch drift so looping creature sounds never repeat exactly. */
@@ -252,25 +290,26 @@ const CUES = {
   tick(c: AudioContext, t: number) {
     pluck(c, 1760, 0.014, t, 0.04)
   },
-  /** Buy OK: warm two-note coin chime that climbs on streaks. */
+  /** Buy OK: snappy cash-register ka-ching that climbs on streaks. */
   purchase(c: AudioContext, t: number) {
     const step = PURCHASE_STEPS[purchaseStep % PURCHASE_STEPS.length]
     purchaseStep += 1
-    const root = semis(784, step)
-    const e = echo(c, 0.08, 0.18, 0.18)
-    bell(c, root, 0.04, t, 0.18, e)
-    bell(c, root * 1.5, 0.035, t + 0.05, 0.26, e)
-    sparkle(c, t + 0.07, root * 2, 3, 0.012)
-    thump(c, t, 0.045, 120)
+    const root = semis(1568, step)
+    snap(c, t, 0.06, 5000)
+    noise(c, "bandpass", 2400, 4, 0.03, t, 0.03)
+    coin(c, t + 0.015, root, 0.04)
+    sparkle(c, t + 0.09, root * 1.5, 3, 0.012)
+    punch(c, t, 0.09, 200, 60, 0.12)
   },
-  /** Permanent upgrade: two-note rise with a sparkle tail. */
+  /** Permanent upgrade: punchy power-up rise with a bright sparkle tail. */
   upgrade(c: AudioContext, t: number) {
     const e = echo(c, 0.09, 0.25, 0.25)
-    tone(c, "triangle", 659, 659, 0.05, t, 0.12, { dest: e })
-    tone(c, "triangle", 988, 988, 0.055, t + 0.07, 0.22, { dest: e })
-    tone(c, "sine", 1976, 1976, 0.018, t + 0.1, 0.3, { dest: e })
-    sparkle(c, t + 0.12, 1760, 5)
-    thump(c, t, 0.07)
+    punch(c, t, 0.16, 240, 50, 0.22)
+    tone(c, "square", 523, 1046, 0.03, t, 0.12, { attack: 0.002 })
+    tone(c, "triangle", 659, 659, 0.055, t + 0.02, 0.12, { dest: e })
+    tone(c, "triangle", 988, 988, 0.06, t + 0.08, 0.24, { dest: e })
+    tone(c, "triangle", 1318, 1318, 0.04, t + 0.14, 0.3, { dest: e })
+    sparkle(c, t + 0.14, 1760, 6, 0.02)
   },
   /** Can't afford / refused: muted low double bump. */
   deny(c: AudioContext, t: number) {
@@ -440,17 +479,16 @@ const CUES = {
     bell(c, 1175, 0.025, t, 0.15, e)
     bell(c, 1568, 0.022, t + 0.07, 0.25, e)
   },
-  /** Center ore shattered. */
+  /** Center ore shattered: crunchy crack, glass shards, sparkle. */
   oreBreak(c: AudioContext, t: number) {
-    noise(c, "highpass", 2500, 0.8, 0.07, t, 0.35)
-    noise(c, "lowpass", 400, 1, 0.08, t, 0.3)
-    for (let i = 0; i < 6; i++) {
+    punch(c, t, 0.24, 240, 40, 0.3)
+    noise(c, "highpass", 2500, 0.8, 0.1, t, 0.35)
+    noise(c, "lowpass", 900, 1, 0.12, t, 0.3, { sweepTo: 150 })
+    for (let i = 0; i < 8; i++) {
       const f = 2200 + Math.random() * 2600
-      tone(c, "sine", f, f * 0.9, 0.02, t + 0.02 + i * 0.03, 0.12)
+      tone(c, "sine", f, f * 0.9, 0.024, t + 0.02 + i * 0.028, 0.14)
     }
-    tone(c, "sine", 90, 45, 0.08, t, 0.3)
-    sparkle(c, t + 0.12, 1318, 7, 0.02, 0.03)
-    thump(c, t, 0.11, 160)
+    sparkle(c, t + 0.12, 1318, 8, 0.022, 0.028)
   },
   /** Golden vein claimed: jackpot chime. */
   vein(c: AudioContext, t: number) {
@@ -573,23 +611,28 @@ const CUES = {
     sparkle(c, t + 0.4, 1760, 6)
     thump(c, t, 0.1, 120)
   },
-  /** Guardian struck: short meaty impact. */
+  /** Guardian struck: crunchy meaty impact. */
   bossHit(c: AudioContext, t: number) {
-    noise(c, "bandpass", 1600, 1.5, 0.05, t, 0.07)
-    tone(c, "square", 260 * vary(), 140, 0.035, t, 0.09)
-    thump(c, t, 0.08, 150)
+    const v = vary()
+    snap(c, t, 0.09, 3000)
+    noise(c, "bandpass", 1500 * v, 1.2, 0.08, t, 0.08)
+    tone(c, "square", 300 * v, 120, 0.04, t, 0.08, { dest: drive ?? undefined })
+    punch(c, t, 0.17, 210 * v, 50, 0.16)
   },
   danger(c: AudioContext, t: number) {
     pluck(c, 196, 0.07, t, 0.18, 0.8)
     pluck(c, 208, 0.04, t + 0.02, 0.18, 0.8)
   },
-  /** Region monster slain: squelch + coin spill. */
+  /** Region monster slain: heavy splat, burst and a cascading coin spill. */
   monsterDie(c: AudioContext, t: number) {
-    tone(c, "sawtooth", 420, 90, 0.06, t, 0.25, { attack: 0.002 })
-    noise(c, "lowpass", 1200, 1, 0.08, t, 0.25, { sweepTo: 200 })
-    ;[1318, 1568, 2093].forEach((f, i) => tone(c, "triangle", f, f, 0.03, t + 0.18 + i * 0.05, 0.15))
-    sparkle(c, t + 0.32, 2093, 6, 0.016)
-    thump(c, t, 0.11)
+    const e = echo(c, 0.1, 0.25, 0.25)
+    punch(c, t, 0.26, 260, 40, 0.32)
+    tone(c, "sawtooth", 480, 70, 0.07, t, 0.24, { attack: 0.002, dest: drive ?? undefined })
+    noise(c, "lowpass", 2400, 0.8, 0.13, t, 0.3, { sweepTo: 180 })
+    noise(c, "highpass", 4000, 0.7, 0.05, t + 0.01, 0.12)
+    ;[1568, 1976, 2349, 2637, 3136].forEach((f, i) => coin(c, t + 0.14 + i * 0.045, f, 0.026))
+    sparkle(c, t + 0.36, 2637, 7, 0.016, 0.026)
+    tone(c, "triangle", 784, 784, 0.03, t + 0.14, 0.4, { dest: e })
   },
   /** Guardian wakes. */
   bossRoar(c: AudioContext, t: number) {
@@ -602,12 +645,16 @@ const CUES = {
     tone(c, "square", 220, 110, 0.06, t, 0.18)
     noise(c, "bandpass", 700, 1.5, 0.08, t, 0.2)
   },
-  /** Guardian falls. */
+  /** Guardian falls: massive boom, debris, victory fanfare. */
   bossDown(c: AudioContext, t: number) {
     const e = echo(c, 0.2, 0.45, 0.45)
+    punch(c, t, 0.34, 180, 28, 0.9)
     tone(c, "sine", 60, 25, 0.3, t, 1.6)
-    noise(c, "lowpass", 800, 1, 0.2, t, 1.8, { sweepTo: 80 })
-    ;[523, 659, 784, 1046, 1318].forEach((f, i) => tone(c, "triangle", f, f, 0.05, t + 0.6 + i * 0.12, 0.8, { dest: e }))
+    noise(c, "lowpass", 1600, 1, 0.22, t, 1.8, { sweepTo: 80 })
+    for (let i = 0; i < 10; i++) noise(c, "bandpass", 1200 + ((i * 677) % 2600), 5, 0.025, t + 0.1 + i * 0.06, 0.05)
+    ;[523, 659, 784, 1046, 1318].forEach((f, i) => tone(c, "triangle", f, f, 0.055, t + 0.6 + i * 0.12, 0.8, { dest: e }))
+    ;[523, 659, 784, 1046].forEach((f) => tone(c, "sawtooth", f, f, 0.018, t + 1.2, 1.4, { detune: 8, dest: e }))
+    sparkle(c, t + 1.25, 2093, 12, 0.02, 0.04)
   },
   /* ---------- Boss monsters (kept quiet: they loop in the background) ---------- */
   /** Wingbeat: a leathery whoosh that sweeps down, with a soft air thump. */
@@ -641,20 +688,23 @@ const CUES = {
     noise(c, "lowpass", 2600, 0.8, 0.14, t, 0.55, { sweepTo: 110 })
     for (let i = 0; i < 7; i++) noise(c, "bandpass", 1800 + ((i * 523) % 2600), 5, 0.02, t + 0.12 + i * 0.05 * v, 0.035)
   },
-  /** Boss takes a tap: meaty thwack plus a short pained grunt. */
+  /** Boss takes a tap: crunchy thwack plus a short pained grunt. */
   bossHurt(c: AudioContext, t: number) {
     const v = vary()
-    noise(c, "bandpass", 1400 * v, 1.2, 0.07, t, 0.07)
-    tone(c, "sine", 180 * v, 90, 0.08, t, 0.12, { attack: 0.002 })
+    snap(c, t, 0.08, 2800)
+    noise(c, "bandpass", 1400 * v, 1.2, 0.08, t, 0.07)
+    punch(c, t, 0.15, 200 * v, 55, 0.14)
     formantVoice(c, 95 * v, t + 0.03, 0.22, 0.035, [450, 900])
   },
   /** Boss falls: a long dying roar sliding down, then the body crashing and crumbling. */
   bossDeath(c: AudioContext, t: number) {
     const e = echo(c, 0.22, 0.4, 0.4)
-    formantVoice(c, 150, t, 1.2, 0.07, [650, 1100])
+    formantVoice(c, 150, t, 1.2, 0.08, [650, 1100])
+    punch(c, t + 0.7, 0.32, 170, 26, 1)
     tone(c, "sine", 70, 24, 0.28, t + 0.7, 1.1, { attack: 0.003, dest: e })
-    noise(c, "lowpass", 1600, 0.8, 0.16, t + 0.7, 1.2, { sweepTo: 60 })
-    for (let i = 0; i < 12; i++) noise(c, "bandpass", 900 + ((i * 677) % 2400), 5, 0.025, t + 0.8 + i * 0.07, 0.05)
+    noise(c, "lowpass", 2200, 0.8, 0.2, t + 0.7, 1.2, { sweepTo: 60 })
+    for (let i = 0; i < 14; i++) noise(c, "bandpass", 900 + ((i * 677) % 2400), 5, 0.03, t + 0.8 + i * 0.06, 0.05)
+    ;[1568, 1976, 2349, 2637, 3136, 3520].forEach((f, i) => coin(c, t + 1.0 + i * 0.06, f, 0.024))
   },
   /** Dragon breath: roaring voice under a crackling, buzzing lightning torrent. */
   dragonBreath(c: AudioContext, t: number) {
@@ -688,31 +738,42 @@ export function playSfx(name: SfxName) {
   }
 }
 
+/** Rapid clicks climb up to a fifth, then reset after a short pause — click spam feels like building power. */
+let comboPitch = 0
+let lastLaser = 0
+
 /**
- * Mining laser: a heavy charged beam — detuned saw stack sweeping down, a sub-bass
- * impact and a rock crunch. Crits add a bright crystal ring with an echo tail.
- * Pitch wobbles a little so rapid taps don't phase into one tone.
+ * Mining laser: a heavy charged beam — detuned saw stack sweeping down, a saturated
+ * kick and a rock crunch, with a crisp transient on top. Crits add a bright crystal
+ * ring with an echo tail. Pitch climbs with click streaks.
  */
 export function playLaser(mutedArg: boolean, critical: boolean) {
   if (mutedArg || muted) return
   const c = audio()
   if (!c) return
   const t0 = c.currentTime
-  const j = 1 + (Math.random() - 0.5) * 0.08
-  const dur = critical ? 0.22 : 0.14
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now()
+  comboPitch = now - lastLaser < 450 ? Math.min(7, comboPitch + 0.35) : 0
+  lastLaser = now
+  const climb = 2 ** (comboPitch / 12)
+  const j = (1 + (Math.random() - 0.5) * 0.05) * climb
+  const dur = critical ? 0.22 : 0.12
   const top = (critical ? 1700 : 1150) * j
-  for (const det of [-12, 0, 12]) {
-    tone(c, "sawtooth", top, critical ? 110 : 140, critical ? 0.07 : 0.05, t0, dur, { attack: 0.002, detune: det })
+  for (const det of [-12, 12]) {
+    tone(c, "sawtooth", top, critical ? 110 : 160, critical ? 0.06 : 0.04, t0, dur, { attack: 0.0015, detune: det })
   }
-  tone(c, "square", top / 2, 60, critical ? 0.035 : 0.022, t0, dur, { attack: 0.002 })
-  noise(c, "bandpass", critical ? 2600 : 2000, 0.7, critical ? 0.09 : 0.06, t0, dur, { sweepTo: 500 })
-  // Impact: sub boom + rock crunch so every hit lands on something solid.
-  tone(c, "sine", 120 * j, 38, critical ? 0.24 : 0.16, t0 + 0.01, critical ? 0.32 : 0.2)
-  noise(c, "lowpass", 700, 1, critical ? 0.12 : 0.07, t0 + 0.01, 0.14)
+  noise(c, "bandpass", critical ? 2600 : 2200, 0.7, critical ? 0.09 : 0.06, t0, dur, { sweepTo: 500 })
+  // Impact: saturated kick + crunch + snap so every hit lands on something solid.
+  punch(c, t0, critical ? 0.26 : 0.17, (critical ? 230 : 200) * j, 45, critical ? 0.26 : 0.15)
+  noise(c, "lowpass", 900, 1, critical ? 0.12 : 0.07, t0 + 0.005, 0.1)
+  // A small pitched ding that rides the streak climb.
+  tone(c, "triangle", 1318 * j, 1318 * j, critical ? 0.03 : 0.018, t0 + 0.004, 0.08, { attack: 0.001 })
   if (critical) {
     const e = echo(c, 0.08, 0.3, 0.35)
-    tone(c, "triangle", 2093, 2093, 0.06, t0 + 0.03, 0.35, { dest: e })
-    tone(c, "triangle", 3136, 3136, 0.03, t0 + 0.05, 0.3, { dest: e })
+    snap(c, t0, 0.1, 5000)
+    tone(c, "triangle", 2093 * climb, 2093 * climb, 0.06, t0 + 0.03, 0.35, { dest: e })
+    tone(c, "triangle", 3136 * climb, 3136 * climb, 0.035, t0 + 0.05, 0.3, { dest: e })
+    tone(c, "square", 523, 1046, 0.03, t0, 0.08, { dest: drive ?? undefined })
   }
 }
 
@@ -732,25 +793,42 @@ export function playRebirthCue(name: string) {
   if (!c) return
   const t = c.currentTime
   if (name === "sfx_rebirth_confirm_click") {
-    tone(c, "square", 1200, 900, 0.04, t, 0.06)
+    snap(c, t, 0.08, 4000)
+    tone(c, "square", 1200, 900, 0.045, t, 0.06)
+    punch(c, t, 0.12, 220, 60, 0.12)
   } else if (name === "sfx_rebirth_collapse_whoosh") {
-    tone(c, "sine", 520, 70, 0.07, t, 0.5)
-    noise(c, "bandpass", 700, 0.6, 0.05, t, 0.5, { sweepTo: 200 })
+    // Everything gets sucked inward: reverse swell, pitch dive, low implosion.
+    noise(c, "bandpass", 300, 0.8, 0.09, t, 0.6, { sweepTo: 5000, attack: 0.45 })
+    tone(c, "sawtooth", 880, 55, 0.05, t, 0.6, { attack: 0.05, dest: drive ?? undefined })
+    tone(c, "sine", 520, 50, 0.1, t, 0.6)
+    punch(c, t + 0.58, 0.3, 160, 30, 0.7)
   } else if (name === "sfx_rebirth_void_tear") {
-    noise(c, "bandpass", 3200, 2, 0.06, t, 0.35)
-    tone(c, "sawtooth", 90, 45, 0.05, t, 0.55)
+    const e = echo(c, 0.16, 0.4, 0.4)
+    snap(c, t, 0.12, 2500)
+    noise(c, "bandpass", 3200, 2, 0.09, t, 0.45, { sweepTo: 600 })
+    tone(c, "sawtooth", 140, 40, 0.07, t, 0.7, { detune: 14, dest: drive ?? undefined })
+    tone(c, "sawtooth", 142, 41, 0.06, t, 0.7, { detune: -14, dest: e })
+    noise(c, "lowpass", 600, 1, 0.14, t, 0.9, { sweepTo: 80 })
   } else if (name.startsWith("sfx_rebirth_stamp_")) {
     const root = STAMP_ROOT[name.slice("sfx_rebirth_stamp_".length)] ?? 440
-    const e = echo(c, 0.16, 0.35, 0.35)
-    tone(c, "triangle", root, root, 0.08, t, 0.6, { dest: e })
-    tone(c, "sine", root * 1.5, root * 1.5, 0.05, t + 0.04, 0.5, { dest: e })
-    noise(c, "lowpass", 180, 1, 0.08, t, 0.18)
+    const e = echo(c, 0.18, 0.4, 0.42)
+    // Huge stamp slam, then the worldline's chord rings out.
+    punch(c, t, 0.36, 200, 28, 0.8)
+    noise(c, "lowpass", 1400, 1, 0.16, t, 0.5, { sweepTo: 90 })
+    noise(c, "highpass", 4000, 0.7, 0.06, t, 0.2)
+    ;[1, 1.25, 1.5, 2].forEach((m, i) => tone(c, "triangle", root * m, root * m, 0.06 - i * 0.008, t + 0.02 + i * 0.03, 1.1, { dest: e }))
+    tone(c, "sawtooth", root / 2, root / 2, 0.025, t, 1.0, { detune: 8, dest: e })
+    sparkle(c, t + 0.15, root * 4, 8, 0.018, 0.03)
   } else if (name === "sfx_rebirth_rebuild_rise") {
-    tone(c, "sine", 220, 880, 0.05, t, 0.7)
+    noise(c, "bandpass", 400, 1, 0.05, t, 0.8, { sweepTo: 6000, attack: 0.5 })
+    tone(c, "sine", 220, 880, 0.06, t, 0.8, { attack: 0.3 })
+    tone(c, "sawtooth", 110, 440, 0.025, t, 0.8, { attack: 0.4 })
   } else if (name === "sfx_rebirth_settle_chime") {
     const e = echo(c, 0.2, 0.4, 0.4)
-    tone(c, "sine", 1046, 1046, 0.04, t, 0.8, { dest: e })
-    tone(c, "sine", 1318, 1318, 0.03, t + 0.08, 0.7, { dest: e })
+    punch(c, t, 0.14, 180, 50, 0.3)
+    ;[523, 659, 784, 1046].forEach((f, i) => tone(c, "triangle", f, f, 0.04, t + i * 0.06, 1.0, { dest: e }))
+    bell(c, 2093, 0.04, t + 0.28, 0.9, e)
+    sparkle(c, t + 0.3, 2093, 10, 0.018, 0.035)
   }
 }
 

@@ -811,12 +811,12 @@ export function useClicker() {
     playSfx("back")
   }, [commit])
 
-  /** Strike in the lair. Returns true on the killing blow. */
+  /** Strike in the lair. Returns the CORE dropped on the killing blow, or null when the boss still stands. */
   const strikeLair = useCallback(
-    (clientX: number, clientY: number) => {
-      if (!saveRef.current) return false
+    (clientX: number, clientY: number): number | null => {
+      if (!saveRef.current) return null
       const result = clickerStrikeLair(saveRef.current, now())
-      if (result.damage <= 0) return false
+      if (result.damage <= 0) return null
       commit(result.save)
       const id = ++floatId.current
       const text = result.defeated ? `+${formatNumber(result.reward)}` : `-${result.damage}`
@@ -826,7 +826,7 @@ export function useClicker() {
         playSfx("monsterDie")
         persistNow(result.save)
       }
-      return result.defeated
+      return result.defeated ? result.reward : null
     },
     [commit, persistNow],
   )
