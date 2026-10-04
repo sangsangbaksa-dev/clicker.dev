@@ -1930,7 +1930,7 @@ export function ClickerApp() {
       ) : null}
 
       {game.save.settings.gameStarted && !game.save.settings.tutorialSeen ? (
-        <ClickerTutorial onDone={game.finishTutorial} admin={adminAllowed} hidden={inMine} />
+        <ClickerTutorial onDone={game.finishTutorial} hidden={inMine} />
       ) : null}
 
       {endingPhase ? (

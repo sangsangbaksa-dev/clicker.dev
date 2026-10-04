@@ -2122,9 +2122,6 @@
 [data-clicker] .clicker-forge-item.is-next figcaption b { color: #ffe08a; }
 [data-clicker] .clicker-forge-arrow { flex: none; opacity: 0.6; }
 
-[data-clicker] .clicker-tutorial-admin { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
-[data-clicker] .clicker-tutorial-admin .clicker-ghost { min-width: 28px; padding: 2px 6px; font-size: 11px; }
-[data-clicker] .clicker-tutorial-admin .clicker-ghost.is-on { border-color: #7fd8f0; color: #7fd8f0; }
 [data-clicker] .clicker-admin .is-on { outline: 2px solid #7fd8f0; }
 
 /* Relic Vault: forge-style cards with a line of lore. */
