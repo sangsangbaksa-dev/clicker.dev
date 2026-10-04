@@ -7,36 +7,61 @@ import { spawn } from "node:child_process"
 import { once } from "node:events"
 import { createConnection } from "node:net"
 import { test } from "node:test"
+import { fileURLToPath } from "node:url"
 import { chromium } from "playwright"
 
 const HOST = "127.0.0.1"
 const PORT = Number(process.env.CLICKER_SMOKE_PORT || "3099")
 const BASE = `http://${HOST}:${PORT}`
+const ROOT = fileURLToPath(new URL("..", import.meta.url))
+const NEXT_BIN = fileURLToPath(new URL("../node_modules/next/dist/bin/next", import.meta.url))
 
-function waitForPort(host, port, timeoutMs = 120_000) {
+function waitForPort(host, port, server, timeoutMs = 120_000) {
   const start = Date.now()
   return new Promise((resolve, reject) => {
+    let settled = false
+    let timeout
+    const cleanup = () => {
+      clearTimeout(timeout)
+      server.off("error", fail)
+      server.off("exit", onExit)
+    }
+    const fail = (error) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      reject(error)
+    }
+    const onExit = (code, signal) => {
+      fail(new Error(`Next.js server exited before listening (code ${code}, signal ${signal})`))
+    }
     const tick = () => {
+      if (settled) return
       const socket = createConnection({ host, port }, () => {
+        settled = true
         socket.end()
+        cleanup()
         resolve()
       })
       socket.on("error", () => {
         socket.destroy()
-        if (Date.now() - start > timeoutMs) reject(new Error(`Timed out waiting for ${host}:${port}`))
+        if (Date.now() - start > timeoutMs) fail(new Error(`Timed out waiting for ${host}:${port}`))
         else setTimeout(tick, 250)
       })
     }
+    server.once("error", fail)
+    server.once("exit", onExit)
+    timeout = setTimeout(() => fail(new Error(`Timed out waiting for ${host}:${port}`)), timeoutMs)
     tick()
   })
 }
 
 test("production clicker home loads without client exceptions", { timeout: 180_000 }, async () => {
   const server = spawn(
-    "npx",
-    ["next", "start", "--hostname", HOST, "--port", String(PORT)],
+    process.execPath,
+    [NEXT_BIN, "start", "--hostname", HOST, "--port", String(PORT)],
     {
-      cwd: new URL("..", import.meta.url).pathname,
+      cwd: ROOT,
       env: { ...process.env, NODE_ENV: "production" },
       stdio: ["ignore", "pipe", "pipe"],
     },
@@ -45,7 +70,7 @@ test("production clicker home loads without client exceptions", { timeout: 180_0
   const pageErrors = []
   let browser
   try {
-    await waitForPort(HOST, PORT)
+    await waitForPort(HOST, PORT, server)
     browser = await chromium.launch({ headless: true })
     const page = await browser.newPage()
     page.on("pageerror", (err) => {
