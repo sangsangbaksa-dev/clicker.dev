@@ -40,32 +40,32 @@ export const WEAPONS: WeaponTier[] = [
   { id: "pickaxe", name: "채굴 곡괭이", damage: 1, cost: { core: 0, currencies: [] } },
   { id: "core_blade", name: "코어 강철검", damage: 2, cost: { core: 400, currencies: [cc("signal_relay", 250)] } },
   { id: "phase_greatsword", name: "위상 수정 대검", damage: 4, cost: { core: 6_000, currencies: [cc("signal_relay", 1_500), cc("phase_vault", 2_500)] } },
-  { id: "storm_lance", name: "뇌운 창", damage: 7, cost: { core: 150_000, currencies: [cc("phase_vault", 30_000), cc("storm_spire", 45_000)] } },
-  { id: "magma_maul", name: "용암 파쇄 망치", damage: 12, cost: { core: 2_500_000, currencies: [cc("storm_spire", 500_000), cc("deep_fault", 700_000)] } },
+  { id: "storm_lance", name: "뇌운 창", damage: 7, cost: { core: 75_000, currencies: [cc("phase_vault", 15_000), cc("storm_spire", 22_500)] } },
+  { id: "magma_maul", name: "용암 파쇄 망치", damage: 12, cost: { core: 1_250_000, currencies: [cc("storm_spire", 250_000), cc("deep_fault", 350_000)] } },
 ]
 
 export const ARMORS: ArmorTier[] = [
   { id: "work_suit", name: "작업복", hp: 0, reduction: 0, cost: { core: 0, currencies: [] } },
   { id: "core_leather", name: "코어 가죽 갑옷", hp: 40, reduction: 0.1, cost: { core: 350, currencies: [cc("signal_relay", 300)] } },
   { id: "phase_cuirass", name: "위상 수정 흉갑", hp: 90, reduction: 0.2, cost: { core: 5_000, currencies: [cc("signal_relay", 1_200), cc("phase_vault", 2_000)] } },
-  { id: "storm_plate", name: "뇌운 판금", hp: 160, reduction: 0.3, cost: { core: 120_000, currencies: [cc("phase_vault", 25_000), cc("storm_spire", 40_000)] } },
-  { id: "magma_bulwark", name: "용암 요새 갑주", hp: 260, reduction: 0.4, cost: { core: 2_000_000, currencies: [cc("storm_spire", 400_000), cc("deep_fault", 600_000)] } },
+  { id: "storm_plate", name: "뇌운 판금", hp: 160, reduction: 0.3, cost: { core: 60_000, currencies: [cc("phase_vault", 12_500), cc("storm_spire", 20_000)] } },
+  { id: "magma_bulwark", name: "용암 요새 갑주", hp: 260, reduction: 0.4, cost: { core: 1_000_000, currencies: [cc("storm_spire", 200_000), cc("deep_fault", 300_000)] } },
 ]
 
 export const HELMETS: HelmetTier[] = [
   { id: "miner_helmet", name: "광부 헬멧", hp: 0, cost: { core: 0, currencies: [] } },
   { id: "core_visor", name: "코어 강화 투구", hp: 20, cost: { core: 250, currencies: [cc("signal_relay", 200)] } },
   { id: "phase_crown", name: "위상 수정 관", hp: 50, cost: { core: 3_500, currencies: [cc("signal_relay", 900), cc("phase_vault", 1_400)] } },
-  { id: "storm_helm", name: "뇌운 투구", hp: 90, cost: { core: 85_000, currencies: [cc("phase_vault", 18_000), cc("storm_spire", 28_000)] } },
-  { id: "magma_horns", name: "용암 뿔 투구", hp: 150, cost: { core: 1_400_000, currencies: [cc("storm_spire", 280_000), cc("deep_fault", 420_000)] } },
+  { id: "storm_helm", name: "뇌운 투구", hp: 90, cost: { core: 42_500, currencies: [cc("phase_vault", 9_000), cc("storm_spire", 14_000)] } },
+  { id: "magma_horns", name: "용암 뿔 투구", hp: 150, cost: { core: 700_000, currencies: [cc("storm_spire", 140_000), cc("deep_fault", 210_000)] } },
 ]
 
 export const AMULETS: AmuletTier[] = [
   { id: "faded_charm", name: "빛바랜 부적", slow: 0, cost: { core: 0, currencies: [] } },
   { id: "signal_charm", name: "신호 증폭 부적", slow: 0.1, cost: { core: 500, currencies: [cc("signal_relay", 350)] } },
   { id: "phase_hourglass", name: "위상 모래시계", slow: 0.2, cost: { core: 7_500, currencies: [cc("signal_relay", 1_800), cc("phase_vault", 3_000)] } },
-  { id: "storm_eye", name: "폭풍의 눈", slow: 0.3, cost: { core: 180_000, currencies: [cc("phase_vault", 36_000), cc("storm_spire", 54_000)] } },
-  { id: "magma_heartstone", name: "용암 심장석", slow: 0.45, cost: { core: 3_000_000, currencies: [cc("storm_spire", 600_000), cc("deep_fault", 840_000)] } },
+  { id: "storm_eye", name: "폭풍의 눈", slow: 0.3, cost: { core: 90_000, currencies: [cc("phase_vault", 18_000), cc("storm_spire", 27_000)] } },
+  { id: "magma_heartstone", name: "용암 심장석", slow: 0.45, cost: { core: 1_500_000, currencies: [cc("storm_spire", 300_000), cc("deep_fault", 420_000)] } },
 ]
 
 export const GEAR: Record<GearSlot, GearTier[]> = { weapon: WEAPONS, armor: ARMORS, helmet: HELMETS, amulet: AMULETS }

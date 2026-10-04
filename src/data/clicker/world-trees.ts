@@ -10,8 +10,15 @@ type Spec = { name: string; description: string } & Omit<WorldTreeNodeDef, "id" 
 /** Price ladder shared by every world (share of unlock threshold × base mint rate). */
 const COST_SHARES = [0.02, 0.06, 0.15, 0.4, 1]
 
+/**
+ * Late worlds unlock at a larger share of the goal, which made their trees climb steeply in price.
+ * This scale brings them back to about the early worlds' price level.
+ */
+const LATE_PRICE_SCALE: Record<string, number> = { storm_spire: 0.5, deep_fault: 0.36, core_heart: 0.33 }
+
 function tree(regionId: string, nodes: Spec[]): WorldTreeNodeDef[] {
-  return nodes.map((n, i) => ({ ...n, id: `${regionId}_t${i + 1}`, regionId, costShare: COST_SHARES[i] }))
+  const scale = LATE_PRICE_SCALE[regionId] ?? 1
+  return nodes.map((n, i) => ({ ...n, id: `${regionId}_t${i + 1}`, regionId, costShare: COST_SHARES[i] * scale }))
 }
 
 export const CLICKER_WORLD_TREES: WorldTreeNodeDef[] = [
