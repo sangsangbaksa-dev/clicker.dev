@@ -204,3 +204,75 @@
   [data-clicker] .clicker-gacha-free.is-ready { animation: none; }
   [data-clicker] .clicker-gacha-card-inner { transition: none; }
 }
+
+/* ---------- History: totals, what the gacha has given, the latest capsules ---------- */
+[data-clicker] .clicker-gacha-actions .clicker-gacha-history-open { grid-column: 1 / -1; min-height: 34px; font-size: 12px; }
+[data-clicker] .clicker-gacha-history { place-content: stretch center; }
+[data-clicker] .clicker-gacha-history-card {
+  display: grid;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  gap: 10px;
+  width: min(640px, 94vw);
+  max-height: min(86dvh, 820px);
+  margin: auto;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgb(143 184 255 / 0.3);
+  background: linear-gradient(180deg, #111a33, #080d1b);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.6);
+  color: #e8f2ff;
+}
+[data-clicker] .clicker-gacha-history-card header { display: flex; align-items: center; justify-content: space-between; }
+[data-clicker] .clicker-gacha-history-card h3 { margin: 0; font-size: 18px; }
+[data-clicker] .clicker-gacha-history-total { margin: 0; font-size: 13px; }
+[data-clicker] .clicker-gacha-history-total b.is-legendary,
+[data-clicker] .clicker-gacha-history-list li.is-legendary b { color: #ffd34a; }
+[data-clicker] .clicker-gacha-history-total b.is-epic,
+[data-clicker] .clicker-gacha-history-list li.is-epic b { color: #d39bff; }
+[data-clicker] .clicker-gacha-history-total b.is-rare,
+[data-clicker] .clicker-gacha-history-list li.is-rare b { color: #7cc0ff; }
+[data-clicker] .clicker-gacha-history-effects { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+[data-clicker] .clicker-gacha-history-effects > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.05);
+}
+[data-clicker] .clicker-gacha-history-effects img { width: 34px; height: 34px; border-radius: 50%; }
+[data-clicker] .clicker-gacha-history-effects span { display: grid; gap: 1px; min-width: 0; }
+[data-clicker] .clicker-gacha-history-effects b { font-size: 13px; }
+[data-clicker] .clicker-gacha-history-effects small,
+[data-clicker] .clicker-gacha-history-note { font-size: 11px; opacity: 0.7; margin: 0; }
+[data-clicker] .clicker-gacha-history-list {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+[data-clicker] .clicker-gacha-history-list li {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.03);
+  border-left: 3px solid rgb(255 255 255 / 0.15);
+}
+[data-clicker] .clicker-gacha-history-list li.is-rare { border-left-color: #4fa8ff; }
+[data-clicker] .clicker-gacha-history-list li.is-epic { border-left-color: #c36bff; }
+[data-clicker] .clicker-gacha-history-list li.is-legendary { border-left-color: #ffd34a; background: rgb(255 210 80 / 0.08); }
+[data-clicker] .clicker-gacha-history-list li.is-empty { display: block; text-align: center; opacity: 0.6; }
+[data-clicker] .clicker-gacha-history-icon img { width: 36px; height: 36px; object-fit: contain; border-radius: 8px; }
+[data-clicker] .clicker-gacha-history-name { display: grid; min-width: 0; }
+[data-clicker] .clicker-gacha-history-name b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+[data-clicker] .clicker-gacha-history-name small { font-size: 11px; opacity: 0.7; }
+[data-clicker] .clicker-gacha-history-list time { font-size: 11px; opacity: 0.6; }
+@media (max-width: 520px) {
+  [data-clicker] .clicker-gacha-history-effects { grid-template-columns: 1fr; }
+}

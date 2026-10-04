@@ -6,6 +6,7 @@ import type {
   FeverState,
   GameConfig,
   InstabilityLevel,
+  GachaLogEntry,
   MetaState,
   PotionDef,
   ProductionSnapshot,
@@ -310,6 +311,11 @@ export function syncClickerMineSession(save: SaveData, now: number, config?: Gam
 function ownedUpgrades(run: RunState, config: GameConfig): UpgradeDef[] {
   const set = new Set(run.ownedUpgradeIds)
   return config.upgrades.filter((u) => set.has(u.id))
+}
+
+/** Lair strike damage multiplier from owned circuits. */
+export function lairDamageMultiplier(run: RunState, config: GameConfig): number {
+  return ownedSkills(run, config).reduce((m, n) => m * (n.lairDamageMultiplier ?? 1), 1)
 }
 
 function ownedSkills(run: RunState, config: GameConfig): SkillNodeDef[] {
@@ -1748,6 +1754,8 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         gachaPulls: nonNegativeInt(meta.gachaPulls),
         gachaStars: nonNegativeInt(meta.gachaStars),
         gachaFreeAt: typeof meta.gachaFreeAt === "number" && Number.isFinite(meta.gachaFreeAt) ? meta.gachaFreeAt : 0,
+        gachaCounts: sanitizeGachaCounts(meta.gachaCounts),
+        gachaLog: sanitizeGachaLog(meta.gachaLog),
       },
       runState: {
         ...createInitialRun(now, createInitialMeta(), config),
@@ -2102,6 +2110,31 @@ export function gachaCost(run: RunState, meta: MetaState, config: GameConfig, no
   return count === 10 ? Math.ceil(one * 10 * GACHA_TEN_PULL_DISCOUNT) : one
 }
 
+/** How many opened capsules the history keeps. */
+export const GACHA_LOG_MAX = 100
+const GACHA_RARITIES = ["common", "rare", "epic", "legendary"] as const
+
+function sanitizeGachaCounts(value: unknown): MetaState["gachaCounts"] {
+  const src = value && typeof value === "object" ? (value as Record<string, unknown>) : {}
+  return Object.fromEntries(GACHA_RARITIES.map((r) => [r, nonNegativeInt(src[r])]))
+}
+
+function sanitizeGachaLog(value: unknown): GachaLogEntry[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter(
+      (e): e is GachaLogEntry =>
+        Boolean(e) &&
+        typeof e === "object" &&
+        typeof e.at === "number" &&
+        (GACHA_RARITIES as readonly string[]).includes(e.rarity) &&
+        ["skill", "upgrade", "circuit", "star"].includes(e.kind) &&
+        typeof e.id === "string",
+    )
+    .slice(0, GACHA_LOG_MAX)
+    .map((e) => ({ at: e.at, rarity: e.rarity, kind: e.kind, id: e.id, ...(typeof e.count === "number" ? { count: e.count } : {}) }))
+}
+
 /** Legendary odds for the next pull, with soft pity after GACHA_SOFT_PITY dry pulls. */
 export function gachaLegendaryRate(pity: number): number {
   if (pity + 1 >= GACHA_PITY) return 1
@@ -2214,5 +2247,17 @@ export function pullGacha(
       giveCharges(rarity, GACHA_COMMON_CHARGES)
     }
   }
+  // History: per-rarity totals and the newest capsules first.
+  const counts = { ...(nextMeta.gachaCounts ?? {}) }
+  for (const r of rewards) counts[r.rarity] = (counts[r.rarity] ?? 0) + 1
+  const logged: GachaLogEntry[] = rewards
+    .map((r): GachaLogEntry => {
+      if (r.kind === "skill") return { at: now, rarity: r.rarity, kind: "skill", id: r.skillId, count: r.count }
+      if (r.kind === "upgrade") return { at: now, rarity: r.rarity, kind: "upgrade", id: r.upgradeId }
+      if (r.kind === "circuit") return { at: now, rarity: r.rarity, kind: "circuit", id: r.nodeId }
+      return { at: now, rarity: r.rarity, kind: "star", id: "star", count: r.stars }
+    })
+    .reverse()
+  nextMeta = { ...nextMeta, gachaCounts: counts, gachaLog: [...logged, ...(nextMeta.gachaLog ?? [])].slice(0, GACHA_LOG_MAX) }
   return { run: next, meta: nextMeta, rewards }
 }

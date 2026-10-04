@@ -12,6 +12,7 @@ import {
   GACHA_PITY,
   GACHA_SOFT_PITY,
   GACHA_STAR_PRODUCTION,
+  type GachaLogEntry,
   type GachaRarity,
   type GachaReward,
   type RunState,
@@ -65,12 +66,29 @@ function clock(ms: number): string {
   return h > 0 ? `${h}시간 ${m}분` : `${m}분 ${s % 60}초`
 }
 
+/** A logged capsule as display info. */
+function logInfo(entry: GachaLogEntry, game: ClickerGame): { name: string; kind: string; icon?: string } {
+  if (entry.kind === "star") return rewardInfo({ rarity: "legendary", kind: "star", stars: entry.count ?? 1 }, game)
+  if (entry.kind === "skill") return rewardInfo({ rarity: entry.rarity, kind: "skill", skillId: entry.id, count: entry.count ?? 1 }, game)
+  if (entry.kind === "upgrade") return rewardInfo({ rarity: entry.rarity, kind: "upgrade", upgradeId: entry.id }, game)
+  return rewardInfo({ rarity: entry.rarity, kind: "circuit", nodeId: entry.id }, game)
+}
+
+function when(at: number, now: number): string {
+  const m = Math.floor(Math.max(0, now - at) / 60000)
+  if (m < 1) return "방금"
+  if (m < 60) return `${m}분 전`
+  const h = Math.floor(m / 60)
+  return h < 24 ? `${h}시간 전` : `${Math.floor(h / 24)}일 전`
+}
+
 type Show = { key: number; count: 1 | 10; rewards: GachaReward[]; phase: "drop" | "reveal"; open: boolean[] }
 
 /** Core capsule gacha: pull for CORE (or the free daily capsule), a capsule-drop reveal, flip cards, pity. */
 export function ClickerGacha({ game, run }: { game: ClickerGame; run: RunState }) {
   const [show, setShow] = useState<Show | null>(null)
   const [flash, setFlash] = useState(0)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const timers = useRef<number[]>([])
   useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), [])
   const later = (fn: () => void, ms: number) => timers.current.push(window.setTimeout(fn, ms))
@@ -173,6 +191,9 @@ export function ClickerGacha({ game, run }: { game: ClickerGame; run: RunState }
           <button type="button" className="clicker-primary clicker-gacha-ten" disabled={run.coreEnergy < ten} onClick={() => pull(10)}>
             10회 뽑기 · {formatNumber(ten)} <small>10% 할인</small>
           </button>
+          <button type="button" className="clicker-ghost clicker-gacha-history-open" onClick={() => setHistoryOpen(true)}>
+            뽑기 기록 · 효과 보기 ({meta.gachaPulls ?? 0}회)
+          </button>
         </div>
       </div>
       {show && host
@@ -243,6 +264,87 @@ export function ClickerGacha({ game, run }: { game: ClickerGame; run: RunState }
               )}
               {flash ? <span key={flash} className="clicker-gacha-flash" aria-hidden /> : null}
             </div>,
+            host,
+          )
+        : null}
+      {historyOpen && host
+        ? createPortal(
+            (() => {
+              const counts = meta.gachaCounts ?? {}
+              const log = meta.gachaLog ?? []
+              const upgrades = log.filter((e) => e.kind === "upgrade").length
+              const circuits = log.filter((e) => e.kind === "circuit").length
+              const charges = log.filter((e) => e.kind === "skill").reduce((n, e) => n + (e.count ?? 1), 0)
+              return (
+                <div className="clicker-gacha-stage clicker-gacha-history" role="dialog" aria-modal="true" aria-labelledby="clicker-gacha-history-title">
+                  <div className="clicker-gacha-history-card">
+                    <header>
+                      <h3 id="clicker-gacha-history-title">뽑기 기록</h3>
+                      <button type="button" className="clicker-ghost" onClick={() => setHistoryOpen(false)}>
+                        닫기
+                      </button>
+                    </header>
+                    <p className="clicker-gacha-history-total">
+                      총 <b>{meta.gachaPulls ?? 0}</b>회 · 전설 <b className="is-legendary">{counts.legendary ?? 0}</b> · 영웅{" "}
+                      <b className="is-epic">{counts.epic ?? 0}</b> · 희귀 <b className="is-rare">{counts.rare ?? 0}</b> · 일반 <b>{counts.common ?? 0}</b>
+                    </p>
+                    <section className="clicker-gacha-history-effects" aria-label="뽑기 효과">
+                      <div>
+                        <img src={ART.legendary} alt="" />
+                        <span>
+                          <b>영구 생산 ×{gachaStarMultiplier(meta).toFixed(2)}</b>
+                          <small>전설의 별 {stars}개 · 환생해도 유지</small>
+                        </span>
+                      </div>
+                      <div>
+                        <img src={ART.epic} alt="" />
+                        <span>
+                          <b>스킬 회로 {circuits}개</b>
+                          <small>무료로 얻은 회로</small>
+                        </span>
+                      </div>
+                      <div>
+                        <img src={ART.rare} alt="" />
+                        <span>
+                          <b>업그레이드 {upgrades}개</b>
+                          <small>무료로 얻은 업그레이드</small>
+                        </span>
+                      </div>
+                      <div>
+                        <img src={ART.common} alt="" />
+                        <span>
+                          <b>스킬 충전 {charges}회</b>
+                          <small>액티브 스킬 사용 횟수</small>
+                        </span>
+                      </div>
+                    </section>
+                    <p className="clicker-gacha-history-note">
+                      회로·업그레이드·충전은 최근 {log.length}개 기록 기준 · 전설 확정까지 {GACHA_PITY - pity}회
+                    </p>
+                    <ol className="clicker-gacha-history-list">
+                      {log.length === 0 ? <li className="is-empty">아직 뽑은 캡슐이 없습니다.</li> : null}
+                      {log.map((entry, i) => {
+                        const info = logInfo(entry, game)
+                        return (
+                          <li key={i} className={`is-${entry.rarity}`}>
+                            <span className="clicker-gacha-history-icon">
+                              <img src={info.icon ?? ART[entry.rarity]} alt="" />
+                            </span>
+                            <span className="clicker-gacha-history-name">
+                              <b>{info.name}</b>
+                              <small>
+                                {RARITY_LABEL[entry.rarity]} · {info.kind}
+                              </small>
+                            </span>
+                            <time>{when(entry.at, now)}</time>
+                          </li>
+                        )
+                      })}
+                    </ol>
+                  </div>
+                </div>
+              )
+            })(),
             host,
           )
         : null}

@@ -22,6 +22,7 @@ import {
   isClickerAdminAllowed,
   isRegionUnlocked,
   lairAttackEveryMs,
+  lairDamageMultiplier,
   monsterAlive,
   playerMaxHp,
   relicVaultOpen,
@@ -1456,7 +1457,7 @@ export function ClickerApp() {
                     />
                   </div>
                   <p className="clicker-drill-hint">
-                    {WEAPONS[gear.weapon].name} (피해 {WEAPONS[gear.weapon].damage}) · {ARMORS[gear.armor].name}
+                    {WEAPONS[gear.weapon].name} (피해 {Math.max(1, Math.round(WEAPONS[gear.weapon].damage * lairDamageMultiplier(run, game.config)))}) · {ARMORS[gear.armor].name}
                   </p>
                   <button type="button" className="clicker-ghost clicker-lair-leave" onClick={game.leaveLair}>
                     후퇴하기
@@ -1469,7 +1470,7 @@ export function ClickerApp() {
                         const boss = LAIR_BOSSES[monsterDef.kind]
                         const hitFor = Math.max(1, Math.round(boss.damage * (1 - ARMORS[gear.armor].reduction)))
                         const survive = Math.max(0, Math.ceil(playerMaxHp(run) / hitFor) - 1)
-                        const strikes = Math.ceil(boss.hp / WEAPONS[gear.weapon].damage)
+                        const strikes = Math.ceil(boss.hp / Math.max(1, Math.round(WEAPONS[gear.weapon].damage * lairDamageMultiplier(run, game.config))))
                         const seconds = ((survive + 1) * lairAttackEveryMs(run)) / 1000
                         const tps = strikes / Math.max(0.1, seconds)
                         const verdict = survive === 0 ? "한 방에 쓰러집니다 — 대장간에서 방어구부터" : tps > 9 ? "너무 강합니다 — 무기를 강화하세요" : tps > 5 ? "빡빡한 싸움" : "해볼 만합니다"

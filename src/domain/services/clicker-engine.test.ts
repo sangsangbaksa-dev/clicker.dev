@@ -719,6 +719,10 @@ test("gacha: soft pity raises legendary odds, ten-pull holds a rare, one free ca
   assert.equal(free.meta.gachaFreeAt, day)
   assert.ok(eng.pullGacha(free.run, free.meta, config, day + 1000, () => 0.999, 1, true).error, "once a day")
   assert.equal(eng.pullGacha(free.run, free.meta, config, day * 2, () => 0.999, 1, true).error, undefined)
+  // History: totals per rarity and the newest capsules first.
+  assert.equal(ten.meta.gachaLog?.length, 10)
+  assert.equal(Object.values(ten.meta.gachaCounts ?? {}).reduce((a, b) => a + (b ?? 0), 0), 10)
+  assert.equal(free.meta.gachaLog?.[0].at, day)
 })
 
 test("gacha: common = skill charges, rare = a free upgrade, epic = a free circuit, never rebirth nodes", async () => {

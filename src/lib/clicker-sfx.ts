@@ -822,43 +822,32 @@ export function playSfx(name: SfxName) {
   }
 }
 
-/** Rapid clicks climb up to a fifth, then reset after a short pause — click spam feels like building power. */
-let comboPitch = 0
-let lastLaser = 0
-
 /**
- * Mining laser: a sci-fi blaster "pew" — a buzzing dive from high to low with a light
- * impact underneath. Crits fire a heavier double shot with a charged crackle and a
- * ringing crystal tail. Pitch climbs with click streaks so spam feels like powering up.
+ * Mining laser: a heavy charged beam — detuned saw stack sweeping down, a sub-bass
+ * impact and a rock crunch. Crits add a bright crystal ring with an echo tail.
+ * Pitch wobbles a little so rapid taps don't phase into one tone.
  */
 export function playLaser(mutedArg: boolean, critical: boolean) {
   if (mutedArg || muted) return
   const c = audio()
   if (!c) return
   const t0 = c.currentTime
-  const now = typeof performance !== "undefined" ? performance.now() : Date.now()
-  comboPitch = now - lastLaser < 450 ? Math.min(7, comboPitch + 0.35) : 0
-  lastLaser = now
-  const climb = 2 ** (comboPitch / 12)
-  const j = (1 + (Math.random() - 0.5) * 0.06) * climb
-  const pan = (Math.random() - 0.5) * 0.5
-  if (!critical) {
-    pew(c, t0, 2600 * j, 210 * j, 0.14, 0.1, { pan })
-    tone(c, "sine", 1800 * j, 900 * j, 0.025, t0, 0.05, { attack: 0.001 })
-    snap(c, t0, 0.035, 6000)
-    tone(c, "sine", 150, 60, 0.07, t0 + 0.02, 0.09, { attack: 0.002, dest: drive ?? undefined })
-    return
+  const j = 1 + (Math.random() - 0.5) * 0.08
+  const dur = critical ? 0.22 : 0.14
+  const top = (critical ? 1700 : 1150) * j
+  for (const det of [-12, 0, 12]) {
+    tone(c, "sawtooth", top, critical ? 110 : 140, critical ? 0.07 : 0.05, t0, dur, { attack: 0.002, detune: det })
   }
-  const e = echo(c, 0.09, 0.32, 0.36)
-  // Charge crackle, then two overlapping shots: a big one and a higher echo shot.
-  noise(c, "highpass", 5000, 0.8, 0.08, t0, 0.05, { attack: 0.001 })
-  pew(c, t0, 3600 * j, 160 * j, 0.22, 0.1, { pan: -0.35, buzz: 0.12 })
-  pew(c, t0 + 0.045, 4400 * j, 260 * j, 0.18, 0.07, { pan: 0.35, buzz: 0.12, dest: e })
-  tone(c, "sawtooth", 7000 * j, 1200, 0.03, t0, 0.06, { attack: 0.001 })
-  punch(c, t0 + 0.02, 0.18, 220, 45, 0.2)
-  tone(c, "triangle", 2093 * climb, 2093 * climb, 0.05, t0 + 0.06, 0.4, { dest: e, pan: -0.3 })
-  tone(c, "triangle", 3136 * climb, 3136 * climb, 0.035, t0 + 0.09, 0.35, { dest: e, pan: 0.3 })
-  shimmer(c, t0 + 0.1, 2637 * climb, 5, 0.012, 0.025)
+  tone(c, "square", top / 2, 60, critical ? 0.035 : 0.022, t0, dur, { attack: 0.002 })
+  noise(c, "bandpass", critical ? 2600 : 2000, 0.7, critical ? 0.09 : 0.06, t0, dur, { sweepTo: 500 })
+  // Impact: sub boom + rock crunch so every hit lands on something solid.
+  tone(c, "sine", 120 * j, 38, critical ? 0.24 : 0.16, t0 + 0.01, critical ? 0.32 : 0.2)
+  noise(c, "lowpass", 700, 1, critical ? 0.12 : 0.07, t0 + 0.01, 0.14)
+  if (critical) {
+    const e = echo(c, 0.08, 0.3, 0.35)
+    tone(c, "triangle", 2093, 2093, 0.06, t0 + 0.03, 0.35, { dest: e })
+    tone(c, "triangle", 3136, 3136, 0.03, t0 + 0.05, 0.3, { dest: e })
+  }
 }
 
 /** Stamp pitch per worldline so each rebirth lands with its own color. */
@@ -871,48 +860,148 @@ const STAMP_ROOT: Record<string, number> = {
 }
 
 /** Rebirth beat cues, keyed by the placeholder names in `REBIRTH_AUDIO_CUES`. */
+/** Concert-hall reverb (a generated 3 s impulse), shared by the cinematic cues. */
+let hallNode: ConvolverNode | null = null
+function hall(c: AudioContext): AudioNode {
+  if (!hallNode || hallNode.context !== c) {
+    const len = Math.floor(c.sampleRate * 3.2)
+    const ir = c.createBuffer(2, len, c.sampleRate)
+    for (let ch = 0; ch < 2; ch++) {
+      const d = ir.getChannelData(ch)
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len) ** 2.6
+    }
+    hallNode = c.createConvolver()
+    hallNode.buffer = ir
+    const wet = c.createGain()
+    wet.gain.value = 0.55
+    hallNode.connect(wet)
+    wet.connect(out(c))
+  }
+  return hallNode
+}
+
+/** Send a source to both the dry bus and the hall. */
+function wide(c: AudioContext): AudioNode {
+  const g = c.createGain()
+  g.connect(out(c))
+  g.connect(hall(c))
+  return g
+}
+
+/** Brass-like chord: detuned saw stacks with a slow swell through an opening lowpass. */
+function brass(c: AudioContext, start: number, freqs: number[], dur: number, gain: number, attack = 0.12) {
+  const lp = c.createBiquadFilter()
+  lp.type = "lowpass"
+  lp.Q.value = 1.2
+  lp.frequency.setValueAtTime(400, start)
+  lp.frequency.exponentialRampToValueAtTime(3200, start + attack + 0.15)
+  lp.frequency.exponentialRampToValueAtTime(900, start + dur)
+  lp.connect(wide(c))
+  freqs.forEach((f, i) => {
+    for (const det of [-11, 0, 11]) tone(c, "sawtooth", f, f, gain / 3, start, dur, { attack, detune: det, dest: lp, pan: (i - (freqs.length - 1) / 2) * 0.3 })
+  })
+}
+
+/** Choir pad: vowel-filtered saws ("aah"), slow in, wide. */
+function choir(c: AudioContext, start: number, freqs: number[], dur: number, gain: number) {
+  const out2 = wide(c)
+  for (const formant of [700, 1150]) {
+    const bp = c.createBiquadFilter()
+    bp.type = "bandpass"
+    bp.frequency.value = formant
+    bp.Q.value = 4
+    bp.connect(out2)
+    freqs.forEach((f, i) => {
+      for (const det of [-14, 14]) tone(c, "sawtooth", f, f, gain, start, dur, { attack: dur * 0.35, detune: det, dest: bp, pan: i % 2 ? 0.5 : -0.5 })
+    })
+  }
+}
+
+/** Timpani hit: pitched thud with a skin rattle. */
+function timpani(c: AudioContext, start: number, freq = 73.4, gain = 0.3) {
+  const w = wide(c)
+  tone(c, "sine", freq * 1.5, freq, gain, start, 0.9, { attack: 0.002, dest: w })
+  tone(c, "triangle", freq * 3, freq * 2, gain * 0.25, start, 0.25, { attack: 0.002, dest: w })
+  punch(c, start, gain * 0.8, freq * 2.4, freq * 0.7, 0.4)
+}
+
+/** Cymbal: a bright noise crash, or a reversed swell leading into a hit. */
+function cymbal(c: AudioContext, start: number, dur: number, gain: number, swell = false) {
+  const src = c.createBufferSource()
+  src.buffer = whiteNoise(c)
+  src.loop = true
+  const hp = c.createBiquadFilter()
+  hp.type = "highpass"
+  hp.frequency.value = 5500
+  const g = c.createGain()
+  if (swell) {
+    g.gain.setValueAtTime(0.0001, start)
+    g.gain.exponentialRampToValueAtTime(gain, start + dur)
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur + 0.05)
+  } else {
+    g.gain.setValueAtTime(gain, start)
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur)
+  }
+  src.connect(hp)
+  hp.connect(g)
+  g.connect(wide(c))
+  src.start(start, Math.random() * 0.5)
+  src.stop(start + dur + 0.1)
+}
+
+/** Rebirth beat cues, keyed by the placeholder names in `REBIRTH_AUDIO_CUES`. Cinematic and big. */
 export function playRebirthCue(name: string) {
   if (muted) return
   const c = audio()
   if (!c) return
   const t = c.currentTime
   if (name === "sfx_rebirth_confirm_click") {
-    snap(c, t, 0.08, 4000)
-    tone(c, "square", 1200, 900, 0.045, t, 0.06)
-    punch(c, t, 0.12, 220, 60, 0.12)
+    // A deep gong: the worldline is locked in.
+    snap(c, t, 0.06, 3000)
+    timpani(c, t, 55, 0.3)
+    ;[110, 164.8, 220].forEach((f) => bell(c, f, 0.05, t, 2.4, wide(c)))
+    choir(c, t + 0.1, [220, 329.6], 1.2, 0.012)
   } else if (name === "sfx_rebirth_collapse_whoosh") {
-    // Everything gets sucked inward: reverse swell, pitch dive, low implosion.
-    noise(c, "bandpass", 300, 0.8, 0.09, t, 0.6, { sweepTo: 5000, attack: 0.45 })
-    tone(c, "sawtooth", 880, 55, 0.05, t, 0.6, { attack: 0.05, dest: drive ?? undefined })
-    tone(c, "sine", 520, 50, 0.1, t, 0.6)
-    punch(c, t + 0.58, 0.3, 160, 30, 0.7)
+    // The world is sucked inward: a long reversed cymbal, a falling brass line, an implosion at the end.
+    cymbal(c, t, 2.6, 0.12, true)
+    noise(c, "bandpass", 200, 0.8, 0.08, t, 2.6, { sweepTo: 4000, attack: 2.2 })
+    brass(c, t + 0.2, [146.8, 174.6], 2.4, 0.05, 1.6)
+    tone(c, "sawtooth", 440, 55, 0.04, t, 2.6, { attack: 0.4, dest: wide(c) })
+    punch(c, t + 2.6, 0.32, 150, 28, 0.9)
   } else if (name === "sfx_rebirth_void_tear") {
-    const e = echo(c, 0.16, 0.4, 0.4)
-    snap(c, t, 0.12, 2500)
-    noise(c, "bandpass", 3200, 2, 0.09, t, 0.45, { sweepTo: 600 })
-    tone(c, "sawtooth", 140, 40, 0.07, t, 0.7, { detune: 14, dest: drive ?? undefined })
-    tone(c, "sawtooth", 142, 41, 0.06, t, 0.7, { detune: -14, dest: e })
-    noise(c, "lowpass", 600, 1, 0.14, t, 0.9, { sweepTo: 80 })
+    // The rift opens: a huge orchestral hit — sub boom, minor brass, choir, crash.
+    timpani(c, t, 55, 0.36)
+    punch(c, t, 0.34, 180, 26, 1.2)
+    brass(c, t, [110, 130.8, 164.8, 220], 2.6, 0.08, 0.04)
+    choir(c, t + 0.05, [220, 261.6, 329.6], 2.8, 0.016)
+    cymbal(c, t, 2.2, 0.1)
+    noise(c, "lowpass", 600, 1, 0.14, t, 1.6, { sweepTo: 60 })
   } else if (name.startsWith("sfx_rebirth_stamp_")) {
     const root = STAMP_ROOT[name.slice("sfx_rebirth_stamp_".length)] ?? 440
-    const e = echo(c, 0.18, 0.4, 0.42)
-    // Huge stamp slam, then the worldline's chord rings out.
-    punch(c, t, 0.36, 200, 28, 0.8)
-    noise(c, "lowpass", 1400, 1, 0.16, t, 0.5, { sweepTo: 90 })
-    noise(c, "highpass", 4000, 0.7, 0.06, t, 0.2)
-    ;[1, 1.25, 1.5, 2].forEach((m, i) => tone(c, "triangle", root * m, root * m, 0.06 - i * 0.008, t + 0.02 + i * 0.03, 1.1, { dest: e }))
-    tone(c, "sawtooth", root / 2, root / 2, 0.025, t, 1.0, { detune: 8, dest: e })
-    sparkle(c, t + 0.15, root * 4, 8, 0.018, 0.03)
+    // The seal lands: two timpani strikes, a full major brass chord, crash and ringing bells.
+    timpani(c, t, root / 6, 0.38)
+    timpani(c, t + 0.22, root / 4, 0.3)
+    punch(c, t, 0.36, 200, 26, 1)
+    brass(c, t, [root / 4, root / 2, (root / 2) * 1.25, (root / 2) * 1.5, root], 3.2, 0.09, 0.03)
+    choir(c, t + 0.1, [root / 2, (root / 2) * 1.25, (root / 2) * 1.5], 3.2, 0.018)
+    cymbal(c, t, 2.8, 0.12)
+    ;[1, 1.5, 2].forEach((m, i) => bell(c, root * m * 2, 0.045, t + 0.15 + i * 0.12, 2.2, wide(c)))
+    shimmer(c, t + 0.2, root * 4, 10, 0.014, 0.05, wide(c))
   } else if (name === "sfx_rebirth_rebuild_rise") {
-    noise(c, "bandpass", 400, 1, 0.05, t, 0.8, { sweepTo: 6000, attack: 0.5 })
-    tone(c, "sine", 220, 880, 0.06, t, 0.8, { attack: 0.3 })
-    tone(c, "sawtooth", 110, 440, 0.025, t, 0.8, { attack: 0.4 })
+    // The new world assembles: a timpani roll under a rising string swell.
+    for (let i = 0; i < 14; i++) timpani(c, t + i * 0.12, 73.4, 0.06 + i * 0.012)
+    brass(c, t, [196, 246.9, 293.7, 392], 2.8, 0.06, 2.2)
+    choir(c, t + 0.3, [392, 493.9, 587.3], 2.6, 0.014)
+    noise(c, "bandpass", 400, 1, 0.05, t, 2.6, { sweepTo: 7000, attack: 2.2 })
   } else if (name === "sfx_rebirth_settle_chime") {
-    const e = echo(c, 0.2, 0.4, 0.4)
-    punch(c, t, 0.14, 180, 50, 0.3)
-    ;[523, 659, 784, 1046].forEach((f, i) => tone(c, "triangle", f, f, 0.04, t + i * 0.06, 1.0, { dest: e }))
-    bell(c, 2093, 0.04, t + 0.28, 0.9, e)
-    sparkle(c, t + 0.3, 2093, 10, 0.018, 0.035)
+    // Arrival: a majestic major chord with choir, bells and a long hall tail.
+    timpani(c, t, 65.4, 0.3)
+    punch(c, t, 0.22, 170, 40, 0.6)
+    brass(c, t, [130.8, 196, 261.6, 329.6, 392], 3.6, 0.08, 0.06)
+    choir(c, t, [261.6, 329.6, 392, 523.3], 3.8, 0.018)
+    cymbal(c, t, 2.4, 0.08)
+    ;[1046.5, 1318.5, 1568, 2093].forEach((f, i) => bell(c, f, 0.04, t + 0.2 + i * 0.14, 2.4, wide(c)))
+    shimmer(c, t + 0.4, 2093, 12, 0.014, 0.05, wide(c))
   }
 }
 
@@ -930,5 +1019,72 @@ export function playChallengeCue(mutedArg: boolean, cue: "hit" | "miss" | "done"
   } else {
     tone(c, "sine", 660, 660, 0.05, t, 0.25)
     tone(c, "sine", 990, 990, 0.04, t + 0.12, 0.45)
+  }
+}
+
+/**
+ * Rebirth bed: a low detuned drone whose filter opens over the whole sequence, with a high
+ * shimmer pad joining for the second half. Returns a stop function (fades out, frees nodes).
+ */
+export function playRebirthDrone(seconds: number): () => void {
+  if (muted) return () => {}
+  const c = audio()
+  if (!c) return () => {}
+  const t = c.currentTime
+  const end = t + seconds
+  const master = c.createGain()
+  master.gain.setValueAtTime(0.0001, t)
+  master.gain.exponentialRampToValueAtTime(0.06, t + 2)
+  master.gain.setValueAtTime(0.06, end - 1.5)
+  master.gain.exponentialRampToValueAtTime(0.0001, end)
+  master.connect(out(c))
+  master.connect(hall(c))
+  const lp = c.createBiquadFilter()
+  lp.type = "lowpass"
+  lp.Q.value = 3
+  lp.frequency.setValueAtTime(180, t)
+  lp.frequency.exponentialRampToValueAtTime(2600, end - 1)
+  lp.connect(master)
+  const oscs: OscillatorNode[] = []
+  const add = (type: OscillatorType, freq: number, detune: number, gain: number, dest: AudioNode, at = t) => {
+    const o = c.createOscillator()
+    o.type = type
+    o.frequency.value = freq
+    o.detune.value = detune
+    const g = c.createGain()
+    g.gain.value = gain
+    o.connect(g)
+    g.connect(dest)
+    o.start(at)
+    o.stop(end + 0.1)
+    oscs.push(o)
+  }
+  add("sawtooth", 55, -9, 0.5, lp)
+  add("sawtooth", 55, 9, 0.5, lp)
+  add("sawtooth", 82.4, 4, 0.25, lp)
+  add("sine", 41.2, 0, 0.9, master)
+  // Shimmer pad for the rebuild half: a fifth stack high up, swelling in.
+  const pad = c.createGain()
+  pad.gain.setValueAtTime(0.0001, t)
+  pad.gain.setValueAtTime(0.0001, t + seconds * 0.55)
+  pad.gain.exponentialRampToValueAtTime(0.35, t + seconds * 0.8)
+  pad.connect(master)
+  ;[659.3, 987.8, 1318.5].forEach((f, i) => add("triangle", f, i % 2 ? 6 : -6, 0.3, pad, t + seconds * 0.5))
+  return () => {
+    try {
+      const now = c.currentTime
+      master.gain.cancelScheduledValues(now)
+      master.gain.setValueAtTime(Math.max(0.0001, master.gain.value), now)
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 0.4)
+      oscs.forEach((o) => {
+        try {
+          o.stop(now + 0.45)
+        } catch {
+          /* already stopped */
+        }
+      })
+    } catch {
+      /* context closed */
+    }
   }
 }

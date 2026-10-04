@@ -22,6 +22,7 @@ export {
   type SkillNodeView,
 } from "@/domain/services/clicker-view"
 export type {
+  GachaLogEntry,
   BossDef,
   BossFight,
   ClickerSettings,
@@ -58,6 +59,7 @@ export {
   worldTreeNodeCost,
   worldTreeNodeError,
   gachaCost,
+  lairDamageMultiplier,
   gachaFreeReady,
   gachaLegendaryRate,
   gachaStarMultiplier,

@@ -1,5 +1,5 @@
 import type { GameConfig, LairFight, MetaState, RunState } from "../entities/clicker"
-import { regionCurrencyBalance, scaledCost, slayMonster } from "./clicker-engine.ts"
+import { lairDamageMultiplier, regionCurrencyBalance, scaledCost, slayMonster } from "./clicker-engine.ts"
 
 /*
  * Lair battles: instead of tapping a roaming boss to death, the player walks into its lair
@@ -162,7 +162,8 @@ export function strikeLair(
 ): { run: RunState; meta: MetaState; damage: number; reward: number; defeated: boolean } {
   const fight = run.lair
   if (!fight || fight.playerHp <= 0 || fight.bossHp <= 0) return { run, meta, damage: 0, reward: 0, defeated: false }
-  const damage = WEAPONS[gearOf(run).weapon].damage
+  // Forged weapon × the HUNT tree's creature-damage circuits, whole numbers so the HP bar reads cleanly.
+  const damage = Math.max(1, Math.round(WEAPONS[gearOf(run).weapon].damage * lairDamageMultiplier(run, config)))
   const bossHp = Math.max(0, fight.bossHp - damage)
   if (bossHp > 0) return { run: { ...run, lair: { ...fight, bossHp } }, meta, damage, reward: 0, defeated: false }
   const kill = slayMonster({ ...run, lair: null }, meta, config, fight.regionId, now)

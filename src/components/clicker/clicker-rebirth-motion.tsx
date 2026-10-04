@@ -15,7 +15,7 @@ import {
   type WorldlineMotionVariant,
 } from "@/data/clicker/rebirth-motion"
 import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
-import { playRebirthCue } from "@/lib/clicker-sfx"
+import { playRebirthCue, playRebirthDrone } from "@/lib/clicker-sfx"
 import "./clicker-rebirth-motion.css"
 
 type Props = {
@@ -35,6 +35,27 @@ type Particle = {
   size: number
   alpha: number
   accent: boolean
+}
+
+const HOLD_TO_SKIP_MS = 700
+const PHASE_ORDER: RebirthPhaseId[] = ["select_confirm", "collapse", "void_tear", "stamp", "rebuild", "settle"]
+
+/** Cinematic subtitle per beat: a small kicker and one narrated line. */
+function narration(phase: RebirthPhaseId, label: string): { kicker: string; line: string } {
+  switch (phase) {
+    case "select_confirm":
+      return { kicker: "WORLD LINE PROTOCOL", line: `${label} — 세계선을 고정합니다` }
+    case "collapse":
+      return { kicker: "COLLAPSE", line: "지금의 세계가 무너져 내립니다" }
+    case "void_tear":
+      return { kicker: "VOID TEAR", line: "시간의 틈이 열립니다" }
+    case "stamp":
+      return { kicker: "WORLDLINE STAMP", line: `${label} · 새로운 운명이 새겨집니다` }
+    case "rebuild":
+      return { kicker: "REBUILD", line: "세계가 다시 짜여집니다" }
+    default:
+      return { kicker: "SETTLE", line: "새로운 세계선에 도착합니다" }
+  }
 }
 
 function cueName(phase: RebirthPhaseId, variant: WorldlineMotionVariant): string {
@@ -176,20 +197,10 @@ function PlateLayer({ variant, phase, incoming }: { variant: WorldlineMotionVari
   )
 }
 
-/**
- * Painted plates stay on screen for the whole sequence: each new phase crossfades in over the
- * previous painting (kept underneath, frozen) instead of fading up from black.
- */
+/** One painted plate per beat, swapped with a clean cut (the cut flash covers the change). */
 function PlateStack({ variant, phase }: { variant: WorldlineMotionVariant; phase: RebirthPhaseId }) {
   const current = platePhaseFor(phase)
-  const [layers, setLayers] = useState<{ prev: typeof current | null; cur: typeof current }>({ prev: null, cur: current })
-  if (layers.cur !== current) setLayers({ prev: layers.cur, cur: current })
-  return (
-    <>
-      {layers.prev ? <PlateLayer key={`plate-${layers.prev}`} variant={variant} phase={layers.prev} incoming={false} /> : null}
-      <PlateLayer key={`plate-${layers.cur}`} variant={variant} phase={layers.cur} incoming />
-    </>
-  )
+  return <PlateLayer key={`plate-${current}`} variant={variant} phase={current} incoming />
 }
 
 function StampGlyph({
@@ -359,6 +370,26 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
   const rootRef = useRef<HTMLDivElement | null>(null)
   useClickerEscape(true, finishEarly)
   useClickerDialogFocus(rootRef)
+
+  // Low drone under the whole sequence; fades out on finish or skip.
+  useEffect(() => {
+    if (reducedMotion || mutedRef.current) return
+    return playRebirthDrone(duration / 1000 + 0.4)
+  }, [duration, reducedMotion])
+
+  // Hold to skip (like a cutscene): a tap does nothing, ~0.7 s of holding skips. Esc / Enter skip at once.
+  const [holding, setHolding] = useState(false)
+  const holdTimer = useRef(0)
+  const startHold = () => {
+    setHolding(true)
+    window.clearTimeout(holdTimer.current)
+    holdTimer.current = window.setTimeout(finishEarly, HOLD_TO_SKIP_MS)
+  }
+  const stopHold = () => {
+    setHolding(false)
+    window.clearTimeout(holdTimer.current)
+  }
+  useEffect(() => () => window.clearTimeout(holdTimer.current), [])
 
   const [frame, setFrame] = useState({
     phase: "select_confirm" as RebirthPhaseId,
@@ -537,20 +568,6 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
   const tearVisible = frame.phase === "void_tear" || frame.phase === "stamp"
   /** Prefers-reduced-motion + Wave A still → skip flashy MW plates; show still only. */
   const stillOnly = Boolean(reducedMotion && variant.reducedMotionStillAssetId)
-  const phaseCaption = stillOnly
-    ? "WORLDLINE LOCK"
-    : frame.phase === "select_confirm"
-      ? "SELECT CONFIRM"
-      : frame.phase === "collapse"
-        ? "COLLAPSE"
-        : frame.phase === "void_tear"
-          ? "VOID TEAR"
-          : frame.phase === "stamp"
-            ? "WORLDLINE STAMP"
-            : frame.phase === "rebuild"
-              ? "REBUILD"
-              : "SETTLE"
-
   return (
     <div
       ref={rootRef}
@@ -575,39 +592,50 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
     >
       <button
         type="button"
-        className="clicker-ghost clicker-rebirth-skip"
+        className={`clicker-ghost clicker-rebirth-skip${holding ? " is-holding" : ""}`}
         aria-keyshortcuts="Escape"
-        onClick={finishEarly}
+        style={{ "--hold-ms": `${HOLD_TO_SKIP_MS}ms` } as CSSProperties}
+        onPointerDown={(e) => {
+          if (e.button !== 0) return
+          if (reducedMotion) finishEarly()
+          else startHold()
+        }}
+        onPointerUp={stopHold}
+        onPointerLeave={stopHold}
+        onPointerCancel={stopHold}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            finishEarly()
+          }
+        }}
       >
-        {reducedMotion ? "계속 · Esc" : "연출 건너뛰기 · Esc"}
+        <span className="clicker-rebirth-skip-fill" aria-hidden />
+        <span>{reducedMotion ? "계속 · Esc" : "길게 눌러 건너뛰기 · Esc"}</span>
       </button>
       <div className="clicker-rebirth-overlay" />
       {!stillOnly ? <div className="clicker-rebirth-ui-crumple" aria-hidden /> : null}
-      {!stillOnly && frame.phase === "select_confirm" ? (
-        <img
-          src={RebirthPhaseArt.selectConfirmFlash}
-          alt=""
-          className="clicker-rebirth-confirm-flash"
-          aria-hidden
-        />
-      ) : null}
       {!stillOnly ? <PlateStack variant={variant} phase={frame.phase} /> : null}
-      {!stillOnly && (frame.phase === "rebuild" || frame.phase === "settle") ? (
-        <div className="clicker-rebirth-hud-plate" aria-hidden>
-          <RebirthAssetImage
-            src={RebirthPhaseArt.hudPlateFor(frame.phase, frame.phaseT)}
-            className="clicker-rebirth-hud-plate-img"
-            placeholderClassName="clicker-rebirth-ui-crumple"
-          />
-        </div>
-      ) : null}
       {!reducedMotion ? <canvas ref={canvasRef} className="clicker-rebirth-particles" aria-hidden /> : null}
       {!stillOnly && tearVisible ? <div className="clicker-rebirth-tear" aria-hidden /> : null}
       {!stillOnly ? <MotifFx variant={variant} phase={frame.phase} phaseT={frame.phaseT} /> : null}
-      <div className="clicker-rebirth-phase" aria-live="polite">
-        <span className="clicker-rebirth-phase-kicker">WORLD LINE PROTOCOL</span>
-        <strong>{phaseCaption}</strong>
-        <em>{worldlineLabel}</em>
+      {!stillOnly ? (
+        <>
+          <span key={`cut-${frame.phase}`} className={`clicker-rebirth-cut is-${frame.phase}`} aria-hidden />
+          <div className="clicker-rebirth-grain" aria-hidden />
+          <div className="clicker-rebirth-letterbox is-top" aria-hidden />
+          <div className="clicker-rebirth-letterbox is-bottom" aria-hidden />
+          <ol className="clicker-rebirth-steps" aria-hidden>
+            {PHASE_ORDER.map((p, i) => {
+              const at = PHASE_ORDER.indexOf(frame.phase)
+              return <li key={p} className={i < at ? "is-done" : i === at ? "is-on" : ""} />
+            })}
+          </ol>
+        </>
+      ) : null}
+      <div className="clicker-rebirth-subtitle" key={`sub-${stillOnly ? "still" : frame.phase}`} aria-live="polite">
+        <small>{stillOnly ? "WORLDLINE LOCK" : narration(frame.phase, worldlineLabel).kicker}</small>
+        <strong>{stillOnly ? worldlineLabel : narration(frame.phase, worldlineLabel).line}</strong>
       </div>
       <div className="clicker-rebirth-stamp-wrap">
         {!stillOnly && frame.phase === "stamp" ? (

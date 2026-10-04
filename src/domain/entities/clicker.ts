@@ -177,6 +177,19 @@ export type MetaState = {
   gachaStars?: number
   /** When the last free daily capsule was opened (ms). */
   gachaFreeAt?: number
+  /** Capsules opened per rarity, all time. */
+  gachaCounts?: Partial<Record<"common" | "rare" | "epic" | "legendary", number>>
+  /** The most recent capsules (newest first), for the history screen. */
+  gachaLog?: GachaLogEntry[]
+}
+
+/** One opened capsule: when, its rarity, what it held (skill / upgrade / circuit id, or star count). */
+export type GachaLogEntry = {
+  at: number
+  rarity: "common" | "rare" | "epic" | "legendary"
+  kind: "skill" | "upgrade" | "circuit" | "star"
+  id: string
+  count?: number
 }
 
 export type ClickerSettings = {
@@ -327,6 +340,8 @@ export type SkillNodeDef = {
   monsterRespawnReduce?: number
   /** Damage against the Core guardian (multiplies). */
   bossDamageMultiplier?: number
+  /** Strike damage against lair creatures (multiplies the forged weapon). */
+  lairDamageMultiplier?: number
 }
 
 export type AchievementKind =

@@ -947,3 +947,50 @@
   .clicker-hurt-number, .clicker-lair-result { animation-duration: 1ms; animation-delay: 0ms; }
   .clicker-lair-result { animation: none; }
 }
+
+/* Core Heart guardian: a towering final boss that fills the stage between the header and the dock.
+   Its name, the fight bars and the start button float over the painting instead of stacking under it. */
+.clicker-shell.is-region-hub .clicker-boss.has-art {
+  width: min(98vw, 1200px);
+  max-height: none;
+  top: 50%;
+  display: grid;
+  place-items: center;
+}
+.clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-target {
+  width: min(96vw, 900px, calc((100dvh - 215px) * 0.76));
+  max-height: none;
+}
+.clicker-shell.is-region-hub .clicker-boss.has-art .boss-art-canvas {
+  max-height: max(280px, calc(100dvh - 215px));
+}
+.clicker-shell.is-region-hub .clicker-boss.has-art > strong {
+  position: absolute;
+  top: 2%;
+  z-index: 3;
+  font-size: clamp(18px, 2.6vw, 28px);
+  text-shadow: 0 2px 10px #000, 0 0 18px rgb(255 140 40 / 0.6);
+  pointer-events: none;
+}
+.clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-bars {
+  position: absolute;
+  top: 1%;
+  z-index: 3;
+  width: min(92%, 560px);
+}
+.clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-start {
+  position: absolute;
+  bottom: 13%;
+  z-index: 3;
+  min-height: 48px;
+  font-size: 16px;
+  box-shadow: 0 0 24px rgb(255 80 40 / 0.55);
+}
+.clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-note {
+  position: absolute;
+  bottom: calc(13% + 58px);
+  z-index: 3;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 0.6);
+}

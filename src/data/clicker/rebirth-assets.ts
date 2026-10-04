@@ -82,7 +82,7 @@ export const RebirthPhaseArt = {
 
   /** Full-screen backdrop for void tear / settle (HUD chrome layers above). */
   keyVisualBackdropFor(phase: PlatePhase): string | undefined {
-    if (phase === "void_tear" || phase === "settle") return RebirthPhaseArt.keyVisualVoidTear
+    if (phase === "void_tear") return RebirthPhaseArt.keyVisualVoidTear
     return undefined
   },
 }
