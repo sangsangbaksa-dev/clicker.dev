@@ -102,16 +102,9 @@ import {
   type AdminModes,
 } from "@/application/clicker-ui"
 import { playSfx, setSfxMuted } from "@/lib/clicker-sfx"
+import { clearFloats, pushFloat } from "@/lib/clicker-floats"
 
-export type FloatNumber = {
-  id: number
-  text: string
-  critical: boolean
-  /** Extra strike label — lightning / shockwave / echo. */
-  strike?: "lightning" | "quake" | "echo"
-  x: number
-  y: number
-}
+export type { FloatNumber } from "@/lib/clicker-floats"
 
 function now() {
   return Date.now()
@@ -121,7 +114,6 @@ export type RegionIntro = RegionIntroDef & { regionId: string; name: string; des
 
 export function useClicker() {
   const [save, setSave] = useState<SaveData | null>(null)
-  const [floats, setFloats] = useState<FloatNumber[]>([])
   const [savePulse, setSavePulse] = useState<"idle" | "saving" | "saved">("idle")
   const savePulseTimer = useRef<number | null>(null)
   // Only one tab may write the shared save; the others freeze until the player resumes there.
@@ -141,7 +133,6 @@ export function useClicker() {
   const saveRef = useRef<SaveData | null>(null)
   const [adminModes, setAdminModes] = useState<AdminModes>(ADMIN_DEFAULT_MODES)
   const adminModesRef = useRef<AdminModes>(ADMIN_DEFAULT_MODES)
-  const floatId = useRef(0)
   const knownAchievements = useRef<Set<string> | null>(null)
   const mineStartRef = useRef<MineSessionStart | null>(null)
   const [mineSummary, setMineSummary] = useState<MineSessionSummary | null>(null)
@@ -167,6 +158,7 @@ export function useClicker() {
     return () => {
       if (savePulseTimer.current != null) window.clearTimeout(savePulseTimer.current)
       if (toastTimer.current != null) window.clearTimeout(toastTimer.current)
+      clearFloats()
     }
   }, [])
   /** First-visit cinematic for the region just entered; null when none is playing. */
@@ -281,6 +273,12 @@ export function useClicker() {
     setSave(next)
   }, [])
 
+  /** Commit and write through at once (travel, settings, milestones). */
+  const commitAndSave = useCallback((next: SaveData) => {
+    commit(next)
+    persistNow(next)
+  }, [commit, persistNow])
+
   const flash = useCallback((message: string) => {
     setToast(message)
     if (toastTimer.current != null) window.clearTimeout(toastTimer.current)
@@ -332,21 +330,16 @@ export function useClicker() {
     if (result.quake) playSfx("quake")
     else if (result.lightning) playSfx("lightning")
     else if (result.echo) playSfx("echoStrike")
-    const id = ++floatId.current
-    setFloats((prev) => [
-      ...prev.slice(-12),
+    pushFloat(
       {
-        id,
         text: `+${formatNumber(result.energy)}`,
         critical: result.critical,
         strike: result.quake ? "quake" : result.lightning ? "lightning" : result.echo ? "echo" : undefined,
         x: clientX ?? 0,
         y: clientY ?? 0,
       },
-    ])
-    window.setTimeout(() => {
-      setFloats((prev) => prev.filter((f) => f.id !== id))
-    }, 700)
+      700,
+    )
     return { critical: result.critical, lightning: result.lightning, quake: result.quake, echo: result.echo }
   }, [commit])
 
@@ -446,13 +439,12 @@ export function useClicker() {
     const label = region?.name ?? regionId
     const result = clickerTravelRegion(saveRef.current, regionId)
     if (!result.ok) return refuse(result.error)
-    commit(result.value.save)
-    persistNow(result.value.save)
+    commitAndSave(result.value.save)
     playSfx("travel")
     // Every arrival plays the region's cinematic, not just the first.
     if (result.value.intro) setRegionIntro({ regionId, name: label, description: region?.description ?? "", ...result.value.intro })
     else flash(`${label}(으)로 이동`)
-  }, [commit, flash, refuse, persistNow])
+  }, [flash, refuse, commitAndSave])
 
   const dismissRegionIntro = useCallback(() => setRegionIntro(null), [])
 
@@ -468,11 +460,10 @@ export function useClicker() {
     if (!saveRef.current) return
     const result = clickerClaimChallenge(saveRef.current, regionId, score, now())
     if (!result.ok) return refuse(result.error)
-    commit(result.value.save)
-    persistNow(result.value.save)
+    commitAndSave(result.value.save)
     playSfx("achievement")
     flash(`도전 완료 · 성공률 ${Math.round(score * 100)}% · +${formatNumber(result.value.reward)} CORE`)
-  }, [commit, flash, refuse, persistNow])
+  }, [flash, refuse, commitAndSave])
 
   const regionActivity = useCallback((regionId: string) => {
     if (!saveRef.current) return
@@ -510,10 +501,9 @@ export function useClicker() {
       refuse(result.error)
       return false
     }
-    commit(result.value)
-    persistNow(result.value)
+    commitAndSave(result.value)
     return true
-  }, [commit, refuse, persistNow])
+  }, [refuse, commitAndSave])
 
   const adminGrant = useCallback((amount: number) => {
     if (!isClickerAdminAllowed() || !saveRef.current) return
@@ -533,33 +523,29 @@ export function useClicker() {
   const redeemSecretCode = useCallback(() => {
     if (!saveRef.current) return
     const next = clickerRedeemSecretCode(saveRef.current)
-    commit(next)
-    persistNow(next)
+    commitAndSave(next)
     playSfx("achievement")
     flash(`비밀 코드 · CORE와 모든 지역 재화 +${formatNumber(SECRET_CODE_AMOUNT)}`)
-  }, [commit, persistNow, flash])
+  }, [flash, commitAndSave])
 
   const adminJumpFinalBoss = useCallback(() => {
     if (!isClickerAdminAllowed() || !saveRef.current) return
     const next = clickerAdminJumpToFinalBoss(saveRef.current, now())
-    commit(next)
-    persistNow(next)
+    commitAndSave(next)
     flash("관리자 · 최종 보스 전투 시작")
-  }, [commit, persistNow, flash])
+  }, [flash, commitAndSave])
 
   const adminSkipTutorial = useCallback(() => {
     if (!isClickerAdminAllowed() || !saveRef.current) return
     const next = clickerFinishTutorial(saveRef.current)
-    commit(next)
-    persistNow(next)
-  }, [commit, persistNow])
+    commitAndSave(next)
+  }, [commitAndSave])
 
   const adminReplayTutorial = useCallback(() => {
     if (!isClickerAdminAllowed() || !saveRef.current) return
     const next = clickerAdminReplayTutorial(saveRef.current)
-    commit(next)
-    persistNow(next)
-  }, [commit, persistNow])
+    commitAndSave(next)
+  }, [commitAndSave])
 
   const adminToggleGod = useCallback(() => {
     if (!isClickerAdminAllowed()) return
@@ -598,11 +584,10 @@ export function useClicker() {
   const adminUnlockRegion = useCallback((regionId: string) => {
     if (!isClickerAdminAllowed() || !saveRef.current) return
     const next = clickerAdminUnlockRegion(saveRef.current, regionId)
-    commit(next)
-    persistNow(next)
+    commitAndSave(next)
     const name = clickerGameConfig.regions.find((r) => r.id === regionId)?.name ?? regionId
     flash(`관리자 · ${name} 해금`)
-  }, [commit, persistNow, flash])
+  }, [flash, commitAndSave])
 
   const adminUnlock = useCallback(() => {
     if (!isClickerAdminAllowed() || !saveRef.current) return
@@ -625,17 +610,15 @@ export function useClicker() {
     clearClickerStoredSave()
     resetClickerPersistence()
     const fresh = createInitialSave(now(), clickerGameConfig)
-    commit(fresh)
-    persistNow(fresh)
-  }, [commit, persistNow])
+    commitAndSave(fresh)
+  }, [commitAndSave])
 
   /** Persist a settings change right away (settings survive reloads, not just ticks). */
   const updateSettings = useCallback((patch: Partial<ClickerSettings>) => {
     if (!saveRef.current) return
     const next = { ...saveRef.current, settings: { ...saveRef.current.settings, ...patch } }
-    commit(next)
-    persistNow(next)
-  }, [commit, persistNow])
+    commitAndSave(next)
+  }, [commitAndSave])
 
   const toggleMute = useCallback(() => {
     const muted = !saveRef.current?.settings.muted
@@ -663,11 +646,10 @@ export function useClicker() {
       ...started,
       settings: { ...started.settings, playSurface: "hub" as const },
     }
-    commit(hubbed)
-    persistNow(hubbed)
+    commitAndSave(hubbed)
     // Ask the browser not to evict the save under storage pressure (a gesture helps it say yes).
     void navigator.storage?.persist?.().catch(() => {})
-  }, [commit, persistNow])
+  }, [commitAndSave])
 
   const enterMine = useCallback(() => {
     if (!saveRef.current) return
@@ -678,18 +660,16 @@ export function useClicker() {
       if (!mineStartRef.current) mineStartRef.current = clickerMineSessionStart(next, t)
       setMineSummary(null)
     }
-    commit(next)
-    persistNow(next)
+    commitAndSave(next)
     if (result.error) refuse(result.error)
-  }, [commit, persistNow, refuse])
+  }, [refuse, commitAndSave])
 
   const pauseMine = useCallback(() => {
     if (!saveRef.current) return
     const next = clickerPauseMine(saveRef.current, now())
     if (next === saveRef.current) return
-    commit(next)
-    persistNow(next)
-  }, [commit, persistNow])
+    commitAndSave(next)
+  }, [commitAndSave])
 
   const resumeMine = useCallback(() => {
     if (!saveRef.current) return
@@ -699,9 +679,8 @@ export function useClicker() {
     if (next.settings.playSurface === "mine" && !mineStartRef.current) {
       mineStartRef.current = clickerMineSessionStart(next, t)
     }
-    commit(next)
-    persistNow(next)
-  }, [commit, persistNow])
+    commitAndSave(next)
+  }, [commitAndSave])
 
   const selectScreen = useCallback(
     (from: ClickerScreenTabId, to: ClickerScreenTabId): { openSkillTree: boolean; manageTab: ManageDrawerTabId | null } => {
@@ -712,11 +691,10 @@ export function useClicker() {
       if (to === "mine" && next.settings.playSurface === "mine" && !mineStartRef.current) {
         mineStartRef.current = clickerMineSessionStart(next, t)
       }
-      commit(next)
-      persistNow(next)
+      commitAndSave(next)
       return { openSkillTree: result.openSkillTree, manageTab: result.manageTab }
     },
-    [commit, persistNow],
+    [commitAndSave],
   )
 
   /** Golden vein hit in the mine; returns a short label for the in-scene burst. */
@@ -733,9 +711,7 @@ export function useClicker() {
             : `대박 · +${formatNumber(outcome.energy)} CORE`
       playSfx("vein")
       flash(`황금 광맥! ${label}`)
-      const id = ++floatId.current
-      setFloats((prev) => [...prev.slice(-12), { id, text: label, critical: true, x: clientX, y: clientY }])
-      window.setTimeout(() => setFloats((prev) => prev.filter((f) => f.id !== id)), 1200)
+      pushFloat({ text: label, critical: true, x: clientX, y: clientY }, 1200)
       return label
     },
     [commit, flash],
@@ -767,18 +743,16 @@ export function useClicker() {
     const before = saveRef.current
     const exited = clickerExitMine(before, now())
     const next = before.settings.playSurface === "mine" ? finishMine(before, exited) : exited
-    commit(next)
-    persistNow(next)
-  }, [commit, persistNow, finishMine])
+    commitAndSave(next)
+  }, [finishMine, commitAndSave])
 
   const dismissMineSummary = useCallback(() => setMineSummary(null), [])
 
   const finishTutorial = useCallback(() => {
     if (!saveRef.current) return
     const next = clickerFinishTutorial(saveRef.current)
-    commit(next)
-    persistNow(next)
-  }, [commit, persistNow])
+    commitAndSave(next)
+  }, [commitAndSave])
 
   /** Background monster tapped. Returns the CORE it dropped (0 when refused). */
   const slayMonster = useCallback(
@@ -788,9 +762,7 @@ export function useClicker() {
       if (!result.ok) return 0
       commit(result.value.save)
       playSfx("monsterDie")
-      const id = ++floatId.current
-      setFloats((prev) => [...prev.slice(-12), { id, text: `+${formatNumber(result.value.reward)}`, critical: true, x: clientX, y: clientY }])
-      window.setTimeout(() => setFloats((prev) => prev.filter((f) => f.id !== id)), 1000)
+      pushFloat({ text: `+${formatNumber(result.value.reward)}`, critical: true, x: clientX, y: clientY }, 1000)
       return result.value.reward
     },
     [commit],
@@ -818,10 +790,8 @@ export function useClicker() {
       const result = clickerStrikeLair(saveRef.current, now())
       if (result.damage <= 0) return null
       commit(result.save)
-      const id = ++floatId.current
       const text = result.defeated ? `+${formatNumber(result.reward)}` : `-${result.damage}`
-      setFloats((prev) => [...prev.slice(-12), { id, text, critical: result.defeated, x: clientX, y: clientY }])
-      window.setTimeout(() => setFloats((prev) => prev.filter((f) => f.id !== id)), result.defeated ? 1100 : 600)
+      pushFloat({ text, critical: result.defeated, x: clientX, y: clientY }, result.defeated ? 1100 : 600)
       if (result.defeated) {
         playSfx("monsterDie")
         persistNow(result.save)
@@ -836,13 +806,12 @@ export function useClicker() {
       if (!saveRef.current) return
       const result = clickerForge(saveRef.current, slot)
       if (!result.ok) return refuse(result.error)
-      commit(result.value)
-      persistNow(result.value)
+      commitAndSave(result.value)
       playSfx("upgrade")
       const tier = GEAR[slot][gearOf(result.value.runState)[slot]]
       flash(`제작 완료 · ${tier.name}`)
     },
-    [commit, persistNow, refuse, flash],
+    [refuse, flash, commitAndSave],
   )
 
   const buyRelic = useCallback(
@@ -850,13 +819,12 @@ export function useClicker() {
       if (!saveRef.current) return
       const result = clickerBuyRelic(saveRef.current, relicId)
       if (!result.ok) return refuse(result.error)
-      commit(result.value)
-      persistNow(result.value)
+      commitAndSave(result.value)
       playSfx("upgrade")
       const relic = clickerGameConfig.relics.find((r) => r.id === relicId)
       flash(`유물 강화 · ${relic?.name ?? relicId} Lv.${result.value.metaState.relicLevels[relicId] ?? 0}`)
     },
-    [commit, persistNow, refuse, flash],
+    [refuse, flash, commitAndSave],
   )
 
   const buyWorldTreeNode = useCallback(
@@ -864,13 +832,12 @@ export function useClicker() {
       if (!saveRef.current) return
       const result = clickerBuyWorldTreeNode(saveRef.current, nodeId)
       if (!result.ok) return refuse(result.error)
-      commit(result.value)
-      persistNow(result.value)
+      commitAndSave(result.value)
       playSfx("worldSkill")
       const node = (clickerGameConfig.worldTrees ?? []).find((n) => n.id === nodeId)
       flash(`월드 스킬 습득 · ${node?.name ?? nodeId}`)
     },
-    [commit, persistNow, refuse, flash],
+    [refuse, flash, commitAndSave],
   )
 
   /** Pull core capsules; returns the rewards so the panel can reveal them (null when refused). */
@@ -883,11 +850,10 @@ export function useClicker() {
         refuse(result.error)
         return null
       }
-      commit(result.value.save)
-      persistNow(result.value.save)
+      commitAndSave(result.value.save)
       return result.value.rewards
     },
-    [commit, persistNow, refuse],
+    [refuse, commitAndSave],
   )
 
   /** One tap on the region drill rig. Returns the payout when this tap bored the vein, else 0 (null when refused). */
@@ -901,9 +867,7 @@ export function useClicker() {
       commit(result.value.save)
       if (result.value.reward > 0) {
         playSfx("vein")
-        const id = ++floatId.current
-        setFloats((prev) => [...prev.slice(-12), { id, text: `+${formatNumber(result.value.reward)}`, critical: true, x: clientX, y: clientY }])
-        window.setTimeout(() => setFloats((prev) => prev.filter((f) => f.id !== id)), 1200)
+        pushFloat({ text: `+${formatNumber(result.value.reward)}`, critical: true, x: clientX, y: clientY }, 1200)
       }
       return result.value.reward
     },
@@ -926,13 +890,8 @@ export function useClicker() {
       if (result.damage <= 0) return false
       playSfx("bossHit")
       commit(result.save)
-      const id = ++floatId.current
-      setFloats((prev) => [...prev.slice(-12), { id, text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }])
-      window.setTimeout(() => setFloats((prev) => prev.filter((f) => f.id !== id)), 700)
-      if (result.defeated) {
-        commit(result.save)
-        persistNow(result.save)
-      }
+      pushFloat({ text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }, 700)
+      if (result.defeated) persistNow(result.save)
       return result.defeated
     },
     [commit, persistNow],
@@ -987,17 +946,21 @@ export function useClicker() {
         readyInMs: Math.max(0, save.runState.drillOverdriveReadyAt - t),
       }
     : null
-  const achievements = save
-    ? clickerGameConfig.achievements.map((def) => {
-        const progress = achievementProgress(def.kind, save.runState, save.metaState)
-        return {
-          ...def,
-          progress,
-          ratio: Math.min(1, progress / def.target),
-          unlocked: save.metaState.achievementIds.includes(def.id),
-        }
-      })
-    : []
+  const achievements = useMemo(
+    () =>
+      save
+        ? clickerGameConfig.achievements.map((def) => {
+            const progress = achievementProgress(def.kind, save.runState, save.metaState)
+            return {
+              ...def,
+              progress,
+              ratio: Math.min(1, progress / def.target),
+              unlocked: save.metaState.achievementIds.includes(def.id),
+            }
+          })
+        : [],
+    [save],
+  )
   const views = useMemo(() => {
     if (!save) return null
     const snapshot = productionSnapshot(save.runState, save.metaState, clickerGameConfig, t)
@@ -1050,7 +1013,6 @@ export function useClicker() {
     currentRegion,
     skillNodes,
     config: clickerGameConfig,
-    floats,
     toast,
     savePulse,
     otherTabActive,

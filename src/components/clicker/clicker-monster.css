@@ -499,8 +499,9 @@
   .clicker-monster-fire, .clicker-monster-slash { display: none; }
 }
 
-/* Only the art turns around; the HP bar and effects keep reading left-to-right. */
-.clicker-monster-roam.is-walker:not(.is-dying) .mon-frames { animation: clicker-boss-appear 520ms ease-out, clicker-boss-face-walk 22s steps(1) infinite, clicker-boss-breathe-glow 2.6s ease-in-out infinite; }
+/* Only the art turns around; the HP bar and effects keep reading left-to-right.
+   The glow breathes in steps: a smooth drop-shadow pulse repainted the big art every frame. */
+.clicker-monster-roam.is-walker:not(.is-dying) .mon-frames { animation: clicker-boss-appear 520ms ease-out, clicker-boss-face-walk 22s steps(1) infinite, clicker-boss-breathe-glow 2.6s steps(10) infinite; }
 .clicker-monster-roam.is-flyer:not(.is-dying) .mon-frames { animation: clicker-boss-appear 520ms ease-out, clicker-boss-face-fly 14s steps(1) infinite, clicker-boss-storm-glow 1.7s steps(1) infinite; }
 @keyframes clicker-boss-face-walk { 0% { scale: 1 1; } 26% { scale: -1 1; } 78% { scale: 1 1; } }
 @keyframes clicker-boss-face-fly { 0% { scale: 1 1; } 25% { scale: -1 1; } 75% { scale: 1 1; } }

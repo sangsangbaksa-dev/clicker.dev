@@ -143,11 +143,18 @@ export function ClickerMine({
   const [veinLabel, setVeinLabel] = useState<string | null>(null)
   const seq = useRef(0)
   const mineRef = useRef<HTMLDivElement>(null)
+  /** Last measured mine size (ResizeObserver), so strike effects never force a layout read. */
+  const sizeRef = useRef({ width: 0, height: 0 })
   const reduceMotion = useRef(false)
-  const timers = useRef<number[]>([])
+  const timers = useRef(new Set<number>())
 
+  /** setTimeout that forgets itself once it fires and is cleared on unmount. */
   const later = (fn: () => void, ms: number) => {
-    timers.current.push(window.setTimeout(fn, ms))
+    const id = window.setTimeout(() => {
+      timers.current.delete(id)
+      fn()
+    }, ms)
+    timers.current.add(id)
   }
 
   useEffect(() => {
@@ -157,6 +164,7 @@ export function ClickerMine({
     if (!el) return
     const measure = () => {
       const { width, height } = el.getBoundingClientRect()
+      sizeRef.current = { width, height }
       setSize({ width, height })
       setBox(oreBoxFor(width, height))
     }
@@ -171,9 +179,7 @@ export function ClickerMine({
   }, [])
 
   const fireLaser = useCallback((x: number, y: number, critical: boolean, drill = false, tier: MineFxTier = 0) => {
-    const el = mineRef.current
-    if (!el) return
-    const { width, height } = el.getBoundingClientRect()
+    const { width, height } = sizeRef.current
     const id = ++seq.current
     const side = id % 2 === 0 ? -1 : 1
     // Player rig sits below the frame (alternating barrels); the assist drill fires from the side walls.
@@ -211,9 +217,7 @@ export function ClickerMine({
   /** Lightning, shockwaves, arcs and prism sparks on top of the laser, scaled by tier. */
   const fireFx = useCallback((x: number, y: number, hit: MineStrikeResult, tier: MineFxTier, stormOn: boolean, boltsOn: boolean) => {
     if (reduceMotion.current) return
-    const el = mineRef.current
-    if (!el) return
-    const { width } = el.getBoundingClientRect()
+    const { width } = sizeRef.current
     const b = live.current.box
     const newBolts: Bolt[] = []
     const newRings: Ring[] = []
@@ -418,8 +422,7 @@ export function ClickerMine({
         >
           {/* Same plate, cropped to the crystal, so hits can pulse just the ore. */}
           <span
-            key={hitSeq}
-            className={`clicker-mine-crystal-art${hitSeq > 0 ? " is-hit" : ""}`}
+            className="clicker-mine-crystal-art"
             style={
               {
                 backgroundImage: `url(${plate})`,
@@ -428,6 +431,8 @@ export function ClickerMine({
               } as CSSProperties
             }
           />
+          {/* Hit flash is its own soft layer: re-filtering the masked ore art every hit dropped frames. */}
+          {hitSeq > 0 ? <span key={hitSeq} className="clicker-mine-crystal-flash" /> : null}
           <span className="clicker-mine-crystal-glow" />
         </button>
       ) : null}

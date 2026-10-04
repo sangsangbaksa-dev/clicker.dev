@@ -68,6 +68,7 @@ import { useClickerAccount } from "@/hooks/use-clicker-account"
 import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
+import { ClickerFloats } from "./clicker-floats"
 import { ClickerAchievementsPanel } from "@/components/clicker/panels/achievements-panel"
 import { ClickerProducersPanel } from "@/components/clicker/panels/producers-panel"
 import { ClickerUpgradesPanel } from "@/components/clicker/panels/upgrades-panel"
@@ -1831,18 +1832,7 @@ export function ClickerApp() {
         />
       ) : null}
 
-      {game.floats.map((f) => (
-        <div
-          key={f.id}
-          className={`clicker-float ${f.critical ? "is-crit" : ""}${f.strike ? ` is-${f.strike}` : ""}`}
-          style={{ left: f.x || "50%", top: f.y || "45%" }}
-          aria-hidden
-        >
-          {f.strike === "quake" ? "지진파 " : f.strike === "lightning" ? "번개 " : f.strike === "echo" ? "잔향 " : ""}
-          {f.critical ? "치명타 " : ""}
-          {f.text}
-        </div>
-      ))}
+      <ClickerFloats />
 
       {storyBeat ? (
         <div

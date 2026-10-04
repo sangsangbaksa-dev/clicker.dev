@@ -20,11 +20,28 @@
   pointer-events: none;
 }
 
+/* Brightness pulse only — no rotation (PRIORITY #2). A warm light layer fades in and out:
+   pulsing filter() on the full-screen plate repainted it every frame during FEVER. */
 .clicker-mine-single[data-visual="fever"] .clicker-mine-plate {
-  animation: clicker-mine-fever-pulse 1.2s ease-in-out infinite;
+  filter: brightness(1.08) saturate(1.15);
 }
 
-/* Brightness pulse only — no rotation (PRIORITY #2). */
+.clicker-mine-single[data-visual="fever"] .clicker-mine-plate::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, rgb(255 236 200 / 0.2), rgb(255 200 140 / 0.1) 70%);
+  opacity: 0;
+  will-change: opacity;
+  animation: clicker-mine-fever-glow 1.2s ease-in-out infinite;
+}
+
+@keyframes clicker-mine-fever-glow {
+  50% {
+    opacity: 1;
+  }
+}
+
 @keyframes clicker-mine-fever-pulse {
   0%,
   100% {
@@ -88,14 +105,21 @@
   pointer-events: none;
 }
 
-.clicker-mine-crystal-art.is-hit {
+/* Hits only flash the crystal; it never scales or warps, so the ore stays rock-solid. */
+.clicker-mine-crystal-flash {
+  position: absolute;
+  inset: 8% 6% 14%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(255 255 255 / 0.6), rgb(170 250 255 / 0.28) 55%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
   animation: clicker-mine-crystal-hit 160ms ease-out;
 }
 
-/* Hits only flash the crystal; it never scales or warps, so the ore stays rock-solid. */
 @keyframes clicker-mine-crystal-hit {
   35% {
-    filter: brightness(1.9) saturate(1.4);
+    opacity: 1;
   }
 }
 
@@ -198,10 +222,10 @@
 }
 
 .clicker-mine-beam-glow {
-  stroke: rgb(0 229 255 / 0.45);
-  stroke-width: 12;
+  /* A wide translucent stroke instead of blur(): per-beam SVG blur was the main click-time paint cost. */
+  stroke: rgb(0 229 255 / 0.3);
+  stroke-width: 14;
   stroke-linecap: round;
-  filter: blur(4px);
 }
 
 .clicker-mine-beam-core {
@@ -243,7 +267,6 @@
   margin: -23px 0 0 -23px;
   border-radius: 50%;
   background: radial-gradient(circle, #fff 0 18%, rgb(120 245 255 / 0.8) 30%, transparent 70%);
-  mix-blend-mode: screen;
   animation: clicker-mine-impact 220ms ease-out forwards;
 }
 
@@ -273,9 +296,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .clicker-mine-single[data-visual="fever"] .clicker-mine-plate,
+  .clicker-mine-single[data-visual="fever"] .clicker-mine-plate::after,
   .clicker-mine-crystal-glow,
-  .clicker-mine-crystal-art.is-hit,
+  .clicker-mine-crystal-flash,
   .clicker-mine-crystal.is-broken .clicker-mine-crystal-art {
     animation: none;
   }
@@ -499,9 +522,9 @@
 }
 .clicker-mine-bolt { animation: clicker-mine-bolt 240ms steps(1, end) forwards, clicker-mine-beam-fade 240ms ease-out forwards; }
 .clicker-mine-bolt path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
-.clicker-mine-bolt-glow { stroke: rgb(var(--bolt) / 0.55); stroke-width: 9; filter: blur(3px); }
+.clicker-mine-bolt-glow { stroke: rgb(var(--bolt) / 0.4); stroke-width: 10; }
 .clicker-mine-bolt-core { stroke: #fbfeff; stroke-width: 2; }
-.clicker-mine-bolt.is-big .clicker-mine-bolt-glow { stroke-width: 16; stroke: rgb(var(--bolt) / 0.75); filter: blur(5px); }
+.clicker-mine-bolt.is-big .clicker-mine-bolt-glow { stroke-width: 18; stroke: rgb(var(--bolt) / 0.5); }
 .clicker-mine-bolt.is-big .clicker-mine-bolt-core { stroke-width: 3.5; }
 @keyframes clicker-mine-bolt {
   0%, 40%, 70% { visibility: visible; }
