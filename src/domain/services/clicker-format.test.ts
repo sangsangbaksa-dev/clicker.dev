@@ -16,3 +16,10 @@ test("formatNumber promotes suffix when rounding reaches 1000", () => {
   assert.equal(formatNumber(999_999), "1M")
   assert.equal(formatNumber(999_999_999), "1B")
 })
+
+test("formatNumber never prints -0 and shows infinity explicitly", () => {
+  assert.equal(formatNumber(-0.001), "0")
+  assert.equal(formatNumber(0.004), "0")
+  assert.equal(formatNumber(Number.POSITIVE_INFINITY), "∞")
+  assert.equal(formatNumber(Number.NEGATIVE_INFINITY), "-∞")
+})
