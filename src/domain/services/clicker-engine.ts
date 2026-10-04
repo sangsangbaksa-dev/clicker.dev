@@ -388,9 +388,9 @@ function ownedTranscendence(meta: MetaState, config: GameConfig): TranscendenceD
 /** The vault opens once three worldlines have been walked (i.e. from the fourth). */
 export const RELIC_UNLOCK_REBIRTHS = 3
 /** Level 1 of a relic costs this share of the current rebirth goal, in its world's currency… */
-export const RELIC_COST_SHARE = 0.03
+export const RELIC_COST_SHARE = 0.01
 /** …and each further level this much more. */
-export const RELIC_COST_GROWTH = 4
+export const RELIC_COST_GROWTH = 2.5
 
 const RELIC_MULTIPLIERS = new Set(["clickMultiplier", "productionMultiplier", "criticalMultiplier", "feverIntensity"])
 
@@ -1747,6 +1747,7 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         gachaPity: nonNegativeInt(meta.gachaPity),
         gachaPulls: nonNegativeInt(meta.gachaPulls),
         gachaStars: nonNegativeInt(meta.gachaStars),
+        gachaFreeAt: typeof meta.gachaFreeAt === "number" && Number.isFinite(meta.gachaFreeAt) ? meta.gachaFreeAt : 0,
       },
       runState: {
         ...createInitialRun(now, createInitialMeta(), config),
@@ -2059,6 +2060,12 @@ export type GachaReward =
 
 /** Pulls without a legendary before one is guaranteed. */
 export const GACHA_PITY = 60
+/** From this many pulls without a legendary, its odds climb every pull (soft pity)… */
+export const GACHA_SOFT_PITY = 45
+/** …by this much per pull. */
+export const GACHA_SOFT_PITY_STEP = 0.06
+/** One free capsule per this long. */
+export const GACHA_FREE_EVERY_MS = 24 * 60 * 60 * 1000
 /** Each legendary star: permanent production ×1.08 (survives rebirth). */
 export const GACHA_STAR_PRODUCTION = 1.08
 /** A ten-pull costs nine. */
@@ -2095,12 +2102,28 @@ export function gachaCost(run: RunState, meta: MetaState, config: GameConfig, no
   return count === 10 ? Math.ceil(one * 10 * GACHA_TEN_PULL_DISCOUNT) : one
 }
 
+/** Legendary odds for the next pull, with soft pity after GACHA_SOFT_PITY dry pulls. */
+export function gachaLegendaryRate(pity: number): number {
+  if (pity + 1 >= GACHA_PITY) return 1
+  const base = GACHA_RATES[0][1]
+  return Math.min(1, base + Math.max(0, pity + 1 - GACHA_SOFT_PITY) * GACHA_SOFT_PITY_STEP)
+}
+
+export function gachaFreeReady(meta: MetaState, now: number): boolean {
+  return now - (meta.gachaFreeAt ?? 0) >= GACHA_FREE_EVERY_MS
+}
+
 function rollRarity(pity: number, rng: () => number): GachaRarity {
-  if (pity + 1 >= GACHA_PITY) return "legendary"
+  const legendary = gachaLegendaryRate(pity)
+  if (legendary >= 1) return "legendary"
   let r = rng()
-  for (const [rarity, rate] of GACHA_RATES) {
-    if (r < rate) return rarity
-    r -= rate
+  if (r < legendary) return "legendary"
+  r -= legendary
+  // The other rarities keep their relative odds in what is left.
+  const scale = (1 - legendary) / (1 - GACHA_RATES[0][1])
+  for (const [rarity, rate] of GACHA_RATES.slice(1)) {
+    if (r < rate * scale) return rarity
+    r -= rate * scale
   }
   return "common"
 }
@@ -2144,12 +2167,14 @@ export function pullGacha(
   now: number,
   rng: () => number,
   count: 1 | 10 = 1,
+  free = false,
 ): { run: RunState; meta: MetaState; rewards: GachaReward[]; error?: string } {
-  const cost = gachaCost(run, meta, config, now, count)
+  if (free && (count !== 1 || !gachaFreeReady(meta, now))) return { run, meta, rewards: [], error: "무료 캡슐은 하루에 한 번입니다." }
+  const cost = free ? 0 : gachaCost(run, meta, config, now, count)
   if (run.coreEnergy < cost) return { run, meta, rewards: [], error: "CORE가 부족합니다." }
   const one = gachaCost(run, meta, config, now, 1)
   let next: RunState = { ...run, coreEnergy: run.coreEnergy - cost }
-  let nextMeta: MetaState = { ...meta }
+  let nextMeta: MetaState = free ? { ...meta, gachaFreeAt: now } : { ...meta }
   const rewards: GachaReward[] = []
   const giveCharges = (rarity: GachaRarity, charges: number) => {
     const skill = config.activeSkills[Math.floor(rng() * config.activeSkills.length) % config.activeSkills.length]
@@ -2171,8 +2196,12 @@ export function pullGacha(
     rewards.push({ rarity, kind: "circuit", nodeId: node.id })
     return true
   }
+  let gotRare = false
   for (let i = 0; i < count; i++) {
-    const rarity = rollRarity(nextMeta.gachaPity ?? 0, rng)
+    let rarity = rollRarity(nextMeta.gachaPity ?? 0, rng)
+    // A ten-pull always holds at least one rare or better.
+    if (count === 10 && i === count - 1 && !gotRare && rarity === "common") rarity = "rare"
+    if (rarity !== "common") gotRare = true
     nextMeta = { ...nextMeta, gachaPulls: (nextMeta.gachaPulls ?? 0) + 1, gachaPity: rarity === "legendary" ? 0 : (nextMeta.gachaPity ?? 0) + 1 }
     if (rarity === "legendary") {
       nextMeta = { ...nextMeta, gachaStars: (nextMeta.gachaStars ?? 0) + 1 }

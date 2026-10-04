@@ -175,6 +175,8 @@ export type MetaState = {
   gachaPity?: number
   gachaPulls?: number
   gachaStars?: number
+  /** When the last free daily capsule was opened (ms). */
+  gachaFreeAt?: number
 }
 
 export type ClickerSettings = {

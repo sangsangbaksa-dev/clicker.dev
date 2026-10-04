@@ -874,25 +874,17 @@ export function useClicker() {
   )
 
   /** Pull core capsules; returns the rewards so the panel can reveal them (null when refused). */
+  /** Open capsules (the gacha screen plays the reveal and its sounds). Returns the rewards, or null when refused. */
   const pullGacha = useCallback(
-    (count: 1 | 10) => {
+    (count: 1 | 10, free = false) => {
       if (!saveRef.current) return null
-      const result = clickerPullGacha(saveRef.current, count, now())
+      const result = clickerPullGacha(saveRef.current, count, now(), free)
       if (!result.ok) {
         refuse(result.error)
         return null
       }
       commit(result.value.save)
       persistNow(result.value.save)
-      playSfx("gachaPull")
-      const best = result.value.rewards.some((r) => r.rarity === "legendary")
-        ? "gachaLegendary"
-        : result.value.rewards.some((r) => r.rarity === "epic")
-          ? "gachaEpic"
-          : result.value.rewards.some((r) => r.rarity === "rare")
-            ? "gachaRare"
-            : "purchase"
-      window.setTimeout(() => playSfx(best), 550)
       return result.value.rewards
     },
     [commit, persistNow, refuse],

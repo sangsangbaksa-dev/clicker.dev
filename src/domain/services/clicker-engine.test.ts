@@ -702,6 +702,25 @@ test("gacha: costs CORE, guarantees a legendary by the pity counter, stars boost
   assert.equal(r.coreEnergy, run.coreEnergy - 6 * eng.gachaCost(run, meta, config, 0, 10))
 })
 
+test("gacha: soft pity raises legendary odds, ten-pull holds a rare, one free capsule a day", async () => {
+  const eng = await import("./clicker-engine.ts")
+  const config = clickerConfig
+  const meta = eng.createInitialMeta()
+  const run = { ...eng.createInitialRun(0, meta, config), coreEnergy: 1e40 }
+  assert.equal(eng.gachaLegendaryRate(0), 0.02)
+  assert.ok(eng.gachaLegendaryRate(eng.GACHA_SOFT_PITY) > 0.02, "soft pity kicks in")
+  assert.equal(eng.gachaLegendaryRate(eng.GACHA_PITY - 1), 1)
+  const ten = eng.pullGacha(run, meta, config, 0, () => 0.999, 10)
+  assert.ok(ten.rewards.some((r) => r.rarity !== "common"), "ten-pull guarantee")
+  const day = eng.GACHA_FREE_EVERY_MS
+  const free = eng.pullGacha({ ...run, coreEnergy: 0 }, meta, config, day, () => 0.999, 1, true)
+  assert.equal(free.error, undefined)
+  assert.equal(free.rewards.length, 1)
+  assert.equal(free.meta.gachaFreeAt, day)
+  assert.ok(eng.pullGacha(free.run, free.meta, config, day + 1000, () => 0.999, 1, true).error, "once a day")
+  assert.equal(eng.pullGacha(free.run, free.meta, config, day * 2, () => 0.999, 1, true).error, undefined)
+})
+
 test("gacha: common = skill charges, rare = a free upgrade, epic = a free circuit, never rebirth nodes", async () => {
   const eng = await import("./clicker-engine.ts")
   const config = clickerConfig

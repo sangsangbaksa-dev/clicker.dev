@@ -457,8 +457,8 @@ export function clickerBuyWorldTreeNode(save: SaveData, nodeId: string): UseCase
   return ok({ ...save, runState: next.run })
 }
 
-export function clickerPullGacha(save: SaveData, count: 1 | 10, now: number) {
-  const next = pullGacha(save.runState, save.metaState, config, now, rng, count)
+export function clickerPullGacha(save: SaveData, count: 1 | 10, now: number, free = false) {
+  const next = pullGacha(save.runState, save.metaState, config, now, rng, count, free)
   if (next.error) return { ok: false as const, status: 400, error: next.error }
   return ok({ save: withAchievements({ ...save, runState: next.run, metaState: next.meta }), rewards: next.rewards })
 }
