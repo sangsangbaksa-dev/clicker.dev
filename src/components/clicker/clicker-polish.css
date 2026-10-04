@@ -523,7 +523,8 @@
 /* Dev-only admin launcher: keep it out of the HUD. */
 [data-clicker] .clicker-admin-launch {
   top: auto;
-  bottom: 12px;
+  /* Above the bottom status bar, which is ~36px tall. */
+  bottom: calc(48px + env(safe-area-inset-bottom, 0px));
   left: 12px;
   right: auto;
   min-height: 30px;

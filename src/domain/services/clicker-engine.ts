@@ -2064,6 +2064,13 @@ export const GACHA_PITY = 60
 export const GACHA_STAR_PRODUCTION = 1.08
 export const GACHA_BOOST_MULTIPLIER = 2
 export const GACHA_BOOST_SECONDS = 180
+/**
+ * CORE paid back, in seconds of income. Together with the rare boost a pull returns about half
+ * its cost on average, so capsules are a gamble for stars — never a CORE fountain.
+ */
+export const GACHA_COMMON_SECONDS = 200
+export const GACHA_RARE_SECONDS = 120
+export const GACHA_EPIC_SECONDS = 600
 /** A ten-pull costs nine. */
 export const GACHA_TEN_PULL_DISCOUNT = 0.9
 const GACHA_RATES: Array<[GachaRarity, number]> = [
@@ -2121,11 +2128,11 @@ export function pullGacha(
     const rarity = rollRarity(nextMeta.gachaPity ?? 0, rng)
     nextMeta = { ...nextMeta, gachaPulls: (nextMeta.gachaPulls ?? 0) + 1, gachaPity: rarity === "legendary" ? 0 : (nextMeta.gachaPity ?? 0) + 1 }
     if (rarity === "common") {
-      const amount = unit * 480
+      const amount = unit * GACHA_COMMON_SECONDS
       earned += amount
       rewards.push({ rarity, kind: "core", amount })
     } else if (rarity === "rare") {
-      const amount = unit * 240
+      const amount = unit * GACHA_RARE_SECONDS
       earned += amount
       const current = next.eventBoosts.find((b) => b.id === "gacha")
       const from = Math.max(now, current?.expiresAt ?? now)
@@ -2148,7 +2155,7 @@ export function pullGacha(
         next = { ...next, regionCurrency: { ...next.regionCurrency, [region.id]: regionCurrencyBalance(next, region.id) + amount } }
         rewards.push({ rarity, kind: "currency", regionId: region.id, amount })
       } else {
-        const amount = unit * 1800
+        const amount = unit * GACHA_EPIC_SECONDS
         earned += amount
         rewards.push({ rarity, kind: "core", amount })
       }

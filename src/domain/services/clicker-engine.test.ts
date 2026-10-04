@@ -703,6 +703,16 @@ test("gacha: pays CORE, guarantees a legendary by the pity counter, stars boost 
   assert.ok(rare.run.eventBoosts.some((b) => b.id === "gacha" && b.expiresAt > 0))
 })
 
+test("gacha: a pull returns well under its cost on average, boost included", async () => {
+  const eng = await import("./clicker-engine.ts")
+  // Seconds of income, per pull: the ten-pull price against the expected CORE (no world open yet,
+  // so epic pays CORE) plus the rare boost's extra production.
+  const cost = 600 * eng.GACHA_TEN_PULL_DISCOUNT
+  const boost = (eng.GACHA_BOOST_MULTIPLIER - 1) * eng.GACHA_BOOST_SECONDS
+  const back = 0.6 * eng.GACHA_COMMON_SECONDS + 0.28 * (eng.GACHA_RARE_SECONDS + boost) + 0.1 * eng.GACHA_EPIC_SECONDS
+  assert.ok(back < cost * 0.6, `returns ${Math.round((back / cost) * 100)}% of the price`)
+})
+
 test("lair: enter, get knocked out → 3-minute shield; forge gear; kill pays out", async () => {
   const eng = await import("./clicker-engine.ts")
   const lair = await import("./clicker-lair.ts")
