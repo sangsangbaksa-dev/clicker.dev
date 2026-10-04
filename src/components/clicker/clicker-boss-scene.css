@@ -149,6 +149,8 @@
   animation: boss-eye 5s ease-in-out infinite;
 }
 @keyframes boss-eye { 50% { filter: brightness(0.6); } }
+/* The wide cut is ~2.7× wider than the portrait painting: keep the glow the same size on the monster. */
+.clicker-boss-scene.is-wide .boss-scene-eye { width: 0.82%; }
 .clicker-boss-scene.is-windup .boss-scene-eye,
 .clicker-boss-scene.is-strike .boss-scene-eye,
 .clicker-boss-scene.is-taunting .boss-scene-eye {
@@ -244,16 +246,13 @@
   animation: boss-death-flash 1400ms ease-out forwards;
 }
 @keyframes boss-death-flash { from { opacity: 1; } to { opacity: 0; } }
-/* The whole lair drains to grey with its boss (backdrop and letterbox too), and stays so while dormant. */
+/* The whole lair drains to grey with its boss, and stays so while dormant. */
 .boss-scene-base,
-.boss-scene-ambient,
 .boss-scene-weather { transition: filter 2400ms ease-in; }
 .clicker-boss-scene.is-dying .boss-scene-base,
 .clicker-boss-scene.is-dormant .boss-scene-base,
 .clicker-boss-scene.is-dying .boss-scene-weather,
 .clicker-boss-scene.is-dormant .boss-scene-weather { filter: grayscale(1) brightness(0.55); }
-.clicker-boss-scene.is-dying .boss-scene-ambient,
-.clicker-boss-scene.is-dormant .boss-scene-ambient { filter: blur(28px) brightness(0.25) grayscale(1); }
 .clicker-boss-scene.is-dormant .boss-scene-rig,
 .clicker-boss-scene.is-dying .boss-scene-rig { animation-play-state: paused; }
 .boss-scene-eye { transition: scale 900ms ease-in-out, box-shadow 900ms ease-in-out, opacity 1200ms ease-in-out; }
@@ -336,18 +335,6 @@
   .clicker-boss-scene.is-strike::after { animation: none; opacity: 0; }
 }
 
-.boss-scene-ambient {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center calc(var(--byn, 0.42) * 100%);
-  filter: blur(28px) brightness(0.38) saturate(1.2);
-  pointer-events: none;
-  transform: scale(1.06);
-}
-
 /* Laptop / short wide stages: keep the painting edge-to-edge without side letterboxing. */
 @media (min-width: 720px) and (max-height: 980px) {
   .boss-scene-hp {
@@ -355,24 +342,18 @@
   }
 }
 
-/* Wide stages (laptops): show the whole painting — the full monster, head to feet — at the
-   stage height above the dock, with the blurred copy filling the sides. The box keeps the
-   art's 2:3 shape, so eyes, mask and hitbox stay pinned to the painting. */
-@container (min-aspect-ratio: 3/4) {
-  .boss-scene-box {
-    --boss-room: calc(var(--boss-dock-room, 104px) + var(--boss-top-room, 54px));
-    top: var(--boss-top-room, 54px);
-    left: calc(50cqw - (100cqh - var(--boss-room)) / 3);
-    width: calc((100cqh - var(--boss-room)) * 2 / 3);
-    height: calc(100cqh - var(--boss-room));
-    border-radius: 18px;
-    box-shadow: 0 0 60px rgb(0 0 0 / 0.75);
-  }
-  .boss-scene-base,
-  .boss-scene-body { object-position: center; }
-  .boss-scene-ambient { filter: blur(24px) brightness(0.45) saturate(1.2); }
-  .boss-scene-hp { top: 8px; }
+/* Computers (stage wider than tall) get the 16:9 cut. The box keeps the art's 16:9 shape and
+   covers the whole stage — wider stages crop sky and ground, taller ones the far sides — so the
+   eyes, impact point and hitbox stay pinned to the painting. The camera holds the eye line. */
+.clicker-boss-scene.is-wide .boss-scene-box {
+  --boss-w: max(100cqw, 100cqh * 16 / 9);
+  --boss-h: max(100cqh, 100cqw * 9 / 16);
+  left: calc(50cqw - var(--boss-w) / 2);
+  top: clamp(100cqh - var(--boss-h), 50cqh - var(--byn, 0.42) * var(--boss-h), 0px);
+  width: var(--boss-w);
+  height: var(--boss-h);
 }
+.clicker-boss-scene.is-wide .boss-scene-base { object-fit: fill; }
 
 /* Tap sparks: a ring of shards flying out from the exact hit point. */
 .boss-scene-spark {

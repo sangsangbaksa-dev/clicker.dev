@@ -78,6 +78,9 @@ for (const p of config.producers) {
 }
 config.rebirthGrowth = knob("GROWTH", config.rebirthGrowth)
 config.priceGrowth = knob("PRICE", config.priceGrowth)
+config.worldlineBonus = knob("WLB", config.worldlineBonus)
+config.stackSoftCap = knob("SOFTCAP", config.stackSoftCap ?? 0)
+config.stackSoftExponent = knob("SOFTEXP", config.stackSoftExponent ?? 1)
 config.worldlineBonus = knob("WL", config.worldlineBonus)
 config.rebirthEnergy = knob("GOAL", config.rebirthEnergy)
 config.stackSoftCap = knob("STACK_T", config.stackSoftCap ?? 0) || undefined
@@ -106,6 +109,7 @@ const TARGETS = process.env.CALIBRATE ? process.env.CALIBRATE.split(",").map(Num
 if (TARGETS) config.rebirthGoalScale = [...(config.rebirthGoalScale ?? [])]
 const calibrated: number[] = []
 let seed = 11
+let lastDump = -1
 const rng = () => (seed = (seed * 16807) % 2147483647) / 2147483647
 
 const START = 1_000_000
@@ -230,6 +234,8 @@ let runStart = 0
 let mineCycles = 0
 let heartReached = false
 let collapses = 0
+/** When this worldline's circuit tree was first fully bought (the catalog is spent). */
+let maxedAt = -1
 let lastCollapseAt = 0
 
 function bestRegion(): void {
@@ -365,6 +371,15 @@ while (elapsed() < MAX_HOURS * 3600) {
   }
   incomeWindow()
 
+  // DUMP=7: write the save once a minute during worldline 7 (diagnostics only).
+  if (process.env.DUMP && save.metaState.rebirthCount + 1 === Number(process.env.DUMP)) {
+    const minute = Math.floor((elapsed() - runStart) / 60)
+    if (minute !== lastDump) {
+      lastDump = minute
+      const fs = await import("node:fs")
+      fs.writeFileSync(`${process.env.DUMP_DIR ?? "/tmp"}/wl${process.env.DUMP}_${minute}.json`, JSON.stringify(save))
+    }
+  }
   if (process.env.TRACE && (process.env.TRACE === "all" || Math.floor(elapsed()) % 60 < 12)) {
     const r = save.runState
     const d = derivedClick(r, save.metaState, config)
@@ -382,6 +397,7 @@ while (elapsed() < MAX_HOURS * 3600) {
       console.log(`  calibrated[${k}] = ${calibrated[k].toPrecision(6)}`)
     }
   }
+  if (maxedAt < 0 && save.runState.ownedSkillNodeIds.length >= config.skillNodes.length - 2) maxedAt = elapsed() - runStart
   const held = TARGETS && save.metaState.rebirthCount < TARGETS.length && elapsed() - runStart < TARGETS[save.metaState.rebirthCount] * 60
   if (!held && canRebirth(save.runState, save.metaState, config)) {
     const buff = config.transcendence.find((b) => !save.metaState.transcendenceIds.includes(b.id)) ?? config.transcendence[0]
@@ -395,9 +411,10 @@ while (elapsed() < MAX_HOURS * 3600) {
     }
     if (process.env.LEVELS) runLog.push("   levels " + Object.entries(save.runState.producerLevels).filter(([, v]) => v > 0).map(([k, v]) => `${k}:${v}`).join(" ") + " · regions " + config.regions.filter((r) => isRegionUnlocked(save.runState, config, r.id)).length)
     runLog.push(
-      `worldline ${save.metaState.rebirthCount + 1}: ${fmt(elapsed() - runStart)} (goal ${need.toExponential(0)}, skills ${skills}/${config.skillNodes.length}, relic lv ${Object.values(save.metaState.relicLevels).reduce((a, b) => a + b, 0)}, collapses ${collapses}) → ${buff.id}`,
+      `worldline ${save.metaState.rebirthCount + 1}: ${fmt(elapsed() - runStart)} (goal ${need.toExponential(0)}, skills ${skills}/${config.skillNodes.length}, relic lv ${Object.values(save.metaState.relicLevels).reduce((a, b) => a + b, 0)}, maxed ${maxedAt < 0 ? "never" : fmt(maxedAt)}) → ${buff.id}`,
     )
     collapses = 0
+    maxedAt = -1
     save = { ...save, runState: r.run, metaState: r.meta }
     runStart = elapsed()
   }

@@ -49,13 +49,14 @@ const baseConfig: GameConfig = {
   priceGrowth: 2,
   // Per-worldline goal correction (scripts/playtime-sim.ts CALIBRATE=120,50,30,20,15,10,30,90): each
   // worldline ends near its target minutes; the 9th entry anchors the Core Heart threshold.
-  rebirthGoalScale: [1200000, 17000, 533.81, 18, 1.6, 2.20158e-7, 10, 140, 140],
-  // Bought multipliers (upgrades + circuits) past ×300 count as (excess)^0.45: buying out the
-  // catalog late in a worldline is a climb, not a cliff.
-  stackSoftCap: 300,
-  stackSoftExponent: 0.45,
-  // ×5 permanent click & production per rebirth: every worldline plays about five times faster.
-  worldlineBonus: 4,
+  rebirthGoalScale: [42610, 380, 3.573, 0.08184, 0.005635, 0.003078, 0.00401, 0.01512, 0.01512],
+  // Bought multipliers (upgrades + circuits) past ×100 count as (excess)^0.35, so purchases keep
+  // paying off all worldline long instead of snowballing into a buy-everything burst.
+  stackSoftCap: 100,
+  stackSoftExponent: 0.35,
+  // ×2 permanent click & production per rebirth — the same as the per-worldline price rise, so
+  // carried power comes from the worldline buffs and relics, not from outgrowing every price.
+  worldlineBonus: 1,
   skillPointEveryLevels: 10,
   producers: [
     {

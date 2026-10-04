@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Render the Core Mine (home) arrival cinematic from the home art, with its own score.
 
-9s at 1280x720/30fps: the dark core chamber fades up under a slow push-in with drifting
-dust, crossfades to the mine entrance, whose cyan lights flicker awake, and settles on
+9s at 1280x720/30fps: the dark core chamber fades up under a slow push-in, crossfades to the mine entrance, whose cyan lights flicker awake, and settles on
 the same framing as the home hub. Scored in D minor (drone, choir, bell, low brass) with
 a door thud at the end. Needs the instruments in scripts/clicker-bgm.py.
 
@@ -55,8 +54,6 @@ def frames():
     gate = load(PUBLIC / "mine" / "mine_entrance_hub_closed_door_v2.webp")
     # Cyan lights on the gate: the bright, blue-dominant pixels flicker awake.
     lights = ((gate[..., 2] > 0.45) & (gate[..., 2] > gate[..., 0] * 1.4)).astype(np.float32)[..., None]
-    rng = np.random.default_rng(11)
-    dust = rng.random((140, 4))  # x, y, speed, size
     yy, xx = np.mgrid[0:H, 0:W]
     vignette = (1 - 0.55 * (((xx - W / 2) / (W / 2)) ** 2 + ((yy - H / 2) / (H / 2)) ** 2)).clip(0.25, 1)[..., None]
     total = int(LENGTH * FPS)
@@ -73,12 +70,6 @@ def frames():
                 flicker = 0.6 + 0.4 * np.sin(t * 9) * (1 if (int(t * 7) % 5) else 0.2)
             img = img + lights * gate * flicker * 0.9 * mix
         img = img * vignette
-        # Dust motes drifting up through the light.
-        for x, y, sp, sz in dust:
-            px = int((x * W + 12 * np.sin(t * 0.7 + y * 9)) % W)
-            py = int((y * H - t * (8 + sp * 20)) % H)
-            r = 1 + int(sz * 2)
-            img[max(0, py - r) : py + r, max(0, px - r) : px + r] += 0.18 * (0.4 + sz)
         fade = smooth(t / 1.4) * (1 - 0.35 * smooth((t - 8.3) / 0.7))
         yield (np.clip(img * fade, 0, 1) * 255).astype(np.uint8)
 

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Mine entry cinematic v16, rendered from the game's own stills so both cuts are seamless.
+"""Mine entry cinematic v17, rendered from the game's own stills so both cuts are seamless.
 
 Frame 0 is the hub gate still (mine_entrance_hub_closed_door_v2.webp) exactly as the hub shows it;
-the camera creeps forward, the door panel splits along its seam (x=640) and slides behind the frame;
-the camera glides through
+the camera creeps forward, the trim lights pulse twice and the seam lights up; the door cracks open
+along its seam (x=640), holds a beat, then both halves slide slowly behind the frame while the mine's
+light spills through the widening gap. Only when the doorway is mostly open does the camera glide through
 the opening and the last frame is the mine plate (mine_interior_mineral_ore_v2.webp) exactly as the
 timed mine shows it, with the same crystal the player strikes. Audio: the first seconds of v12's
 soundtrack (door unlock + slide + whoosh), 10 s like the original door walk; steady camera.
@@ -26,7 +27,7 @@ MINE = ROOT / "public" / "clicker" / "mine"
 GATE = MINE / "mine_entrance_hub_closed_door_v2.webp"
 PLATE = MINE / "mine_interior_mineral_ore_v2.webp"
 AUDIO_SRC = MINE / "mine_enter_door_walk_v12.mp4"
-OUT = MINE / "mine_enter_door_walk_v16.mp4"
+OUT = MINE / "mine_enter_door_walk_v17.mp4"
 
 SRC_W, SRC_H = 1280, 720
 W, H, FPS = 1920, 1080, 24
@@ -38,11 +39,13 @@ SEAM_X = 640
 DOOR_C = (640, 377)
 
 # Timeline (s)
-HOLD, UNLOCK, OPEN, PUSH, SETTLE = 0.8, 0.8, 2.2, 5.0, 1.2  # 10 s
+HOLD, UNLOCK, OPEN, PUSH, SETTLE = 0.6, 1.2, 3.0, 3.2, 2.0  # 10 s
 T_UNLOCK = HOLD
 T_OPEN = T_UNLOCK + UNLOCK
-T_PUSH = T_OPEN + OPEN * 0.55  # the push starts while the panels are still sliding
+T_PUSH = T_OPEN + OPEN * 0.7  # the push starts once the doorway is mostly open
 T_END = T_OPEN + OPEN + PUSH
+# Opening: a quick crack to CRACK of the travel, a held beat, then the long slide.
+CRACK, CRACK_S, CRACK_HOLD = 0.06, 0.25, 0.35
 DURATION = T_END + SETTLE
 
 INTERIOR_START = 0.5  # plate scale seen through the closed door (far away)
@@ -57,6 +60,17 @@ def ease(t: float) -> float:
 def ease_in_out_cubic(t: float) -> float:
     t = min(1.0, max(0.0, t))
     return 4 * t * t * t if t < 0.5 else 1 - (-2 * t + 2) ** 3 / 2
+
+
+def door_open(t: float) -> float:
+    """Share of the slide travelled `t` seconds after the opening starts."""
+    if t <= 0:
+        return 0.0
+    if t < CRACK_S:
+        return CRACK * (1 - (1 - t / CRACK_S) ** 3)
+    if t < CRACK_S + CRACK_HOLD:
+        return CRACK
+    return CRACK + (1 - CRACK) * ease_in_out_cubic((t - CRACK_S - CRACK_HOLD) / (OPEN - CRACK_S - CRACK_HOLD))
 
 
 def load(path: Path) -> Image.Image:
@@ -152,14 +166,38 @@ def main() -> None:
             # Interior is deeper than the gate, so it grows slower (parallax) and ends exactly full-frame.
             k_int = INTERIOR_START ** (1 - p)
             interior = plate if p >= 1 else zoom_about(interior_src, k_int, icx, icy, tx, ty)
-            open_t = ease_in_out_cubic((t - T_OPEN) / OPEN)
+            open_t = door_open(t - T_OPEN)
             slide = open_t * door_w * 0.52
             base = Image.new("RGB", (W, H))
             base.paste(interior, (0, 0))
+            # Light rushing through the opening gap: a cyan-white wash over the interior that
+            # peaks while the doorway is half open and settles as the camera goes through.
+            spill = math.sin(math.pi * min(1.0, open_t)) * (1 - p) if open_t > 0 else 0.0
+            if spill > 0.01:
+                ba = np.asarray(base).astype(np.float32)
+                yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+                glow = np.exp(-(((xx - tx) / (W * 0.18)) ** 2 + ((yy - ty) / (H * 0.32)) ** 2))[..., None]
+                ba += glow * np.array([110, 230, 240], np.float32) * 0.55 * spill
+                base = Image.fromarray(np.clip(ba, 0, 255).astype(np.uint8))
             # Panels slide apart inside the door opening (they disappear behind the frame).
             panels = Image.new("RGBA", (W, H))
             panels.alpha_composite(left_panel.transform((W, H), Image.AFFINE, (1, 0, slide, 0, 1, 0)))
             panels.alpha_composite(right_panel.transform((W, H), Image.AFFINE, (1, 0, -slide, 0, 1, 0)))
+            # Each half's inner edge catches the light as a bright bevel, and the halves dim a
+            # little as they slide into the frame's shadow.
+            if open_t > 0:
+                pa = np.asarray(panels).astype(np.float32)
+                x_l, x_r = int(SEAM_X * K - slide), int(SEAM_X * K + slide)
+                bevel = int(10 * K)
+                y_top, y_bot = int(175 * K), int(580 * K)
+                ramp = np.linspace(0, 1, bevel, dtype=np.float32)[None, :, None]
+                lit = np.array([90, 200, 210], np.float32)
+                if x_l - bevel > 0:
+                    pa[y_top:y_bot, x_l - bevel : x_l, :3] += ramp * lit * (0.4 + 0.6 * (1 - open_t))
+                if x_r + bevel < W:
+                    pa[y_top:y_bot, x_r : x_r + bevel, :3] += ramp[:, ::-1] * lit * (0.4 + 0.6 * (1 - open_t))
+                pa[:, :, :3] *= 1 - 0.3 * open_t
+                panels = Image.fromarray(np.clip(pa, 0, 255).astype(np.uint8), "RGBA")
             clip = Image.fromarray(np.minimum(np.asarray(panels.getchannel("A")), np.asarray(full_door)))
             panels.putalpha(clip)
             gate_layer = frame_only.copy().convert("RGBA")
@@ -169,6 +207,9 @@ def main() -> None:
             arr = np.asarray(gate_layer).astype(np.float32)
             # Unlock: trim lights flare, then a bright seam line before the split.
             u = ease((t - T_UNLOCK) / UNLOCK) * (1 - ease((t - T_OPEN - 0.6) / 0.8))
+            # Two heartbeat pulses of the trim lights while it unlocks.
+            if T_UNLOCK <= t < T_OPEN:
+                u *= 0.55 + 0.45 * abs(math.sin(math.pi * 2 * (t - T_UNLOCK) / UNLOCK))
             if u > 0:
                 flare = cyan_glow * (70 * u) + cyan * (60 * u)
                 arr[:, :, 0] += flare * 0.35

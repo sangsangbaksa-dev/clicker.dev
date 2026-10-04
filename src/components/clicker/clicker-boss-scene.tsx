@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type RefObject } from "react"
 import { playSfx } from "@/lib/clicker-sfx"
 import { formatNumber } from "@/application/clicker-ui"
 import { ClickerHpBar } from "@/components/clicker/clicker-hpbar"
@@ -13,11 +13,16 @@ import "./clicker-boss-scene.css"
  * breathes, lunges and flinches independently of the backdrop, its eyes burn, and each
  * scene has its own weather (storm lightning + fog, drifting crystal motes, rising embers).
  *
- * Coordinates are percentages of the 9:16 scene box.
+ * Each scene comes in two cuts: the portrait painting for phones and other tall stages, and a
+ * 16:9 cut for computers (the same painting extended sideways), so the monster always fills the
+ * stage edge to edge. Coordinates are percentages of the portrait painting; the wide cut keeps
+ * its full height and centres it, so they map across by `wide.scale`.
  */
 type Pt = { x: number; y: number }
 type SceneDef = {
   src: string
+  /** The 16:9 cut: its file, and the portrait painting's width as a share of it. */
+  wide: { src: string; scale: number }
   /** Monster body: hitbox and the centre of the breathing mask. */
   body: { x: number; y: number; w: number; h: number }
   eyes: Pt[]
@@ -33,6 +38,7 @@ type SceneDef = {
 export const BOSS_SCENES: Record<string, SceneDef> = {
   stormbird: {
     src: "/clicker/boss/storm_spire.webp",
+    wide: { src: "/clicker/boss/storm_spire_wide.webp", scale: 0.3748 },
     body: { x: 50, y: 30, w: 98, h: 56 },
     eyes: [{ x: 44.1, y: 23 }, { x: 52.6, y: 23 }],
     strike: { x: 48.8, y: 30 },
@@ -43,6 +49,7 @@ export const BOSS_SCENES: Record<string, SceneDef> = {
   },
   golem: {
     src: "/clicker/boss/phase_vault.webp",
+    wide: { src: "/clicker/boss/phase_vault_wide.webp", scale: 0.3748 },
     body: { x: 52, y: 37, w: 94, h: 62 },
     eyes: [{ x: 49.5, y: 20.6 }, { x: 56.7, y: 21.1 }],
     strike: { x: 50, y: 80 },
@@ -53,6 +60,7 @@ export const BOSS_SCENES: Record<string, SceneDef> = {
   },
   worm: {
     src: "/clicker/boss/deep_fault.webp",
+    wide: { src: "/clicker/boss/deep_fault_wide.webp", scale: 0.374 },
     body: { x: 52, y: 40, w: 80, h: 72 },
     eyes: [{ x: 45, y: 12 }, { x: 52, y: 12 }],
     strike: { x: 50, y: 82 },
@@ -82,8 +90,39 @@ type Props = {
   onStrike: (clientX: number, clientY: number) => boolean
 }
 
+/** Portrait-painting coordinates placed on the wide cut (same height, centred). */
+function toWide(p: Pt, scale: number): Pt {
+  return { x: 50 + (p.x - 50) * scale, y: p.y }
+}
+
+/** True while the stage is wider than tall — the computer layout. */
+function useWideStage(ref: RefObject<HTMLDivElement | null>): boolean {
+  const [wide, setWide] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const check = () => setWide(el.clientWidth >= el.clientHeight)
+    check()
+    const observer = new ResizeObserver(check)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [ref])
+  return wide
+}
+
 export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, tauntKey = 0, onEnter, onStrike }: Props) {
-  const scene = BOSS_SCENES[kind]
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const wide = useWideStage(rootRef)
+  const portrait = BOSS_SCENES[kind]
+  const scene: SceneDef | undefined = portrait && wide
+    ? {
+        ...portrait,
+        src: portrait.wide.src,
+        body: { ...toWide(portrait.body, portrait.wide.scale), w: portrait.body.w * portrait.wide.scale, h: portrait.body.h },
+        eyes: portrait.eyes.map((e) => toWide(e, portrait.wide.scale)),
+        strike: toWide(portrait.strike, portrait.wide.scale),
+      }
+    : portrait
   const [phase, setPhase] = useState<"idle" | "windup" | "strike">("idle")
   const [hitKey, setHitKey] = useState(0)
   const [dying, setDying] = useState(false)
@@ -132,7 +171,7 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
     return () => window.clearTimeout(id)
   }, [tauntKey])
 
-  if (!scene) return null
+  if (!scene) return <div ref={rootRef} className="clicker-boss-scene" />
   const tap = (e: ReactPointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0 || dying) return
     e.preventDefault()
@@ -182,9 +221,7 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
     .filter(Boolean)
     .join(" ")
   return (
-    <div className={`clicker-boss-scene ${state}`} style={vars}>
-      {/* Blurred copy of the painting fills the letterbox on wide screens. */}
-      <img className="boss-scene-ambient" src={scene.src} alt="" draggable={false} aria-hidden />
+    <div ref={rootRef} className={`clicker-boss-scene ${wide ? "is-wide" : "is-tall"} ${state}`} style={vars}>
       {/* Hits alternate between two identical animations so each tap restarts it without remounting the art. */}
       <div className={`boss-scene-box${hitKey ? ` hit-${hitKey % 2}` : ""}`}>
         {/* The whole painting moves as one picture — no masked second copy sliding over a still

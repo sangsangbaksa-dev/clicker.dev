@@ -285,11 +285,12 @@ test("rebirth gate starts at rebirthEnergy lifetime CORE and grows each worldlin
   assert.equal(canRebirth(grantAdminEnergy(run, 1e30), done, config), false)
 })
 
-test("economy is in the ÷1000 unit and rebirths are worth ×5", () => {
+test("economy is in the ÷1000 unit and rebirths are worth ×2, the same as the price rise", () => {
   assert.ok(Math.abs(config.baseClick - 0.0065) < 1e-12)
   assert.equal(config.rebirthEnergy, 1e9)
   assert.equal(config.producers[0]?.productionPerSecond, 0.003, "producers run at twice the earlier base output")
-  assert.equal(config.worldlineBonus, 4)
+  assert.equal(config.worldlineBonus, 1)
+  assert.equal(1 + config.worldlineBonus, config.priceGrowth)
   // Same tech, cheapest first.
   const costs = config.producers.map((p) => p.baseCost)
   assert.deepEqual(costs, [...costs].sort((a, b) => a - b))
