@@ -154,25 +154,17 @@ function RebirthAssetImage({
   return <img src={src} alt={alt} className={className} onError={() => setFailed(true)} />
 }
 
-function ParticleOverlayPlate({
-  variant,
-  phase,
-  opacity,
-}: {
-  variant: WorldlineMotionVariant
-  phase: RebirthPhaseId
-  opacity: number
-}) {
-  if (phase !== "collapse" && phase !== "void_tear" && phase !== "stamp" && phase !== "rebuild" && phase !== "settle")
-    return null
+function platePhaseFor(phase: RebirthPhaseId): Exclude<RebirthPhaseId, "select_confirm"> {
+  // The confirm beat already shows the collapse painting, so there is never an empty frame.
+  return phase === "select_confirm" ? "collapse" : phase
+}
+
+function PlateLayer({ variant, phase, incoming }: { variant: WorldlineMotionVariant; phase: Exclude<RebirthPhaseId, "select_confirm">; incoming: boolean }) {
   const keyBackdrop = RebirthPhaseArt.keyVisualBackdropFor(phase)
   const src = keyBackdrop ?? RebirthPhaseArt.plateForPhase(phase, variant.transcendenceId)
-  const keyVisual = Boolean(keyBackdrop)
   return (
     <div
-      key={phase}
-      className={`clicker-rebirth-particles-plate clicker-rebirth-plate--${phase}${keyVisual ? " clicker-rebirth-particles-plate--key-visual" : ""}`}
-      style={{ opacity: keyVisual ? Math.max(opacity, 0.55) : opacity }}
+      className={`clicker-rebirth-particles-plate clicker-rebirth-plate--${phase}${keyBackdrop ? " clicker-rebirth-particles-plate--key-visual" : ""}${incoming ? " is-incoming" : " is-outgoing"}`}
       aria-hidden
     >
       <RebirthAssetImage
@@ -181,6 +173,22 @@ function ParticleOverlayPlate({
         placeholderClassName={`clicker-rebirth-particles-plate-placeholder clicker-rebirth-particles-plate-placeholder--${variant.motif}`}
       />
     </div>
+  )
+}
+
+/**
+ * Painted plates stay on screen for the whole sequence: each new phase crossfades in over the
+ * previous painting (kept underneath, frozen) instead of fading up from black.
+ */
+function PlateStack({ variant, phase }: { variant: WorldlineMotionVariant; phase: RebirthPhaseId }) {
+  const current = platePhaseFor(phase)
+  const [layers, setLayers] = useState<{ prev: typeof current | null; cur: typeof current }>({ prev: null, cur: current })
+  if (layers.cur !== current) setLayers({ prev: layers.cur, cur: current })
+  return (
+    <>
+      {layers.prev ? <PlateLayer key={`plate-${layers.prev}`} variant={variant} phase={layers.prev} incoming={false} /> : null}
+      <PlateLayer key={`plate-${layers.cur}`} variant={variant} phase={layers.cur} incoming />
+    </>
   )
 }
 
@@ -583,9 +591,7 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
           aria-hidden
         />
       ) : null}
-      {!stillOnly ? (
-        <ParticleOverlayPlate variant={variant} phase={frame.phase} opacity={Math.max(frame.voidAlpha, frame.uiFade * 0.6)} />
-      ) : null}
+      {!stillOnly ? <PlateStack variant={variant} phase={frame.phase} /> : null}
       {!stillOnly && (frame.phase === "rebuild" || frame.phase === "settle") ? (
         <div className="clicker-rebirth-hud-plate" aria-hidden>
           <RebirthAssetImage

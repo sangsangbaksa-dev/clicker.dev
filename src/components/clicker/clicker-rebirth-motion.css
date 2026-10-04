@@ -610,18 +610,20 @@
   transform-origin: 50% 50%;
   will-change: transform, opacity, filter;
 }
-.clicker-rebirth-particles-plate { animation: rb-plate-in 420ms ease-out both; }
+.clicker-rebirth-particles-plate { opacity: 1; }
+.clicker-rebirth-particles-plate.is-outgoing { z-index: 0; }
+.clicker-rebirth-particles-plate.is-incoming { z-index: 1; animation: rb-plate-in 1100ms ease-in-out both; }
 @keyframes rb-plate-in { from { opacity: 0; } }
 
 .clicker-rebirth-plate--collapse .clicker-rebirth-particles-plate-img {
-  animation: rb-collapse 1100ms cubic-bezier(0.55, 0, 0.85, 0.4) both;
+  animation: rb-collapse 3800ms cubic-bezier(0.45, 0, 0.75, 0.6) both;
 }
 @keyframes rb-collapse {
   from { transform: scale(1.02) rotate(0deg); filter: brightness(1.05) saturate(1.1); }
-  to { transform: scale(1.38) rotate(7deg); filter: brightness(0.55) saturate(1.3) blur(1.5px); }
+  to { transform: scale(1.3) rotate(6deg); filter: brightness(0.85) saturate(1.25); }
 }
 .clicker-rebirth-plate--void_tear .clicker-rebirth-particles-plate-img {
-  animation: rb-tear 1000ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: rb-tear 3000ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 @keyframes rb-tear {
   0% { transform: scale(1.22); filter: brightness(2.2) contrast(1.2); }
@@ -629,7 +631,7 @@
   100% { transform: scale(1.02); filter: brightness(0.95) contrast(1.04); }
 }
 .clicker-rebirth-plate--stamp .clicker-rebirth-particles-plate-img {
-  animation: rb-stamp-bg 1500ms cubic-bezier(0.25, 0.8, 0.3, 1) both;
+  animation: rb-stamp-bg 3800ms cubic-bezier(0.25, 0.8, 0.3, 1) both;
 }
 @keyframes rb-stamp-bg {
   from { transform: scale(1.16) rotate(-4deg); filter: brightness(1.5); }
@@ -637,7 +639,7 @@
 }
 .clicker-rebirth-plate--rebuild .clicker-rebirth-particles-plate-img,
 .clicker-rebirth-motion[data-phase="rebuild"] .clicker-rebirth-hud-plate-img {
-  animation: rb-rebuild 1400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: rb-rebuild 3000ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes rb-rebuild {
   from { transform: scale(0.82); opacity: 0.2; filter: brightness(1.8) blur(3px); }
@@ -646,7 +648,7 @@
 }
 .clicker-rebirth-plate--settle .clicker-rebirth-particles-plate-img,
 .clicker-rebirth-motion[data-phase="settle"] .clicker-rebirth-hud-plate-img {
-  animation: rb-settle 1200ms cubic-bezier(0.33, 0, 0.2, 1) both;
+  animation: rb-settle 2400ms cubic-bezier(0.33, 0, 0.2, 1) both;
 }
 @keyframes rb-settle {
   from { transform: scale(1.1) translateY(-1.5%); filter: brightness(1.35); }
@@ -673,7 +675,7 @@
   mask-image: radial-gradient(circle, #000 8%, transparent 62%);
   -webkit-mask-image: radial-gradient(circle, #000 8%, transparent 62%);
   mix-blend-mode: screen;
-  animation: rb-rays 1500ms linear both;
+  animation: rb-rays 3800ms linear both;
 }
 @keyframes rb-rays {
   from { rotate: 0deg; opacity: 0; scale: 0.6; }
@@ -693,7 +695,7 @@
   to { scale: 9; opacity: 0; border-width: 1px; }
 }
 .clicker-rebirth-motion[data-phase="stamp"] .clicker-rebirth-stamp-image {
-  animation: rb-seal-glow 1500ms ease-in-out both;
+  animation: rb-seal-glow 3800ms ease-in-out both;
 }
 @keyframes rb-seal-glow {
   0% { filter: brightness(2.4) drop-shadow(0 0 40px var(--stamp-primary, #7fe9ff)); }

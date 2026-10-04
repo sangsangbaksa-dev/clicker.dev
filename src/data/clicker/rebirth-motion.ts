@@ -29,17 +29,17 @@ export type WorldlineMotionVariant = {
 const REBIRTH_HIGHLIGHT = "#E8F4FF"
 
 /** Full timeline (ms) — rebirth-motion-spec §1; select_confirm widened for load-safe sampling. */
-// Stretched from 3.5 s so each painted plate is on screen long enough to read (Esc still skips).
+// Slowed to ~16 s so every painted plate stays on screen long enough to take in (Esc still skips).
 const REBIRTH_TIMELINE_FULL: Array<{ id: RebirthPhaseId; start: number; end: number }> = [
-  { id: "select_confirm", start: 0, end: 400 },
-  { id: "collapse", start: 400, end: 1500 },
-  { id: "void_tear", start: 1500, end: 2500 },
-  { id: "stamp", start: 2500, end: 4000 },
-  { id: "rebuild", start: 4000, end: 5400 },
-  { id: "settle", start: 5400, end: 6600 },
+  { id: "select_confirm", start: 0, end: 900 },
+  { id: "collapse", start: 900, end: 3800 },
+  { id: "void_tear", start: 3800, end: 6800 },
+  { id: "stamp", start: 6800, end: 10600 },
+  { id: "rebuild", start: 10600, end: 13600 },
+  { id: "settle", start: 13600, end: 16000 },
 ]
 
-export const REBIRTH_DURATION_FULL_MS = 6600
+export const REBIRTH_DURATION_FULL_MS = 16000
 
 /** Reduced motion — spec §Reduced motion, ≤1.5s */
 const REBIRTH_TIMELINE_REDUCED: Array<{ id: RebirthPhaseId; start: number; end: number }> = [
