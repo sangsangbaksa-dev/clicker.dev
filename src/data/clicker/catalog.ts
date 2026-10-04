@@ -49,7 +49,7 @@ const baseConfig: GameConfig = {
   priceGrowth: 2,
   // Per-worldline goal correction (scripts/playtime-sim.ts CALIBRATE=120,50,30,20,15,10,30,90): each
   // worldline ends near its target minutes; the 9th entry anchors the Core Heart threshold.
-  rebirthGoalScale: [85000, 720, 6.151, 0.08943, 0.002621, 0.0000229, 0.0008351, 0.007675, 0.007675],
+  rebirthGoalScale: [85000, 720, 6.151, 0.08943, 0.002621, 0.0000229, 0.0008351, 0.002394, 0.000022],
   // Bought multipliers (upgrades + circuits) past ×100 count as (excess)^0.35, so purchases keep
   // paying off all worldline long instead of snowballing into a buy-everything burst.
   stackSoftCap: 100,

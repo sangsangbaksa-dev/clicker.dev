@@ -144,8 +144,8 @@ export const CLICKER_REGIONS: RegionDef[] = [
     description: "코어의 심장부. 수호자가 코어를 틀어막고 있습니다.",
     bgAssetId: "/clicker/bg/region_core_heart.jpg",
     intro: { video: "/clicker/region/core_heart_intro.mp4", poster: "/clicker/bg/region_core_heart.jpg", still: "/clicker/region/core_heart_still.webp" },
-    // 30× the first worldline's goal (×120⁸ by the last worldline): the final run is a long climb.
-    unlockAtLifetimeEnergy: 27_000_000_000_000,
+    // Just short of the final worldline's goal: the last run is a ~30-minute climb to the guardian.
+    unlockAtLifetimeEnergy: 950_000_000_000,
     requiresRebirths: 8,
     clickMultiplier: 1.2,
     productionMultiplier: 1.2,
