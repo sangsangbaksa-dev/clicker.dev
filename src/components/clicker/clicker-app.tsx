@@ -99,6 +99,10 @@ const SKILL_NOVA_COLOR: Record<string, string> = {
   laser_focus: "rgb(255 90 140 / 0.9)",
   time_warp: "rgb(190 140 255 / 0.9)",
   grid_boost: "rgb(255 220 110 / 0.9)",
+  crit_surge: "rgb(255 70 60 / 0.9)",
+  thunder_call: "rgb(110 170 255 / 0.95)",
+  fever_ignite: "rgb(255 140 40 / 0.95)",
+  cryo_purge: "rgb(200 240 255 / 0.9)",
 }
 
 /** Number keys 1–9 cast owned skills in bar order (ignored while typing). */

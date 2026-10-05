@@ -50,7 +50,7 @@ import {
   regionChallengeError,
   MINE_HOME_ONLY_ERROR,
 } from "./clicker-engine.ts"
-import { MINE_SESSION_BASE_MS as MINE_SESSION_MS, mineSessionDurationMs, worldlineGoal } from "./clicker-engine.ts"
+import { MINE_SESSION_BASE_MS as MINE_SESSION_MS, buffCritChance, mineSessionDurationMs, worldlineGoal } from "./clicker-engine.ts"
 import { formatNumber } from "./clicker-format.ts"
 
 const config = clickerConfig
@@ -537,17 +537,17 @@ test("mine session length grows from skill-tree dwell nodes", () => {
   let run = buySkillNode(save.runState, config, "focus_click").run
   run = buySkillNode(run, config, "mine_dwell").run
   save = { ...save, runState: run }
-  assert.equal(mineSessionDurationMs(run, config), MINE_SESSION_MS + 10_000)
+  assert.equal(mineSessionDurationMs(run, config), MINE_SESSION_MS + 5_000)
   const entered = enterClickerMine(save, now, config, "ko")
   assert.equal(entered.error, undefined)
-  assert.equal(entered.save.runState.mineSessionDurationMs, MINE_SESSION_MS + 10_000)
-  assert.equal(entered.save.runState.mineSessionEndsAt, now + MINE_SESSION_MS + 10_000)
+  assert.equal(entered.save.runState.mineSessionDurationMs, MINE_SESSION_MS + 5_000)
+  assert.equal(entered.save.runState.mineSessionEndsAt, now + MINE_SESSION_MS + 5_000)
 })
 
-test("only three circuits extend the mine session, +80s in all", () => {
+test("only three circuits extend the mine session, +30s in all", () => {
   const timed = config.skillNodes.filter((n) => (n.mineSessionSecondsAdd ?? 0) > 0)
   assert.deepEqual(timed.map((n) => n.id).sort(), ["mine_deepcut", "mine_dwell", "mine_endless"])
-  assert.equal(timed.reduce((sum, n) => sum + n.mineSessionSecondsAdd!, 0), 80)
+  assert.equal(timed.reduce((sum, n) => sum + n.mineSessionSecondsAdd!, 0), 30)
 })
 
 test("a save owning the former mine-time circuits loads with their new effects", () => {
@@ -557,11 +557,11 @@ test("a save owning the former mine-time circuits loads with their new effects",
   const raw = JSON.parse(JSON.stringify({ ...base, runState: { ...base.runState, ownedSkillNodeIds: former } }))
   const loaded = sanitizeSave(raw, config, now)
   assert.deepEqual(loaded.runState.ownedSkillNodeIds, former)
-  assert.equal(mineSessionDurationMs(loaded.runState, config), MINE_SESSION_MS + 10_000)
+  assert.equal(mineSessionDurationMs(loaded.runState, config), MINE_SESSION_MS + 5_000)
   for (const id of ["mine_quick", "mine_extend", "mine_marathon", "trans_mine"]) {
     const node = config.skillNodes.find((n) => n.id === id)!
     assert.equal(node.mineSessionSecondsAdd, undefined, id)
-    assert.ok(node.clickMultiplier || node.comboWindowAdd || node.criticalMultiplier || node.productionMultiplier, id)
+    assert.ok(node.clickMultiplier || node.lightningChanceAdd || node.criticalMultiplier || node.productionMultiplier, id)
   }
 })
 
@@ -932,4 +932,34 @@ test("sanitizeSave: NaN, Infinity and non-numeric values revert to defaults inst
   assert.equal(out.savedAt, 1000)
   const ticked = eng.processTick(out.runState, out.metaState, config, 5000)
   assert.ok(Number.isFinite(ticked.run.coreEnergy))
+})
+
+test("no skill circuit extends the combo window any more", () => {
+  assert.deepEqual(config.skillNodes.filter((n) => n.comboWindowAdd).map((n) => n.id), [])
+})
+
+test("new active skills: crit surge, thunder call, fever ignite, cryo purge", () => {
+  const now = 20_000_000
+  const base = startClickerGame(createInitialSave(now, config))
+  const owned = Object.fromEntries(["crit_surge", "thunder_call", "fever_ignite", "cryo_purge", "overclock"].map((id) => [id, 1]))
+  let run = { ...base.runState, skillItems: owned, mineSessionEndsAt: now + 60_000 }
+  const meta = base.metaState
+  // Thunder call: a lightning storm for its duration.
+  const thunder = activateSkill(run, meta, config, "thunder_call", now)
+  assert.equal(thunder.error, undefined)
+  assert.equal(thunder.run.lightningStormUntil, now + 10_000)
+  // Fever ignite needs FEVER unlocked; a refusal keeps the charge.
+  const refused = activateSkill(run, meta, config, "fever_ignite", now)
+  assert.ok(refused.error)
+  assert.equal(refused.run.skillItems.fever_ignite, 1)
+  // Cryo purge clears other cooldowns and cools the core.
+  run = { ...run, instability: 80, skillCooldowns: { overclock: 30 } }
+  const purged = activateSkill(run, meta, config, "cryo_purge", now)
+  assert.equal(purged.error, undefined)
+  assert.equal(purged.run.skillCooldowns.overclock, 0)
+  assert.ok(purged.run.instability < 80)
+  // Crit surge adds crit chance while it runs.
+  const surged = activateSkill(run, meta, config, "crit_surge", now)
+  assert.equal(buffCritChance(surged.run, now + 1000, config), 0.6)
+  assert.equal(buffCritChance(surged.run, now + 9000, config), 0)
 })

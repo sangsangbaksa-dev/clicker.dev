@@ -423,7 +423,19 @@ export function useClicker() {
     commit(result.value)
     const skill = clickerGameConfig.activeSkills.find((s) => s.id === id)
     // Each kind of skill has its own cast: instant energy, mining laser, or a production surge.
-    playSfx(skill?.energyBurstSeconds ? "skillBurst" : skill?.clickMultiplier && !skill.productionMultiplier ? "skillLaser" : "skillPower")
+    playSfx(
+      skill?.lightningStorm
+        ? "lightning"
+        : skill?.feverIgnite
+          ? "fever"
+          : skill?.cooldownReset
+            ? "crisisResolve"
+            : skill?.energyBurstSeconds
+              ? "skillBurst"
+              : (skill?.clickMultiplier || skill?.criticalChanceAdd) && !skill.productionMultiplier
+                ? "skillLaser"
+                : "skillPower",
+    )
     flash(`${skill?.name ?? id} 발동`)
   }, [commit, flash, refuse])
 

@@ -94,16 +94,16 @@ type NodeSpec = [id: string, branch: SkillBranch, tier: number, name: string, co
 
 const NODE_SPECS: NodeSpec[] = [
   ["focus_grip", "FOCUS", 1, "Firm Grip", 4_500, "focus_click", { clickMultiplier: 1.1 }, "채굴 ×1.1"],
-  ["focus_tempo", "FOCUS", 1, "Tempo", 9_000, "focus_grip", { comboWindowAdd: 0.3 }, "콤보 유지 +0.3초"],
+  ["focus_tempo", "FOCUS", 1, "Tempo", 9_000, "focus_grip", { comboMaxAdd: 5 }, "콤보 상한 +5"],
   ["focus_sharp", "FOCUS", 2, "Sharp Eye", 150_000, "focus_tempo", { criticalChanceAdd: 0.03 }, "치명타 +3%"],
   ["focus_heavy", "FOCUS", 2, "Heavy Hand", 600_000, "focus_sharp", { clickMultiplier: 1.3 }, "채굴 ×1.3"],
   ["focus_split", "FOCUS", 3, "Split Beam", 8_000_000, "focus_heavy", { clickMultiplier: 1.4 }, "채굴 ×1.4"],
   ["focus_deep", "FOCUS", 3, "Deep Bite", 70_000_000, "focus_split", { criticalMultiplier: 1.3 }, "치명타 배율 ×1.3"],
   ["focus_titan", "FOCUS", 4, "Titan Arm", 1_200_000_000, "focus_deep", { clickMultiplier: 1.8 }, "채굴 ×1.8"],
   ["focus_star", "FOCUS", 5, "Star Breaker", 40_000_000_000, "focus_titan", { clickMultiplier: 2.5 }, "채굴 ×2.5"],
-  ["mine_quick", "FOCUS", 1, "Steady Swing", 12_000, "mine_dwell", { comboWindowAdd: 0.3 }, "콤보 유지 +0.3초"],
+  ["mine_quick", "FOCUS", 1, "Steady Swing", 12_000, "mine_dwell", { lightningChanceAdd: 0.02 }, "번개 +2%"],
   ["mine_turn", "FOCUS", 2, "Fast Turnaround", 400_000, "mine_quick", { cooldownReduceSec: 5 }, "광산·시추 대기 -5초"],
-  ["mine_lamp", "FOCUS", 2, "Head Lamp", 500_000, "mine_quick", { clickMultiplier: 1.15 }, "채굴 ×1.15"],
+  ["mine_lamp", "FOCUS", 2, "Head Lamp", 500_000, "mine_turn", { clickMultiplier: 1.15 }, "채굴 ×1.15"],
   ["storm_static", "FOCUS", 2, "Static Hair", 900_000, "storm_spark", { lightningChanceAdd: 0.02 }, "번개 +2%"],
   ["storm_arc", "FOCUS", 3, "Arc Flash", 35_000_000, "storm_static", { lightningMultiplierAdd: 2 }, "번개 배율 +2"],
   ["quake_step", "FOCUS", 2, "Heavy Step", 1_200_000, "quake_tremor", { quakeMultiplierAdd: 3 }, "지진파 배율 +3"],
@@ -178,6 +178,10 @@ export const EXTRA_ACTIVE_SKILLS: ActiveSkillDef[] = [
   { id: "laser_focus", name: "LASER FOCUS", description: "10초 채굴 ×4", cooldown: 40, duration: 10, shopCost: 40_000, clickMultiplier: 4, assetId: "/clicker/skill/skill_laser_focus.webp" },
   { id: "time_warp", name: "TIME WARP", description: "생산 30초분 즉시 획득", cooldown: 60, duration: 0, shopCost: 300_000, energyBurstSeconds: 30, assetId: "/clicker/skill/skill_time_warp.webp" },
   { id: "grid_boost", name: "GRID BOOST", description: "20초 생산 ×2", cooldown: 60, duration: 20, shopCost: 150_000, productionMultiplier: 2, assetId: "/clicker/skill/skill_grid_boost.webp" },
+  { id: "crit_surge", name: "CRIT SURGE", description: "8초 치명타 확률 +60%", cooldown: 50, duration: 8, shopCost: 120_000, criticalChanceAdd: 0.6, assetId: "/clicker/skill/skill_crit_surge.webp" },
+  { id: "thunder_call", name: "THUNDER CALL", description: "10초 동안 모든 타격에 번개", cooldown: 70, duration: 10, shopCost: 220_000, lightningStorm: true, assetId: "/clicker/skill/skill_thunder_call.webp" },
+  { id: "fever_ignite", name: "FEVER IGNITE", description: "FEVER를 즉시 점화", cooldown: 90, duration: 0, shopCost: 260_000, feverIgnite: true, assetId: "/clicker/skill/skill_fever_ignite.webp" },
+  { id: "cryo_purge", name: "CRYO PURGE", description: "불안정도 -50 · 다른 스킬 쿨다운 초기화", cooldown: 120, duration: 0, shopCost: 400_000, instabilityDelta: -50, cooldownReset: true, assetId: "/clicker/skill/skill_cryo_purge.webp" },
 ]
 
 /**

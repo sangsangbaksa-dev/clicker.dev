@@ -378,6 +378,14 @@ export type ActiveSkillDef = {
   energyBurstSeconds?: number
   instabilityPerSecond?: number
   instabilityDelta?: number
+  /** While the buff runs, added straight onto the crit chance (past the usual cap, up to 100%). */
+  criticalChanceAdd?: number
+  /** Calls a lightning storm for `duration`: every strike arcs lightning. */
+  lightningStorm?: boolean
+  /** Starts FEVER at once (FEVER must be unlocked). */
+  feverIgnite?: boolean
+  /** Clears the cooldown of every other active skill. */
+  cooldownReset?: boolean
   assetId: string
 }
 

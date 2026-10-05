@@ -782,6 +782,17 @@ export function buffMultiplier(run: RunState, now: number, field: "productionMul
   return m
 }
 
+/** Crit chance added by running active-skill buffs (CRIT SURGE). */
+export function buffCritChance(run: RunState, now: number, config: GameConfig): number {
+  if (!skillClockRunning(run)) return 0
+  let add = 0
+  for (const b of run.activeBuffs) {
+    if (b.expiresAt <= now) continue
+    add += config.activeSkills.find((s) => s.id === b.id)?.criticalChanceAdd ?? 0
+  }
+  return add
+}
+
 export function productionSnapshot(
   run: RunState,
   meta: MetaState,
@@ -891,7 +902,7 @@ export function processClick(
   if (combo.count > combo.maxCombo) combo.maxCombo = combo.count
 
   const fever = feverMultipliers(run, meta, config)
-  const isCritical = rng() < derived.critChance
+  const isCritical = rng() < Math.min(1, derived.critChance + buffCritChance(run, now, config))
   if (isCritical) combo.expiresAt += 250
 
   let hit =
@@ -1416,11 +1427,23 @@ export function activateSkill(
   if (!skill) return { run, error: "스킬이 없습니다." }
   if ((run.skillItems[skillId] ?? 0) <= 0) return { run, error: "스킬이 부족합니다." }
   if ((run.skillCooldowns[skillId] ?? 0) > 0) return { run, error: "쿨다운 중입니다." }
-  let next = {
-    ...run,
-    skillItems: { ...run.skillItems, [skillId]: Math.max(0, (run.skillItems[skillId] ?? 0) - 1) },
-    skillCooldowns: { ...run.skillCooldowns, [skillId]: skill.cooldown },
+  // FEVER IGNITE is checked before anything is spent, so a refused cast keeps the charge.
+  let ignited: RunState | null = null
+  if (skill.feverIgnite) {
+    const lit = startFever(run, meta, config, "GAUGE", null)
+    if (lit.error) return { run, error: lit.error }
+    ignited = lit.run
   }
+  const base = ignited ?? run
+  const cooldowns = skill.cooldownReset
+    ? Object.fromEntries(Object.keys(base.skillCooldowns).map((id) => [id, 0]))
+    : base.skillCooldowns
+  let next = {
+    ...base,
+    skillItems: { ...base.skillItems, [skillId]: Math.max(0, (base.skillItems[skillId] ?? 0) - 1) },
+    skillCooldowns: { ...cooldowns, [skillId]: skill.cooldown },
+  }
+  if (skill.lightningStorm) next.lightningStormUntil = Math.max(next.lightningStormUntil, now + skill.duration * 1000)
   if (skill.instabilityDelta) next = applyInstabilityDelta(next, skill.instabilityDelta)
   if (skill.duration > 0) {
     next.activeBuffs = [
