@@ -2507,3 +2507,15 @@
   transform: none;
   vertical-align: -3px;
 }
+
+/* Detail polish: an affordable card already says so with its glowing buy button, so its
+   "구매 가능" pill is kept for screen readers only. Pills that explain a block (CORE 부족,
+   잠김, 보유) stay visible. Names get the full row and stop wrapping early on phones. */
+[data-clicker] :is(.clicker-producer-status, .clicker-shop-status, .clicker-upgrade-status).is-affordable {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

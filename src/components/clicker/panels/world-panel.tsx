@@ -1,7 +1,7 @@
 "use client"
 
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
-import { formatNumber } from "@/application/clicker-ui"
+import { formatNumber, withParticle } from "@/application/clicker-ui"
 import type { RunState } from "@/application/clicker-ui"
 import type { ClickerGame } from "./types"
 import { ClickerWorldTree } from "../clicker-world-tree"
@@ -80,7 +80,7 @@ export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; ru
                     className="clicker-primary"
                     type="button"
                     title={regionTip}
-                    aria-label={`${region.name}(으)로 이동`}
+                    aria-label={`${withParticle(region.name, "으로")} 이동`}
                     onClick={() => game.travelRegion(region.id)}
                   >
                     {region.isHome ? "홈으로 이동" : "이동하기"}

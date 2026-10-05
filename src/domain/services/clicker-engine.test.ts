@@ -900,3 +900,14 @@ test("active skills and potions only boost mining", () => {
   const click = derivedClick(run, base.metaState, config).click
   assert.ok(Math.abs(out.run.coreEnergy - run.coreEnergy - click * 150) < 1e-9)
 })
+
+test("Korean particles follow the word's final sound", async () => {
+  const { withParticle } = await import("./clicker-format.ts")
+  assert.equal(withParticle("코어 에너지", "이가"), "코어 에너지가")
+  assert.equal(withParticle("위상 수정", "이가"), "위상 수정이")
+  assert.equal(withParticle("광산 입구", "으로"), "광산 입구로")
+  assert.equal(withParticle("심층 단층", "으로"), "심층 단층으로")
+  assert.equal(withParticle("Signal Relay", "으로"), "Signal Relay로")
+  assert.equal(withParticle("Phase Vault", "으로"), "Phase Vault로")
+  assert.equal(withParticle("Core Mine", "을를"), "Core Mine을")
+})

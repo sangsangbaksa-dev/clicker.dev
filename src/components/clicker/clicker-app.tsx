@@ -37,6 +37,7 @@ import {
   resolveActiveSkillBarState,
   SECRET_CODE,
   typedSecretCode,
+  withParticle,
 } from "@/application/clicker-ui"
 import { useClicker } from "@/hooks/use-clicker"
 import { useClickerBgm } from "@/hooks/use-clicker-bgm"
@@ -1224,7 +1225,7 @@ export function ClickerApp() {
                 <button
                   type="button"
                   className="clicker-stage-region-jump"
-                  aria-label={`${region.name}(으)로 이동 — ${region.bonusText}`}
+                  aria-label={`${withParticle(region.name, "으로")} 이동 — ${region.bonusText}`}
                   onClick={() => game.travelRegion(region.id)}
                 >
                   → {region.name}
@@ -1696,7 +1697,7 @@ export function ClickerApp() {
             <button
               type="button"
               className="clicker-manage-back"
-              aria-label={`${atHomeHub ? "광산 입구" : (game.currentRegion?.name ?? "지역")}(으)로 돌아가기 · Esc`}
+              aria-label={`${withParticle(atHomeHub ? "광산 입구" : (game.currentRegion?.name ?? "지역"), "으로")} 돌아가기 · Esc`}
               onClick={() => setHubView("entrance")}
             >
               ◀ {atHomeHub ? "광산 입구" : (game.currentRegion?.name ?? "지역")}
@@ -1754,9 +1755,10 @@ export function ClickerApp() {
               data-locked={tabLockReason(id) ? "true" : undefined}
               aria-label={tabLockReason(id) ? `${ko} · 잠김` : ko}
               aria-current={tab === id ? "page" : undefined}
+              title={label}
               onClick={() => selectTab(id)}
             >
-              {label}
+              {ko}
             </button>
           ))}
         </nav>

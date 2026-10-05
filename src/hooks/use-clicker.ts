@@ -100,6 +100,7 @@ import {
   ADMIN_DEFAULT_MODES,
   nextAdminSpeed,
   type AdminModes,
+  withParticle,
 } from "@/application/clicker-ui"
 import { playSfx, setSfxMuted } from "@/lib/clicker-sfx"
 import { clearFloats, pushFloat } from "@/lib/clicker-floats"
@@ -457,7 +458,7 @@ export function useClicker() {
     playSfx("travel")
     // Every arrival plays the region's cinematic, not just the first.
     if (result.value.intro) setRegionIntro({ regionId, name: label, description: region?.description ?? "", ...result.value.intro })
-    else flash(`${label}(으)로 이동`)
+    else flash(`${withParticle(label, "으로")} 이동`)
   }, [flash, refuse, commitAndSave])
 
   const dismissRegionIntro = useCallback(() => setRegionIntro(null), [])

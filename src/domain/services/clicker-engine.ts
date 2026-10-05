@@ -24,6 +24,7 @@ import {
   pruneEventBoosts,
 } from "./clicker-bonus.ts"
 import { clearMinePause, resumeMine } from "./clicker-mine-pause.ts"
+import { withParticle } from "./clicker-format.ts"
 
 /** Base timed-mine length before skill-tree extensions. Balance PROVISIONAL. */
 export const MINE_SESSION_BASE_MS = 10_000
@@ -450,7 +451,7 @@ export function relicError(run: RunState, meta: MetaState, config: GameConfig, r
   const wallet = { ...run.regionCurrency }
   if (!payRegionCurrency(wallet, config, relic.regionId, relicCost(meta, config, relic))) {
     const region = config.regions.find((r) => r.id === relic.regionId)
-    return `${region?.currency?.name ?? "지역 화폐"}이(가) 부족합니다.`
+    return `${withParticle(region?.currency?.name ?? "지역 화폐", "이가")} 부족합니다.`
   }
   return undefined
 }
@@ -979,7 +980,7 @@ export function buyPotion(run: RunState, config: GameConfig, potionId: string): 
   const cost = scaledCost(run, potion.shopCost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, potion.shopCost))
-  if (short) return { run, error: `${short.name}이(가) 부족합니다.` }
+  if (short) return { run, error: `${withParticle(short.name, "이가")} 부족합니다.` }
   return {
     run: {
       ...run,
@@ -1013,7 +1014,7 @@ export function buyActiveSkillItem(
   const cost = activeSkillCost(run, skill)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, skill.shopCost))
-  if (short) return { run, error: `${short.name}이(가) 부족합니다.` }
+  if (short) return { run, error: `${withParticle(short.name, "이가")} 부족합니다.` }
   return {
     run: {
       ...run,
@@ -1371,7 +1372,7 @@ export function buyUpgrade(
   const cost = scaledCost(run, upgrade.cost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, upgradeCurrencyCosts(run, config, upgrade))
-  if (short) return { run, error: `${short.name}이(가) 부족합니다.` }
+  if (short) return { run, error: `${withParticle(short.name, "이가")} 부족합니다.` }
   return {
     run: {
       ...run,
@@ -1402,7 +1403,7 @@ export function buySkillNode(
   const cost = scaledCost(run, node.cost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, node.cost))
-  if (short) return { run, error: `${short.name}이(가) 부족합니다.` }
+  if (short) return { run, error: `${withParticle(short.name, "이가")} 부족합니다.` }
   return {
     run: {
       ...run,
@@ -2069,9 +2070,9 @@ export function worldTreeNodeError(run: RunState, config: GameConfig, nodeId: st
   if (!region || !isRegionUnlocked(run, config, region.id)) return "아직 열리지 않은 지역입니다."
   const tree = worldTreeNodes(config, node.regionId)
   const prev = tree[tree.indexOf(node) - 1]
-  if (prev && !worldTreeOwned(run, prev.id)) return `먼저 「${prev.name}」을(를) 배워야 합니다.`
+  if (prev && !worldTreeOwned(run, prev.id)) return `먼저 「${prev.name}」${withParticle(prev.name, "을를").slice(prev.name.length)} 배워야 합니다.`
   if (regionCurrencyBalance(run, node.regionId) < worldTreeNodeCost(run, config, node)) {
-    return `${region.currency?.name ?? "지역 화폐"}이(가) 부족합니다.`
+    return `${withParticle(region.currency?.name ?? "지역 화폐", "이가")} 부족합니다.`
   }
   return undefined
 }

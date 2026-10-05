@@ -1,5 +1,6 @@
 import type { GameConfig, LairFight, MetaState, RunState } from "../entities/clicker"
 import { lairDamageMultiplier, regionCurrencyBalance, scaledCost, slayMonster } from "./clicker-engine.ts"
+import { withParticle } from "./clicker-format.ts"
 
 /*
  * Lair battles: instead of tapping a roaming boss to death, the player walks into its lair
@@ -109,7 +110,7 @@ export function forgeError(run: RunState, config: GameConfig, slot: GearSlot): s
   for (const c of next.cost.currencies) {
     if (regionCurrencyBalance(run, c.regionId) < c.amount) {
       const name = config.regions.find((r) => r.id === c.regionId)?.currency?.name ?? c.regionId
-      return `${name}이(가) 부족합니다.`
+      return `${withParticle(name, "이가")} 부족합니다.`
     }
   }
   return undefined
