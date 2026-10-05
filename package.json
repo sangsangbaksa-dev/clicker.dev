@@ -10,6 +10,7 @@
     "test": "node --experimental-strip-types --test src/domain/services/*.test.ts src/application/*.test.ts src/infrastructure/persistence/*.test.ts src/infrastructure/auth/*.test.ts src/infrastructure/architecture/*.test.ts",
     "test:smoke": "node --test scripts/clicker-app-smoke.test.mjs",
     "test:smoke:pages": "node --test scripts/clicker-pages-smoke.test.mjs",
+    "check:pages-paths": "node scripts/check-clicker-pages-paths.mjs",
     "cf:test": "npm --prefix cloudflare test",
     "cf:dev": "npm --prefix cloudflare run dev",
     "cf:deploy": "npm --prefix cloudflare run deploy"

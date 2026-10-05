@@ -1,4 +1,4 @@
-/** Waldomage rebirth art pack — Wave A stills under /clicker/rebirth/. Palette PROVISIONAL. */
+/** Waldomage rebirth art pack — Wave A stills in public/clicker/rebirth/. Palette PROVISIONAL. */
 
 const DIR = "/clicker/rebirth"
 

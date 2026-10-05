@@ -27,6 +27,8 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
+      - name: Verify clicker asset paths are Pages-rewritable
+        run: node scripts/check-clicker-pages-paths.mjs
       - name: Strip server routes and prefix asset paths
         env:
           PAGES_BASE_PATH: /${{ github.event.repository.name }}
