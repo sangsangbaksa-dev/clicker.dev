@@ -227,6 +227,7 @@ export function ClickerApp() {
   const account = useClickerAccount({
     getSaveJson: game.exportSaveJson,
     applySaveJson: (json) => game.importSaveJson(json, "클라우드 진행을 불러왔습니다"),
+    startFresh: game.startFreshRun,
   })
   /** The login gate was passed in this tab (logged in, or chose to play as a guest). */
   const [gatePassed, setGatePassed] = useState(readGatePassed)
@@ -282,6 +283,29 @@ export function ClickerApp() {
   const prevObjectiveId = useRef<string | null>(null)
 
   // Secret code: typing it anywhere (any screen, even inside a field) grants the code reward.
+  // The secret code opens admin for a short window only, then the panel and its button go away.
+  const adminCodeTimer = useRef<number | null>(null)
+  const openAdminByCode = useCallback(() => {
+    const until = grantClickerAdminByCode()
+    setAdminAllowed(true)
+    if (adminCodeTimer.current != null) window.clearTimeout(adminCodeTimer.current)
+    adminCodeTimer.current = window.setTimeout(() => {
+      adminCodeTimer.current = null
+      const stillAllowed = isClickerAdminAllowed()
+      setAdminAllowed(stillAllowed)
+      if (!stillAllowed) {
+        setAdminOpen(false)
+        setAdminResetArmed(false)
+      }
+    }, Math.max(0, until - Date.now()))
+  }, [])
+  useEffect(
+    () => () => {
+      if (adminCodeTimer.current != null) window.clearTimeout(adminCodeTimer.current)
+    },
+    [],
+  )
+
   const redeemSecretCode = game.redeemSecretCode
   useEffect(() => {
     let typed = ""
@@ -291,13 +315,12 @@ export function ClickerApp() {
       if (typedSecretCode(typed)) {
         typed = ""
         redeemSecretCode()
-        grantClickerAdminByCode()
-        setAdminAllowed(true)
+        openAdminByCode()
       }
     }
     window.addEventListener("keydown", onKey, true)
     return () => window.removeEventListener("keydown", onKey, true)
-  }, [redeemSecretCode])
+  }, [redeemSecretCode, openAdminByCode])
 
   const prevRegionId = useRef<string | null>(null)
   const prevUnlockedRegionIds = useRef<Set<string> | null>(null)
@@ -812,7 +835,6 @@ export function ClickerApp() {
       <div data-clicker className="clicker-shell clicker-shell-title">
         <ClickerLoginGate
           state={account}
-          localTotal={game.save.metaState.totalCoreEnergy}
           onDone={() => {
             rememberGatePassed()
             setGatePassed(true)
@@ -1785,13 +1807,8 @@ export function ClickerApp() {
           onImportJson={game.importSaveJson}
           account={account}
           onSecretAdmin={() => {
-            try {
-              window.localStorage.setItem(CLICKER_ADMIN_REMEMBER_KEY, "1")
-            } catch {
-              /* storage blocked — admin stays on for this visit only */
-            }
-            setAdminAllowed(true)
-            game.notify("관리자 모드 켜짐")
+            openAdminByCode()
+            game.notify("관리자 모드 10초간 켜짐")
           }}
           onClose={() => setSettingsOpen(false)}
         />

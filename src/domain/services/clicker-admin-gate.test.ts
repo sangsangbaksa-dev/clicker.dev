@@ -1,6 +1,12 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { isClickerAdminAllowed, isClickerAdminHost } from "./clicker-admin-gate.ts"
+import {
+  CLICKER_ADMIN_CODE_MS,
+  grantClickerAdminByCode,
+  isClickerAdminAllowed,
+  isClickerAdminHost,
+  revokeClickerAdminCode,
+} from "./clicker-admin-gate.ts"
 
 test("clicker admin host detects loopback names", () => {
   assert.equal(isClickerAdminHost("localhost"), true)
@@ -60,4 +66,16 @@ test("clicker admin gate: before launch, production opens only with ?admin=1 or 
   assert.equal(isClickerAdminAllowed({ ...live, search: "?admin=1" }), true)
   assert.equal(isClickerAdminAllowed({ ...live, search: "", remembered: true }), true)
   assert.equal(isClickerAdminAllowed({ ...live, search: "?admin=0" }), false)
+})
+
+test("clicker admin gate: the secret code opens admin for 10 seconds only", () => {
+  const live = { nodeEnv: "production", hostname: "clicker.example.com", search: "", prelaunch: false, remembered: false }
+  const until = grantClickerAdminByCode(Date.now())
+  assert.equal(until - Date.now() <= CLICKER_ADMIN_CODE_MS, true)
+  assert.equal(isClickerAdminAllowed(live), true)
+  revokeClickerAdminCode()
+  assert.equal(isClickerAdminAllowed(live), false)
+  // A window granted 10s ago has already closed.
+  grantClickerAdminByCode(Date.now() - CLICKER_ADMIN_CODE_MS - 1)
+  assert.equal(isClickerAdminAllowed(live), false)
 })

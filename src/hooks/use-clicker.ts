@@ -57,6 +57,7 @@ import {
   clickerPullGacha,
   allowMineStrike,
   clearClickerStoredSave,
+  clickerFreshSaveJson,
   clickerPauseMine,
   clickerResumeMine,
   clickerSelectScreenTab,
@@ -938,6 +939,11 @@ export function useClicker() {
     [loadAsOwner, flash],
   )
 
+  /** A different account logged in on this device: back up the old run and begin a new one. */
+  const startFreshRun = useCallback(() => {
+    importSaveJson(clickerFreshSaveJson(now()), "새 진행으로 시작합니다")
+  }, [importSaveJson])
+
   // Render from the last tick's clock (updated every ~100ms) so render stays pure.
   const t = save?.runState.lastTickAt ?? 0
   const drill = save
@@ -1024,6 +1030,7 @@ export function useClicker() {
     exportSaveJson,
     parseSaveCode,
     importSaveJson,
+    startFreshRun,
     dismissToast,
     clickCore,
     buyPotion,

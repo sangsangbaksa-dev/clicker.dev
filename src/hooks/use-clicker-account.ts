@@ -8,6 +8,9 @@ import {
   logoutClickerAccount,
   signupClickerAccount,
   uploadCloudSave,
+  clickerSaveProgress,
+  readClickerSaveOwner,
+  writeClickerSaveOwner,
   type ClickerAccountInfo,
   type ClickerCloudSave,
 } from "@/application/clicker-account"
@@ -20,11 +23,13 @@ type Options = {
   getSaveJson: () => string | null
   /** Replace this device's save with the cloud one. */
   applySaveJson: (json: string) => boolean
+  /** Start this device on a brand-new run (the old one is backed up first). */
+  startFresh: () => void
 }
 
 export type ClickerAccountState = ReturnType<typeof useClickerAccount>
 
-export function useClickerAccount({ getSaveJson, applySaveJson }: Options) {
+export function useClickerAccount({ getSaveJson, applySaveJson, startFresh }: Options) {
   /** The first account check has answered (until then `available` is unknown). */
   const [checked, setChecked] = useState(false)
   const [available, setAvailable] = useState(false)
@@ -37,9 +42,11 @@ export function useClickerAccount({ getSaveJson, applySaveJson }: Options) {
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null)
   const getJson = useRef(getSaveJson)
   const apply = useRef(applySaveJson)
+  const fresh = useRef(startFresh)
   useEffect(() => {
     getJson.current = getSaveJson
     apply.current = applySaveJson
+    fresh.current = startFresh
   })
 
   const refreshCloud = useCallback(async () => {
@@ -60,7 +67,10 @@ export function useClickerAccount({ getSaveJson, applySaveJson }: Options) {
       setAccount(r.account)
       setSignedInAtBoot(Boolean(r.account))
       setChecked(true)
-      if (r.account) void refreshCloud()
+      if (r.account) {
+        if (!readClickerSaveOwner()) writeClickerSaveOwner(r.account.id)
+        void refreshCloud()
+      }
     })
     return () => {
       alive = false
@@ -81,24 +91,46 @@ export function useClickerAccount({ getSaveJson, applySaveJson }: Options) {
     }
   }, [])
 
-  /** The signed-in account's cloud save info, known once login or signup resolves. */
-  const cloudRef = useRef<ClickerCloudSave["meta"] | null>(null)
-  const signedIn = useCallback(
-    async (next: ClickerAccountInfo, verb: string) => {
-      setAccount(next)
-      cloudRef.current = await refreshCloud()
-      return { tone: "ok" as const, text: `${next.nickname}님, ${verb}` }
+  /**
+   * After a login, decide which run this device continues. The device's run may belong to
+   * another account (someone logged out here): it is never uploaded into this one — the cloud
+   * run is loaded, or a fresh run starts. Otherwise the run with more total CORE wins.
+   */
+  const syncAfterLogin = useCallback(
+    async (next: ClickerAccountInfo): Promise<string> => {
+      const owner = readClickerSaveOwner()
+      const foreign = owner !== null && owner !== next.id
+      const local = getJson.current()
+      const r = await fetchCloudSave()
+      const cloudSave = r.ok ? r.value.save : null
+      writeClickerSaveOwner(next.id)
+      if (cloudSave && (foreign || !local || clickerSaveProgress(cloudSave.json) > clickerSaveProgress(local))) {
+        setCloud(cloudSave.meta)
+        return apply.current(cloudSave.json) ? "클라우드 진행을 불러왔습니다." : "클라우드 진행을 불러오지 못했습니다."
+      }
+      if (foreign) {
+        fresh.current()
+        setCloud(cloudSave?.meta ?? null)
+        return "이 계정의 새 진행으로 시작합니다."
+      }
+      if (!local) return "진행을 이어 갑니다."
+      const up = await uploadCloudSave(local)
+      if (up.ok) setCloud(up.value.meta)
+      return up.ok ? "이 기기의 진행을 클라우드에 저장했습니다." : up.error
     },
-    [refreshCloud],
+    [],
   )
 
   const login = useCallback(
     (loginId: string, password: string) =>
       run(async () => {
         const r = await loginClickerAccount(loginId, password)
-        return r.ok ? signedIn(r.value.account, "환영합니다.") : { tone: "error", text: r.error }
+        if (!r.ok) return { tone: "error", text: r.error }
+        setAccount(r.value.account)
+        const synced = await syncAfterLogin(r.value.account)
+        return { tone: "ok", text: `${r.value.account.nickname}님, 환영합니다. ${synced}` }
       }),
-    [run, signedIn],
+    [run, syncAfterLogin],
   )
 
   const signup = useCallback(
@@ -106,12 +138,12 @@ export function useClickerAccount({ getSaveJson, applySaveJson }: Options) {
       run(async () => {
         const r = await signupClickerAccount(input)
         if (!r.ok) return { tone: "error", text: r.error }
-        // A new account starts with this device's run in the cloud.
-        const json = getJson.current()
-        if (json) await uploadCloudSave(json)
-        return signedIn(r.value.account, "가입을 환영합니다. 지금 진행이 클라우드에 저장됐습니다.")
+        setAccount(r.value.account)
+        // A new account takes this device's run along — unless that run is another account's.
+        const synced = await syncAfterLogin(r.value.account)
+        return { tone: "ok", text: `${r.value.account.nickname}님, 가입을 환영합니다. ${synced}` }
       }),
-    [run, signedIn],
+    [run, syncAfterLogin],
   )
 
   const logout = useCallback(
@@ -172,8 +204,7 @@ export function useClickerAccount({ getSaveJson, applySaveJson }: Options) {
     }
   }, [signedInId])
 
-  /** After a successful login: total CORE of the cloud run, or null when the account has none. */
-  const cloudTotal = useCallback(() => (cloudRef.current ? (cloudRef.current.totalCore ?? 0) : null), [])
+  const clearMessage = useCallback(() => setMessage(null), [])
 
-  return { checked, signedInAtBoot, available, storage, account, cloud, busy, message, login, signup, logout, upload, download, cloudTotal }
+  return { clearMessage, checked, signedInAtBoot, available, storage, account, cloud, busy, message, login, signup, logout, upload, download }
 }

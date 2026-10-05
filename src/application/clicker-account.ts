@@ -3,6 +3,30 @@
  * has no API, so every call reports `available: false` there and the UI hides accounts.
  */
 
+import { saveProgress } from "@/domain/services/clicker-account"
+
+/** Total CORE of a stored save (0 when unreadable): how far along a run is. */
+export const clickerSaveProgress = saveProgress
+
+/** localStorage key: the account the run on this device belongs to (absent for a guest run). */
+const SAVE_OWNER_KEY = "aurelia-clicker-save-owner"
+
+export function readClickerSaveOwner(): string | null {
+  try {
+    return window.localStorage.getItem(SAVE_OWNER_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function writeClickerSaveOwner(accountId: string): void {
+  try {
+    window.localStorage.setItem(SAVE_OWNER_KEY, accountId)
+  } catch {
+    /* storage blocked — ownership is only known for this visit */
+  }
+}
+
 export type ClickerAccountInfo = { id: string; loginId: string; nickname: string }
 /** `totalCore`: lifetime CORE across worldlines; `kept`: the upload lost to a more progressed cloud run. */
 export type ClickerCloudSave = { json: string; meta: { savedAt: number; size: number; totalCore?: number; kept?: boolean } }

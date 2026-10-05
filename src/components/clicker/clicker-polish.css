@@ -2335,16 +2335,24 @@
 
 /* ---------- Login gate: first screen (log in · sign up · guest) over the Canva sanctum art ---------- */
 [data-clicker] .clicker-login {
+  /* Exactly one screen tall, whatever the form's height: the art and veil size to this box,
+     so switching login ↔ signup (or showing a message) never re-crops or moves them. */
   position: relative;
-  display: grid;
-  /* Top-anchored, not centred: switching login/signup or showing a message grows the panel
-     downward instead of shifting the whole screen. The offset centres the tallest state. */
-  align-items: start;
-  min-height: 100dvh;
-  padding: max(24px, calc(50dvh - 370px)) clamp(16px, 4vw, 56px) clamp(16px, 4vw, 56px);
+  height: 100dvh;
   overflow: hidden;
   isolation: isolate;
   background: #05080f;
+}
+[data-clicker] .clicker-login-scroll {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  /* Top-anchored, not centred: a taller form grows downward instead of shifting the panel.
+     The offset centres the tallest state. */
+  align-items: start;
+  padding: max(24px, calc(50dvh - 370px)) clamp(16px, 4vw, 56px) clamp(16px, 4vw, 56px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 [data-clicker] .clicker-login-bg {
   position: absolute;
@@ -2420,7 +2428,7 @@
 
 /* Phones: art across the top, panel below it. */
 @media (max-width: 720px) {
-  [data-clicker] .clicker-login { padding: 16px; }
+  [data-clicker] .clicker-login-scroll { padding: 16px; }
   [data-clicker] .clicker-login-veil {
     background: linear-gradient(180deg, transparent 0%, rgb(4 7 14 / 0.25) 30%, rgb(4 7 14 / 0.9) 58%, rgb(4 7 14 / 0.96) 100%);
   }

@@ -127,6 +127,11 @@ export function persistClickerGame(save: SaveData): void {
   clickerPersistence().writeRaw(encodeClickerSave({ ...save, savedAt: Date.now() }).json)
 }
 
+/** A brand-new run, encoded exactly as the game stores it. */
+export function clickerFreshSaveJson(now: number): string {
+  return encodeClickerSave(createInitialSave(now, config)).json
+}
+
 export function clearClickerStoredSave(): void {
   clickerPersistence().clearRaw()
 }
