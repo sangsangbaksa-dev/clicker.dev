@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const response = NextResponse.json({ account: result.value })
     setClickerSessionCookie(response, await signClickerSession(result.value))
     return response
-  } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "로그인에 실패했습니다." }, { status: 503 })
+  } catch {
+    return NextResponse.json({ error: "로그인에 실패했습니다." }, { status: 503 })
   }
 }

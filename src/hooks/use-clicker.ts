@@ -101,6 +101,7 @@ import {
   nextAdminSpeed,
   type AdminModes,
 } from "@/application/clicker-ui"
+import { clickerCues } from "@/application/clicker-cues"
 import { playSfx, setSfxMuted } from "@/lib/clicker-sfx"
 import { clearFloats, pushFloat } from "@/lib/clicker-floats"
 
@@ -204,6 +205,7 @@ export function useClicker() {
   const sfxMuted = save?.settings.muted ?? false
   useEffect(() => {
     setSfxMuted(sfxMuted)
+    clickerCues().setMuted(sfxMuted)
   }, [sfxMuted])
 
   /** Mine → hub: record the session and raise the result card. Returns the save to commit. */
@@ -390,7 +392,7 @@ export function useClicker() {
     const result = clickerBuySkill(saveRef.current, id)
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("skillUnlock")
+    playSfx("purchase")
     const def = clickerGameConfig.skillNodes.find((s) => s.id === id)
     setPurchaseFx({ key: ++fxKey.current, kind: def?.branch ?? "FOCUS", assetId: def?.assetId })
     const name = def?.name ?? id
@@ -485,7 +487,7 @@ export function useClicker() {
     playSfx("travel")
     const home = clickerGameConfig.regions.find((r) => r.isHome)
     if (home?.intro) setRegionIntro({ regionId: home.id, name: home.name, description: home.description ?? "", ...home.intro })
-    else flash("Core Mine으로 돌아왔습니다")
+    else flash("Core Mine으로 복귀")
   }, [commit, flash, refuse])
 
   const rebirth = useCallback((buffId: string) => {
@@ -493,7 +495,7 @@ export function useClicker() {
     const result = clickerRebirth(saveRef.current, buffId, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    flash("WORLD LINE이 열렸습니다.")
+    flash("WORLD LINE 개방!")
   }, [commit, flash, refuse])
 
   const completeEnding = useCallback(() => {

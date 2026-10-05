@@ -4,6 +4,7 @@ import type {
   ComboState,
   CrisisChoice,
   FeverState,
+  BossDef,
   GameConfig,
   InstabilityLevel,
   GachaLogEntry,
@@ -24,7 +25,9 @@ import {
   eventBoostMultiplier,
   pruneEventBoosts,
 } from "./clicker-bonus.ts"
+import { gachaBatchFactor, gachaPriceFactor } from "./clicker-gacha-cost.ts"
 import { clearMinePause, resumeMine } from "./clicker-mine-pause.ts"
+import { worldlineGoalValue, worldlinePowerMultiplier, worldlinePriceScale } from "./clicker-worldline-economy.ts"
 
 /** Base timed-mine length before skill-tree extensions. Balance PROVISIONAL. */
 export const MINE_SESSION_BASE_MS = 10_000
@@ -147,7 +150,7 @@ export function canTriggerTrueEnding(meta: MetaState, config: GameConfig): boole
 export function applyTrueEnding(save: SaveData, config: GameConfig, now: number): { save: SaveData; error?: string } {
   if (save.metaState.gameCompleted) return { save, error: "이미 완료된 기록입니다." }
   if (!canTriggerTrueEnding(save.metaState, config)) {
-    return { save, error: "아직 코어 수호자를 쓰러뜨리지 않았습니다." }
+    return { save, error: "코어 수호자를 아직 쓰러뜨리지 못했다." }
   }
   return {
     save: {
@@ -214,7 +217,7 @@ export function mineEntryCheck(save: SaveData, now: number): { cost: number; err
     return { cost: 0, error: `광산 재입장 대기 ${secs}초` }
   }
   // Ore strikes yield nothing during a crisis; entering would only burn the cooldown.
-  if (save.runState.crisisActive) return { cost: 0, error: "위기를 먼저 해소하세요." }
+  if (save.runState.crisisActive) return { cost: 0, error: "먼저 위기를 해소해야 한다." }
   return { cost: 0 }
 }
 
@@ -476,7 +479,7 @@ export function buyRelic(
 
 /** Permanent multiplier on click and production: compounding per rebirth. */
 export function worldlineMultiplier(meta: MetaState, config: GameConfig): number {
-  return (1 + config.worldlineBonus) ** meta.rebirthCount
+  return worldlinePowerMultiplier(meta.rebirthCount, config.worldlineBonus)
 }
 
 /**
@@ -485,7 +488,7 @@ export function worldlineMultiplier(meta: MetaState, config: GameConfig): number
  * further up the producer ladder and circuit tree than the last.
  */
 export function worldlineCostScale(meta: MetaState, config: GameConfig): number {
-  return config.priceGrowth ** meta.rebirthCount
+  return worldlinePriceScale(meta.rebirthCount, config.priceGrowth)
 }
 
 /** A catalog price at this run's price level. */
@@ -969,7 +972,7 @@ export function buyPotion(run: RunState, config: GameConfig, potionId: string): 
   const cost = scaledCost(run, potion.shopCost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, potion.shopCost))
-  if (short) return { run, error: `${short.name}이(가) 부족합니다.` }
+  if (short) return { run, error: `${short.name} 부족` }
   return {
     run: {
       ...run,
@@ -1003,7 +1006,7 @@ export function buyActiveSkillItem(
   const cost = activeSkillCost(run, skill)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, skill.shopCost))
-  if (short) return { run, error: `${short.name}이(가) 부족합니다.` }
+  if (short) return { run, error: `${short.name} 부족` }
   return {
     run: {
       ...run,
@@ -1027,10 +1030,10 @@ export function startFever(
   source: "GAUGE" | "POTION",
   potionId: string | null
 ): { run: RunState; error?: string } {
-  if (!feverUnlocked(run, config)) return { run, error: "스킬 「Fever Core」에서 FEVER를 해금해야 합니다." }
+  if (!feverUnlocked(run, config)) return { run, error: "스킬 「Fever Core」에서 FEVER를 해금해야 한다." }
   if (run.crisisActive) return { run, error: "위기 중에는 FEVER를 열 수 없습니다." }
   if (feverActive(run.fever) || run.fever.phase === "COOL_DOWN") {
-    return { run, error: "FEVER가 아직 끝나지 않았습니다." }
+    return { run, error: "FEVER가 아직 진행 중이다." }
   }
   const potion = potionId ? config.potions.find((p) => p.id === potionId) : undefined
   if (source === "POTION") {
@@ -1361,7 +1364,7 @@ export function buyUpgrade(
   const cost = scaledCost(run, upgrade.cost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, upgradeCurrencyCosts(run, config, upgrade))
-  if (short) return { run, error: `${short.name}이(가) 부족합니다.` }
+  if (short) return { run, error: `${short.name} 부족` }
   return {
     run: {
       ...run,
@@ -1392,7 +1395,7 @@ export function buySkillNode(
   const cost = scaledCost(run, node.cost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, node.cost))
-  if (short) return { run, error: `${short.name}이(가) 부족합니다.` }
+  if (short) return { run, error: `${short.name} 부족` }
   return {
     run: {
       ...run,
@@ -1415,7 +1418,7 @@ export function activateSkill(
   const skill = config.activeSkills.find((s) => s.id === skillId)
   if (!skill) return { run, error: "스킬이 없습니다." }
   if ((run.skillItems[skillId] ?? 0) <= 0) return { run, error: "스킬이 부족합니다." }
-  if ((run.skillCooldowns[skillId] ?? 0) > 0) return { run, error: "쿨다운 중입니다." }
+  if ((run.skillCooldowns[skillId] ?? 0) > 0) return { run, error: "쿨다운 중이다." }
   let next = {
     ...run,
     skillItems: { ...run.skillItems, [skillId]: Math.max(0, (run.skillItems[skillId] ?? 0) - 1) },
@@ -1632,7 +1635,7 @@ export function regionUnlockThreshold(run: RunState, config: GameConfig, region:
 
 /** Lifetime CORE that ends the worldline after `rebirths` rebirths (the per-worldline goal table applied). */
 export function worldlineGoal(config: GameConfig, rebirths: number): number {
-  return config.rebirthEnergy * config.rebirthGrowth ** rebirths * (config.rebirthGoalScale?.[rebirths] ?? 1)
+  return worldlineGoalValue(config.rebirthEnergy, config.rebirthGrowth, config.rebirthGoalScale, rebirths)
 }
 
 export function isRegionUnlocked(run: RunState, config: GameConfig, regionId: string): boolean {
@@ -1933,19 +1936,63 @@ export function drillStrike(
 
 /* ---------- Core guardian ---------- */
 
-export function startBossFight(run: RunState, config: GameConfig, now: number): { run: RunState; error?: string } {
+/** Strikes sampled to size the guardian, at the pace of a steady player. */
+const BOSS_SAMPLE_STRIKES = 600
+const BOSS_SAMPLE_STRIKES_PER_SEC = 6
+
+/**
+ * Mean damage of one strike from the player's base build: fever, timed buffs, storms and event boosts are
+ * off, crits / combo / echo / lightning / quake are averaged in by replaying a fixed strike
+ * sequence through the same code a real strike uses (so it cannot drift from the fight itself).
+ */
+export function baseBossStrike(run: RunState, meta: MetaState, config: GameConfig): number {
+  // The replay runs on its own clock, so any "until" timer left in the save would read as still running.
+  let calm: RunState = {
+    ...run,
+    fever: createInitialFever(),
+    activeBuffs: [],
+    eventBoosts: [],
+    crisisActive: false,
+    lightningStormUntil: 0,
+    droneSwarmUntil: 0,
+    drillOverdriveUntil: 0,
+    combo: { ...run.combo, count: 0, multiplier: 1, expiresAt: 0 },
+  }
+  const bossMul = ownedSkills(calm, config).reduce((m, n) => m * (n.bossDamageMultiplier ?? 1), 1)
+  // Crits are ×300+ here, so a pseudo-random sample is far too noisy (it was off by ~6×). A golden-ratio
+  // (Weyl) sequence covers [0,1) evenly, which pins the mean to about 1% with 600 strikes.
+  let seed = 0.37
+  const rng = () => (seed = (seed + 0.6180339887498949) % 1)
+  const stepMs = 1000 / BOSS_SAMPLE_STRIKES_PER_SEC
+  let total = 0
+  for (let i = 0; i < BOSS_SAMPLE_STRIKES; i++) {
+    const hit = processClick(calm, meta, config, 1_000_000 + i * stepMs, rng)
+    calm = hit.run
+    total += hit.result.energyGained * bossMul
+  }
+  return total / BOSS_SAMPLE_STRIKES
+}
+
+/** Guardian health for this player: `strikesToDefeat` base strikes when the catalog sets it, else the fixed `hp`. */
+export function bossFightHp(boss: BossDef, run: RunState, meta: MetaState, config: GameConfig): number {
+  if (!boss.strikesToDefeat) return boss.hp
+  return baseBossStrike(run, meta, config) * boss.strikesToDefeat
+}
+
+export function startBossFight(run: RunState, meta: MetaState, config: GameConfig, now: number): { run: RunState; error?: string } {
   const region = currentRegionDef(run, config)
   const boss = region?.boss
   if (!region || !boss) return { run, error: "여기에는 수호자가 없습니다." }
   if (run.crisisActive) return { run, error: "위기 중에는 싸울 수 없습니다." }
   if (run.boss) return { run }
+  const hp = bossFightHp(boss, run, meta, config)
   return {
     run: {
       ...run,
       boss: {
         regionId: region.id,
-        hp: boss.hp,
-        maxHp: boss.hp,
+        hp,
+        maxHp: hp,
         playerHp: boss.playerHp,
         playerMaxHp: boss.playerHp,
         endsAt: now + boss.timeLimitSec * 1000,
@@ -2118,10 +2165,16 @@ function gachaUnit(run: RunState, meta: MetaState, config: GameConfig, now: numb
   return Math.max(productionSnapshot(run, meta, config, now).perSecond, derivedClick(run, meta, config).click * 0.3, config.baseClick)
 }
 
-/** One capsule costs ten minutes of current income, so it stays meaningful all game. */
+/** Ten minutes of current income: the price basis, and the size of what a capsule can hand out. */
+function gachaBasePrice(run: RunState, meta: MetaState, config: GameConfig, now: number): number {
+  return Math.ceil(gachaUnit(run, meta, config, now) * 600)
+}
+
+/** A capsule costs ten minutes of income × a factor that rises faster with every pull made (see clicker-gacha-cost). */
 export function gachaCost(run: RunState, meta: MetaState, config: GameConfig, now: number, count: 1 | 10 = 1): number {
-  const one = Math.ceil(gachaUnit(run, meta, config, now) * 600)
-  return count === 10 ? Math.ceil(one * 10 * GACHA_TEN_PULL_DISCOUNT) : one
+  const base = gachaBasePrice(run, meta, config, now)
+  const pulls = meta.gachaPulls ?? 0
+  return count === 10 ? Math.ceil(base * gachaBatchFactor(pulls, 10) * GACHA_TEN_PULL_DISCOUNT) : Math.ceil(base * gachaPriceFactor(pulls))
 }
 
 /** How many opened capsules the history keeps. */
@@ -2219,7 +2272,7 @@ export function pullGacha(
   if (free && (count !== 1 || !gachaFreeReady(meta, now))) return { run, meta, rewards: [], error: "무료 캡슐은 하루에 한 번입니다." }
   const cost = free ? 0 : gachaCost(run, meta, config, now, count)
   if (run.coreEnergy < cost) return { run, meta, rewards: [], error: "CORE가 부족합니다." }
-  const one = gachaCost(run, meta, config, now, 1)
+  const one = gachaBasePrice(run, meta, config, now) // reward pools keep the old size; only the price rises
   let next: RunState = { ...run, coreEnergy: run.coreEnergy - cost }
   let nextMeta: MetaState = free ? { ...meta, gachaFreeAt: now } : { ...meta }
   const rewards: GachaReward[] = []

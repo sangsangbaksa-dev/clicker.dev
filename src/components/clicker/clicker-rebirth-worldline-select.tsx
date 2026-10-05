@@ -1,8 +1,9 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
 import { RebirthPhaseArt } from "@/data/clicker/rebirth-assets"
+import { REBIRTH_CHOICE_IDLE, pickRebirthWorldline, rebirthConfirmDelayMs, rebirthKeyframePreloadOrder, type RebirthChoiceState } from "@/application/clicker-ui"
 import type { TranscendenceDef } from "@/application/clicker-ui"
 import "./clicker-rebirth-worldline-select.css"
 
@@ -13,9 +14,6 @@ type Props = {
   onChoose: (buff: TranscendenceDef) => void
 }
 
-const SELECT_CONFIRM_MS = 180
-const SELECT_CONFIRM_REDUCED_MS = 0
-
 /** Every worldline is one row: icon, name, identity, effect, and the rebirth button. */
 export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onChoose }: Props) {
   const [selectBgFailed, setSelectBgFailed] = useState(false)
@@ -25,13 +23,32 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, onCho
   )
   const owned = new Set(ownedIds)
 
+  // One pick per rebirth: a double-click / held Enter / a second row inside the confirm flash is refused.
+  const choice = useRef<RebirthChoiceState>(REBIRTH_CHOICE_IDLE)
+  const timer = useRef(0)
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+  // Warm the six keyframes while the player is reading the rows, so the ceremony never opens on a blank frame.
+  useEffect(() => {
+    const warm = () => rebirthKeyframePreloadOrder().forEach((file) => { new Image().src = `/clicker/rebirth/${file}` })
+    const idle = window.requestIdleCallback
+    if (idle) {
+      const id = idle(warm, { timeout: 1500 })
+      return () => window.cancelIdleCallback?.(id)
+    }
+    const id = window.setTimeout(warm, 300)
+    return () => window.clearTimeout(id)
+  }, [])
+
   const choose = (buff: TranscendenceDef) => {
-    const delay = reducedMotion ? SELECT_CONFIRM_REDUCED_MS : SELECT_CONFIRM_MS
+    const pick = pickRebirthWorldline(choice.current, buff.id, ownedIds, buffs.map((b) => b.id))
+    if (!pick.accepted) return
+    choice.current = pick.state
+    const delay = rebirthConfirmDelayMs(reducedMotion)
     if (delay <= 0) {
       onChoose(buff)
       return
     }
-    window.setTimeout(() => onChoose(buff), delay)
+    timer.current = window.setTimeout(() => onChoose(buff), delay)
   }
 
   return (

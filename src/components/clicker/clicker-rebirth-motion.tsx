@@ -175,12 +175,7 @@ function RebirthAssetImage({
   return <img src={src} alt={alt} className={className} onError={() => setFailed(true)} />
 }
 
-function platePhaseFor(phase: RebirthPhaseId): Exclude<RebirthPhaseId, "select_confirm"> {
-  // The confirm beat already shows the collapse painting, so there is never an empty frame.
-  return phase === "select_confirm" ? "collapse" : phase
-}
-
-function PlateLayer({ variant, phase, incoming }: { variant: WorldlineMotionVariant; phase: Exclude<RebirthPhaseId, "select_confirm">; incoming: boolean }) {
+function PlateLayer({ variant, phase, incoming }: { variant: WorldlineMotionVariant; phase: RebirthPhaseId; incoming: boolean }) {
   const keyBackdrop = RebirthPhaseArt.keyVisualBackdropFor(phase)
   const src = keyBackdrop ?? RebirthPhaseArt.plateForPhase(phase, variant.transcendenceId)
   return (
@@ -199,8 +194,7 @@ function PlateLayer({ variant, phase, incoming }: { variant: WorldlineMotionVari
 
 /** One painted plate per beat, swapped with a clean cut (the cut flash covers the change). */
 function PlateStack({ variant, phase }: { variant: WorldlineMotionVariant; phase: RebirthPhaseId }) {
-  const current = platePhaseFor(phase)
-  return <PlateLayer key={`plate-${current}`} variant={variant} phase={current} incoming />
+  return <PlateLayer key={`plate-${phase}`} variant={variant} phase={phase} incoming />
 }
 
 function StampGlyph({

@@ -23,10 +23,7 @@ export async function POST(request: Request) {
       maxAge: cookie.maxAge,
     })
     return response
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "로그인에 실패했습니다." },
-      { status: 400 }
-    )
+  } catch {
+    return NextResponse.json({ error: "로그인에 실패했습니다." }, { status: 400 })
   }
 }

@@ -9,6 +9,8 @@ export type BgmLoopTrack = {
   /** One-shot beds fire when natural playback ends. */
   onEnded?(listener: () => void): void
   rewind?(): void
+  /** Start fetching without playing (a bed's loop is primed while its lead-in plays). */
+  preload?(): void
 }
 
 export type BgmEngineState = {

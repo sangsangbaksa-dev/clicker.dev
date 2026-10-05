@@ -26,17 +26,39 @@ export default function RootLayout({
   return (
     <html lang="ko" className="h-full antialiased">
       <head>
+        {/* Cold-start LCP: boot screen bg before client hydration. */}
+        <link
+          rel="preload"
+          as="image"
+          href="/clicker/bg/loading_core_awakening.webp"
+          type="image/webp"
+          fetchPriority="high"
+        />
+        {/* Next paint after boot: title / hub entrance still. */}
+        <link
+          rel="preload"
+          as="image"
+          href="/clicker/mine/mine_entrance_hub_closed_door_v2.webp"
+          type="image/webp"
+        />
+        <link
+          rel="preload"
+          as="image"
+          href="/clicker/mine/title_door_centered.webp"
+          type="image/webp"
+        />
         {/* CDN fallback: next/font/google is currently broken under this Turbopack build. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>
       <body
         className="h-full min-h-full bg-[#070B12] font-sans text-[#EAF4FF]"
-        style={{ fontFamily: '"Noto Sans KR", "Apple SD Gothic Neo", sans-serif' }}
+        style={{ fontFamily: '"Pretendard Variable", Pretendard, "IBM Plex Sans KR", "Apple SD Gothic Neo", sans-serif' }}
       >
         {children}
       </body>

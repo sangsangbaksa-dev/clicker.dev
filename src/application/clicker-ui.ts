@@ -6,7 +6,7 @@ export { spawnMineOres } from "@/application/spawn-mine-ores"
 export { ORE_ART } from "@/infrastructure/ore-art"
 export { loadAlphaMask } from "@/infrastructure/image/alpha-mask-loader"
 export { oreHitBox, oreStrikePoint, type OreNode } from "@/domain/services/ore-node"
-export { formatNumber } from "@/domain/services/clicker-format"
+export { formatNumber, formatRate } from "@/domain/services/clicker-format"
 export {
   bulkAffordable,
   bulkCostText,
@@ -17,6 +17,7 @@ export {
   buildRegionViews,
   buildSkillNodeViews,
   buildUpgradeViews,
+  skillStatusLabel,
   type CoreVisual,
   type CurrencyCostView,
   type SkillNodeView,
@@ -99,6 +100,17 @@ export {
 } from "@/domain/services/clicker-admin-tools"
 export { achievementProgress, autoDrillRate, baseDrillRate, VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/domain/services/clicker-bonus"
 export {
+  UPGRADE_NAV_TABS,
+  buildUpgradeNavTabs,
+  stageStationFor,
+  upgradeNavAction,
+  upgradeNavLabel,
+  type StageStation,
+  type UpgradeNavAction,
+  type UpgradeNavTab,
+  type UpgradeNavTabId,
+} from "@/domain/services/clicker-upgrade-nav"
+export {
   buildScreenTabs,
   manageTabForScreen,
   shouldMountMineChamber,
@@ -127,3 +139,10 @@ export {
   playerMaxHp,
   shieldRemainingMs,
 } from "@/domain/services/clicker-lair"
+export {
+  REBIRTH_CHOICE_IDLE,
+  pickRebirthWorldline,
+  rebirthConfirmDelayMs,
+  type RebirthChoiceState,
+} from "@/domain/services/clicker-rebirth-choice"
+export { rebirthKeyframePreloadOrder } from "@/domain/services/clicker-rebirth-keyframes"

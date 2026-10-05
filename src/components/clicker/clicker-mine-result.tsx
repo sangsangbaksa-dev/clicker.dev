@@ -56,7 +56,7 @@ export function ClickerMineResult({ summary, cooldownSec, onClose }: Props) {
           </button>
         </div>
         <p className="clicker-welcome-hint">
-          {cooldownSec > 0 ? `${cooldownSec}초 뒤 다시 입장할 수 있습니다.` : "지금 다시 입장할 수 있습니다."}
+          {cooldownSec > 0 ? `${cooldownSec}초 뒤 재입장 가능` : "지금 바로 재입장 가능"}
         </p>
       </div>
     </div>

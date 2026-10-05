@@ -20,6 +20,13 @@
   pointer-events: none;
 }
 
+/* Soft ground shadow under the shrunk crystal (the clean plate has no baked contact shadow); drawn in the plate so
+   FEVER brightness / shake apply to it too. Position, size and colour come from the layout (data), not from here. */
+.clicker-mine-single .clicker-mine-plate-shadow {
+  position: absolute;
+  pointer-events: none;
+}
+
 /* Brightness pulse only — no rotation (PRIORITY #2). A warm light layer fades in and out:
    pulsing filter() on the full-screen plate repainted it every frame during FEVER. */
 .clicker-mine-single[data-visual="fever"] .clicker-mine-plate {

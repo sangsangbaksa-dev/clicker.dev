@@ -109,7 +109,7 @@ export function forgeError(run: RunState, config: GameConfig, slot: GearSlot): s
   for (const c of next.cost.currencies) {
     if (regionCurrencyBalance(run, c.regionId) < c.amount) {
       const name = config.regions.find((r) => r.id === c.regionId)?.currency?.name ?? c.regionId
-      return `${name}이(가) 부족합니다.`
+      return `${name} 부족`
     }
   }
   return undefined

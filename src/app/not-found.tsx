@@ -1,14 +1,33 @@
 import Link from "next/link"
 
+/** Match game void — avoid light FOUC and leftover school-project copy. */
 export default function NotFound() {
   return (
-    <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-3 px-6 py-24 text-center">
-      <h1 className="text-base font-semibold">페이지를 찾을 수 없습니다</h1>
-      <p className="text-sm leading-6 text-muted-foreground">
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100dvh",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 12,
+        padding: "24px 20px",
+        background: "#070B12",
+        color: "#EAF4FF",
+        textAlign: "center",
+      }}
+    >
+      <h1 style={{ margin: 0, fontSize: 16, fontWeight: 600, letterSpacing: "0.04em" }}>
+        페이지를 찾을 수 없습니다
+      </h1>
+      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, opacity: 0.72 }}>
         주소가 올바르지 않습니다.
       </p>
-      <Link href="/" className="text-sm font-medium text-primary hover:underline">
-        화산중 첫 화면
+      <Link
+        href="/"
+        style={{ marginTop: 8, fontSize: 14, fontWeight: 600, color: "#7EC8FF", textDecoration: "underline" }}
+      >
+        AURELIA CORE로 돌아가기
       </Link>
     </div>
   )

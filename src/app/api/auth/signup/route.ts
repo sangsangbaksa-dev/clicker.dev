@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     return response
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "회원가입에 실패했습니다." },
+      { error: "회원가입에 실패했습니다." },
       { status: 400 }
     )
   }

@@ -39,24 +39,23 @@ const baseConfig: GameConfig = {
   feverCritChanceAdd: 0.2,
   feverComboCap: 10,
   feverCoolDown: 2,
-  // Final unit ÷1000: goals 1B → 120B → 14T … Prices ×5 per worldline keep pace with the ×5
-  // worldline bonus, so a new worldline replays the catalog instead of buying it out in seconds;
-  // goals ×120 then give ~4h to the Core Heart with no worldline over ~45 min
-  // (scripts/playtime-sim.ts). ×2 prices let wl2+ buy the whole tree at once: income ×10⁸ a minute.
+  // Final unit ÷1000. Balance (scripts/playtime-sim.ts, 6 clicks/s): each worldline is a ~40–60 min climb
+  // → ~8 h to the Core guardian. A rebirth raises prices +15 % and power +10 %, so a new
+  // worldline replays the catalog at a similar pace instead of buying it out in minutes.
   rebirthEnergy: 1e12,
   rebirthGrowth: 120,
-  // ×2 per worldline (was ×5): with rebirth circuits from 200M, later runs must still speed up.
-  priceGrowth: 2,
-  // Per-worldline goal correction (scripts/playtime-sim.ts CALIBRATE=120,50,30,20,15,10,30,90): each
-  // worldline ends near its target minutes; the 9th entry anchors the Core Heart threshold.
-  rebirthGoalScale: [85000, 720, 6.151, 0.08943, 0.002621, 0.0000229, 0.0008351, 0.004, 0.000035],
-  // Bought multipliers (upgrades + circuits) past ×100 count as (excess)^0.35, so purchases keep
-  // paying off all worldline long instead of snowballing into a buy-everything burst.
-  stackSoftCap: 100,
+  // +15 % per worldline (was ×2): a rebirth makes the catalog only a little dearer.
+  priceGrowth: 1.15,
+  // Per-worldline goal correction (scripts/playtime-sim.ts CALIBRATE=56,54,53,52,52,51,51,50,50; the third
+  // entry is raised so goals never drop). The 9th entry anchors the Core Heart threshold.
+  rebirthGoalScale: [282.5, 2.583, 0.04208, 0.001412, 0.00001447, 4.421e-7, 1.206e-8, 7.535e-10, 1.279e-11],
+  // Bought multipliers (upgrades + circuits) past ×5 count as (excess)^0.35, so purchases keep
+  // paying off all worldline long and a ramp stretches over ~50 minutes instead of a buy-everything burst.
+  stackSoftCap: 5,
   stackSoftExponent: 0.35,
-  // ×2 permanent click & production per rebirth — the same as the per-worldline price rise, so
-  // carried power comes from the worldline buffs and relics, not from outgrowing every price.
-  worldlineBonus: 1,
+  // +10 % permanent click & production per rebirth, a hair under the +15 % price rise: carried
+  // power must not outgrow prices, or every later worldline's ramp explodes (growth ∝ power / price).
+  worldlineBonus: 0.1,
   skillPointEveryLevels: 10,
   producers: [
     {
@@ -1342,10 +1341,10 @@ const baseConfig: GameConfig = {
       branch: "TRANSCENDENCE",
       tier: 3,
       name: "Memory Orchard",
-      description: "다음 런 시작 +5,000 CORE",
+      description: "다음 런 시작 +1,500 CORE",
       cost: 50_000_000,
       requires: ["trans_start"],
-      startingEnergy: 5000,
+      startingEnergy: 1500,
     },
     {
       id: "trans_echo",
@@ -1374,10 +1373,10 @@ const baseConfig: GameConfig = {
       branch: "TRANSCENDENCE",
       tier: 4,
       name: "Memory Vault",
-      description: "다음 런 시작 +250,000 CORE",
+      description: "다음 런 시작 +75,000 CORE",
       cost: 2_500_000_000,
       requires: ["trans_seed2"],
-      startingEnergy: 250_000,
+      startingEnergy: 75_000,
     },
     {
       id: "trans_convergence",
@@ -1487,10 +1486,10 @@ const baseConfig: GameConfig = {
       branch: "TRANSCENDENCE",
       tier: 5,
       name: "Genesis Seed",
-      description: "다음 런 시작 +5,000,000 CORE",
+      description: "다음 런 시작 +1,500,000 CORE",
       cost: 30_000_000_000,
       requires: ["trans_vault"],
-      startingEnergy: 5_000_000,
+      startingEnergy: 1_500_000,
     },
   ],
   activeSkills: [
@@ -1526,25 +1525,25 @@ const baseConfig: GameConfig = {
     },
   ],
   objectives: [
-    { id: "first_node", title: "Solar Node 복구", line: "광산 입구의 첫 노드가 꺼져 있습니다. 채굴한 CORE로 다시 켜세요.", kind: "PRODUCER", producerId: "solar_node", target: 1, nextId: "auto_start" },
-    { id: "auto_start", title: "자동 생산 정착", line: "노드가 스스로 숨 쉬기 시작합니다. 생산자를 늘려 흐름을 키우세요.", kind: "ENERGY", target: 1200, nextId: "first_fever" },
-    { id: "first_fever", title: "첫 FEVER", line: "게이지가 가득 차면 CORE가 과열됩니다. 그때 몰아서 채굴하세요.", kind: "FEVER", target: 1, nextId: "build_identity" },
-    { id: "build_identity", title: "네트워크 확장", line: "생산자와 강화를 늘려 CORE를 모으세요. 네트워크가 넓어질수록 수입이 빨라집니다.", kind: "ENERGY", target: 60000, nextId: "skill_spark" },
-    { id: "skill_spark", title: "회로 각성", line: "스킬 회로는 잃어버린 능력의 조각입니다. 첫 회로를 밝히세요.", kind: "SKILL", target: 1, nextId: "shop_memory" },
-    { id: "shop_memory", title: "보급품 회수", line: "상점에서 물약을 하나 사 두세요. 광산에서 FEVER를 바로 열 수 있습니다.", kind: "POTION", target: 1, nextId: "network_hum" },
-    { id: "network_hum", title: "맥동의 확장", line: "중계 복도가 응답합니다. 지역마다 다른 활동과 도전이 기다립니다.", kind: "ENERGY", target: 250000, nextId: "deep_pulse" },
-    { id: "deep_pulse", title: "심층 공명", line: "더 깊은 곳에서 무언가가 코어를 막고 있습니다. 힘을 모으세요.", kind: "ENERGY", target: 2000000, nextId: "rebirth_ready" },
-    { id: "rebirth_ready", title: "첫 환생", line: "이 세계선은 한계에 닿았습니다. 환생하면 더 강한 규칙으로 다시 시작합니다.", kind: "REBIRTH", target: 1, nextId: "rebirth_all" },
-    { id: "rebirth_all", title: "여덟 세계선", line: "여덟 개의 세계선을 모두 걸어야 코어 심장부의 문이 열립니다.", kind: "REBIRTH", target: 8, nextId: "heart_gate" },
-    { id: "heart_gate", title: "코어 심장부", line: "문이 열립니다. 코어를 막고 있던 수호자를 제한 시간 안에 쓰러뜨리세요.", kind: "ENERGY", target: 1e22, nextId: null },
+    { id: "first_node", title: "Solar Node 복구", line: "광산 입구의 첫 노드가 꺼져 있다. 채굴한 CORE로 다시 켜라.", kind: "PRODUCER", producerId: "solar_node", target: 1, nextId: "auto_start" },
+    { id: "auto_start", title: "자동 생산 정착", line: "노드가 스스로 숨 쉬기 시작한다. 생산자를 늘려 흐름을 키워라.", kind: "ENERGY", target: 1200, nextId: "first_fever" },
+    { id: "first_fever", title: "첫 FEVER", line: "게이지가 가득 차면 CORE가 과열된다. 그때 몰아서 채굴해라.", kind: "FEVER", target: 1, nextId: "build_identity" },
+    { id: "build_identity", title: "네트워크 확장", line: "생산자와 강화를 늘려 CORE를 모아라. 네트워크가 넓어질수록 수입이 빨라진다.", kind: "ENERGY", target: 60000, nextId: "skill_spark" },
+    { id: "skill_spark", title: "회로 각성", line: "스킬 회로는 잃어버린 능력의 조각이다. 첫 회로를 밝혀라.", kind: "SKILL", target: 1, nextId: "shop_memory" },
+    { id: "shop_memory", title: "보급품 회수", line: "상점에서 물약을 하나 사 둬라. 광산에서 FEVER를 바로 열 수 있다.", kind: "POTION", target: 1, nextId: "network_hum" },
+    { id: "network_hum", title: "맥동의 확장", line: "중계 복도가 응답한다. 지역마다 다른 활동과 도전이 기다린다.", kind: "ENERGY", target: 250000, nextId: "deep_pulse" },
+    { id: "deep_pulse", title: "심층 공명", line: "더 깊은 곳에서 무언가가 코어를 막고 있다. 힘을 모아라.", kind: "ENERGY", target: 2000000, nextId: "rebirth_ready" },
+    { id: "rebirth_ready", title: "첫 환생", line: "이 세계선은 한계에 닿았다. 환생하면 더 강한 규칙으로 다시 시작한다.", kind: "REBIRTH", target: 1, nextId: "rebirth_all" },
+    { id: "rebirth_all", title: "여덟 세계선", line: "여덟 세계선을 모두 걸어야 코어 심장부의 문이 열린다.", kind: "REBIRTH", target: 8, nextId: "heart_gate" },
+    { id: "heart_gate", title: "코어 심장부", line: "문이 열린다. 코어를 막던 수호자를 제한 시간 안에 쓰러뜨려라.", kind: "ENERGY", target: 1e22, nextId: null },
   ],
   transcendence: [
     {
       id: "focus_line",
       name: "Directive Pulse",
-      description: "채굴 ×3 · 번개 +5%",
+      description: "채굴 ×1.05 · 번개 +5%",
       identity: "직접 개입 세계선",
-      clickMultiplier: 3,
+      clickMultiplier: 1.05,
       comboWindowAdd: 0.5,
       lightningChanceAdd: 0.05,
       assetId: "/clicker/buff/buff_focus.webp",
@@ -1552,52 +1551,52 @@ const baseConfig: GameConfig = {
     {
       id: "auto_line",
       name: "AURELIA Grid",
-      description: "생산 ×3 · 드론 +2회/초",
+      description: "생산 ×1.05 · 드론 +2회/초",
       identity: "자동화 세계선",
-      productionMultiplier: 3,
+      productionMultiplier: 1.05,
       droneStrikesPerSecond: 2,
-      startingEnergy: 2_000,
+      startingEnergy: 600,
       assetId: "/clicker/buff/buff_automation.webp",
     },
     {
       id: "reso_line",
       name: "Resonance Protocol",
-      description: "채굴·생산 ×1.8 · FEVER +10초 · 잔향 +8%",
+      description: "채굴·생산 ×1.03 · FEVER +10초 · 잔향 +8%",
       identity: "공명 세계선",
       feverDurationAdd: 10,
       feverIntensity: 1.6,
-      clickMultiplier: 1.8,
-      productionMultiplier: 1.8,
+      clickMultiplier: 1.03,
+      productionMultiplier: 1.03,
       echoChanceAdd: 0.08,
       assetId: "/clicker/buff/buff_resonance.webp",
     },
     {
       id: "risk_line",
       name: "Volatile Core",
-      description: "생산 ×2.5 · 치명타 배율 ×2",
+      description: "생산 ×1.05 · 치명타 배율 ×2",
       identity: "위험 세계선",
       instabilityRewardBonus: 0.6,
-      productionMultiplier: 2.5,
+      productionMultiplier: 1.05,
       criticalMultiplier: 2,
       assetId: "/clicker/buff/buff_risk.webp",
     },
     {
       id: "hybrid_line",
       name: "Adaptive Architect",
-      description: "채굴·생산 ×2 · 시작 +20 CORE",
+      description: "채굴·생산 ×1.04 · 시작 +6 CORE",
       identity: "균형 세계선",
-      clickMultiplier: 2,
-      productionMultiplier: 2,
-      startingEnergy: 20_000,
+      clickMultiplier: 1.04,
+      productionMultiplier: 1.04,
+      startingEnergy: 6_000,
       assetId: "/clicker/buff/buff_utility.webp",
     },
     // Late worldlines 6–8: walked after the first five, before the Core Heart opens.
     {
       id: "hunt_line",
       name: "Predator Accord",
-      description: "채굴 ×3 · 치명타 배율 ×2 · 드론 +4회/초",
+      description: "채굴 ×1.05 · 치명타 배율 ×2 · 드론 +4회/초",
       identity: "사냥 세계선",
-      clickMultiplier: 3,
+      clickMultiplier: 1.05,
       criticalMultiplier: 2,
       droneStrikesPerSecond: 4,
       assetId: "/clicker/buff/buff_hunt.webp",
@@ -1605,19 +1604,19 @@ const baseConfig: GameConfig = {
     {
       id: "forge_line",
       name: "Molten Covenant",
-      description: "생산 ×4 · FEVER 강도 +30%",
+      description: "생산 ×1.07 · FEVER 강도 +30%",
       identity: "단조 세계선",
-      productionMultiplier: 4,
+      productionMultiplier: 1.07,
       feverIntensity: 1.3,
       assetId: "/clicker/buff/buff_forge.webp",
     },
     {
       id: "memory_line",
       name: "Echo Archive",
-      description: "채굴·생산 ×3 · 잔향 +10% · 번개 +5%",
+      description: "채굴·생산 ×1.05 · 잔향 +10% · 번개 +5%",
       identity: "기억 세계선",
-      clickMultiplier: 3,
-      productionMultiplier: 3,
+      clickMultiplier: 1.05,
+      productionMultiplier: 1.05,
       echoChanceAdd: 0.1,
       lightningChanceAdd: 0.05,
       assetId: "/clicker/buff/buff_memory.webp",

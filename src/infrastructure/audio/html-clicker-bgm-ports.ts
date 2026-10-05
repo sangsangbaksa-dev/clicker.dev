@@ -44,6 +44,10 @@ function wrapTrack(rec: TrackRecord): BgmLoopTrack {
     rewind() {
       rec.audio.currentTime = 0
     },
+    preload() {
+      rec.audio.preload = "auto"
+      rec.audio.load()
+    },
   }
 }
 

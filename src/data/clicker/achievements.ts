@@ -3,7 +3,7 @@ import type { AchievementDef } from "../../domain/entities/clicker"
 /** Permanent milestones; each unlocked one adds +1% production (see ACHIEVEMENT_PRODUCTION_BONUS). */
 export const CLICKER_ACHIEVEMENTS: AchievementDef[] = [
   { id: "clicks_100", name: "첫 점화", description: "채굴 100회", kind: "CLICKS", target: 100 },
-  { id: "clicks_1k", name: "숙련 조작수", description: "채굴 1,000회", kind: "CLICKS", target: 1_000 },
+  { id: "clicks_1k", name: "숙련된 손", description: "채굴 1,000회", kind: "CLICKS", target: 1_000 },
   { id: "clicks_10k", name: "레이저 장인", description: "채굴 10,000회", kind: "CLICKS", target: 10_000 },
   { id: "clicks_50k", name: "끝없는 광선", description: "채굴 50,000회", kind: "CLICKS", target: 50_000 },
   { id: "crits_50", name: "정밀 타격", description: "치명타 50회", kind: "CRITS", target: 50 },
