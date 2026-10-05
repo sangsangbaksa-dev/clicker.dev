@@ -405,10 +405,23 @@ export function ClickerApp() {
 
   /** The forge opens with the third world (Phase Vault), where the first boss lairs are. */
   const forgeUnlocked = Boolean(game.regions[2]?.unlocked)
+  const worldUnlocked = game.regions.some((r) => !r.isHome && r.unlocked)
+  // The rebirth tab opens once a quarter of this worldline's goal is in (its approach panel).
+  const rebirthTabUnlocked = game.save && game.hud
+    ? Boolean(game.hud.canRebirth) || game.save.runState.lifetimeCoreEnergy / game.hud.rebirthRequirement >= 0.25
+    : false
+  /** Why a menu tab is still shut, or null when it opens. Locked tabs stay listed from the start. */
+  const tabLockReason = (id: TabId): string | null => {
+    if (id === "forge" && !forgeUnlocked) return "아직 해금되지 않았습니다!"
+    if (id === "world" && !worldUnlocked) return "첫 지역이 열리면 해금됩니다."
+    if (id === "transcendence" && !rebirthTabUnlocked) return "환생 목표의 25%를 모으면 해금됩니다."
+    return null
+  }
   const selectTab = useCallback(
     (id: TabId) => {
-      if (id === "forge" && !forgeUnlocked) {
-        game.refuse("아직 해금되지 않았습니다!")
+      const locked = tabLockReason(id)
+      if (locked) {
+        game.refuse(locked)
         return
       }
       if (id === "skills") {
@@ -428,7 +441,8 @@ export function ClickerApp() {
           ?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" })
       })
     },
-    [drawerHeight, drawerSnaps, persistDrawerHeight, forgeUnlocked, game],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- tabLockReason reads the same unlock flags
+    [drawerHeight, drawerSnaps, persistDrawerHeight, forgeUnlocked, worldUnlocked, rebirthTabUnlocked, game],
   )
 
   const playSurface = game.save?.settings.playSurface ?? "hub"
@@ -954,7 +968,7 @@ export function ClickerApp() {
       ...(relicsOpen ? ([["relics", "RELICS", "유물"]] as const) : []),
       ["world", "WORLD", "지역"],
       ["achievements", "RECORDS", "업적"],
-      ...(showTranscendenceTab ? ([["transcendence", "TRANSCENDENCE", "초월"]] as const) : []),
+      ["transcendence", "TRANSCENDENCE", "초월"],
     ] as const
   )
   const automationBuff =
@@ -1613,8 +1627,8 @@ export function ClickerApp() {
               <button
                 key={id}
                 type="button"
-                className={`clicker-hub-dock-btn${id === "forge" && !forgeUnlocked ? " is-locked" : ""}`}
-                aria-label={id === "forge" && !forgeUnlocked ? `${ko} · 잠김` : `${ko} 화면 열기`}
+                className={`clicker-hub-dock-btn${tabLockReason(id) ? " is-locked" : ""}`}
+                aria-label={tabLockReason(id) ? `${ko} · 잠김` : `${ko} 화면 열기`}
                 onClick={() => selectTab(id)}
               >
                 <strong>{ko}</strong>
@@ -1737,7 +1751,8 @@ export function ClickerApp() {
               key={id}
               type="button"
               data-active={tab === id}
-              aria-label={ko}
+              data-locked={tabLockReason(id) ? "true" : undefined}
+              aria-label={tabLockReason(id) ? `${ko} · 잠김` : ko}
               aria-current={tab === id ? "page" : undefined}
               onClick={() => selectTab(id)}
             >
