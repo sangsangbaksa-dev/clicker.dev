@@ -50,8 +50,14 @@ async function call<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> 
   }
 }
 
+/** GitHub Pages static export — no clicker API routes; avoid a useless fetch to the site root. */
+function clickerStaticHost(): boolean {
+  return process.env.NEXT_PUBLIC_CLICKER_STATIC_HOST === "1"
+}
+
 /** `available`: there is an account server; `storage`: it can actually keep accounts. */
 export async function fetchClickerAccount(): Promise<{ available: boolean; storage: boolean; account: ClickerAccountInfo | null }> {
+  if (clickerStaticHost()) return { available: false, storage: false, account: null }
   const r = await call<{ account: ClickerAccountInfo | null; storage?: boolean }>("/api/clicker/auth/me")
   if (!r.ok) return { available: !r.unavailable, storage: false, account: null }
   return { available: true, storage: r.value.storage !== false, account: r.value.account }

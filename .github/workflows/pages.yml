@@ -39,6 +39,12 @@ jobs:
         run: |
           npx next build
           touch out/.nojekyll
+      - name: Install Chromium for Pages smoke
+        run: npx playwright install chromium
+      - name: Pages smoke (static export)
+        env:
+          PAGES_BASE_PATH: /${{ github.event.repository.name }}
+        run: npm run test:smoke:pages
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out

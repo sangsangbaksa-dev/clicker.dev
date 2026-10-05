@@ -45,6 +45,10 @@ const pagesConfig: NextConfig = {
   basePath: pagesBasePath,
   trailingSlash: true,
   images: { unoptimized: true },
+  // Browser bundle: skip /api/clicker/* (no server on GitHub Pages).
+  env: {
+    NEXT_PUBLIC_CLICKER_STATIC_HOST: "1",
+  },
 }
 
 export default githubPages ? pagesConfig : nextConfig
