@@ -23,9 +23,7 @@ function assertNoImports(file: string, forbiddenPrefixes: string[]) {
 
 const clickerApplication = [
   "application/clicker-audio.ts",
-  "application/clicker-audio-ports.ts",
   "application/clicker-bgm-engine.ts",
-  "application/clicker-ui-lang.ts",
 ]
 
 const clickerDomain = [

@@ -20,7 +20,7 @@ import {
   type RunState,
 } from "@/application/clicker-ui"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
-import type { ClickerGame } from "./panels/types"
+import type { ClickerGame } from "@/hooks/use-clicker"
 
 const SLOT_LABEL: Record<GearSlot, string> = { weapon: "무기", armor: "방어구", helmet: "투구", amulet: "장신구" }
 

@@ -1,9 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { resolveClickerUiLang } from "@/application/clicker-ui-lang"
-import type { ClickerUiLang } from "@/domain/services/clicker-ui-lang"
-import { normalizeClickerUiLang } from "@/domain/services/clicker-ui-lang"
+import {
+  normalizeClickerUiLang,
+  resolveClickerUiLang,
+  type ClickerUiLang,
+} from "@/domain/services/clicker-ui-lang"
 import {
   readNavigatorUiLang,
   readStoredUiLang,

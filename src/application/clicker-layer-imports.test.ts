@@ -38,15 +38,13 @@ function clickerApplicationFiles(): string[] {
   const ports = walk(join(appDir, "ports")).filter((f) => /clicker/i.test(f))
   const root = readdirSync(appDir)
     .filter(
-      (n) => (n.startsWith("clicker") || n === "spawn-mine-ores.ts") && (n.endsWith(".ts") || n.endsWith(".tsx")),
+      (n) => n.startsWith("clicker") && (n.endsWith(".ts") || n.endsWith(".tsx")),
     )
     .map((n) => join(appDir, n))
     .filter(
       (f) =>
         !f.endsWith(".test.ts") &&
-        !f.endsWith("clicker-ui.ts") &&
-        !f.endsWith("clicker-display.ts") &&
-        !f.endsWith("clicker-bgm-client-bind.ts"),
+        !f.endsWith("clicker-ui.ts"),
     )
   return [...ports, ...root]
 }

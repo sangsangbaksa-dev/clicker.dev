@@ -12,7 +12,7 @@ import {
   type RunState,
 } from "@/application/clicker-ui"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
-import type { ClickerGame } from "./panels/types"
+import type { ClickerGame } from "@/hooks/use-clicker"
 
 /** "채굴 ×2.56 · 번개 확률 +4%" for a relic at a level. */
 function relicEffectText(relic: RelicDef, level: number): string {

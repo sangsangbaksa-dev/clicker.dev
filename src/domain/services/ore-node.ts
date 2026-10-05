@@ -26,3 +26,7 @@ export function oreHitBox(node: OreNode, width: number, height: number): {
   const cy = node.y * height
   return { left: cx - edge / 2, top: cy - edge / 2, width: edge, height: edge }
 }
+
+export function spawnMineOres(): readonly OreNode[] {
+  return [createCenterOre()].slice(0, MAX_ORE_NODES)
+}

@@ -6,6 +6,7 @@ import {
   clickerAdminGrantCurrencies,
   clickerRedeemSecretCode,
   clickerAdminJumpToFinalBoss,
+  clickerAdminTriggerFinalBossDefeated,
   clickerAdminReplayTutorial,
   clickerApplyAdminModes,
   clickerAdminPatch,
@@ -19,6 +20,7 @@ import {
   clickerClaimVein,
   clickerClick,
   clickerCompleteEnding,
+  clickerStoreCompletionRecord,
   clickerDrillOverdrive,
   clickerDrinkPotion,
   clickerEnterMine,
@@ -70,7 +72,7 @@ import {
   clickerClaimLease,
   clickerCreateTabId,
   clickerIsLeaseTakenByOther,
-} from "@/application/clicker-tab-session"
+} from "@/application/clicker-client-bind"
 import {
   achievementProgress,
   autoDrillRate,
@@ -96,6 +98,7 @@ import {
   type ClickerScreenTabId,
   type ManageDrawerTabId,
   type RegionIntroDef,
+  type RunState,
   type SaveData,
   ADMIN_DEFAULT_MODES,
   nextAdminSpeed,
@@ -516,6 +519,7 @@ export function useClicker() {
       refuse(result.error)
       return false
     }
+    clickerStoreCompletionRecord(result.value)
     commitAndSave(result.value)
     return true
   }, [refuse, commitAndSave])
@@ -548,6 +552,13 @@ export function useClicker() {
     const next = clickerAdminJumpToFinalBoss(saveRef.current, now())
     commitAndSave(next)
     flash("관리자 · 최종 보스 전투 시작")
+  }, [flash, commitAndSave])
+
+  const adminJumpFinalBossDefeated = useCallback(() => {
+    if (!isClickerAdminAllowed() || !saveRef.current) return
+    const next = clickerAdminTriggerFinalBossDefeated(saveRef.current, now())
+    commitAndSave(next)
+    flash("관리자 · 최종 보스 격파 · 엔딩 재생")
   }, [flash, commitAndSave])
 
   const adminSkipTutorial = useCallback(() => {
@@ -658,7 +669,7 @@ export function useClicker() {
   /** Title CTA: always land on upgrades/skills hub. Mine opens only via hub CTA. */
   const startFromTitle = useCallback(() => {
     if (!saveRef.current) return
-    const started = clickerStartGame(saveRef.current)
+    const started = clickerStartGame(saveRef.current, now())
     const hubbed = {
       ...started,
       settings: { ...started.settings, playSurface: "hub" as const },
@@ -1049,6 +1060,7 @@ export function useClicker() {
     adminGrant,
     adminGrantAllCurrencies,
     adminJumpFinalBoss,
+    adminJumpFinalBossDefeated,
     adminSkipTutorial,
     adminReplayTutorial,
     adminToggleGod,
@@ -1094,4 +1106,14 @@ export function useClicker() {
     startBoss,
     strikeBoss,
   }
+}
+
+export type ClickerGame = ReturnType<typeof useClicker>
+
+/** What most drawer panels need: the game, the live run, and the icon-pop feedback. */
+export type PanelProps = {
+  game: ClickerGame
+  run: RunState
+  popIcons: Record<string, number>
+  bumpIcon: (id: string) => void
 }

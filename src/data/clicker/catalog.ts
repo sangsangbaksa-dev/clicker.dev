@@ -1,8 +1,8 @@
 import type { GameConfig } from "../../domain/entities/clicker"
+import { finalizeCatalog } from "./catalog-extra.ts"
 import { CLICKER_REGIONS } from "./regions.ts"
 import { MineArt } from "./mine-assets.ts"
 import { CLICKER_ACHIEVEMENTS } from "./achievements.ts"
-import { finalizeCatalog } from "./catalog-extra.ts"
 import { CLICKER_RELICS } from "./relics.ts"
 import { CLICKER_WORLD_TREES, REGION_CURRENCY_RATE } from "./world-trees.ts"
 

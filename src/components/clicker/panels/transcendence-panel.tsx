@@ -3,7 +3,7 @@
 import { formatNumber } from "@/application/clicker-ui"
 import { ClickerRebirthWorldlineSelect } from "@/components/clicker/clicker-rebirth-worldline-select"
 import type { MetaState, TranscendenceDef } from "@/application/clicker-ui"
-import type { PanelProps } from "./types"
+import type { PanelProps } from "@/hooks/use-clicker"
 
 export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon, onSelectTab, onChoose }: PanelProps & {
   meta: MetaState

@@ -11,7 +11,7 @@ import {
   type RunState,
 } from "@/application/clicker-ui"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
-import type { ClickerGame } from "./panels/types"
+import type { ClickerGame } from "@/hooks/use-clicker"
 
 /** A world's own skill tree: five nodes in order, paid in that world's currency only. */
 export function ClickerWorldTree({ game, run, regionId }: { game: ClickerGame; run: RunState; regionId: string }) {

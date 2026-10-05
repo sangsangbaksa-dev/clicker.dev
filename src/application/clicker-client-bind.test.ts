@@ -2,9 +2,12 @@ import assert from "node:assert/strict"
 import { afterEach, test } from "node:test"
 import type { ClickerPersistencePort } from "./ports/clicker-persistence.ts"
 import type { ClickerTabLockPort } from "./ports/clicker-tab-lock.ts"
+import type { ClickerCompletionRecord } from "../domain/services/clicker-completion-records.ts"
 import {
+  bindClickerCompletionRecords,
   bindClickerPersistence,
   bindClickerTabLock,
+  clickerCompletionRecords,
   clickerPersistence,
   resetClickerClientBindings,
 } from "./clicker-client-bind.ts"
@@ -13,7 +16,7 @@ import {
   clickerClaimLease,
   clickerCreateTabId,
   clickerIsLeaseTakenByOther,
-} from "./clicker-tab-session.ts"
+} from "./clicker-client-bind.ts"
 
 afterEach(() => {
   resetClickerClientBindings()
@@ -34,6 +37,23 @@ test("fake persistence port is returned after bind", () => {
   }
   bindClickerPersistence(fake)
   assert.equal(clickerPersistence().readRaw(), "raw")
+})
+
+test("completion records delegate to the bound browser port", () => {
+  const record: ClickerCompletionRecord = {
+    completedAt: 10,
+    playTimeMs: 9,
+    totalCoreEnergy: 5,
+    rebirthCount: 1,
+    worldlinesOwned: 1,
+    clicks: 2,
+  }
+  bindClickerCompletionRecords({
+    read: () => ({ available: true, records: [record] }),
+    save: () => true,
+  })
+  assert.deepEqual(clickerCompletionRecords().read(), { available: true, records: [record] })
+  assert.equal(clickerCompletionRecords().save(record), true)
 })
 
 test("tab session delegates to the bound tab-lock port", () => {

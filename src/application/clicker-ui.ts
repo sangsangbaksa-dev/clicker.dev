@@ -2,11 +2,18 @@
  * Clicker UI facade: types and read-only helpers for components and hooks.
  * Domain rules stay in domain; this module is the outward-facing import surface.
  */
-export { spawnMineOres } from "@/application/spawn-mine-ores"
+export { spawnMineOres } from "@/domain/services/ore-node"
 export { ORE_ART } from "@/infrastructure/ore-art"
 export { loadAlphaMask } from "@/infrastructure/image/alpha-mask-loader"
 export { oreHitBox, oreStrikePoint, type OreNode } from "@/domain/services/ore-node"
 export { formatNumber, withParticle } from "@/domain/services/clicker-format"
+export {
+  clickerCompletionRank,
+  clickerPlayTimeMs,
+  formatClickerPlayTime,
+  sortClickerCompletionRecords,
+  type ClickerCompletionRecord,
+} from "@/domain/services/clicker-completion-records"
 export {
   bulkAffordable,
   bulkCostText,

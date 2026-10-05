@@ -6,6 +6,7 @@ import {
   oreHitBox,
   oreStrikePoint,
   SINGLE_CENTER_POSITION,
+  spawnMineOres,
 } from "./ore-node.ts"
 
 test("createCenterOre places one node at the single center position", () => {
@@ -26,4 +27,12 @@ test("oreStrikePoint and oreHitBox use normalized coordinates", () => {
 
 test("MAX_ORE_NODES caps a single center spawn", () => {
   assert.equal(MAX_ORE_NODES, 1)
+})
+
+test("spawnMineOres returns exactly one center node", () => {
+  const nodes = spawnMineOres()
+  assert.equal(nodes.length, 1)
+  assert.equal(nodes[0]!.id, "core-center")
+  assert.equal(nodes[0]!.x, SINGLE_CENTER_POSITION.x)
+  assert.equal(nodes[0]!.y, SINGLE_CENTER_POSITION.y)
 })
