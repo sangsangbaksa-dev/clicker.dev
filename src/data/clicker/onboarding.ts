@@ -11,7 +11,7 @@ export const CLICKER_TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: "dawn",
     title: "빛의 세계, AURELIA",
-    bgAssetId: "/clicker/bg/login_core_sanctum.webp",
+    bgAssetId: "/clicker/bg/tutorial_story_dawn_aurelia_v1.webp",
     body: "아주 오래전, 이 세계의 모든 빛은 땅속 깊은 곳의 AURELIA 코어에서 흘러나왔습니다. 코어가 한 번 맥동할 때마다 광맥이 빛나고, 그 빛을 따라 도시와 탑과 길이 세워졌습니다.",
   },
   {
@@ -23,13 +23,13 @@ export const CLICKER_TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: "wake",
     title: "마지막 광부",
-    bgAssetId: "/clicker/bg/loading_core_awakening.webp",
+    bgAssetId: "/clicker/bg/tutorial_story_wake_outpost_v1.webp",
     body: "당신은 무너진 채굴 거점에서 눈을 뜹니다. 동료들은 떠났고 장비는 녹슬었지만, 발밑 깊은 곳에서 아직 희미한 맥동이 느껴집니다. 코어는 완전히 죽지 않았습니다.",
   },
   {
     id: "voice",
     title: "코어의 목소리",
-    bgAssetId: "/clicker/bg/region_core_chamber.webp",
+    bgAssetId: "/clicker/bg/tutorial_story_voice_vein_v1.webp",
     body: "\"들리나요… 광부여.\" 광맥 속에서 가느다란 목소리가 울립니다. \"나를 다시 깨우려면 힘이 필요합니다. 광석을 캐고, 그 빛으로 기계를 돌려 주세요. 빛이 모이면, 길이 열립니다.\"",
   },
   {
