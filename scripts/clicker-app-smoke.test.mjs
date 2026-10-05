@@ -2,13 +2,16 @@
  * Production smoke: next start + headless Chromium, assert the clicker shell renders without page errors.
  * Requires `npm run build` first (CI runs build before this script).
  */
-import assert from "node:assert/strict"
 import { spawn } from "node:child_process"
 import { once } from "node:events"
 import { createConnection } from "node:net"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
-import { chromium } from "playwright"
+import {
+  assertClickerShellReady,
+  attachClickerSmokeListeners,
+  withHeadlessChromium,
+} from "./clicker-smoke-helpers.mjs"
 
 const HOST = "127.0.0.1"
 const PORT = Number(process.env.CLICKER_SMOKE_PORT || "3099")
@@ -57,35 +60,20 @@ function waitForPort(host, port, server, timeoutMs = 120_000) {
 }
 
 test("production clicker home loads without client exceptions", { timeout: 180_000 }, async () => {
-  const server = spawn(
-    process.execPath,
-    [NEXT_BIN, "start", "--hostname", HOST, "--port", String(PORT)],
-    {
-      cwd: ROOT,
-      env: { ...process.env, NODE_ENV: "production" },
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  )
+  const server = spawn(process.execPath, [NEXT_BIN, "start", "--hostname", HOST, "--port", String(PORT)], {
+    cwd: ROOT,
+    env: { ...process.env, NODE_ENV: "production" },
+    stdio: ["ignore", "pipe", "pipe"],
+  })
 
-  const pageErrors = []
-  let browser
   try {
     await waitForPort(HOST, PORT, server)
-    browser = await chromium.launch({ headless: true })
-    const page = await browser.newPage()
-    page.on("pageerror", (err) => {
-      pageErrors.push(err instanceof Error ? err.message : String(err))
+    await withHeadlessChromium(async (page) => {
+      const pageErrors = []
+      attachClickerSmokeListeners(page, pageErrors)
+      await assertClickerShellReady(page, BASE, pageErrors)
     })
-
-    const response = await page.goto(BASE, { waitUntil: "networkidle", timeout: 60_000 })
-    assert.ok(response?.ok(), `HTTP ${response?.status()}`)
-
-    await page.waitForSelector("[data-clicker]", { timeout: 30_000 })
-    const bodyText = await page.locator("body").innerText()
-    assert.ok(!/This page couldn't load/i.test(bodyText), "error overlay visible")
-    assert.deepEqual(pageErrors, [], `pageerror: ${pageErrors.join("; ")}`)
   } finally {
-    if (browser) await browser.close().catch(() => {})
     server.kill("SIGTERM")
     await Promise.race([once(server, "exit"), new Promise((r) => setTimeout(r, 5000))])
   }

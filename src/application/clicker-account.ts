@@ -4,6 +4,7 @@
  */
 
 import { saveProgress } from "@/domain/services/clicker-account"
+import { isClickerStaticHost } from "@/application/clicker-static-host"
 
 /** Total CORE of a stored save (0 when unreadable): how far along a run is. */
 export const clickerSaveProgress = saveProgress
@@ -34,6 +35,9 @@ export type ClickerCloudSave = { json: string; meta: { savedAt: number; size: nu
 type ApiResult<T> = { ok: true; value: T } | { ok: false; error: string; unavailable?: boolean }
 
 async function call<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
+  if (isClickerStaticHost()) {
+    return { ok: false, error: "계정 서버에 연결할 수 없습니다.", unavailable: true }
+  }
   try {
     const res = await fetch(path, {
       ...init,
@@ -50,14 +54,8 @@ async function call<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> 
   }
 }
 
-/** GitHub Pages static export — no clicker API routes; avoid a useless fetch to the site root. */
-function clickerStaticHost(): boolean {
-  return process.env.NEXT_PUBLIC_CLICKER_STATIC_HOST === "1"
-}
-
 /** `available`: there is an account server; `storage`: it can actually keep accounts. */
 export async function fetchClickerAccount(): Promise<{ available: boolean; storage: boolean; account: ClickerAccountInfo | null }> {
-  if (clickerStaticHost()) return { available: false, storage: false, account: null }
   const r = await call<{ account: ClickerAccountInfo | null; storage?: boolean }>("/api/clicker/auth/me")
   if (!r.ok) return { available: !r.unavailable, storage: false, account: null }
   return { available: true, storage: r.value.storage !== false, account: r.value.account }
