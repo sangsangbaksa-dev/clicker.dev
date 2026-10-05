@@ -1,7 +1,5 @@
 /** Waldomage rebirth art pack — Wave A stills under /clicker/rebirth/. Palette PROVISIONAL. */
 
-import { rebirthKeyframeFile, type RebirthKeyframePhase } from "../../domain/services/clicker-rebirth-keyframes.ts"
-
 const DIR = "/clicker/rebirth"
 
 /** Worldline id → art slug used in rebirth pack filenames. */
@@ -24,7 +22,7 @@ const STAMP_FALLBACK: Record<string, string> = {
 /** Four-card chrome set from sheet 08; other worldlines use the geometric card. */
 export const REBIRTH_CHROME_WORLDLINE_IDS = Object.keys(SLUG)
 
-type PlatePhase = RebirthKeyframePhase
+type PlatePhase = "collapse" | "void_tear" | "stamp" | "rebuild" | "settle"
 
 export const RebirthPhaseArt = {
   /** 1920×1080 worldline picker backdrop (dark lower band for cards). */
@@ -65,10 +63,13 @@ export const RebirthPhaseArt = {
     return RebirthPhaseArt.particlesShared
   },
 
-  /** One painted keyframe per beat (domain/clicker-rebirth-keyframes: 01 select_confirm … 06 settle). */
   plateForPhase(phase: PlatePhase, transcendenceId?: string): string {
-    void transcendenceId
-    return `${DIR}/${rebirthKeyframeFile(phase)}`
+    if (phase === "collapse") return RebirthPhaseArt.collapseShared
+    if (phase === "void_tear") return RebirthPhaseArt.keyVisualVoidTear
+    if (phase === "rebuild") return RebirthPhaseArt.rebuildShared
+    if (phase === "settle") return RebirthPhaseArt.settleShared
+    if (phase === "stamp") return RebirthPhaseArt.particlesFor(transcendenceId ?? "")
+    return RebirthPhaseArt.particlesShared
   },
 
   /** HUD plate crossfade for rebuild→settle (MW-03 / sheet 11). */
@@ -79,9 +80,9 @@ export const RebirthPhaseArt = {
     return RebirthPhaseArt.rebuildShared
   },
 
-  /** The keyframes are already full-screen paintings: no separate key-visual backdrop layer. */
+  /** Full-screen backdrop for void tear / settle (HUD chrome layers above). */
   keyVisualBackdropFor(phase: PlatePhase): string | undefined {
-    void phase
+    if (phase === "void_tear") return RebirthPhaseArt.keyVisualVoidTear
     return undefined
   },
 }

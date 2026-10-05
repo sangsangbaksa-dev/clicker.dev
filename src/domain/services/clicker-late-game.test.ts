@@ -9,8 +9,6 @@ import {
   derivedClick,
   isProducerUnlocked,
   isRegionUnlocked,
-  regionUnlockThreshold,
-  worldlineGoal,
   productionSnapshot,
   relicCost,
   relicError,
@@ -91,14 +89,4 @@ test("old saves without relic levels load empty", () => {
   delete legacy.metaState.relicLevels
   const loaded = sanitizeSave(legacy, config, NOW)
   assert.deepEqual(loaded.metaState.relicLevels, {})
-})
-
-test("the Core Heart opens within reach of worldline 9 (not a stretched copy of the worldline 8 goal)", () => {
-  const heart = config.regions.find((r) => r.id === "core_heart")
-  assert.ok(heart)
-  const threshold = regionUnlockThreshold({ currentWorldLine: 9 } as never, config, heart)
-  const ratio = threshold / worldlineGoal(config, 7)
-  // Re-calibrated for balance-8h (rebirthGoalScale 9th entry): the Heart sits just above the worldline 8 goal
-  // (~2×, was ~70× with the old curve); a stretched copy of the 8th scale would be far above 20×.
-  assert.ok(ratio > 1 && ratio < 20, `core heart threshold is ${ratio.toFixed(0)}× the worldline 8 goal`)
 })

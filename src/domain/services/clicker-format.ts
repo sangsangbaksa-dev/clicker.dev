@@ -36,14 +36,3 @@ export function formatNumber(value: number): string {
 function trimZeros(text: string): string {
   return text.includes(".") ? text.replace(/\.?0+$/, "") : text
 }
-
-/**
- * CORE per second. Rates below 0.01 (a first Solar Node makes 0.003/s) keep significant digits
- * instead of rounding to "0", so the first purchase visibly does something.
- */
-export function formatRate(perSecond: number): string {
-  if (!Number.isFinite(perSecond) || perSecond <= 0) return formatNumber(perSecond)
-  if (perSecond >= 0.01) return formatNumber(perSecond)
-  if (perSecond >= 1e-4) return trimZeros(perSecond.toPrecision(2))
-  return perSecond.toExponential(1)
-}

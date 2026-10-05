@@ -449,14 +449,8 @@ export type BossDef = {
   kind: string
   /** Optional painted art (transparent PNG/WebP); replaces the inline SVG creature. */
   imageSrc?: string
-  /** Guardian health in CORE-strike damage (used when `strikesToDefeat` is not set). */
+  /** Guardian health in CORE-strike damage. */
   hp: number
-  /**
-   * Strikes of the player's base build (fever and buffs ignored, crits averaged) that bring the
-   * guardian down. Health follows the player's strength, so the final fight is a fight at any
-   * stage of the economy instead of one lucky critical.
-   */
-  strikesToDefeat?: number
   playerHp: number
   /** Damage dealt to the player per attack. */
   attackDamage: number

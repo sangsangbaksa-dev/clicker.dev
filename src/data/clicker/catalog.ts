@@ -39,23 +39,24 @@ const baseConfig: GameConfig = {
   feverCritChanceAdd: 0.2,
   feverComboCap: 10,
   feverCoolDown: 2,
-  // Final unit ÷1000. Balance (scripts/playtime-sim.ts, 6 clicks/s): each worldline is a ~40–60 min climb
-  // → ~8 h to the Core guardian. A rebirth raises prices +15 % and power +10 %, so a new
-  // worldline replays the catalog at a similar pace instead of buying it out in minutes.
+  // Final unit ÷1000: goals 1B → 120B → 14T … Prices ×5 per worldline keep pace with the ×5
+  // worldline bonus, so a new worldline replays the catalog instead of buying it out in seconds;
+  // goals ×120 then give ~4h to the Core Heart with no worldline over ~45 min
+  // (scripts/playtime-sim.ts). ×2 prices let wl2+ buy the whole tree at once: income ×10⁸ a minute.
   rebirthEnergy: 1e12,
   rebirthGrowth: 120,
-  // +15 % per worldline (was ×2): a rebirth makes the catalog only a little dearer.
-  priceGrowth: 1.15,
-  // Per-worldline goal correction (scripts/playtime-sim.ts CALIBRATE=56,54,53,52,52,51,51,50,50; the third
-  // entry is raised so goals never drop). The 9th entry anchors the Core Heart threshold.
-  rebirthGoalScale: [282.5, 2.583, 0.04208, 0.001412, 0.00001447, 4.421e-7, 1.206e-8, 7.535e-10, 1.279e-11],
-  // Bought multipliers (upgrades + circuits) past ×5 count as (excess)^0.35, so purchases keep
-  // paying off all worldline long and a ramp stretches over ~50 minutes instead of a buy-everything burst.
-  stackSoftCap: 5,
+  // ×2 per worldline (was ×5): with rebirth circuits from 200M, later runs must still speed up.
+  priceGrowth: 2,
+  // Per-worldline goal correction (scripts/playtime-sim.ts CALIBRATE=120,50,30,20,15,10,30,90): each
+  // worldline ends near its target minutes; the 9th entry anchors the Core Heart threshold.
+  rebirthGoalScale: [85000, 720, 6.151, 0.08943, 0.002621, 0.0000229, 0.0008351, 0.004, 0.000035],
+  // Bought multipliers (upgrades + circuits) past ×100 count as (excess)^0.35, so purchases keep
+  // paying off all worldline long instead of snowballing into a buy-everything burst.
+  stackSoftCap: 100,
   stackSoftExponent: 0.35,
-  // +10 % permanent click & production per rebirth, a hair under the +15 % price rise: carried
-  // power must not outgrow prices, or every later worldline's ramp explodes (growth ∝ power / price).
-  worldlineBonus: 0.1,
+  // ×2 permanent click & production per rebirth — the same as the per-worldline price rise, so
+  // carried power comes from the worldline buffs and relics, not from outgrowing every price.
+  worldlineBonus: 1,
   skillPointEveryLevels: 10,
   producers: [
     {
@@ -1341,10 +1342,10 @@ const baseConfig: GameConfig = {
       branch: "TRANSCENDENCE",
       tier: 3,
       name: "Memory Orchard",
-      description: "다음 런 시작 +1,500 CORE",
+      description: "다음 런 시작 +5,000 CORE",
       cost: 50_000_000,
       requires: ["trans_start"],
-      startingEnergy: 1500,
+      startingEnergy: 5000,
     },
     {
       id: "trans_echo",
@@ -1373,10 +1374,10 @@ const baseConfig: GameConfig = {
       branch: "TRANSCENDENCE",
       tier: 4,
       name: "Memory Vault",
-      description: "다음 런 시작 +75,000 CORE",
+      description: "다음 런 시작 +250,000 CORE",
       cost: 2_500_000_000,
       requires: ["trans_seed2"],
-      startingEnergy: 75_000,
+      startingEnergy: 250_000,
     },
     {
       id: "trans_convergence",
@@ -1486,10 +1487,10 @@ const baseConfig: GameConfig = {
       branch: "TRANSCENDENCE",
       tier: 5,
       name: "Genesis Seed",
-      description: "다음 런 시작 +1,500,000 CORE",
+      description: "다음 런 시작 +5,000,000 CORE",
       cost: 30_000_000_000,
       requires: ["trans_vault"],
-      startingEnergy: 1_500_000,
+      startingEnergy: 5_000_000,
     },
   ],
   activeSkills: [
@@ -1541,9 +1542,9 @@ const baseConfig: GameConfig = {
     {
       id: "focus_line",
       name: "Directive Pulse",
-      description: "채굴 ×1.05 · 번개 +5%",
+      description: "채굴 ×3 · 번개 +5%",
       identity: "직접 개입 세계선",
-      clickMultiplier: 1.05,
+      clickMultiplier: 3,
       comboWindowAdd: 0.5,
       lightningChanceAdd: 0.05,
       assetId: "/clicker/buff/buff_focus.webp",
@@ -1551,52 +1552,52 @@ const baseConfig: GameConfig = {
     {
       id: "auto_line",
       name: "AURELIA Grid",
-      description: "생산 ×1.05 · 드론 +2회/초",
+      description: "생산 ×3 · 드론 +2회/초",
       identity: "자동화 세계선",
-      productionMultiplier: 1.05,
+      productionMultiplier: 3,
       droneStrikesPerSecond: 2,
-      startingEnergy: 600,
+      startingEnergy: 2_000,
       assetId: "/clicker/buff/buff_automation.webp",
     },
     {
       id: "reso_line",
       name: "Resonance Protocol",
-      description: "채굴·생산 ×1.03 · FEVER +10초 · 잔향 +8%",
+      description: "채굴·생산 ×1.8 · FEVER +10초 · 잔향 +8%",
       identity: "공명 세계선",
       feverDurationAdd: 10,
       feverIntensity: 1.6,
-      clickMultiplier: 1.03,
-      productionMultiplier: 1.03,
+      clickMultiplier: 1.8,
+      productionMultiplier: 1.8,
       echoChanceAdd: 0.08,
       assetId: "/clicker/buff/buff_resonance.webp",
     },
     {
       id: "risk_line",
       name: "Volatile Core",
-      description: "생산 ×1.05 · 치명타 배율 ×2",
+      description: "생산 ×2.5 · 치명타 배율 ×2",
       identity: "위험 세계선",
       instabilityRewardBonus: 0.6,
-      productionMultiplier: 1.05,
+      productionMultiplier: 2.5,
       criticalMultiplier: 2,
       assetId: "/clicker/buff/buff_risk.webp",
     },
     {
       id: "hybrid_line",
       name: "Adaptive Architect",
-      description: "채굴·생산 ×1.04 · 시작 +6 CORE",
+      description: "채굴·생산 ×2 · 시작 +20 CORE",
       identity: "균형 세계선",
-      clickMultiplier: 1.04,
-      productionMultiplier: 1.04,
-      startingEnergy: 6_000,
+      clickMultiplier: 2,
+      productionMultiplier: 2,
+      startingEnergy: 20_000,
       assetId: "/clicker/buff/buff_utility.webp",
     },
     // Late worldlines 6–8: walked after the first five, before the Core Heart opens.
     {
       id: "hunt_line",
       name: "Predator Accord",
-      description: "채굴 ×1.05 · 치명타 배율 ×2 · 드론 +4회/초",
+      description: "채굴 ×3 · 치명타 배율 ×2 · 드론 +4회/초",
       identity: "사냥 세계선",
-      clickMultiplier: 1.05,
+      clickMultiplier: 3,
       criticalMultiplier: 2,
       droneStrikesPerSecond: 4,
       assetId: "/clicker/buff/buff_hunt.webp",
@@ -1604,19 +1605,19 @@ const baseConfig: GameConfig = {
     {
       id: "forge_line",
       name: "Molten Covenant",
-      description: "생산 ×1.07 · FEVER 강도 +30%",
+      description: "생산 ×4 · FEVER 강도 +30%",
       identity: "단조 세계선",
-      productionMultiplier: 1.07,
+      productionMultiplier: 4,
       feverIntensity: 1.3,
       assetId: "/clicker/buff/buff_forge.webp",
     },
     {
       id: "memory_line",
       name: "Echo Archive",
-      description: "채굴·생산 ×1.05 · 잔향 +10% · 번개 +5%",
+      description: "채굴·생산 ×3 · 잔향 +10% · 번개 +5%",
       identity: "기억 세계선",
-      clickMultiplier: 1.05,
-      productionMultiplier: 1.05,
+      clickMultiplier: 3,
+      productionMultiplier: 3,
       echoChanceAdd: 0.1,
       lightningChanceAdd: 0.05,
       assetId: "/clicker/buff/buff_memory.webp",

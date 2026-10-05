@@ -1,4 +1,3 @@
-import { bgmBed, type BgmBedPhase } from "./clicker-bgm-tracks.ts"
 import type { CoreVisual } from "./clicker-view.ts"
 
 /** Logical BGM scenes the runtime crossfades between. */
@@ -6,7 +5,6 @@ export type BgmTrackId =
   | "loading"
   | "hub"
   | "mine"
-  | "mineEnter"
   | "chamber"
   | "rebirthIntro"
   | "rebirthHq"
@@ -17,14 +15,10 @@ export type BgmTrackId =
   | "fault"
   | "heart"
 
-/**
- * `rebirth` plays HQ intro once, then crossfades to the `rebirthHq` loop; `mineEnter` plays the
- * 10 s entrance track and crossfades (4-6 s) into the `mine` loop. See BGM_BEDS.
- */
+/** `rebirth` plays HQ intro once, then crossfades to `rebirthHq` loop. */
 export type BgmScene = BgmTrackId | "silent" | "rebirth"
 
-/** Kept for existing callers: the two-part bed phase is shared by rebirth and the mine entrance. */
-export type BgmRebirthBedPhase = BgmBedPhase
+export type BgmRebirthBedPhase = "intro" | "loop"
 
 const WORLD_TRACK: Record<string, BgmTrackId> = {
   signal_relay: "relay",
@@ -65,23 +59,15 @@ export function bgmTrackFadeTarget(
   scene: BgmScene,
   tabHidden: boolean,
   playerGain: number,
-  bedPhase: BgmBedPhase = "intro",
+  rebirthBed: BgmRebirthBedPhase = "intro",
 ): number {
   if (tabHidden || playerGain <= 0 || scene === "silent") return 0
-  const bed = bgmBed(scene)
-  if (bed) return track === bed[bedPhase] ? 1 : 0
+  if (scene === "rebirth") {
+    if (rebirthBed === "intro" && track === "rebirthIntro") return 1
+    if (rebirthBed === "loop" && track === "rebirthHq") return 1
+    return 0
+  }
   return scene === track ? 1 : 0
-}
-
-/**
- * Fade length for the current scene: the mine entrance eases in fast over the hub theme, then
- * crossfades into the mine loop over MINE_ENTER_CROSSFADE_MS; everything else uses BGM_FADE_MS.
- */
-export function bgmFadeMsFor(scene: BgmScene, bedPhase: BgmBedPhase): number {
-  const bed = bgmBed(scene)
-  if (bed && bedPhase === "intro" && bed.fadeInMs !== undefined) return bed.fadeInMs
-  if (bed && bedPhase === "loop" && bed.handoverMs !== undefined) return bed.handoverMs
-  return BGM_FADE_MS
 }
 
 /** One rAF step toward the fade target (linear in time). */
@@ -108,8 +94,6 @@ export type BgmOverlayState = {
   currentRegionId: string | undefined
   /** Core guardian (or other region boss) fight in progress. */
   bossFight?: boolean
-  /** The final guardian fight is running: plays the boss loop (silent scenes and the chamber still win). */
-  finalBossFight?: boolean
 }
 
 /**
@@ -123,24 +107,18 @@ export function bgmMayTouchTrack(hasUserGesture: boolean, musicMuted: boolean): 
 /** Scene preload is allowed under the same policy (silent scenes need no fetch). */
 export function bgmTracksToWarm(scene: BgmScene): BgmTrackId[] {
   if (scene === "silent") return []
-  const bed = bgmBed(scene)
-  if (bed) return [bed.intro, bed.loop]
-  return scene === "rebirth" ? [] : [scene]
+  if (scene === "rebirth") return ["rebirthIntro", "rebirthHq"]
+  return [scene]
 }
 
 /**
- * Cinematics, the ending and the boot screen silence the score; the mine door-walk plays the
- * entrance track (`mineEnter`, then the mine loop); rebirth and the ending's chamber cue play the
- * chamber track; the final guardian fight (`finalBossFight`) plays the boss loop; other boss fights
- * keep the world theme. Silence always wins, so the ending (and cinematics) mute the boss loop and
- * the mine entrance too.
+ * Cinematics and the boot screen silence the score; rebirth and the ending play the chamber
+ * cue; boss fights keep the world theme (the original score — no separate loading/boss beds).
  */
 export function resolveBgmScene(overlay: BgmOverlayState): BgmScene {
-  if (overlay.regionIntro || overlay.endingPhase) return "silent"
+  if (overlay.enteringMine || overlay.regionIntro || overlay.endingPhase) return "silent"
   if (overlay.bootLoading) return "silent"
-  if (overlay.enteringMine) return "mineEnter"
   if (overlay.pendingRebirth || overlay.endingOpen) return "chamber"
-  if (overlay.finalBossFight) return "boss"
   if (overlay.playSurface === "mine") return "mine"
   return worldBgmTrack(overlay.currentRegionId)
 }

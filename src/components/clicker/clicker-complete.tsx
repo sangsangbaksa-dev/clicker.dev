@@ -12,11 +12,9 @@ type Props = {
   worldlineTotal: number
   /** Full wipe — prod-safe completion restart (not an admin cheat). */
   onReset: () => void
-  /** Watch the ending videos and story again (nothing is saved). */
-  onReplayEnding?: () => void
 }
 
-export function ClickerComplete({ meta, worldlineTotal, onReset, onReplayEnding }: Props) {
+export function ClickerComplete({ meta, worldlineTotal, onReset }: Props) {
   const [confirmReset, setConfirmReset] = useState(false)
   const rootRef = useRef<HTMLElement | null>(null)
   const startRef = useRef<HTMLButtonElement | null>(null)
@@ -92,11 +90,6 @@ export function ClickerComplete({ meta, worldlineTotal, onReset, onReplayEnding 
         </p>
         {!confirmReset ? (
           <div className="clicker-complete-actions">
-            {onReplayEnding ? (
-              <button type="button" className="clicker-ghost" onClick={onReplayEnding}>
-                엔딩 다시 보기
-              </button>
-            ) : null}
             <button ref={startRef} type="button" className="clicker-primary" onClick={() => setConfirmReset(true)}>
               새 기록 시작
             </button>

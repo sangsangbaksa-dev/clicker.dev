@@ -5,20 +5,9 @@
   z-index: 60;
   display: grid;
   place-items: center;
-  /* The poster is the video's own first frame, so the swap to the playing video is invisible. */
+  /* Poster matches door-centered mine entrance still (seamless with door-walk f000). */
   background: #000 center / cover no-repeat;
   animation: clicker-cinematic-in 180ms ease-out;
-}
-
-/* Closing cross-fade after a natural end: the last frame is held while the mine shows through. */
-.clicker-cinematic.is-leaving .clicker-cinematic-skip {
-  visibility: hidden;
-}
-
-.clicker-cinematic.is-leaving {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 600ms ease-in-out;
 }
 
 @keyframes clicker-cinematic-in {

@@ -739,6 +739,113 @@
 .clicker-monster-roam.is-walker[data-pose="step"] .clicker-monster-shadow { scale: 1.1 0.9; }
 .clicker-monster-roam.is-walker[data-pose="strike"] .clicker-monster-shadow { scale: 1.25 0.85; opacity: 1; }
 
+/* ---------- Canva final boss art: entrance / idle float+breathe / attack lunge / hit shake ---------- */
+.clicker-boss.has-art .clicker-boss-target {
+  width: min(100%, clamp(220px, 46vmin, 480px));
+  max-height: min(62vh, 540px);
+  animation: none;
+  filter: drop-shadow(0 14px 26px rgb(0 0 0 / 0.65)) drop-shadow(0 0 18px rgb(255 140 40 / 0.25));
+}
+.clicker-boss.has-art .clicker-boss-target:active { transform: scale(0.992); }
+.boss-art-enter,
+.boss-art-idle,
+.boss-art-hit { position: relative; display: block; width: 100%; }
+.boss-art-canvas {
+  display: block;
+  width: 100%;
+  /* The guardian painting's own shape, so nothing is cropped. */
+  aspect-ratio: 768 / 1011;
+  max-height: min(62vh, 540px);
+  overflow: hidden;
+  border-radius: 4px;
+}
+.boss-art-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  user-select: none;
+  -webkit-user-drag: none;
+  transform: translateZ(0);
+}
+
+.boss-art-enter { animation: boss-art-enter 1100ms cubic-bezier(0.2, 0.9, 0.25, 1) both; transform-origin: 50% 100%; }
+@keyframes boss-art-enter {
+  0% { opacity: 0; transform: translateY(60px) scale(0.82); filter: brightness(2.4) blur(6px); }
+  55% { opacity: 1; transform: translateY(-8px) scale(1.04); filter: brightness(1.4) blur(0); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+
+.boss-art-idle { animation: boss-art-float 3.6s ease-in-out infinite; transform-origin: 50% 70%; }
+@keyframes boss-art-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-10px) scale(1.018); }
+}
+.boss-art-core {
+  position: absolute;
+  left: 49.6%;
+  top: 38.6%;
+  width: 16%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 230 160 / 0.85), rgb(255 140 30 / 0.35) 55%, transparent 72%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: boss-art-core 1.6s ease-in-out infinite;
+}
+@keyframes boss-art-core { 0%, 100% { opacity: 0.35; scale: 0.85; } 50% { opacity: 0.95; scale: 1.15; } }
+
+.clicker-boss.is-fighting .boss-art-idle { animation-duration: 2.2s; }
+.clicker-boss.is-fighting .boss-art-core { animation-duration: 0.9s; }
+
+.boss-art-hit.hit-0 { animation: boss-art-hit-a 320ms cubic-bezier(0.22, 1, 0.36, 1); }
+.boss-art-hit.hit-1 { animation: boss-art-hit-b 320ms cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes boss-art-hit-a {
+  0% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-4px, 2px, 0) scale(0.99); }
+  45% { transform: translate3d(3px, -1px, 0) scale(1.01); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes boss-art-hit-b {
+  0% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-4px, 2px, 0) scale(0.99); }
+  45% { transform: translate3d(3px, -1px, 0) scale(1.01); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+.boss-art-hit.hit-0 .boss-art-canvas::after,
+.boss-art-hit.hit-1 .boss-art-canvas::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 42%, rgb(255 120 80 / 0.45), transparent 68%);
+  opacity: 0;
+  animation: boss-art-hit-flash 320ms ease-out forwards;
+}
+.boss-art-canvas { position: relative; }
+@keyframes boss-art-hit-flash {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.clicker-boss.has-art.is-attack .boss-art-enter { animation: boss-art-lunge 520ms cubic-bezier(0.3, 0.8, 0.3, 1); }
+@keyframes boss-art-lunge {
+  0% { transform: none; }
+  30% { transform: translateY(-8px) scale(0.94); }
+  60% { transform: translateY(26px) scale(1.16); filter: brightness(1.35); }
+  100% { transform: none; filter: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boss-art-enter, .boss-art-idle, .boss-art-core, .boss-art-hit.hit-0, .boss-art-hit.hit-1,
+  .clicker-boss.has-art.is-attack .boss-art-enter,
+  .boss-art-hit.hit-0 .boss-art-canvas::after,
+  .boss-art-hit.hit-1 .boss-art-canvas::after { animation: none; }
+}
+
 /* Laptop stages: scale roaming bosses to fill the scene without tiny letterboxed sprites. */
 @media (min-width: 720px) and (max-height: 980px) {
   .clicker-monster-roam.is-dragon .clicker-monster,
@@ -754,6 +861,17 @@
     object-fit: contain;
     object-position: center bottom;
   }
+  .clicker-boss.has-art .clicker-boss-target {
+    width: min(100%, clamp(260px, 48vmin, 520px));
+  }
+}
+
+/* Keep the guardian, its bars and the start button clear of the hub dock on short screens. */
+.clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-target {
+  width: min(100%, clamp(200px, 46vmin, 480px), calc((100dvh - 420px) * 0.76));
+}
+.clicker-shell.is-region-hub .clicker-boss.has-art .boss-art-canvas {
+  max-height: max(200px, calc(100dvh - 420px));
 }
 
 /* Lair: damage taken pops out of the middle of the screen with the red flash. */
@@ -831,72 +949,49 @@
   .clicker-lair-result { animation: none; }
 }
 
-/* Core Guardian: a feet-anchored sprite. The application layer gives the boss column the stage's
-   safe area (clear of the hub dock) and computes where the picture stands. The head row on top
-   holds the name + start button (or the two HP bars during the fight); the sprite's ground line
-   is the bottom of the column, just above the dock, so the art can neither cover them nor the dock. */
+/* Core Heart guardian: a towering final boss that fills the stage between the header and the dock.
+   Its name, the fight bars and the start button float over the painting instead of stacking under it. */
 .clicker-shell.is-region-hub .clicker-boss.has-art {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-  transform: none;
+  width: min(98vw, 1200px);
   max-height: none;
-  /* Only the controls take taps; the sprite layer and the column itself are click-through. */
-  pointer-events: none;
-  /* Fallback until the first measurement: same box as before. */
-  width: min(94vw, 720px);
+  top: 50%;
+  display: grid;
+  place-items: center;
 }
-.clicker-boss.has-art.is-unframed .guardian-ground { opacity: 0; }
-.clicker-boss.has-art > strong,
-.clicker-boss.has-art .clicker-boss-bars,
-.clicker-boss.has-art .clicker-boss-start { position: relative; z-index: 2; pointer-events: auto; }
-.clicker-boss.has-art .clicker-boss-bars { width: min(100%, 880px); }
-.clicker-boss.has-art .clicker-boss-note { position: absolute; top: 78px; left: 0; right: 0; z-index: 2; }
-.clicker-boss.has-art .clicker-boss-target,
 .clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-target {
-  /* Transparent tap target over the body; left / top / size come from the layout. */
-  position: absolute;
-  z-index: 1;
-  display: block;
-  min-height: 0;
+  width: min(96vw, 900px, calc((100dvh - 215px) * 0.76));
   max-height: none;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  pointer-events: auto;
-  cursor: crosshair;
-  filter: none;
-  animation: none;
 }
-.clicker-boss.has-art .clicker-boss-target:active { transform: none; }
-.clicker-boss.has-art .clicker-boss-target:disabled { pointer-events: none; cursor: default; }
-
-.guardian-ground { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
-.guardian-shadow {
-  position: absolute;
-  display: block;
-  max-width: none;
-  user-select: none;
-  -webkit-user-drag: none;
-  will-change: opacity, transform;
+.clicker-shell.is-region-hub .clicker-boss.has-art .boss-art-canvas {
+  max-height: max(280px, calc(100dvh - 215px));
 }
-.guardian-body {
+.clicker-shell.is-region-hub .clicker-boss.has-art > strong {
   position: absolute;
-  isolation: isolate;
-  will-change: transform, opacity;
+  top: 2%;
+  z-index: 3;
+  font-size: clamp(18px, 2.6vw, 28px);
+  text-shadow: 0 2px 10px #000, 0 0 18px rgb(255 140 40 / 0.6);
+  pointer-events: none;
 }
-/* Frames are summed with their weights (plus-lighter), which is a true crossfade even where only
-   one of two neighbouring frames has pixels. */
-.guardian-frame {
+.clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-bars {
   position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  mix-blend-mode: plus-lighter;
-  user-select: none;
-  -webkit-user-drag: none;
+  top: 1%;
+  z-index: 3;
+  width: min(92%, 560px);
+}
+.clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-start {
+  position: absolute;
+  bottom: 13%;
+  z-index: 3;
+  min-height: 48px;
+  font-size: 16px;
+  box-shadow: 0 0 24px rgb(255 80 40 / 0.55);
+}
+.clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-note {
+  position: absolute;
+  bottom: calc(13% + 58px);
+  z-index: 3;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 0.6);
 }

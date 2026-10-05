@@ -76,31 +76,7 @@ test("resolveBgmScene picks mine, chamber, silent, and world themes", () => {
   assert.equal(resolveBgmScene({ ...base, playSurface: "mine" }), "mine")
   assert.equal(resolveBgmScene({ ...base, pendingRebirth: true }), "chamber")
   assert.equal(resolveBgmScene({ ...base, endingOpen: true }), "chamber")
-  // the mine door-walk plays the entrance track now (it hands over to the mine loop); see clicker-bgm-tracks.test.ts
-  assert.equal(resolveBgmScene({ ...base, enteringMine: true }), "mineEnter")
+  assert.equal(resolveBgmScene({ ...base, enteringMine: true }), "silent")
   assert.equal(resolveBgmScene({ ...base, bootLoading: true }), "silent")
   assert.equal(resolveBgmScene({ ...base, bossFight: true }), "storm")
-})
-
-test("resolveBgmScene: the final guardian fight plays the boss loop, silence still wins, the world theme returns after", () => {
-  const base = {
-    enteringMine: false,
-    regionIntro: null,
-    endingPhase: null,
-    pendingRebirth: false,
-    endingOpen: false,
-    playSurface: "hub" as const,
-    currentRegionId: "core_heart",
-  }
-  assert.equal(resolveBgmScene({ ...base, bossFight: true, finalBossFight: true }), "boss")
-  assert.equal(resolveBgmScene({ ...base, finalBossFight: false }), "heart")
-  // the ending uses the silent scene and must beat the boss loop (also intro / door-walk / boot)
-  assert.equal(resolveBgmScene({ ...base, finalBossFight: true, endingPhase: "live" }), "silent")
-  assert.equal(resolveBgmScene({ ...base, finalBossFight: true, regionIntro: {} }), "silent")
-  assert.equal(resolveBgmScene({ ...base, finalBossFight: true, enteringMine: true, endingPhase: "live" }), "silent")
-  assert.equal(resolveBgmScene({ ...base, finalBossFight: true, bootLoading: true }), "silent")
-  // the boss loop is a real track the engine fades like any other
-  assert.equal(bgmTrackFadeTarget("boss", "boss", false, 0.5), 1)
-  assert.equal(bgmTrackFadeTarget("heart", "boss", false, 0.5), 0)
-  assert.deepEqual(bgmTracksToWarm("boss"), ["boss"])
 })

@@ -153,9 +153,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
       name: "코어 수호자",
       kind: "warden",
       imageSrc: "/clicker/boss/core_guardian.webp",
-      // Legacy fixed HP (balance-8h, 6e6): only a fallback now; health follows the player's base strike.
-      hp: 6e6,
-      strikesToDefeat: 120,
+      hp: 2.7e12,
       playerHp: 100,
       attackDamage: 12,
       attackEverySec: 4,

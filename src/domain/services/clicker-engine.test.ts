@@ -6,8 +6,6 @@ import {
   monsterAlive,
   slayMonster,
   startBossFight,
-  baseBossStrike,
-  bossFightHp,
   strikeBoss,
   tickBoss,
   resumeAfterGap,
@@ -287,13 +285,12 @@ test("rebirth gate starts at rebirthEnergy lifetime CORE and grows each worldlin
   assert.equal(canRebirth(grantAdminEnergy(run, 1e30), done, config), false)
 })
 
-test("economy is in the ÷1000 unit and a rebirth adds a little power, just under the small price rise", () => {
+test("economy is in the ÷1000 unit and rebirths are worth ×2, the same as the price rise", () => {
   assert.ok(Math.abs(config.baseClick - 0.0065) < 1e-12)
   assert.equal(config.rebirthEnergy, 1e9)
   assert.equal(config.producers[0]?.productionPerSecond, 0.003, "producers run at twice the earlier base output")
-  assert.equal(config.worldlineBonus, 0.1)
-  assert.equal(config.priceGrowth, 1.15)
-  assert.ok(1 + config.worldlineBonus <= config.priceGrowth, "carried power must not outgrow prices")
+  assert.equal(config.worldlineBonus, 1)
+  assert.equal(1 + config.worldlineBonus, config.priceGrowth)
   // Same tech, cheapest first.
   const costs = config.producers.map((p) => p.baseCost)
   assert.deepEqual(costs, [...costs].sort((a, b) => a - b))
@@ -583,7 +580,7 @@ test("true ending unlocks once the Core Heart guardian falls", () => {
   let run = grantAdminEnergy(save.runState, 1e40)
   run = travelToRegion(run, config, heart.id).run
   assert.equal(run.currentRegionId, heart.id)
-  run = startBossFight(run, save.metaState, config, now).run
+  run = startBossFight(run, config, now).run
   assert.ok(run.boss)
   // Guardian swings on its timer.
   const hurt = tickBoss(run, config, now + heart.boss!.attackEverySec * 1000)
@@ -688,9 +685,7 @@ test("gacha: costs CORE, guarantees a legendary by the pity counter, stars boost
   const run = { ...eng.createInitialRun(0, meta, config), coreEnergy: 1e40 }
   const cost = eng.gachaCost(run, meta, config, 0)
   assert.ok(cost > 0)
-  let singles = 0
-  for (let i = 0; i < 10; i++) singles += eng.gachaCost(run, { ...meta, gachaPulls: i }, config, 0)
-  assert.ok(eng.gachaCost(run, meta, config, 0, 10) < singles, "ten-pull is discounted vs ten single pulls")
+  assert.ok(eng.gachaCost(run, meta, config, 0, 10) < cost * 10, "ten-pull is discounted")
   assert.equal(eng.pullGacha({ ...run, coreEnergy: cost - 1 }, meta, config, 0, () => 0.99).error, "CORE가 부족합니다.")
   // Always rolling "common": the pity counter still forces a legendary by pull 60.
   let r = run
@@ -707,10 +702,7 @@ test("gacha: costs CORE, guarantees a legendary by the pity counter, stars boost
   assert.equal(m.gachaPulls, 60)
   assert.equal(eng.gachaStarMultiplier(m), eng.GACHA_STAR_PRODUCTION)
   // Capsules never pay CORE: the balance only goes down, by exactly the price.
-  let paid = 0
-  for (let i = 0; i < 6; i++) paid += eng.gachaCost(run, { ...meta, gachaPulls: i * 10 }, config, 0, 10)
-  assert.equal(r.coreEnergy, run.coreEnergy - paid)
-  assert.ok(eng.gachaCost(run, m, config, 0) > cost, "price rises with pulls made")
+  assert.equal(r.coreEnergy, run.coreEnergy - 6 * eng.gachaCost(run, meta, config, 0, 10))
 })
 
 test("gacha: soft pity raises legendary odds, ten-pull holds a rare, one free capsule a day", async () => {
@@ -921,37 +913,23 @@ test("secret code: typed anywhere, grants 100T CORE and of every world currency"
   for (const r of clickerConfig.regions.filter((x) => x.currency)) assert.equal(eng.regionCurrencyBalance(rich, r.id), 1e14)
 })
 
-test("guardian health follows the player's base strike, ignoring fever and buffs", () => {
-  const now = 30_000_000
-  const heart = config.regions.find((r) => r.boss)!
-  const meta = createInitialMeta()
-  const run = createInitialRun(now, meta, config)
-  const strike = baseBossStrike(run, meta, config)
-  assert.ok(strike > 0)
-  assert.equal(bossFightHp(heart.boss!, run, meta, config), strike * heart.boss!.strikesToDefeat!)
-  // A stronger build meets a proportionally tougher guardian…
-  const strong = { ...run, ownedSkillNodeIds: config.skillNodes.map((n) => n.id), ownedUpgradeIds: config.upgrades.map((u) => u.id) }
-  const strongStrike = baseBossStrike(strong, meta, config)
-  assert.ok(strongStrike > strike * 10)
-  assert.equal(bossFightHp(heart.boss!, strong, meta, config), strongStrike * heart.boss!.strikesToDefeat!)
-  // …but drinking a potion or running FEVER first does not make it tougher.
-  const buffed = { ...strong, fever: { ...strong.fever, phase: "FEVER" as const, remainingTime: 10, duration: 10 } }
-  assert.equal(baseBossStrike(buffed, meta, config), strongStrike)
-  // Timers left in the save (storm, swarm, overdrive) must not read as running on the replay's own clock:
-  // a stuck 100% lightning storm made the guardian ~6× too tough in the sim.
-  const stormy = { ...strong, lightningStormUntil: 1e15, droneSwarmUntil: 1e15, drillOverdriveUntil: 1e15 }
-  assert.equal(baseBossStrike(stormy, meta, config), strongStrike)
-  // Without strikesToDefeat the catalog hp is used as is.
-  assert.equal(bossFightHp({ ...heart.boss!, strikesToDefeat: undefined }, run, meta, config), heart.boss!.hp)
-})
-
-test("a guardian never falls to a single strike of the build it was sized for", () => {
-  const now = 30_000_000
-  const heart = config.regions.find((r) => r.boss)!
-  const meta = createInitialMeta()
-  const run = createInitialRun(now, meta, config)
-  const fight = startBossFight({ ...run, currentRegionId: heart.id }, meta, config, now).run.boss!
-  const hit = strikeBoss({ ...run, currentRegionId: heart.id, boss: fight }, meta, config, now + 10, () => 0.999)
-  assert.equal(hit.defeated, false)
-  assert.ok(fight.maxHp > hit.damage * 20, "even a lucky strike is a sliver of the guardian")
+test("sanitizeSave: NaN, Infinity and non-numeric values revert to defaults instead of poisoning the run", async () => {
+  const eng = await import("./clicker-engine.ts")
+  const base = eng.createInitialSave(0, config)
+  const raw = JSON.parse(JSON.stringify(base))
+  raw.runState.coreEnergy = "lots"
+  raw.runState.skillPoints = Number.POSITIVE_INFINITY
+  raw.runState.lifetimeCoreEnergy = Number.NaN
+  raw.metaState.completedAt = Number.NaN
+  raw.metaState.statistics.clicks = Number.POSITIVE_INFINITY
+  raw.savedAt = Number.NaN
+  const out = eng.sanitizeSave(raw, config, 1000)
+  assert.equal(out.runState.coreEnergy, base.runState.coreEnergy)
+  assert.equal(out.runState.skillPoints, base.runState.skillPoints)
+  assert.equal(out.runState.lifetimeCoreEnergy, base.runState.lifetimeCoreEnergy)
+  assert.equal(out.metaState.completedAt, null)
+  assert.equal(out.metaState.statistics.clicks, 0)
+  assert.equal(out.savedAt, 1000)
+  const ticked = eng.processTick(out.runState, out.metaState, config, 5000)
+  assert.ok(Number.isFinite(ticked.run.coreEnergy))
 })

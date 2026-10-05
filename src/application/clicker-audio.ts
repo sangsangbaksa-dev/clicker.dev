@@ -4,7 +4,6 @@ import { resolveBgmScene, type BgmOverlayState, type BgmScene } from "@/domain/s
 
 export type { BgmScene } from "@/domain/services/clicker-bgm"
 export { worldBgmTrack as worldBgm } from "@/domain/services/clicker-bgm"
-export { mineEntryVideoMuted } from "@/domain/services/clicker-bgm-tracks"
 import type { CoreVisual } from "@/domain/services/clicker-view"
 
 export function clickerBgmScene(overlay: BgmOverlayState): BgmScene {

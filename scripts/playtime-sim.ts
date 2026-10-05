@@ -11,7 +11,6 @@
  *
  * Run: node --experimental-strip-types scripts/playtime-sim.ts [clicksPerSec]
  */
-import { writeFileSync } from "node:fs"
 import { clickerConfig as config } from "../src/data/clicker/catalog.ts"
 import type { SaveData } from "../src/domain/entities/clicker.ts"
 import {
@@ -21,7 +20,6 @@ import {
   buyUpgrade,
   canRebirth,
   createInitialSave,
-  createInitialRun,
   derivedClick,
   droneEnergyPerSecond,
   enterClickerMine,
@@ -50,11 +48,7 @@ import {
   slayMonster,
   buyWorldTreeNode,
   worldTreeNodeError,
-  startBossFight,
-  strikeBoss,
-  tickBoss,
 } from "../src/domain/services/clicker-engine.ts"
-import { summarizeCurve, windowedMaxJump, type CurveSample } from "../src/domain/services/clicker-income-curve.ts"
 import { autoDrillRate, awardAchievements, claimGoldenVein, VEIN_SPAWN_CHANCE } from "../src/domain/services/clicker-bonus.ts"
 
 const CLICKS_PER_SEC = Number(process.argv[2] ?? 6)
@@ -98,14 +92,6 @@ for (const t of config.transcendence) {
   if (t.clickMultiplier) t.clickMultiplier **= knob("BUFF_POW", 1)
   if (t.productionMultiplier) t.productionMultiplier **= knob("BUFF_POW", 1)
 }
-// RELIC_POW: temper the per-level relic multipliers the same way (exponent on click/production).
-for (const r of config.relics ?? []) {
-  if (r.perLevel.clickMultiplier) r.perLevel.clickMultiplier **= knob("RELIC_POW", 1)
-  if (r.perLevel.productionMultiplier) r.perLevel.productionMultiplier **= knob("RELIC_POW", 1)
-}
-// CARRY / TSTART: scale the carry-over circuits' and the worldline buffs' starting CORE.
-for (const n of config.skillNodes) if (n.startingEnergy) n.startingEnergy *= knob("CARRY", 1)
-for (const t of config.transcendence) if (t.startingEnergy) t.startingEnergy *= knob("TSTART", 1)
 const MAX_HOURS = knob("MAX_HOURS", 9)
 // SCALE: override goal-table entries, e.g. "0=683000,7=19.7" (index = worldline - 1).
 if (process.env.SCALE) {
@@ -130,16 +116,6 @@ const START = 1_000_000
 let now = START
 let save: SaveData = createInitialSave(now, config)
 save = { ...save, settings: { ...save.settings, gameStarted: true } }
-// START_WL=k: begin as if worldlines 1..k-1 were walked (buffs in catalog order, no relics) — for tuning one late
-// worldline without replaying the earlier ones. Achievements and carried stats stay empty, so read it as an estimate.
-if (process.env.START_WL && Number(process.env.START_WL) > 1) {
-  const k = Number(process.env.START_WL)
-  const meta = { ...save.metaState, rebirthCount: k - 1, transcendenceIds: config.transcendence.slice(0, k - 1).map((t) => t.id) }
-  const fresh = createInitialRun(now, meta, config)
-  // Assume the four carry-over circuits were bought (the sim player buys them every worldline).
-  const carried = config.skillNodes.reduce((sum, n) => sum + (n.startingEnergy ?? 0), 0) * fresh.costScale
-  save = { ...save, metaState: meta, runState: { ...fresh, coreEnergy: fresh.coreEnergy + carried, lifetimeCoreEnergy: fresh.lifetimeCoreEnergy + carried } }
-}
 const elapsed = () => (now - START) / 1000
 const fmt = (s: number) => `${Math.floor(s / 60)}m${String(Math.round(s % 60)).padStart(2, "0")}s`
 
@@ -216,7 +192,6 @@ function shop(): void {
     const levelsBefore = save.runState.producerLevels
     const ownedBefore = new Set([...save.runState.ownedUpgradeIds, ...save.runState.ownedSkillNodeIds])
     save = pick.apply()
-    if (CURVE) for (const [id, lv] of Object.entries(save.runState.producerLevels)) if (lv > 0 && !(id in firstBuy)) firstBuy[id] = elapsed() - runStart
     if (process.env.JUMPS && prodBefore > 0) {
       const after = productionSnapshot(save.runState, save.metaState, config, now).perSecond
       if (after / prodBefore >= Number(process.env.JUMPS)) {
@@ -236,10 +211,7 @@ function step(dt: number): void {
   const t = processTick(save.runState, save.metaState, config, now)
   const tickGain = t.run.lifetimeCoreEnergy - beforeTick
   sources.production = (sources.production ?? 0) + Math.min(tickGain, prodNow * dt)
-  // Everything above production in a tick is the mining drones plus the Phase Vault payout.
-  const droneGain = Math.min(Math.max(0, tickGain - prodNow * dt), droneEnergyPerSecond(save.runState, save.metaState, config, now) * dt)
-  sources.drones = (sources.drones ?? 0) + droneGain
-  sources.vault = (sources.vault ?? 0) + Math.max(0, tickGain - prodNow * dt - droneGain)
+  sources.tickExtra = (sources.tickExtra ?? 0) + Math.max(0, tickGain - prodNow * dt)
   if (process.env.TRACE && t.run.lifetimeCoreEnergy > save.runState.lifetimeCoreEnergy * 3 && t.run.lifetimeCoreEnergy > 1e6)
     console.log(`  TICK jump ${save.runState.lifetimeCoreEnergy.toExponential(2)} → ${t.run.lifetimeCoreEnergy.toExponential(2)} fever=${t.run.fever.phase} boosts=${JSON.stringify(t.run.eventBoosts.map((b) => b.id + b.multiplier))} inst=${t.run.instability}`)
   save = { ...save, runState: accrueRegionCurrency(save.runState, t.run, config), metaState: t.meta }
@@ -338,57 +310,6 @@ function incomeWindow(): void {
   winSources = { ...sources }
 }
 
-// CURVE=1: per worldline, the income-curve summary (adjacent-minute jumps, plateau) and the minute each
-// producer was first bought. BOSS=1: fight the Core Guardian at the Core Heart at 3/6/10 strikes a second.
-const CURVE = Boolean(process.env.CURVE)
-let curve: CurveSample[] = []
-let firstBuy: Record<string, number> = {}
-function curveReport(label: string): void {
-  if (!CURVE) return
-  const sum = summarizeCurve(curve, { jumpAt: 2 })
-  const fmtX = (x: number) => (x < 1000 ? x.toFixed(1) : x.toExponential(1))
-  const worst = [...sum.jumps].sort((a, b) => b.ratio - a.ratio).slice(0, 3).map((j) => `m${j.minute}×${fmtX(j.ratio)}`)
-  const over3 = sum.jumps.filter((j) => j.ratio > 3).length
-  const w3 = windowedMaxJump(sum.perMinute, 3)
-  runLog.push(`   curve ${label}: ${sum.perMinute.length} min · jump minutes(>×2) ${sum.jumpMinutes} (>×3 ${over3}) · max ×${fmtX(sum.maxJump)} (${worst.join(" ")}) · 3-min-smoothed max ×${fmtX(w3.ratio)} (m${w3.minute}) · plateau ${sum.plateauMinutes} min (${Math.round(sum.plateauShare * 100)}%)`)
-  const order = config.producers.map((p) => p.id).filter((id) => id in firstBuy)
-  runLog.push("   first buy (min) " + order.map((id) => `${id}:${(firstBuy[id] / 60).toFixed(1)}`).join(" "))
-  if (process.env.PERMIN) runLog.push("   per-minute CORE/s " + sum.perMinute.map((v) => v.toExponential(1)).join(" "))
-  curve = []
-  firstBuy = {}
-}
-let bossLine = ""
-function bossTrials(): void {
-  const heart = config.regions.find((r) => r.boss)
-  if (!process.env.BOSS || !heart) return
-  for (const cps of [3, 6, 10]) {
-    let run = travelToRegion(save.runState, config, heart.id).run
-    let meta = save.metaState
-    let t = now
-    run = startBossFight(run, meta, config, t).run
-    const hp = run.boss?.maxHp ?? 0
-    let outcome = "timeout/lost"
-    let strikes = 0
-    let dealt = 0
-    let local = 17
-    const r2 = () => (local = (local * 16807) % 2147483647) / 2147483647
-    for (let sec = 0; sec < 61 && run.boss; sec++) {
-      for (let i = 0; i < cps && run.boss; i++) {
-        const hit = strikeBoss(run, meta, config, t + i * (1000 / cps), r2)
-        run = hit.run
-        meta = hit.meta
-        strikes++
-        dealt += hit.damage
-        if (hit.defeated) outcome = `defeated after ${(sec + i / cps).toFixed(1)}s`
-      }
-      t += 1000
-      run = tickBoss(run, config, t)
-    }
-    runLog.push(`   boss @${cps} strikes/s: hp ${hp.toExponential(2)} → ${outcome} (${strikes} strikes, mean ${(dealt / Math.max(1, strikes)).toExponential(2)}, player hp left ${run.boss?.playerHp ?? 0})`)
-    if (cps === CLICKS_PER_SEC) bossLine = outcome
-  }
-}
-
 const regionOpenedAt = new Map<string, string>()
 while (elapsed() < MAX_HOURS * 3600) {
   for (const r of config.regions) {
@@ -449,7 +370,6 @@ while (elapsed() < MAX_HOURS * 3600) {
     if (process.env.TREES) console.log(`  tree ${node.id} wl=${save.metaState.rebirthCount + 1} t=${fmt(elapsed() - runStart)}`)
   }
   incomeWindow()
-  if (CURVE) curve.push({ t: elapsed() - runStart, life: save.runState.lifetimeCoreEnergy })
 
   // DUMP=7: write the save once a minute during worldline 7 (diagnostics only).
   if (process.env.DUMP && save.metaState.rebirthCount + 1 === Number(process.env.DUMP)) {
@@ -472,9 +392,7 @@ while (elapsed() < MAX_HOURS * 3600) {
     if (TARGETS[k] > 0 && elapsed() - runStart >= TARGETS[k] * 60) {
       // Set this worldline's goal to exactly what was earned by its target time.
       const base = config.rebirthEnergy * config.rebirthGrowth ** k
-      // The ninth entry anchors the Core Heart: it opens at its share of that goal.
-      const heartShare = k === 8 ? config.regions.find((r) => r.boss)!.unlockAtLifetimeEnergy / config.rebirthEnergy : 1
-      calibrated[k] = (save.runState.lifetimeCoreEnergy / base / heartShare) * (k === 8 ? 0.999 : 1)
+      calibrated[k] = save.runState.lifetimeCoreEnergy / base
       config.rebirthGoalScale![k] = calibrated[k]
       console.log(`  calibrated[${k}] = ${calibrated[k].toPrecision(6)}`)
     }
@@ -492,7 +410,6 @@ while (elapsed() < MAX_HOURS * 3600) {
       for (const k of Object.keys(sources)) delete sources[k]
     }
     if (process.env.LEVELS) runLog.push("   levels " + Object.entries(save.runState.producerLevels).filter(([, v]) => v > 0).map(([k, v]) => `${k}:${v}`).join(" ") + " · regions " + config.regions.filter((r) => isRegionUnlocked(save.runState, config, r.id)).length)
-    curveReport(`wl${save.metaState.rebirthCount + 1}`)
     runLog.push(
       `worldline ${save.metaState.rebirthCount + 1}: ${fmt(elapsed() - runStart)} (goal ${need.toExponential(0)}, skills ${skills}/${config.skillNodes.length}, relic lv ${Object.values(save.metaState.relicLevels).reduce((a, b) => a + b, 0)}, maxed ${maxedAt < 0 ? "never" : fmt(maxedAt)}) → ${buff.id}`,
     )
@@ -502,13 +419,10 @@ while (elapsed() < MAX_HOURS * 3600) {
     runStart = elapsed()
   }
   const heart = config.regions.find((r) => r.boss)
-  const heartHeld = TARGETS && TARGETS.length > 8 && elapsed() - runStart < TARGETS[8] * 60
-  if (heart && !heartHeld && isRegionUnlocked(save.runState, config, heart.id)) {
+  if (heart && isRegionUnlocked(save.runState, config, heart.id)) {
     const d = derivedClick(save.runState, save.metaState, config)
     runLog.push(`last worldline → Core Heart: ${fmt(elapsed() - runStart)} · click ${d.click.toExponential(2)} · crit ×${d.critMult.toFixed(1)} · boss hp ${heart.boss!.hp.toExponential(2)}`)
     heartReached = true
-    curveReport(`wl${save.metaState.rebirthCount + 1}`)
-    bossTrials()
     break
   }
 }
@@ -516,4 +430,3 @@ while (elapsed() < MAX_HOURS * 3600) {
 if (TARGETS) console.log(`REBIRTH_GOAL_SCALE = [${config.rebirthGoalScale!.slice(0, TARGETS.length).map((v) => Number(v.toPrecision(4))).join(", ")}]`)
 console.log(`clicks/s ${CLICKS_PER_SEC} · mine sessions ${mineCycles}`)
 console.log(`total ${fmt(elapsed())}${heartReached ? " · Core Heart open" : " · NOT FINISHED"}`)
-if (bossLine) console.log(`guardian at ${CLICKS_PER_SEC} strikes/s: ${bossLine} → run total ${fmt(elapsed() + (Number(/after ([\d.]+)s/.exec(bossLine)?.[1]) || 0))}`)

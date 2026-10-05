@@ -464,7 +464,7 @@ export function clickerPullGacha(save: SaveData, count: 1 | 10, now: number, fre
 }
 
 export function clickerStartBoss(save: SaveData, now: number): UseCaseResult<SaveData> {
-  return withRun(save, startBossFight(save.runState, save.metaState, config, now))
+  return withRun(save, startBossFight(save.runState, config, now))
 }
 
 export function clickerStrikeBoss(save: SaveData, now: number) {

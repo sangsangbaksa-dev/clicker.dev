@@ -57,7 +57,7 @@ export function adminJumpToFinalBoss(save: SaveData, config: GameConfig, now: nu
     crisisActive: false,
     mineSessionEndsAt: 0,
   }
-  const fight = startBossFight(unlocked, save.metaState, config, now)
+  const fight = startBossFight(unlocked, config, now)
   return {
     ...save,
     settings: { ...save.settings, gameStarted: true, tutorialSeen: true, playSurface: "hub" },

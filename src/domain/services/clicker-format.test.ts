@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { formatNumber, formatRate } from "./clicker-format.ts"
+import { formatNumber } from "./clicker-format.ts"
 
 test("formatNumber trims and suffixes", () => {
   assert.equal(formatNumber(0), "0")
@@ -22,14 +22,4 @@ test("formatNumber never prints -0 and shows infinity explicitly", () => {
   assert.equal(formatNumber(0.004), "0")
   assert.equal(formatNumber(Number.POSITIVE_INFINITY), "∞")
   assert.equal(formatNumber(Number.NEGATIVE_INFINITY), "-∞")
-})
-
-test("formatRate keeps digits for tiny per-second rates (first Solar Node = 0.003/s)", () => {
-  assert.equal(formatRate(0.003), "0.003")
-  assert.equal(formatRate(0.00075), "0.00075")
-  assert.equal(formatRate(0.000004), "4.0e-6")
-  assert.equal(formatRate(0.5), "0.5")
-  assert.equal(formatRate(1500), "1.5K")
-  assert.equal(formatRate(0), "0")
-  assert.equal(formatRate(Number.NaN), "0")
 })

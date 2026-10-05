@@ -101,7 +101,6 @@ import {
   nextAdminSpeed,
   type AdminModes,
 } from "@/application/clicker-ui"
-import { clickerCues } from "@/application/clicker-cues"
 import { playSfx, setSfxMuted } from "@/lib/clicker-sfx"
 import { clearFloats, pushFloat } from "@/lib/clicker-floats"
 
@@ -205,7 +204,6 @@ export function useClicker() {
   const sfxMuted = save?.settings.muted ?? false
   useEffect(() => {
     setSfxMuted(sfxMuted)
-    clickerCues().setMuted(sfxMuted)
   }, [sfxMuted])
 
   /** Mine → hub: record the session and raise the result card. Returns the save to commit. */
@@ -392,7 +390,7 @@ export function useClicker() {
     const result = clickerBuySkill(saveRef.current, id)
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("purchase")
+    playSfx("skillUnlock")
     const def = clickerGameConfig.skillNodes.find((s) => s.id === id)
     setPurchaseFx({ key: ++fxKey.current, kind: def?.branch ?? "FOCUS", assetId: def?.assetId })
     const name = def?.name ?? id

@@ -30,7 +30,7 @@ import {
   type CurrencyCost,
   activeSkillCost,
 } from "./clicker-engine.ts"
-import { formatNumber, formatRate } from "./clicker-format.ts"
+import { formatNumber } from "./clicker-format.ts"
 
 export type CoreVisual = "idle" | "fever" | "crisis"
 
@@ -94,7 +94,7 @@ export function buildHud(
   const coolDownMax = Math.max(0.001, config.feverCoolDown)
   return {
     coreEnergyText: formatNumber(run.coreEnergy),
-    productionPerSecondText: `+${formatRate(prod.perSecond)}/s`,
+    productionPerSecondText: `+${formatNumber(prod.perSecond)}/s`,
     comboText: run.combo.count > 1 ? `콤보 ×${run.combo.count}` : "",
     comboRemainText: run.combo.count > 1 ? `남음 ${comboRemain.toFixed(1)}초` : "",
     fever: {
@@ -194,7 +194,7 @@ export function buildProducerViews(
       description: p.description,
       assetId: p.assetId,
       level,
-      productionText: `+${formatRate(snapshot.byProducer[p.id] ?? 0)} / sec`,
+      productionText: `+${formatNumber(snapshot.byProducer[p.id] ?? 0)} / sec`,
       share: snapshot.perSecond > 0 ? (snapshot.byProducer[p.id] ?? 0) / snapshot.perSecond : 0,
       nextCostText: formatNumber(cost),
       unlocked,
@@ -340,20 +340,6 @@ export type SkillNodeView = {
   /** Shown only once every prerequisite is owned. */
   visible: boolean
   assetId: string
-}
-
-/** Map-node status as read aloud / shown on hover: a circuit behind an unowned prerequisite is "잠김", not unlockable. */
-export function skillStatusLabel(status: SkillNodeView["status"]): string {
-  switch (status) {
-    case "OWNED":
-      return "활성"
-    case "POOR":
-      return "CORE 부족"
-    case "LOCKED":
-      return "잠김"
-    default:
-      return "해금 가능"
-  }
 }
 
 export function buildSkillNodeViews(run: RunState, config: GameConfig): SkillNodeView[] {
