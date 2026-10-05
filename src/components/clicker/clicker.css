@@ -613,10 +613,6 @@ button.clicker-metric-action.is-active {
   z-index: 1;
 }
 
-[data-visual="fever"] .clicker-vignette {
-  box-shadow: inset 0 0 64px color-mix(in srgb, var(--motion-primary) 16%, transparent);
-}
-
 [data-visual="crisis"] .clicker-vignette {
   box-shadow: inset 0 0 48px color-mix(in srgb, var(--crisis) 12%, transparent);
 }
@@ -3484,17 +3480,7 @@ button.clicker-metric-action.is-fever-ready em {
   filter: brightness(1.02) saturate(1.04);
 }
 
-/* FEVER in mine: brighten chamber — no background rotation. */
-.clicker-shell.is-mine-surface .clicker-stage-bg.is-fever {
-  filter: brightness(1.18) saturate(1.22);
-  transition: filter 0.45s ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .clicker-shell.is-mine-surface .clicker-stage-bg.is-fever {
-    transition: none;
-  }
-}
+/* FEVER in the mine lights only the chamber's strip lights (clicker-mine.css), not the whole scene. */
 
 .clicker-mine-dig {
   position: absolute;

@@ -408,6 +408,9 @@ export function ClickerMine({
       className={`clicker-mine clicker-mine-single is-tier-${fxTier}${storm ? " is-storm" : ""}${pop ? " is-pop" : ""}${shake ? " is-shake" : ""}`}
     >
       <div className="clicker-mine-plate" style={{ backgroundImage: `url(${plate})` }} aria-hidden />
+      {visual === "fever" ? (
+        <div className="clicker-mine-fever-lights" style={{ backgroundImage: `url(${MineArt.feverLights})` }} aria-hidden />
+      ) : null}
 
       {box ? (
         <button

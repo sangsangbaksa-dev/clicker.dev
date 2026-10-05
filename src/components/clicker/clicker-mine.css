@@ -20,23 +20,22 @@
   pointer-events: none;
 }
 
-/* Brightness pulse only — no rotation (PRIORITY #2). A warm light layer fades in and out:
-   pulsing filter() on the full-screen plate repainted it every frame during FEVER. */
-.clicker-mine-single[data-visual="fever"] .clicker-mine-plate {
-  filter: brightness(1.08) saturate(1.15);
-}
-
-.clicker-mine-single[data-visual="fever"] .clicker-mine-plate::after {
-  content: "";
+/* FEVER: only the chamber's blue strip lights flare orange and pulse; the rest of the
+   scene (and the ore) keeps its look. The layer is the plate's lights pre-recoloured. */
+.clicker-mine-single .clicker-mine-fever-lights {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 50%, rgb(255 236 200 / 0.2), rgb(255 200 140 / 0.1) 70%);
-  opacity: 0;
+  background: center / cover no-repeat;
+  pointer-events: none;
   will-change: opacity;
-  animation: clicker-mine-fever-glow 1.2s ease-in-out infinite;
+  animation: clicker-mine-fever-lights 1.2s ease-in-out infinite;
 }
 
-@keyframes clicker-mine-fever-glow {
+@keyframes clicker-mine-fever-lights {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
   50% {
     opacity: 1;
   }
@@ -296,7 +295,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .clicker-mine-single[data-visual="fever"] .clicker-mine-plate::after,
+  .clicker-mine-single .clicker-mine-fever-lights,
   .clicker-mine-crystal-glow,
   .clicker-mine-crystal-flash,
   .clicker-mine-crystal.is-broken .clicker-mine-crystal-art {
