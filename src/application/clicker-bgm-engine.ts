@@ -6,9 +6,40 @@ import {
   bgmTrackFadeTarget,
   bgmTracksToWarm,
   type BgmRebirthBedPhase,
+  type BgmScene,
   type BgmTrackId,
 } from "@/domain/services/clicker-bgm"
-import type { BgmEngineState, BgmLoopTrack, ClickerBgmPorts } from "@/application/clicker-audio-ports"
+import type { CoreVisual } from "@/domain/services/clicker-view"
+
+/** One looping BGM element the engine can fade and play. */
+export type BgmLoopTrack = {
+  play(): Promise<void>
+  pause(): void
+  setOutputLevel(level: number): void
+  /** One-shot beds fire when natural playback ends. */
+  onEnded?(listener: () => void): void
+  rewind?(): void
+}
+
+export type BgmEngineState = {
+  scene: BgmScene
+  muted: boolean
+  volume: number
+  visual: CoreVisual | undefined
+  hasUserGesture: boolean
+}
+
+/** Browser-facing audio primitives; implemented in infrastructure. */
+export type ClickerBgmPorts = {
+  allTrackIds(): BgmTrackId[]
+  resumeSharedContext(): void
+  /** Materialize a track only when allowNetwork is true; otherwise null. */
+  acquireTrack(id: BgmTrackId, allowNetwork: boolean): BgmLoopTrack | null
+  warmTracks(ids: BgmTrackId[], allowNetwork: boolean): void
+  wireTrack(id: BgmTrackId, track: BgmLoopTrack): void
+  hasGainNode(id: BgmTrackId): boolean
+  dispose(): void
+}
 
 type Runtime = {
   tracks: Partial<Record<BgmTrackId, BgmLoopTrack>>
@@ -161,4 +192,20 @@ export function createClickerBgmEngine(ports: ClickerBgmPorts) {
       ports.dispose()
     },
   }
+}
+
+let bgmPortFactory: (() => ClickerBgmPorts) | null = null
+
+export function bindClickerBgmPortFactory(create: () => ClickerBgmPorts): void {
+  bgmPortFactory = create
+}
+
+export function clickerBgmPorts(): ClickerBgmPorts {
+  if (!bgmPortFactory) throw new Error("Clicker BGM ports are not bound")
+  return bgmPortFactory()
+}
+
+/** Test-only: clear bindings. */
+export function resetClickerBgmBindings(): void {
+  bgmPortFactory = null
 }

@@ -64,6 +64,7 @@ import {
 import {
   adminGrantCurrencies,
   adminJumpToFinalBoss,
+  adminTriggerFinalBossDefeated,
   adminReplayTutorial,
   applyGodMode,
   applySpeedBoost,
@@ -74,7 +75,8 @@ import { allowStrike } from "@/domain/services/clicker-strike-limiter"
 import { decodeClickerSave, encodeClickerSave } from "@/domain/services/clicker-save-codec"
 import { enterLair, forgeGear, leaveLair, strikeLair, tickLair, type GearSlot } from "@/domain/services/clicker-lair"
 import { encodeSaveCode, parseSaveCode, type ParsedSaveCode } from "@/domain/services/clicker-save-transfer"
-import { clickerPersistence } from "@/application/clicker-client-bind"
+import { clickerCompletionRecords, clickerPersistence } from "@/application/clicker-client-bind"
+import { createClickerCompletionRecord } from "@/domain/services/clicker-completion-records"
 import { pauseMine, resumeMine } from "@/domain/services/clicker-mine-pause"
 import { selectScreenTab, type ClickerScreenTabId, type ManageDrawerTabId } from "@/domain/services/clicker-screen-tabs"
 
@@ -195,8 +197,8 @@ export function clickerTick(save: SaveData, now: number): SaveData {
   return withAchievements(maybeAutoStartGaugeFever({ ...synced, runState: tickLair(accrueRegionCurrency(run, next.run, config), config, now), metaState: next.meta }))
 }
 
-export function clickerStartGame(save: SaveData): SaveData {
-  return startClickerGame(save)
+export function clickerStartGame(save: SaveData, now: number): SaveData {
+  return startClickerGame(save, now)
 }
 
 export function clickerEnterMine(save: SaveData, now: number): { save: SaveData; error?: string } {
@@ -337,6 +339,15 @@ export function clickerCompleteEnding(save: SaveData, now: number): UseCaseResul
   const next = applyTrueEnding(save, config, now)
   if (next.error) return { ok: false, status: 400, error: next.error }
   return ok(next.save)
+}
+
+export function clickerReadCompletionRecords() {
+  return clickerCompletionRecords().read()
+}
+
+export function clickerStoreCompletionRecord(save: SaveData): boolean {
+  const record = createClickerCompletionRecord(save.metaState)
+  return record ? clickerCompletionRecords().save(record) : false
 }
 
 export function clickerAdminGrant(save: SaveData, amount: number): SaveData {
@@ -488,6 +499,10 @@ export function clickerAdminGrantCurrencies(save: SaveData, amount: number): Sav
 
 export function clickerAdminJumpToFinalBoss(save: SaveData, now: number): SaveData {
   return adminJumpToFinalBoss(save, config, now)
+}
+
+export function clickerAdminTriggerFinalBossDefeated(save: SaveData, now: number): SaveData {
+  return adminTriggerFinalBossDefeated(save, config, now)
 }
 
 export { adminReplayTutorial as clickerAdminReplayTutorial }

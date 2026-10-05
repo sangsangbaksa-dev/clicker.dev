@@ -2,7 +2,7 @@
 
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 import type { CurrencyCostView } from "@/application/clicker-ui"
-import type { PanelProps } from "./types"
+import type { PanelProps } from "@/hooks/use-clicker"
 import { ClickerGacha } from "../clicker-gacha"
 
 function CurrencyCosts({ costs }: { costs: CurrencyCostView[] }) {

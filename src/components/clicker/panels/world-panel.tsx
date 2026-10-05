@@ -3,7 +3,7 @@
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
 import { formatNumber } from "@/application/clicker-ui"
 import type { RunState } from "@/application/clicker-ui"
-import type { ClickerGame } from "./types"
+import type { ClickerGame } from "@/hooks/use-clicker"
 import { ClickerWorldTree } from "../clicker-world-tree"
 
 export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; run: RunState; onBack: () => void }) {

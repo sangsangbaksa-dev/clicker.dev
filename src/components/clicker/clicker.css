@@ -2938,8 +2938,22 @@ button.clicker-metric-action.is-fever-ready em {
   position: relative;
   min-height: 100dvh;
   display: grid;
+  grid-template-rows: minmax(0, 1fr);
   place-items: center;
   padding: 24px;
+}
+
+.clicker-complete::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 42% 28% at 50% 12%, rgb(255 220 145 / 0.18), transparent 76%),
+    radial-gradient(ellipse 65% 60% at 50% 100%, rgb(71 198 230 / 0.13), transparent 72%),
+    linear-gradient(180deg, rgb(5 8 15 / 0.12), rgb(5 8 15 / 0.72));
+  animation: clicker-complete-aura 8s ease-in-out infinite alternate;
 }
 
 .clicker-complete-bg {
@@ -2947,38 +2961,98 @@ button.clicker-metric-action.is-fever-ready em {
   inset: 0;
   background-size: cover;
   background-position: center;
-  opacity: 0.35;
-  filter: brightness(1.1) saturate(0.9);
+  opacity: 0.52;
+  filter: brightness(1.15) saturate(1.08);
+  animation: clicker-complete-world 24s ease-in-out infinite alternate;
 }
 
 .clicker-complete-card {
   position: relative;
   z-index: 1;
   width: min(560px, 100%);
-  padding: 28px 24px;
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 24px clamp(16px, 4vw, 30px) 22px;
   border-radius: 18px;
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
-  background: color-mix(in srgb, var(--void) 78%, transparent);
+  border: 1px solid color-mix(in srgb, #f3d58a 44%, var(--core) 18%, transparent);
+  background:
+    radial-gradient(ellipse 80% 30% at 50% 0%, rgb(246 204 116 / 0.12), transparent 100%),
+    color-mix(in srgb, var(--void) 82%, transparent);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.035) inset,
+    0 0 56px rgb(80 198 231 / 0.14),
+    0 28px 80px rgb(0 0 0 / 0.65);
+  backdrop-filter: blur(18px) saturate(1.2);
   text-align: center;
 }
 
+.clicker-complete-sigil {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 10px;
+  border: 1px solid rgb(248 219 148 / 0.58);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgb(255 242 198 / 0.3), rgb(243 203 111 / 0.06) 58%, transparent 70%),
+    rgb(255 255 255 / 0.025);
+  box-shadow:
+    0 0 0 6px rgb(244 213 138 / 0.055),
+    0 0 28px rgb(244 213 138 / 0.22),
+    inset 0 0 16px rgb(244 213 138 / 0.16);
+  animation: clicker-complete-sigil 3.6s ease-in-out infinite;
+}
+
+.clicker-complete-sigil::before,
+.clicker-complete-sigil::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border: 1px solid rgb(185 230 247 / 0.18);
+  border-radius: 50%;
+}
+
+.clicker-complete-sigil::after {
+  inset: -14px;
+  border-style: dashed;
+  border-color: rgb(248 219 148 / 0.3);
+  animation: clicker-complete-orbit 18s linear infinite;
+}
+
+.clicker-complete-sigil span {
+  color: #ffe9a9;
+  font-size: 30px;
+  line-height: 1;
+  text-shadow: 0 0 18px rgb(255 226 153 / 0.9);
+}
+
 .clicker-complete-kicker {
+  margin: 0;
   font-size: 11px;
   letter-spacing: 0.12em;
-  color: var(--muted);
+  color: #f1d694;
   text-transform: uppercase;
 }
 
 .clicker-complete-card h1 {
-  margin: 10px 0 14px;
-  font-size: 28px;
+  margin: 8px 0 12px;
+  font-size: clamp(26px, 6vw, 36px);
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  color: #fff5d8;
+  text-shadow: 0 0 28px rgb(255 219 139 / 0.32);
 }
 
 .clicker-complete-epilogue {
-  margin: 0;
+  max-width: 42ch;
+  margin: 0 auto;
   color: var(--text-2);
   line-height: 1.7;
   font-size: 15px;
+  overflow-wrap: anywhere;
 }
 
 .clicker-complete-stats {
@@ -2993,6 +3067,14 @@ button.clicker-metric-action.is-fever-ready em {
   padding: 10px 12px;
   border-radius: 10px;
   background: color-mix(in srgb, var(--panel) 70%, transparent);
+  border: 1px solid rgb(255 255 255 / 0.035);
+}
+
+.clicker-complete-stats div.is-highlight {
+  border-color: rgb(243 213 138 / 0.24);
+  background:
+    linear-gradient(135deg, rgb(243 213 138 / 0.09), transparent 72%),
+    color-mix(in srgb, var(--panel) 74%, transparent);
 }
 
 .clicker-complete-stats dt {
@@ -3006,6 +3088,12 @@ button.clicker-metric-action.is-fever-ready em {
   margin: 4px 0 0;
   font-size: 18px;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.clicker-complete-stats .is-highlight dd {
+  color: #ffe6a0;
+  font-size: clamp(16px, 3.8vw, 21px);
 }
 
 .clicker-complete-note {
@@ -3017,6 +3105,129 @@ button.clicker-metric-action.is-fever-ready em {
 
 .clicker-complete-stats div.is-wide {
   grid-column: 1 / -1;
+}
+
+.clicker-complete-leaderboard {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--core) 24%, var(--line));
+  border-radius: 14px;
+  background:
+    linear-gradient(145deg, rgb(99 230 255 / 0.07), transparent 60%),
+    rgb(4 10 18 / 0.54);
+  text-align: left;
+}
+
+.clicker-complete-leaderboard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.clicker-complete-leaderboard-kicker {
+  margin: 0 0 3px;
+  color: var(--core);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.clicker-complete-leaderboard-head h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.clicker-complete-leaderboard-head > span {
+  flex: none;
+  padding: 4px 8px;
+  border: 1px solid rgb(243 213 138 / 0.3);
+  border-radius: 999px;
+  color: #f1d694;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.clicker-complete-leaderboard-list {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clicker-complete-leaderboard-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid rgb(255 255 255 / 0.045);
+  border-radius: 9px;
+  background: rgb(255 255 255 / 0.025);
+}
+
+.clicker-complete-leaderboard-list li.is-current {
+  border-color: rgb(243 213 138 / 0.44);
+  background: linear-gradient(90deg, rgb(243 213 138 / 0.12), rgb(255 255 255 / 0.025));
+  box-shadow: inset 3px 0 #f3d58a;
+}
+
+.clicker-complete-rank {
+  flex: 0 0 28px;
+  color: var(--core);
+  font-size: 12px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.clicker-complete-record-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.clicker-complete-record-copy strong {
+  color: var(--text);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.clicker-complete-record-copy small {
+  color: var(--muted);
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+.clicker-complete-record-tag {
+  margin-left: auto;
+  color: #f1d694;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.clicker-complete-leaderboard-empty,
+.clicker-complete-leaderboard-foot,
+.clicker-complete-leaderboard-status {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.clicker-complete-leaderboard-empty {
+  margin-top: 12px;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.clicker-complete-leaderboard-status {
+  color: #f1d694;
 }
 
 .clicker-complete-actions {
@@ -3048,6 +3259,25 @@ button.clicker-metric-action.is-fever-ready em {
   color: color-mix(in srgb, #ffd4cc 88%, var(--text));
 }
 
+@keyframes clicker-complete-aura {
+  from { opacity: 0.65; }
+  to { opacity: 1; }
+}
+
+@keyframes clicker-complete-world {
+  from { transform: scale(1.02); }
+  to { transform: scale(1.09); }
+}
+
+@keyframes clicker-complete-sigil {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.04); }
+}
+
+@keyframes clicker-complete-orbit {
+  to { transform: rotate(360deg); }
+}
+
 @media (max-width: 430px) {
   .clicker-ending {
     padding: 16px;
@@ -3073,10 +3303,41 @@ button.clicker-metric-action.is-fever-ready em {
     flex-direction: column-reverse;
   }
 
+  .clicker-complete {
+    place-items: start center;
+    padding: 16px;
+  }
+
+  .clicker-complete-card {
+    max-height: calc(100dvh - 32px);
+    padding-inline: 14px;
+  }
+
+  .clicker-complete-stats {
+    gap: 8px;
+  }
+
+  .clicker-complete-stats div {
+    padding: 9px;
+  }
+
+  .clicker-complete-leaderboard {
+    padding: 11px;
+  }
+
   .clicker-complete-actions .clicker-primary,
   .clicker-complete-actions .clicker-danger,
   .clicker-complete-actions .clicker-ghost {
     width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-complete::after,
+  .clicker-complete-bg,
+  .clicker-complete-sigil,
+  .clicker-complete-sigil::after {
+    animation: none;
   }
 }
 

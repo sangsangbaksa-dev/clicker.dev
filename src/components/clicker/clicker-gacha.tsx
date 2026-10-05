@@ -18,7 +18,7 @@ import {
   type RunState,
 } from "@/application/clicker-ui"
 import { playSfx, type SfxName } from "@/lib/clicker-sfx"
-import type { ClickerGame } from "./panels/types"
+import type { ClickerGame } from "@/hooks/use-clicker"
 import "./clicker-gacha.css"
 
 const ART = {

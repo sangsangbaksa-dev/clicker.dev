@@ -4,7 +4,7 @@ import { useState } from "react"
 import type { RunState, UpgradeCategory } from "@/application/clicker-ui"
 import { formatNumber } from "@/application/clicker-ui"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
-import type { ClickerGame } from "./types"
+import type { ClickerGame } from "@/hooks/use-clicker"
 
 export function ClickerUpgradesPanel({ game, run }: { game: ClickerGame; run: RunState }) {
   const [upgradeCat, setUpgradeCat] = useState<UpgradeCategory>("CLICK")

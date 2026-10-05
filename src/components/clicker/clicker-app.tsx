@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { CLICKER_ASSETS, clickerConfig } from "@/data/clicker/catalog"
@@ -68,8 +69,9 @@ import { useClickerAccount } from "@/hooks/use-clicker-account"
 import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
-import { ClickerFloats } from "./clicker-floats"
+import { getFloats, getServerFloats, subscribeFloats } from "@/lib/clicker-floats"
 import { ClickerCountdown } from "./clicker-countdown"
+import { ClickerLockMark } from "./clicker-lock-mark"
 import { ClickerAchievementsPanel } from "@/components/clicker/panels/achievements-panel"
 import { ClickerProducersPanel } from "@/components/clicker/panels/producers-panel"
 import { ClickerUpgradesPanel } from "@/components/clicker/panels/upgrades-panel"
@@ -79,6 +81,25 @@ import { ClickerTranscendencePanel } from "@/components/clicker/panels/transcend
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 import "./clicker.css"
 import "./clicker-polish.css"
+
+const FLOAT_STRIKE_LABEL = { quake: "지진파 ", lightning: "번개 ", echo: "잔향 " } as const
+
+/** Hit numbers; subscribes on its own so a click never repaints the whole app. */
+function ClickerFloats() {
+  const floats = useSyncExternalStore(subscribeFloats, getFloats, getServerFloats)
+  return floats.map((f) => (
+    <div
+      key={f.id}
+      className={`clicker-float ${f.critical ? "is-crit" : ""}${f.strike ? ` is-${f.strike}` : ""}`}
+      style={{ left: f.x || "50%", top: f.y || "45%" }}
+      aria-hidden
+    >
+      {f.strike ? FLOAT_STRIKE_LABEL[f.strike] : ""}
+      {f.critical ? "치명타 " : ""}
+      {f.text}
+    </div>
+  ))
+}
 
 /** Next inlines NODE_ENV — production builds dead-code-eliminate admin JSX. */
 const CLICKER_ADMIN_UI =
@@ -1564,11 +1585,14 @@ export function ClickerApp() {
               <button
                 key={id}
                 type="button"
-                className={`clicker-hub-dock-btn${id === "forge" && !forgeUnlocked ? " is-locked" : ""}`}
+                className={`clicker-hub-dock-btn${id === "transcendence" ? " is-transcendence" : ""}${id === "forge" && !forgeUnlocked ? " is-locked" : ""}`}
                 aria-label={id === "forge" && !forgeUnlocked ? `${ko} · 잠김` : `${ko} 화면 열기`}
                 onClick={() => selectTab(id)}
               >
-                <strong>{ko}</strong>
+                <strong className={id === "forge" && !forgeUnlocked ? "clicker-hub-dock-title-locked" : undefined}>
+                  {ko}
+                  {id === "forge" && !forgeUnlocked ? <ClickerLockMark size={13} /> : null}
+                </strong>
                 <span>{label}</span>
               </button>
             ))}
@@ -2020,6 +2044,20 @@ export function ClickerApp() {
               }}
             >
               최종 보스로 점프
+            </button>
+            <button
+              type="button"
+              className="clicker-primary"
+              aria-label="치트 · 최종 보스 격파 엔딩 재생"
+              onClick={() => {
+                game.adminJumpFinalBossDefeated()
+                setEndingOpen(false)
+                setEndingPhase("fall")
+                playSfx("bossDown")
+                setAdminOpen(false)
+              }}
+            >
+              최종 보스 격파 · 엔딩
             </button>
             <button
               type="button"

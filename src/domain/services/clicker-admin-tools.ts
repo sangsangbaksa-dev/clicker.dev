@@ -40,6 +40,28 @@ export function finalBossRegionId(config: GameConfig): string | undefined {
   return [...config.regions].reverse().find((r) => r.boss)?.id
 }
 
+/** Playtest: final region unlocked, fight cleared, bossDefeated — ready for ending cinematics. */
+export function adminTriggerFinalBossDefeated(save: SaveData, config: GameConfig, now: number): SaveData {
+  const jumped = adminJumpToFinalBoss(save, config, now)
+  return {
+    ...jumped,
+    runState: {
+      ...jumped.runState,
+      boss: null,
+      lair: null,
+      crisisActive: false,
+      mineSessionEndsAt: 0,
+    },
+    metaState: {
+      ...jumped.metaState,
+      bossDefeated: true,
+      gameCompleted: false,
+      completedAt: null,
+    },
+    settings: { ...jumped.settings, playSurface: "hub" },
+  }
+}
+
 export function adminJumpToFinalBoss(save: SaveData, config: GameConfig, now: number): SaveData {
   const id = finalBossRegionId(config)
   const region = config.regions.find((r) => r.id === id)

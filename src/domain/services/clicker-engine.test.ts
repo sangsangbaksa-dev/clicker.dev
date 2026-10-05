@@ -170,9 +170,10 @@ test("region location persists through sanitizeSave reload", () => {
 test("startClickerGame leaves title for the hub surface", () => {
   const save = createInitialSave(1_000, config)
   assert.equal(save.settings.gameStarted, false)
-  const started = startClickerGame(save)
+  const started = startClickerGame(save, 1_500)
   assert.equal(started.settings.gameStarted, true)
   assert.equal(started.settings.playSurface, "hub")
+  assert.equal(started.metaState.startedAt, 1_500)
   assert.equal(startClickerGame(started), started)
 })
 
@@ -510,6 +511,12 @@ test("region visits are recorded once so the intro plays only on the first entry
   assert.deepEqual(again.meta.visitedRegionIds, ["signal_relay"])
   const legacy = sanitizeSave({ ...createInitialSave(1, config), metaState: { ...meta, visitedRegionIds: undefined } }, config, 1)
   assert.deepEqual(legacy.metaState.visitedRegionIds, [])
+  const noKnownStart = sanitizeSave(
+    { ...createInitialSave(1, config), settings: { ...createInitialSave(1, config).settings, gameStarted: true }, metaState: { ...meta, startedAt: undefined } },
+    config,
+    1,
+  )
+  assert.equal(noKnownStart.metaState.startedAt, null)
 })
 
 test("mine entry is free; only the re-enter cooldown applies", () => {

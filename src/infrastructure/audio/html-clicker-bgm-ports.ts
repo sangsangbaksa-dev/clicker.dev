@@ -1,4 +1,4 @@
-import type { BgmLoopTrack, ClickerBgmPorts } from "@/application/clicker-audio-ports"
+import type { BgmLoopTrack, ClickerBgmPorts } from "@/application/clicker-bgm-engine"
 import type { BgmTrackId } from "@/domain/services/clicker-bgm"
 import {
   allBgmTrackIds,

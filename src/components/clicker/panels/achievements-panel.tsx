@@ -2,7 +2,7 @@
 
 import { formatNumber } from "@/application/clicker-ui"
 import type { MetaState } from "@/application/clicker-ui"
-import type { ClickerGame } from "./types"
+import type { ClickerGame } from "@/hooks/use-clicker"
 
 export function ClickerAchievementsPanel({ game, meta }: { game: ClickerGame; meta: MetaState }) {
   return (

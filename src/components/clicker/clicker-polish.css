@@ -1796,12 +1796,12 @@
 }
 [data-clicker] .clicker-drill-station .clicker-drill-gauge { position: relative; z-index: 4; }
 
-/* Nothing gets cut: the dock wraps instead of scrolling off the edge, the goal bar stays under
-   its title, and the drill gauge sits clear of the rig with room to show its full width. */
+/* Keep dock labels intact, the goal bar under its title, and the drill gauge clear of the rig. */
 @media (min-width: 521px) {
-  /* One row that always fits: buttons share the width instead of scrolling off the edge. */
-  [data-clicker] .clicker-hub-dock { overflow: visible; }
-  [data-clicker] .clicker-hub-dock-btn { flex: 1 1 0; min-width: 0; padding-inline: 4px; }
+  /* Preserve each destination's label width; the dock scrolls when the full set is wider. */
+  [data-clicker] .clicker-hub-dock { overflow-x: auto; }
+  [data-clicker] .clicker-hub-dock-btn { flex: 0 0 auto; min-width: 84px; }
+  [data-clicker] .clicker-hub-dock-btn.is-transcendence { min-width: max-content; }
   [data-clicker] .clicker-hub-dock-btn span { font-size: 8px; letter-spacing: 0.02em; white-space: nowrap; }
 }
 /* Short screens: the drill title would run into the goal card — drop it (the station is labelled). */
@@ -1914,6 +1914,14 @@
   [data-clicker] .clicker-hub-dock:has(.clicker-hub-dock-btn:nth-child(9)) .clicker-hub-dock-btn { padding: 8px 2px; }
   [data-clicker] .clicker-hub-dock:has(.clicker-hub-dock-btn:nth-child(9)) .clicker-hub-dock-btn strong { font-size: 12px; letter-spacing: -0.02em; }
 }
+@media (min-width: 481px) and (max-width: 520px) {
+  [data-clicker] .clicker-hub-dock:has(.clicker-hub-dock-btn:nth-child(9)) {
+    display: grid;
+  }
+  [data-clicker] .clicker-hub-dock:has(.clicker-hub-dock-btn:nth-child(9)) .clicker-hub-dock-btn.is-transcendence {
+    grid-column: span 2;
+  }
+}
 
 /* Desktop: CORE figures on the left, world wallet pills in their own column (they overlapped). */
 @media (min-width: 521px) {
@@ -2016,8 +2024,39 @@
 }
 
 /* Locked dock entries (the forge before the third world) read as dimmed with a lock. */
-[data-clicker] .clicker-hub-dock-btn.is-locked { opacity: 0.5; filter: grayscale(0.7); }
-[data-clicker] .clicker-hub-dock-btn.is-locked strong::after { content: " · 잠김"; font-size: 0.75em; font-weight: 600; }
+[data-clicker] .clicker-hub-dock-btn.is-locked {
+  opacity: 0.82;
+  cursor: not-allowed;
+  border-color: rgb(120 160 200 / 0.12);
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.03), rgb(0 0 0 / 0.12));
+}
+[data-clicker] .clicker-hub-dock-btn.is-locked span {
+  opacity: 0.5;
+  filter: grayscale(0.35);
+}
+[data-clicker] .clicker-hub-dock-title-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: color-mix(in srgb, var(--text) 58%, rgb(140 170 200));
+}
+[data-clicker] .clicker-lock-mark {
+  flex: none;
+  margin-top: 1px;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.75)) drop-shadow(0 0 5px rgb(80 200 255 / 0.35));
+  animation: clicker-lock-mark-pulse 2.6s ease-in-out infinite;
+}
+@keyframes clicker-lock-mark-pulse {
+  50% {
+    filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.75)) drop-shadow(0 0 9px rgb(120 230 255 / 0.55));
+  }
+}
+[data-clicker] .clicker-hub-dock-btn.is-locked:hover,
+[data-clicker] .clicker-hub-dock-btn.is-locked:focus-visible {
+  transform: none;
+  box-shadow: none;
+  border-color: rgb(120 160 200 / 0.14);
+}
 [data-clicker] .clicker-forge-summary { margin: 0 0 10px; font-size: 13px; color: #dff4ff; }
 [data-clicker] .clicker-forge-summary b { color: #ffe08a; }
 [data-clicker] .clicker-forge-panel { width: 100%; margin: 0; }

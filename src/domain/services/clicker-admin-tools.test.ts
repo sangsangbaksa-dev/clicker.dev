@@ -5,6 +5,7 @@ import { createInitialSave } from "./clicker-engine.ts"
 import {
   adminGrantCurrencies,
   adminJumpToFinalBoss,
+  adminTriggerFinalBossDefeated,
   adminReplayTutorial,
   applyGodMode,
   applySpeedBoost,
@@ -44,6 +45,15 @@ test("jump to final boss unlocks, travels, skips the tutorial and starts the fig
   assert.equal(save.runState.boss?.hp, cfg.regions.find((r) => r.id === "core_heart")?.boss?.hp)
   assert.ok(save.runState.currentWorldLine >= 6)
   assert.ok(save.metaState.visitedRegionIds.includes("core_heart"))
+})
+
+test("trigger final boss defeated clears the fight and flags ending", () => {
+  const save = adminTriggerFinalBossDefeated(fresh(), cfg, 5_000)
+  assert.equal(save.runState.currentRegionId, "core_heart")
+  assert.equal(save.runState.boss, null)
+  assert.equal(save.metaState.bossDefeated, true)
+  assert.equal(save.metaState.gameCompleted, false)
+  assert.equal(save.metaState.completedAt, null)
 })
 
 test("replay tutorial clears the seen flag", () => {

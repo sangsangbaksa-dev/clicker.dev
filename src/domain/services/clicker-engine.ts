@@ -127,6 +127,7 @@ export function createInitialMeta(): MetaState {
     },
     achievementIds: [],
     visitedRegionIds: [],
+    startedAt: null,
     gameCompleted: false,
     completedAt: null,
     bossDefeated: false,
@@ -181,10 +182,14 @@ export function createInitialSave(now: number, config: GameConfig): SaveData {
 }
 
 /** Title CTA: clear title and land on the upgrades/skills hub (not the mine). */
-export function startClickerGame(save: SaveData): SaveData {
+export function startClickerGame(save: SaveData, now = save.savedAt): SaveData {
   if (save.settings.gameStarted) return save
   return {
     ...save,
+    metaState: {
+      ...save.metaState,
+      startedAt: save.metaState.startedAt ?? now,
+    },
     settings: {
       ...save.settings,
       gameStarted: true,
@@ -1745,8 +1750,15 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         visitedRegionIds: Array.isArray(meta.visitedRegionIds)
           ? meta.visitedRegionIds.filter((id) => typeof id === "string")
           : [],
+        startedAt:
+          typeof meta.startedAt === "number" && Number.isFinite(meta.startedAt) && meta.startedAt >= 0
+            ? meta.startedAt
+            : null,
         gameCompleted: Boolean(meta.gameCompleted),
-        completedAt: typeof meta.completedAt === "number" ? meta.completedAt : null,
+        completedAt:
+          typeof meta.completedAt === "number" && Number.isFinite(meta.completedAt) && meta.completedAt >= 0
+            ? meta.completedAt
+            : null,
         bossDefeated: Boolean(meta.bossDefeated),
         monstersSlain: typeof meta.monstersSlain === "number" ? meta.monstersSlain : 0,
         relicLevels: sanitizeRelicLevels(meta.relicLevels, config),
