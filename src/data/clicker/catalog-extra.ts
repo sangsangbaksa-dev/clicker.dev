@@ -169,15 +169,15 @@ export const EXTRA_SKILL_NODES: SkillNodeDef[] = NODE_SPECS.map(([id, branch, ti
 }))
 
 export const EXTRA_POTIONS: PotionDef[] = [
-  { id: "spark", name: "Spark Tonic", description: "8초 · 채굴 ×1.5 · 생산 ×1.3 · 치명타 +2%", duration: 8, clickMultiplier: 1.5, productionMultiplier: 1.3, criticalChanceAdd: 0.02, instabilityPerSecond: 0, shopCost: 60_000, assetId: "/clicker/potion/potion_spark.webp" },
-  { id: "keen", name: "Keen Elixir", description: "15초 · 채굴 ×2.6 · 치명타 +15% · 생산 ×1.5", duration: 15, clickMultiplier: 2.6, productionMultiplier: 1.5, criticalChanceAdd: 0.15, instabilityPerSecond: 0, shopCost: 4_000_000, assetId: "/clicker/potion/potion_keen.webp" },
-  { id: "golden", name: "Golden Draught", description: "60초 · 자동 생산 ×4.5 · 채굴 ×1.5", duration: 60, clickMultiplier: 1.5, productionMultiplier: 4.5, criticalChanceAdd: 0, instabilityPerSecond: 0, shopCost: 120_000_000, assetId: "/clicker/potion/potion_golden.webp" },
+  { id: "spark", name: "Spark Tonic", description: "8초 · 채굴 ×1.8 · 치명타 +3%", duration: 8, clickMultiplier: 1.8, productionMultiplier: 1, criticalChanceAdd: 0.03, instabilityPerSecond: 0, shopCost: 60_000, assetId: "/clicker/potion/potion_spark.webp" },
+  { id: "keen", name: "Keen Elixir", description: "15초 · 채굴 ×3 · 치명타 +15%", duration: 15, clickMultiplier: 3, productionMultiplier: 1, criticalChanceAdd: 0.15, instabilityPerSecond: 0, shopCost: 4_000_000, assetId: "/clicker/potion/potion_keen.webp" },
+  { id: "golden", name: "Golden Draught", description: "60초 · 채굴 ×3 · 치명타 +3%", duration: 60, clickMultiplier: 3, productionMultiplier: 1, criticalChanceAdd: 0.03, instabilityPerSecond: 0, shopCost: 120_000_000, assetId: "/clicker/potion/potion_golden.webp" },
 ]
 
 export const EXTRA_ACTIVE_SKILLS: ActiveSkillDef[] = [
   { id: "laser_focus", name: "LASER FOCUS", description: "10초 채굴 ×4", cooldown: 40, duration: 10, shopCost: 40_000, clickMultiplier: 4, assetId: "/clicker/skill/skill_laser_focus.webp" },
-  { id: "time_warp", name: "TIME WARP", description: "생산 30초분 즉시 획득", cooldown: 60, duration: 0, shopCost: 300_000, energyBurstSeconds: 30, assetId: "/clicker/skill/skill_time_warp.webp" },
-  { id: "grid_boost", name: "GRID BOOST", description: "20초 생산 ×2", cooldown: 60, duration: 20, shopCost: 150_000, productionMultiplier: 2, assetId: "/clicker/skill/skill_grid_boost.webp" },
+  { id: "time_warp", name: "TIME WARP", description: "채굴 800회분 CORE를 즉시 획득", cooldown: 60, duration: 0, shopCost: 300_000, clickBurst: 800, assetId: "/clicker/skill/skill_time_warp.webp" },
+  { id: "grid_boost", name: "GRID BOOST", description: "20초 채굴 ×2", cooldown: 60, duration: 20, shopCost: 150_000, clickMultiplier: 2, assetId: "/clicker/skill/skill_grid_boost.webp" },
   { id: "crit_surge", name: "CRIT SURGE", description: "8초 치명타 확률 +60%", cooldown: 50, duration: 8, shopCost: 120_000, criticalChanceAdd: 0.6, assetId: "/clicker/skill/skill_crit_surge.webp" },
   { id: "thunder_call", name: "THUNDER CALL", description: "10초 동안 모든 타격에 번개", cooldown: 70, duration: 10, shopCost: 220_000, lightningStorm: true, assetId: "/clicker/skill/skill_thunder_call.webp" },
   { id: "fever_ignite", name: "FEVER IGNITE", description: "FEVER를 즉시 점화", cooldown: 90, duration: 0, shopCost: 260_000, feverIgnite: true, assetId: "/clicker/skill/skill_fever_ignite.webp" },

@@ -50,7 +50,7 @@ import {
   regionChallengeError,
   MINE_HOME_ONLY_ERROR,
 } from "./clicker-engine.ts"
-import { MINE_SESSION_BASE_MS as MINE_SESSION_MS, buffCritChance, mineSessionDurationMs, worldlineGoal } from "./clicker-engine.ts"
+import { MINE_SESSION_BASE_MS as MINE_SESSION_MS, buffCritChance, derivedClick, mineSessionDurationMs, worldlineGoal } from "./clicker-engine.ts"
 import { formatNumber } from "./clicker-format.ts"
 
 const config = clickerConfig
@@ -888,4 +888,15 @@ test("new active skills: crit surge, thunder call, fever ignite, cryo purge", ()
   const surged = activateSkill(run, meta, config, "crit_surge", now)
   assert.equal(buffCritChance(surged.run, now + 1000, config), 0.6)
   assert.equal(buffCritChance(surged.run, now + 9000, config), 0)
+})
+
+test("active skills and potions only boost mining", () => {
+  for (const s of config.activeSkills) assert.ok(!s.productionMultiplier && !s.energyBurstSeconds, s.id)
+  for (const p of config.potions) assert.equal(p.productionMultiplier, 1, p.id)
+  const now = 21_000_000
+  const base = startClickerGame(createInitialSave(now, config))
+  const run = { ...base.runState, skillItems: { core_pulse: 1 }, mineSessionEndsAt: now + 60_000 }
+  const out = activateSkill(run, base.metaState, config, "core_pulse", now)
+  const click = derivedClick(run, base.metaState, config).click
+  assert.ok(Math.abs(out.run.coreEnergy - run.coreEnergy - click * 150) < 1e-9)
 })

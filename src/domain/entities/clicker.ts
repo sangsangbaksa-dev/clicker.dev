@@ -359,6 +359,8 @@ export type ActiveSkillDef = {
   productionMultiplier?: number
   clickMultiplier?: number
   energyBurstSeconds?: number
+  /** Instant CORE worth this many strikes at the current strike power. */
+  clickBurst?: number
   instabilityPerSecond?: number
   instabilityDelta?: number
   /** While the buff runs, added straight onto the crit chance (past the usual cap, up to 100%). */

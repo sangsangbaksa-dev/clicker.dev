@@ -1450,6 +1450,10 @@ export function activateSkill(
       { id: skillId, expiresAt: now + skill.duration * 1000 },
     ]
   }
+  if (skill.clickBurst) {
+    const burst = derivedClick(next, meta, config).click * skill.clickBurst
+    next = { ...next, coreEnergy: next.coreEnergy + burst, lifetimeCoreEnergy: next.lifetimeCoreEnergy + burst }
+  }
   if (skill.energyBurstSeconds) {
     const snapshot = productionSnapshot(next, meta, config, now)
     const burst = snapshot.perSecond * skill.energyBurstSeconds

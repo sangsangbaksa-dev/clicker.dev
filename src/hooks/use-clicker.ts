@@ -429,7 +429,7 @@ export function useClicker() {
           ? "fever"
           : skill?.cooldownReset
             ? "crisisResolve"
-            : skill?.energyBurstSeconds
+            : skill?.energyBurstSeconds || skill?.clickBurst
               ? "skillBurst"
               : (skill?.clickMultiplier || skill?.criticalChanceAdd) && !skill.productionMultiplier
                 ? "skillLaser"
