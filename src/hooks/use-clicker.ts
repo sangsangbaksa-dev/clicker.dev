@@ -56,9 +56,9 @@ import {
   clickerForge,
   clickerBuyRelic,
   clickerBuyWorldTreeNode,
-  clickerPullGacha,
   allowMineStrike,
   clearClickerStoredSave,
+  clickerFreshSaveJson,
   clickerPauseMine,
   clickerResumeMine,
   clickerSelectScreenTab,
@@ -103,6 +103,7 @@ import {
   ADMIN_DEFAULT_MODES,
   nextAdminSpeed,
   type AdminModes,
+  withParticle,
 } from "@/application/clicker-ui"
 import { playSfx, setSfxMuted } from "@/lib/clicker-sfx"
 import { clearFloats, pushFloat } from "@/lib/clicker-floats"
@@ -425,7 +426,19 @@ export function useClicker() {
     commit(result.value)
     const skill = clickerGameConfig.activeSkills.find((s) => s.id === id)
     // Each kind of skill has its own cast: instant energy, mining laser, or a production surge.
-    playSfx(skill?.energyBurstSeconds ? "skillBurst" : skill?.clickMultiplier && !skill.productionMultiplier ? "skillLaser" : "skillPower")
+    playSfx(
+      skill?.lightningStorm
+        ? "lightning"
+        : skill?.feverIgnite
+          ? "fever"
+          : skill?.cooldownReset
+            ? "crisisResolve"
+            : skill?.energyBurstSeconds || skill?.clickBurst
+              ? "skillBurst"
+              : (skill?.clickMultiplier || skill?.criticalChanceAdd) && !skill.productionMultiplier
+                ? "skillLaser"
+                : "skillPower",
+    )
     flash(`${skill?.name ?? id} 발동`)
   }, [commit, flash, refuse])
 
@@ -448,7 +461,7 @@ export function useClicker() {
     playSfx("travel")
     // Every arrival plays the region's cinematic, not just the first.
     if (result.value.intro) setRegionIntro({ regionId, name: label, description: region?.description ?? "", ...result.value.intro })
-    else flash(`${label}(으)로 이동`)
+    else flash(`${withParticle(label, "으로")} 이동`)
   }, [flash, refuse, commitAndSave])
 
   const dismissRegionIntro = useCallback(() => setRegionIntro(null), [])
@@ -583,9 +596,11 @@ export function useClicker() {
     )
   }, [commit])
 
-  const adminCrisis = useCallback(() => {
+  /** Admin: five charges of every active skill, all cooldowns cleared. */
+  const adminSkills = useCallback(() => {
     if (!isClickerAdminAllowed() || !saveRef.current) return
-    commit(clickerAdminPatch(saveRef.current, { instability: 100, crisisActive: true }))
+    const skillItems = Object.fromEntries(clickerGameConfig.activeSkills.map((s) => [s.id, 5]))
+    commit(clickerAdminPatch(saveRef.current, { skillItems, skillCooldowns: {} }))
   }, [commit])
 
   const adminPotions = useCallback(() => {
@@ -853,22 +868,6 @@ export function useClicker() {
     [refuse, flash, commitAndSave],
   )
 
-  /** Pull core capsules; returns the rewards so the panel can reveal them (null when refused). */
-  /** Open capsules (the gacha screen plays the reveal and its sounds). Returns the rewards, or null when refused. */
-  const pullGacha = useCallback(
-    (count: 1 | 10, free = false) => {
-      if (!saveRef.current) return null
-      const result = clickerPullGacha(saveRef.current, count, now(), free)
-      if (!result.ok) {
-        refuse(result.error)
-        return null
-      }
-      commitAndSave(result.value.save)
-      return result.value.rewards
-    },
-    [refuse, commitAndSave],
-  )
-
   /** One tap on the region drill rig. Returns the payout when this tap bored the vein, else 0 (null when refused). */
   const drillVein = useCallback(
     (clientX: number, clientY: number) => {
@@ -948,6 +947,11 @@ export function useClicker() {
     },
     [loadAsOwner, flash],
   )
+
+  /** A different account logged in on this device: back up the old run and begin a new one. */
+  const startFreshRun = useCallback(() => {
+    importSaveJson(clickerFreshSaveJson(now()), "새 진행으로 시작합니다")
+  }, [importSaveJson])
 
   // Render from the last tick's clock (updated every ~100ms) so render stays pure.
   const t = save?.runState.lastTickAt ?? 0
@@ -1035,6 +1039,7 @@ export function useClicker() {
     exportSaveJson,
     parseSaveCode,
     importSaveJson,
+    startFreshRun,
     dismissToast,
     clickCore,
     buyPotion,
@@ -1062,7 +1067,7 @@ export function useClicker() {
     adminCycleSpeed,
     adminModes,
     adminFillFever,
-    adminCrisis,
+    adminSkills,
     adminPotions,
     adminUnlock,
     toggleMute,
@@ -1096,7 +1101,6 @@ export function useClicker() {
     buyRelic,
     buyWorldTreeNode,
     redeemSecretCode,
-    pullGacha,
     drillVein,
     purchaseFx,
     startBoss,

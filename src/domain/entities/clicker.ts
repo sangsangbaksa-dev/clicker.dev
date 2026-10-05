@@ -173,25 +173,8 @@ export type MetaState = {
   monstersSlain: number
   /** Relic Vault: relic id → level. Permanent across rebirths. */
   relicLevels: Record<string, number>
-  /** Core capsule gacha: pulls since the last legendary (pity), lifetime pulls, legendary stars owned. */
-  gachaPity?: number
-  gachaPulls?: number
+  /** Legendary stars won in the retired capsule shop: permanent production bonus. */
   gachaStars?: number
-  /** When the last free daily capsule was opened (ms). */
-  gachaFreeAt?: number
-  /** Capsules opened per rarity, all time. */
-  gachaCounts?: Partial<Record<"common" | "rare" | "epic" | "legendary", number>>
-  /** The most recent capsules (newest first), for the history screen. */
-  gachaLog?: GachaLogEntry[]
-}
-
-/** One opened capsule: when, its rarity, what it held (skill / upgrade / circuit id, or star count). */
-export type GachaLogEntry = {
-  at: number
-  rarity: "common" | "rare" | "epic" | "legendary"
-  kind: "skill" | "upgrade" | "circuit" | "star"
-  id: string
-  count?: number
 }
 
 export type ClickerSettings = {
@@ -309,7 +292,7 @@ export type SkillNodeDef = {
   criticalMultiplier?: number
   comboMaxAdd?: number
   finisherReward?: number
-  instabilityRewardBonus?: number
+  flatProductionBonus?: number
   comboWindowAdd?: number
   /** Owning this circuit unlocks FEVER (gauge, gauge start and potions); locked until then. */
   unlocksFever?: boolean
@@ -378,8 +361,18 @@ export type ActiveSkillDef = {
   productionMultiplier?: number
   clickMultiplier?: number
   energyBurstSeconds?: number
+  /** Instant CORE worth this many strikes at the current strike power. */
+  clickBurst?: number
   instabilityPerSecond?: number
   instabilityDelta?: number
+  /** While the buff runs, added straight onto the crit chance (past the usual cap, up to 100%). */
+  criticalChanceAdd?: number
+  /** Calls a lightning storm for `duration`: every strike arcs lightning. */
+  lightningStorm?: boolean
+  /** Starts FEVER at once (FEVER must be unlocked). */
+  feverIgnite?: boolean
+  /** Clears the cooldown of every other active skill. */
+  cooldownReset?: boolean
   assetId: string
 }
 
@@ -478,6 +471,8 @@ export type RegionIntroDef = {
   poster: string
   /** A frame from the video: the world's landing view until the player picks an action. */
   still: string
+  /** Short clip played when the player leaves the still for the action (hunt or drill). */
+  engageVideo?: string
 }
 
 export type ObjectiveDef = {
@@ -498,7 +493,7 @@ export type TranscendenceDef = {
   clickMultiplier?: number
   productionMultiplier?: number
   feverDurationAdd?: number
-  instabilityRewardBonus?: number
+  flatProductionBonus?: number
   startingEnergy?: number
   comboWindowAdd?: number
   criticalMultiplier?: number
@@ -606,6 +601,6 @@ export type GameConfig = {
     productionTargetId?: string
     productionBonus?: number
     feverDurationBonus?: number
-    instabilityRewardBonus?: number
+    flatProductionBonus?: number
   }>
 }

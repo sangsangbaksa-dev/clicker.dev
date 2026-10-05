@@ -36,3 +36,29 @@ export function formatNumber(value: number): string {
 function trimZeros(text: string): string {
   return text.includes(".") ? text.replace(/\.?0+$/, "") : text
 }
+
+/** Final consonant of the word's last sound: "none", "rieul" (ㄹ) or "other". Latin endings are guessed by letter. */
+function finalSound(word: string): "none" | "rieul" | "other" {
+  const ch = word.trim().slice(-1)
+  const code = ch.charCodeAt(0)
+  if (code >= 0xac00 && code <= 0xd7a3) {
+    const jong = (code - 0xac00) % 28
+    return jong === 0 ? "none" : jong === 8 ? "rieul" : "other"
+  }
+  // Latin names are read the Korean way: -t/-k/-p end in a vowel (볼트, 크, 프), -l in ㄹ,
+  // -m/-n (and a silent e after them, as in Mine → 마인) in a consonant.
+  const w = word.trim().toLowerCase()
+  const c = w.slice(-1)
+  if (c === "l") return "rieul"
+  if (c === "m" || c === "n" || (c === "e" && /[mn]e$/.test(w))) return "other"
+  if (/[0-9]/.test(c)) return "178".includes(c) ? "rieul" : "036".includes(c) ? "other" : "none"
+  return "none"
+}
+
+/** Korean particle that fits the word: 이/가, 을/를, 은/는, (으)로. */
+export function withParticle(word: string, particle: "이가" | "을를" | "은는" | "으로"): string {
+  const end = finalSound(word)
+  if (particle === "으로") return word + (end === "other" ? "으로" : "로")
+  const [after, plain] = particle === "이가" ? ["이", "가"] : particle === "을를" ? ["을", "를"] : ["은", "는"]
+  return word + (end === "none" ? plain : after)
+}

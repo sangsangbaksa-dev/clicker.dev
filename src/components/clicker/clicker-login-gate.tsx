@@ -7,8 +7,6 @@ const LOGIN_BG = "/clicker/bg/login_core_sanctum.webp"
 
 type Props = {
   state: ClickerAccountState
-  /** This device's run: total CORE across every worldline (meta.totalCoreEnergy). */
-  localTotal: number
   /** Close the gate: logged in, or playing as a guest. */
   onDone: (how: "account" | "guest") => void
 }
@@ -18,21 +16,15 @@ type Props = {
  * in the cloud; a guest run lives on this device only. While the account store is not
  * configured the form is shown disabled and guest play stays open.
  */
-export function ClickerLoginGate({ state, localTotal, onDone }: Props) {
+export function ClickerLoginGate({ state, onDone }: Props) {
   const ready = state.storage
-
-  // Whichever run has more total CORE (this device or the cloud) is the one you continue.
-  const afterSuccess = async (mode: "login" | "signup") => {
-    const cloud = state.cloudTotal()
-    if (mode === "login" && cloud !== null && cloud > localTotal) await state.download()
-    else if (mode === "login") await state.upload()
-    onDone("account")
-  }
 
   return (
     <div className="clicker-login" role="dialog" aria-labelledby="clicker-login-brand" aria-describedby="clicker-login-lead">
       <img className="clicker-login-bg" src={LOGIN_BG} alt="" aria-hidden decoding="async" fetchPriority="high" />
       <div className="clicker-login-veil" aria-hidden />
+      {/* Only this layer scrolls: the art stays pinned to the screen when the form grows. */}
+      <div className="clicker-login-scroll">
       <section className="clicker-login-panel">
         <p className="clicker-login-kicker">WORLD LINE PROTOCOL</p>
         <h1 id="clicker-login-brand" className="clicker-login-brand">
@@ -48,7 +40,7 @@ export function ClickerLoginGate({ state, localTotal, onDone }: Props) {
               계정 서버를 준비하고 있습니다. 지금은 게스트로 시작해 주세요. 진행은 이 기기에 저장됩니다.
             </p>
           )}
-          <ClickerAccountForm state={state} autoFocus={ready} disabled={!ready} onSuccess={(mode) => void afterSuccess(mode)} />
+          <ClickerAccountForm state={state} autoFocus={ready} disabled={!ready} onSuccess={() => onDone("account")} />
           <div className="clicker-login-divider" aria-hidden>
             <span>또는</span>
           </div>
@@ -61,6 +53,7 @@ export function ClickerLoginGate({ state, localTotal, onDone }: Props) {
         </>
         <ClickerAccountMessage state={state} />
       </section>
+      </div>
     </div>
   )
 }

@@ -45,7 +45,6 @@ import {
   regionUnlockThreshold,
   buyRelic,
   buyWorldTreeNode,
-  pullGacha,
 } from "@/domain/services/clicker-engine"
 import {
   awardAchievements,
@@ -127,6 +126,11 @@ export function loadClickerGame(now: number): SaveData {
 export function persistClickerGame(save: SaveData): void {
   if (persistBlocked) return
   clickerPersistence().writeRaw(encodeClickerSave({ ...save, savedAt: Date.now() }).json)
+}
+
+/** A brand-new run, encoded exactly as the game stores it. */
+export function clickerFreshSaveJson(now: number): string {
+  return encodeClickerSave(createInitialSave(now, config)).json
 }
 
 export function clearClickerStoredSave(): void {
@@ -460,18 +464,12 @@ export function clickerBuyRelic(save: SaveData, relicId: string): UseCaseResult<
   return ok({ ...save, runState: next.run, metaState: next.meta })
 }
 
-/* ---------- World skill trees · gacha ---------- */
+/* ---------- World skill trees ---------- */
 
 export function clickerBuyWorldTreeNode(save: SaveData, nodeId: string): UseCaseResult<SaveData> {
   const next = buyWorldTreeNode(save.runState, config, nodeId)
   if (next.error) return { ok: false, status: 400, error: next.error }
   return ok({ ...save, runState: next.run })
-}
-
-export function clickerPullGacha(save: SaveData, count: 1 | 10, now: number, free = false) {
-  const next = pullGacha(save.runState, save.metaState, config, now, rng, count, free)
-  if (next.error) return { ok: false as const, status: 400, error: next.error }
-  return ok({ save: withAchievements({ ...save, runState: next.run, metaState: next.meta }), rewards: next.rewards })
 }
 
 export function clickerStartBoss(save: SaveData, now: number): UseCaseResult<SaveData> {

@@ -1746,6 +1746,19 @@
   border: 1px solid rgb(255 120 110 / 0.35);
   backdrop-filter: blur(4px);
 }
+/* Before the fight too: the forecast and the entry button sit on the same dark card instead
+   of floating over the boss art, where the red warning was hard to read. */
+[data-clicker] .clicker-hunt-station:not(.is-battle) {
+  padding: 10px 14px 12px;
+  border-radius: 14px;
+  background: rgb(6 10 16 / 0.74);
+  border: 1px solid rgb(120 200 255 / 0.28);
+  backdrop-filter: blur(4px);
+}
+[data-clicker] .clicker-lair-forecast {
+  text-shadow: none;
+}
+
 /* Forge opens as a bottom sheet instead of shoving the arena around. */
 [data-clicker] .clicker-forge.is-open .clicker-forge-slots {
   position: fixed;
@@ -2023,7 +2036,7 @@
   50% { box-shadow: 0 0 34px rgb(160 235 255 / 0.75); }
 }
 
-/* Locked dock entries (the forge before the third world) read as dimmed with a lock. */
+/* Locked dock entries stay visible while their lock state remains clear. */
 [data-clicker] .clicker-hub-dock-btn.is-locked {
   opacity: 0.82;
   cursor: not-allowed;
@@ -2057,6 +2070,8 @@
   box-shadow: none;
   border-color: rgb(120 160 200 / 0.14);
 }
+[data-clicker] .clicker-tabs button[data-locked="true"] { opacity: 0.45; filter: grayscale(0.7); }
+[data-clicker] .clicker-tabs button[data-locked="true"]::after { content: " 🔒"; font-size: 0.8em; }
 [data-clicker] .clicker-forge-summary { margin: 0 0 10px; font-size: 13px; color: #dff4ff; }
 [data-clicker] .clicker-forge-summary b { color: #ffe08a; }
 [data-clicker] .clicker-forge-panel { width: 100%; margin: 0; }
@@ -2374,16 +2389,24 @@
 
 /* ---------- Login gate: first screen (log in · sign up · guest) over the Canva sanctum art ---------- */
 [data-clicker] .clicker-login {
+  /* Exactly one screen tall, whatever the form's height: the art and veil size to this box,
+     so switching login ↔ signup (or showing a message) never re-crops or moves them. */
   position: relative;
-  display: grid;
-  /* Top-anchored, not centred: switching login/signup or showing a message grows the panel
-     downward instead of shifting the whole screen. The offset centres the tallest state. */
-  align-items: start;
-  min-height: 100dvh;
-  padding: max(24px, calc(50dvh - 370px)) clamp(16px, 4vw, 56px) clamp(16px, 4vw, 56px);
+  height: 100dvh;
   overflow: hidden;
   isolation: isolate;
   background: #05080f;
+}
+[data-clicker] .clicker-login-scroll {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  /* Top-anchored, not centred: a taller form grows downward instead of shifting the panel.
+     The offset centres the tallest state. */
+  align-items: start;
+  padding: max(24px, calc(50dvh - 370px)) clamp(16px, 4vw, 56px) clamp(16px, 4vw, 56px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 [data-clicker] .clicker-login-bg {
   position: absolute;
@@ -2459,7 +2482,7 @@
 
 /* Phones: art across the top, panel below it. */
 @media (max-width: 720px) {
-  [data-clicker] .clicker-login { padding: 16px; }
+  [data-clicker] .clicker-login-scroll { padding: 16px; }
   [data-clicker] .clicker-login-veil {
     background: linear-gradient(180deg, transparent 0%, rgb(4 7 14 / 0.25) 30%, rgb(4 7 14 / 0.9) 58%, rgb(4 7 14 / 0.96) 100%);
   }
@@ -2522,91 +2545,6 @@
 [data-clicker] .clicker-world-tree-done { font-size: 12px; opacity: 0.75; white-space: nowrap; font-variant-numeric: tabular-nums; }
 [data-clicker] .clicker-world-tree-done { color: var(--core-bright); opacity: 1; font-weight: 700; }
 
-/* ---------- Core capsule gacha (top of the shop) ---------- */
-[data-clicker] .clicker-gacha {
-  position: relative;
-  display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
-  gap: 14px;
-  align-items: center;
-  margin-bottom: 14px;
-  padding: 14px;
-  border: 1px solid color-mix(in srgb, #ffc857 40%, var(--edge));
-  border-radius: 16px;
-  background:
-    radial-gradient(120% 140% at 0% 0%, rgb(255 200 87 / 0.12), transparent 55%),
-    linear-gradient(180deg, rgb(14 20 34 / 0.9), rgb(8 12 22 / 0.95));
-  grid-column: 1 / -1;
-}
-[data-clicker] .clicker-gacha-machine { width: 132px; height: 132px; border-radius: 14px; object-fit: cover; }
-[data-clicker] .clicker-gacha-body { display: grid; gap: 6px; min-width: 0; }
-[data-clicker] .clicker-gacha-body .clicker-shop-section { margin: 0; }
-[data-clicker] .clicker-gacha-rates { margin: 0; font-size: 12px; opacity: 0.75; }
-[data-clicker] .clicker-gacha-legend {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 12px;
-}
-[data-clicker] .clicker-gacha-legend li { display: flex; align-items: center; gap: 6px; min-width: 0; }
-[data-clicker] .clicker-gacha-legend img { width: 22px; height: 22px; border-radius: 50%; }
-[data-clicker] .clicker-gacha-stars { margin: 0; font-size: 12px; font-weight: 700; color: #ffd98a; }
-[data-clicker] .clicker-gacha-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 2px; }
-[data-clicker] .clicker-gacha-actions .clicker-primary { min-height: 40px; font-size: 13px; }
-[data-clicker] .clicker-gacha-result {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 8px;
-  padding-top: 6px;
-}
-[data-clicker] .clicker-gacha-capsule {
-  display: grid;
-  justify-items: center;
-  gap: 4px;
-  margin: 0;
-  padding: 8px 6px;
-  border-radius: 12px;
-  text-align: center;
-  background: rgb(255 255 255 / 0.04);
-  animation: clicker-gacha-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
-}
-[data-clicker] .clicker-gacha-prize { position: relative; display: block; width: 56px; height: 56px; margin: 0 10px 10px 0; }
-[data-clicker] .clicker-gacha-prize img { width: 56px; height: 56px; border-radius: 50%; }
-/* The item itself sits on its capsule, slightly larger, so it reads as "this is what you got". */
-[data-clicker] .clicker-gacha-prize img.clicker-gacha-prize-icon {
-  position: absolute;
-  right: -10px;
-  bottom: -8px;
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  object-fit: cover;
-  box-shadow: 0 0 0 2px rgb(10 18 30 / 0.9), 0 4px 10px rgb(0 0 0 / 0.5);
-}
-[data-clicker] .clicker-gacha-capsule figcaption { display: grid; gap: 2px; font-size: 11px; line-height: 1.25; }
-[data-clicker] .clicker-gacha-capsule small { opacity: 0.8; word-break: keep-all; }
-[data-clicker] .clicker-gacha-capsule.is-rare { box-shadow: inset 0 0 0 1px rgb(80 160 255 / 0.6); }
-[data-clicker] .clicker-gacha-capsule.is-epic { box-shadow: inset 0 0 0 1px rgb(190 110 255 / 0.7), 0 0 18px rgb(190 110 255 / 0.25); }
-[data-clicker] .clicker-gacha-capsule.is-legendary {
-  box-shadow: inset 0 0 0 1px rgb(255 205 100 / 0.9), 0 0 26px rgb(255 190 80 / 0.45);
-  background: rgb(255 200 90 / 0.1);
-}
-[data-clicker] .clicker-gacha-close { grid-column: 1 / -1; min-height: 36px; }
-@keyframes clicker-gacha-pop {
-  from { opacity: 0; transform: scale(0.6) translateY(8px); }
-  to { opacity: 1; transform: none; }
-}
-@media (max-width: 520px) {
-  [data-clicker] .clicker-gacha { grid-template-columns: 1fr; }
-  [data-clicker] .clicker-gacha-machine { width: 100%; height: 160px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  [data-clicker] .clicker-gacha-capsule { animation: none; }
-}
 /* The world card's backdrop <img> rule must not reach the tree's currency icons. */
 [data-clicker] .clicker-world-tree img.clicker-currency-icon {
   position: static;
@@ -2620,4 +2558,123 @@
   filter: none;
   transform: none;
   vertical-align: -3px;
+}
+
+/* Detail polish: an affordable card already says so with its glowing buy button, so its
+   "구매 가능" pill is kept for screen readers only. Pills that explain a block (CORE 부족,
+   잠김, 보유) stay visible. Names get the full row and stop wrapping early on phones. */
+[data-clicker] :is(.clicker-producer-status, .clicker-shop-status, .clicker-upgrade-status).is-affordable {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Rebirth row armed by the first press: a warm, pulsing confirm state. */
+[data-clicker] .clicker-wl-extra-card .clicker-primary.is-armed {
+  background: linear-gradient(180deg, #ffb35c, #e0602e);
+  border-color: #ffd2a0;
+  color: #1a0b02;
+  animation: clicker-wl-armed 0.9s ease-in-out infinite;
+}
+@keyframes clicker-wl-armed {
+  50% { box-shadow: 0 0 18px rgb(255 160 80 / 0.75); }
+}
+[data-clicker] .clicker-wl-select.is-locked .clicker-wl-extra-card:not(.is-walked) { opacity: 0.72; }
+[data-clicker] .clicker-transcendence-locked strong { color: #ffe08a; }
+
+/* English UI chrome in a sleek display face (Rajdhani): menu, tab strip, HUD captions,
+   manage header, mine HUD. Korean body text keeps Noto Sans KR. */
+[data-clicker] {
+  --font-display: "Rajdhani", "Noto Sans KR", system-ui, sans-serif;
+}
+[data-clicker] :is(
+  .clicker-tabs button,
+  .clicker-hub-dock-btn strong,
+  .clicker-metric > span,
+  .clicker-metric > em,
+  .clicker-manage-title,
+  .clicker-manage-back,
+  .clicker-settings-launch,
+  .clicker-save-pulse,
+  .clicker-mine-hud-stat > span,
+  .clicker-lair-leave,
+  .clicker-hub-enter
+) {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+[data-clicker] .clicker-tabs button { font-size: 14px; }
+[data-clicker] .clicker-tabs button[data-active="true"] { font-weight: 700; letter-spacing: 0.14em; }
+[data-clicker] .clicker-hub-dock-btn strong { font-size: 15px; letter-spacing: 0.08em; }
+[data-clicker] .clicker-hub-dock-btn span { letter-spacing: 0; text-transform: none; opacity: 0.7; }
+[data-clicker] .clicker-manage-title { font-size: 18px; font-weight: 700; letter-spacing: 0.22em; }
+[data-clicker] .clicker-metric > span { font-size: 12px; letter-spacing: 0.16em; }
+@media (max-width: 720px) {
+  [data-clicker] .clicker-tabs button { font-size: 12px; letter-spacing: 0.06em; }
+  [data-clicker] .clicker-hub-dock-btn strong { font-size: 12px; letter-spacing: 0.01em; }
+}
+
+/* Hunting grounds: "상세" opens how lair damage works, with the player's current numbers. */
+[data-clicker] .clicker-lair-info-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 14;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgb(120 200 255 / 0.45);
+  background: rgb(6 10 16 / 0.72);
+  color: #dff4ff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+[data-clicker] .clicker-lair-info-btn:hover { border-color: rgb(160 225 255 / 0.85); }
+[data-clicker] .clicker-lair-info {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(2 4 9 / 0.62);
+}
+[data-clicker] .clicker-lair-info > section {
+  width: min(520px, 100%);
+  max-height: min(86dvh, 720px);
+  overflow-y: auto;
+  padding: 18px 20px 20px;
+  border-radius: 16px;
+  border: 1px solid rgb(120 200 255 / 0.3);
+  background: linear-gradient(180deg, rgb(10 16 28 / 0.97), rgb(6 10 18 / 0.98));
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.55);
+  color: #d9e9f5;
+  font-size: 14px;
+  line-height: 1.55;
+}
+[data-clicker] .clicker-lair-info header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+[data-clicker] .clicker-lair-info h3 { margin: 0; font-size: 18px; color: #f6efe0; }
+[data-clicker] .clicker-lair-info h4 { margin: 14px 0 6px; font-size: 13px; letter-spacing: 0.08em; color: #8fd8ff; }
+[data-clicker] .clicker-lair-info ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+[data-clicker] .clicker-lair-info b { color: #ffe08a; }
+[data-clicker] .clicker-lair-info-formula {
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgb(120 200 255 / 0.08);
+  border: 1px solid rgb(120 200 255 / 0.18);
+}
+/* Desktop dock: English labels are wider than the old Korean ones, so each button sizes to
+   its label instead of an equal share of a fixed-width bar (PRODUCERS overflowed into UPGRADES). */
+@media (min-width: 721px) {
+  [data-clicker] .clicker-hub-dock { width: auto; }
+  [data-clicker] .clicker-hub-dock-btn { flex: 0 0 auto; min-width: 84px; padding: 10px 14px; }
+  [data-clicker] .clicker-hub-dock-btn strong { font-size: 15px; white-space: nowrap; }
 }

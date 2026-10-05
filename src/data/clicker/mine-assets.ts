@@ -33,7 +33,7 @@ export const MineArt = {
    * camera creeps forward, the door splits open at its seam (x=960), and the camera glides through
    * into `orePlate`; both cuts are seamless.
    */
-  enterCinematic: "/clicker/mine/mine_enter_door_walk_v17.mp4",
+  enterCinematic: "/clicker/mine/mine_enter_door_walk_v16.mp4",
   /** Previous 720p door-walk (kept on disk for reference). */
   enterCinematicV11: "/clicker/mine/mine_enter_door_walk_v11.mp4",
   /** Timed-session hi-tech interior — full-bleed chamber. */
@@ -44,5 +44,7 @@ export const MineArt = {
    */
   chamberInteriorMineral1080pV1: "/clicker/mine/mine_interior_hitech_mineral_1080p_v1.png",
   orePlate: MINE_ORE_PLATE.src,
+  /** The plate's blue strip lights, recoloured hot orange (same framing): FEVER pulses only these. */
+  feverLights: "/clicker/mine/mine_fever_lights.webp",
   coreOre: "/clicker/mine/mine_core_ore_click_v1.webp",
 } as const

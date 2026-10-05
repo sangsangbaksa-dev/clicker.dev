@@ -6,7 +6,7 @@ export { spawnMineOres } from "@/domain/services/ore-node"
 export { ORE_ART } from "@/infrastructure/ore-art"
 export { loadAlphaMask } from "@/infrastructure/image/alpha-mask-loader"
 export { oreHitBox, oreStrikePoint, type OreNode } from "@/domain/services/ore-node"
-export { formatNumber } from "@/domain/services/clicker-format"
+export { formatNumber, withParticle } from "@/domain/services/clicker-format"
 export {
   clickerCompletionRank,
   clickerPlayTimeMs,
@@ -29,7 +29,6 @@ export {
   type SkillNodeView,
 } from "@/domain/services/clicker-view"
 export type {
-  GachaLogEntry,
   BossDef,
   BossFight,
   ClickerSettings,
@@ -65,17 +64,9 @@ export {
   worldTreeOwned,
   worldTreeNodeCost,
   worldTreeNodeError,
-  gachaCost,
   lairDamageMultiplier,
-  gachaFreeReady,
-  gachaLegendaryRate,
   gachaStarMultiplier,
-  GACHA_PITY,
-  GACHA_SOFT_PITY,
-  GACHA_FREE_EVERY_MS,
   GACHA_STAR_PRODUCTION,
-  type GachaReward,
-  type GachaRarity,
 } from "@/domain/services/clicker-engine"
 export {
   CLICKER_ADMIN_REMEMBER_KEY,
@@ -126,6 +117,7 @@ export {
   GEAR_SLOTS,
   HELMETS,
   LAIR_BOSSES,
+  SHIELD_MS,
   WEAPONS,
   forgeError,
   gearImage,

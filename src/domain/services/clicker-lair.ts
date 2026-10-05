@@ -1,5 +1,6 @@
 import type { GameConfig, LairFight, MetaState, RunState } from "../entities/clicker"
 import { lairDamageMultiplier, regionCurrencyBalance, scaledCost, slayMonster } from "./clicker-engine.ts"
+import { withParticle } from "./clicker-format.ts"
 
 /*
  * Lair battles: instead of tapping a roaming boss to death, the player walks into its lair
@@ -42,6 +43,12 @@ export const WEAPONS: WeaponTier[] = [
   { id: "phase_greatsword", name: "위상 수정 대검", damage: 4, cost: { core: 6_000, currencies: [cc("signal_relay", 1_500), cc("phase_vault", 2_500)] } },
   { id: "storm_lance", name: "뇌운 창", damage: 7, cost: { core: 75_000, currencies: [cc("phase_vault", 15_000), cc("storm_spire", 22_500)] } },
   { id: "magma_maul", name: "용암 파쇄 망치", damage: 12, cost: { core: 1_250_000, currencies: [cc("storm_spire", 250_000), cc("deep_fault", 350_000)] } },
+  // Deep tiers past the last world, matching the armor line.
+  { id: "abyss_reaver", name: "심연 낫검", damage: 16, cost: { core: 4_000_000, currencies: [cc("deep_fault", 700_000)] } },
+  { id: "obsidian_edge", name: "흑요 절단검", damage: 21, cost: { core: 10_000_000, currencies: [cc("deep_fault", 1_500_000)] } },
+  { id: "quake_hammer", name: "지진 전쟁망치", damage: 27, cost: { core: 25_000_000, currencies: [cc("deep_fault", 3_000_000)] } },
+  { id: "core_halberd", name: "코어 선봉 미늘창", damage: 34, cost: { core: 60_000_000, currencies: [cc("deep_fault", 6_000_000)] } },
+  { id: "worldline_blade", name: "세계선 검", damage: 42, cost: { core: 150_000_000, currencies: [cc("deep_fault", 12_000_000)] } },
 ]
 
 export const ARMORS: ArmorTier[] = [
@@ -64,6 +71,12 @@ export const HELMETS: HelmetTier[] = [
   { id: "phase_crown", name: "위상 수정 관", hp: 50, cost: { core: 3_500, currencies: [cc("signal_relay", 900), cc("phase_vault", 1_400)] } },
   { id: "storm_helm", name: "뇌운 투구", hp: 90, cost: { core: 42_500, currencies: [cc("phase_vault", 9_000), cc("storm_spire", 14_000)] } },
   { id: "magma_horns", name: "용암 뿔 투구", hp: 150, cost: { core: 700_000, currencies: [cc("storm_spire", 140_000), cc("deep_fault", 210_000)] } },
+  // Deep tiers past the last world, matching the armor line.
+  { id: "abyss_mask", name: "심연 가면", hp: 190, cost: { core: 4_000_000, currencies: [cc("deep_fault", 700_000)] } },
+  { id: "obsidian_helm", name: "흑요 투구", hp: 240, cost: { core: 10_000_000, currencies: [cc("deep_fault", 1_500_000)] } },
+  { id: "quake_crown", name: "지진 왕관", hp: 300, cost: { core: 25_000_000, currencies: [cc("deep_fault", 3_000_000)] } },
+  { id: "core_vanguard_helm", name: "코어 선봉 투구", hp: 370, cost: { core: 60_000_000, currencies: [cc("deep_fault", 6_000_000)] } },
+  { id: "worldline_helm", name: "세계선 투구", hp: 450, cost: { core: 150_000_000, currencies: [cc("deep_fault", 12_000_000)] } },
 ]
 
 export const AMULETS: AmuletTier[] = [
@@ -72,6 +85,12 @@ export const AMULETS: AmuletTier[] = [
   { id: "phase_hourglass", name: "위상 모래시계", slow: 0.2, cost: { core: 7_500, currencies: [cc("signal_relay", 1_800), cc("phase_vault", 3_000)] } },
   { id: "storm_eye", name: "폭풍의 눈", slow: 0.3, cost: { core: 90_000, currencies: [cc("phase_vault", 18_000), cc("storm_spire", 27_000)] } },
   { id: "magma_heartstone", name: "용암 심장석", slow: 0.45, cost: { core: 1_500_000, currencies: [cc("storm_spire", 300_000), cc("deep_fault", 420_000)] } },
+  // Deep tiers past the last world, matching the armor line.
+  { id: "abyss_eye", name: "심연의 눈", slow: 0.55, cost: { core: 4_000_000, currencies: [cc("deep_fault", 700_000)] } },
+  { id: "obsidian_sigil", name: "흑요 인장", slow: 0.65, cost: { core: 10_000_000, currencies: [cc("deep_fault", 1_500_000)] } },
+  { id: "quake_compass", name: "지진 나침반", slow: 0.75, cost: { core: 25_000_000, currencies: [cc("deep_fault", 3_000_000)] } },
+  { id: "core_reliquary", name: "코어 성물함", slow: 0.85, cost: { core: 60_000_000, currencies: [cc("deep_fault", 6_000_000)] } },
+  { id: "worldline_hourglass", name: "세계선 모래시계", slow: 1, cost: { core: 150_000_000, currencies: [cc("deep_fault", 12_000_000)] } },
 ]
 
 export const GEAR: Record<GearSlot, GearTier[]> = { weapon: WEAPONS, armor: ARMORS, helmet: HELMETS, amulet: AMULETS }
@@ -109,7 +128,7 @@ export function forgeError(run: RunState, config: GameConfig, slot: GearSlot): s
   for (const c of next.cost.currencies) {
     if (regionCurrencyBalance(run, c.regionId) < c.amount) {
       const name = config.regions.find((r) => r.id === c.regionId)?.currency?.name ?? c.regionId
-      return `${name}이(가) 부족합니다.`
+      return `${withParticle(name, "이가")} 부족합니다.`
     }
   }
   return undefined

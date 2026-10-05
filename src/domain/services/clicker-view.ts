@@ -1,4 +1,5 @@
 import type {
+  ActiveSkillDef,
   GameConfig,
   InstabilityLevel,
   MetaState,
@@ -113,17 +114,17 @@ export function buildHud(
       combo: run.fever.combo,
       finisherReady: run.fever.finisherReady,
       phaseLabel: !feverUnlocked(run, config)
-        ? "FEVER 잠김"
+        ? "FEVER LOCKED"
         : feverHeld
-        ? "FEVER 일시정지"
+        ? "FEVER PAUSED"
         : feverOn
         ? run.fever.finisherReady
-          ? "피니셔 준비"
+          ? "FINISHER READY"
           : `FEVER ×${Math.max(1, run.fever.combo)}`
         : feverCooling
-          ? "쿨다운"
+          ? "COOLDOWN"
           : run.fever.gauge >= config.feverGaugeMax
-            ? "FEVER 준비"
+            ? "FEVER READY"
             : "FEVER",
     },
     instability: {
@@ -394,16 +395,9 @@ function trimZerosLocal(text: string): string {
   return text.replace(/\.?0+$/, "")
 }
 
-function activeSkillEffectSummary(skill: {
-  duration: number
-  cooldown: number
-  productionMultiplier?: number
-  clickMultiplier?: number
-  energyBurstSeconds?: number
-  instabilityPerSecond?: number
-  instabilityDelta?: number
-}): string {
+function activeSkillEffectSummary(skill: ActiveSkillDef): string {
   const parts: string[] = []
+  if (skill.clickBurst) parts.push(`즉시 채굴 ${skill.clickBurst}회분`)
   if (skill.energyBurstSeconds) parts.push(`즉시 생산 ${skill.energyBurstSeconds}초분`)
   if (skill.productionMultiplier != null && skill.productionMultiplier !== 1) {
     parts.push(`생산 ×${trimMult(skill.productionMultiplier)}`)
@@ -411,6 +405,10 @@ function activeSkillEffectSummary(skill: {
   if (skill.clickMultiplier != null && skill.clickMultiplier !== 1) {
     parts.push(`채굴 ×${trimMult(skill.clickMultiplier)}`)
   }
+  if (skill.criticalChanceAdd) parts.push(`치명타 +${Math.round(skill.criticalChanceAdd * 100)}%`)
+  if (skill.lightningStorm) parts.push("모든 타격에 번개")
+  if (skill.feverIgnite) parts.push("FEVER 즉시 점화")
+  if (skill.cooldownReset) parts.push("다른 스킬 쿨다운 초기화")
   if (skill.duration > 0) parts.push(`${skill.duration}초`)
   if (skill.cooldown > 0) parts.push(`쿨다운 ${skill.cooldown}초`)
   return parts.join(" · ") || "효과 없음"
