@@ -2025,7 +2025,8 @@
 /* Drill rig: larger than before but kept clear of the header, with no blue haze — no glow
    disc behind it, no cyan halo, no gush jet on taps. */
 [data-clicker] .clicker-drill-station .clicker-drill {
-  width: clamp(260px, 42vh, 360px);
+  /* Waldomage drill-bg: the darker backdrop lets the rig be a little larger (was clamp(260px, 42vh, 360px)). */
+  width: clamp(280px, 46vh, 420px);
   background: none;
 }
 [data-clicker] .clicker-drill-station .clicker-drill img { filter: drop-shadow(0 10px 22px rgb(0 0 0 / 0.6)); }

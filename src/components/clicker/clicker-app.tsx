@@ -17,6 +17,7 @@ import {
   WEAPONS,
   drillCooldownMs,
   formatNumber,
+  formatRate,
   gearOf,
   grantClickerAdminByCode,
   isClickerAdminAllowed,
@@ -37,12 +38,15 @@ import {
   resolveActiveSkillBarState,
   SECRET_CODE,
   typedSecretCode,
+  buildUpgradeNavTabs,
+  stageStationFor,
+  type UpgradeNavAction,
 } from "@/application/clicker-ui"
 import { useClicker } from "@/hooks/use-clicker"
 import { useClickerBgm } from "@/hooks/use-clicker-bgm"
-import { clickerBgmControls, clickerBgmScene } from "@/application/clicker-audio"
+import { clickerBgmControls, clickerBgmScene, mineEntryVideoMuted } from "@/application/clicker-audio"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
-import { ClickerEnding } from "@/components/clicker/clicker-ending"
+import { ClickerEndingFlow } from "@/components/clicker/clicker-ending-flow"
 import { ClickerMine, type MineFxTier } from "@/components/clicker/clicker-mine"
 import { ClickerCinematic, preloadCinematic } from "@/components/clicker/clicker-cinematic"
 import { ClickerRegionChallenge } from "@/components/clicker/clicker-region-challenge"
@@ -68,6 +72,9 @@ import { useClickerAccount } from "@/hooks/use-clicker-account"
 import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
+import { useDrillCues } from "@/hooks/use-drill-cues"
+import { ENDING_MEDIA, endingVideoSrc, preloadEndingAudio, readEndingVideoQuality } from "@/lib/clicker-ending-media"
+import { ENDING_VIDEO_ORDER, shouldStartEnding } from "@/application/clicker-ending"
 import { ClickerFloats } from "./clicker-floats"
 import { ClickerCountdown } from "./clicker-countdown"
 import { ClickerAchievementsPanel } from "@/components/clicker/panels/achievements-panel"
@@ -121,7 +128,7 @@ const FX_TIER_BY_WORLDS: MineFxTier[] = [0, 1, 2, 2, 3, 3]
 
 type TabId = "producers" | "upgrades" | "skills" | "shop" | "forge" | "relics" | "world" | "achievements" | "transcendence"
 
-function CountUpNumber({ value }: { value: number }) {
+function CountUpNumber({ value, rate = false }: { value: number; rate?: boolean }) {
   const [shown, setShown] = useState(value)
   const shownRef = useRef(value)
 
@@ -150,7 +157,7 @@ function CountUpNumber({ value }: { value: number }) {
   }, [value])
 
   // Decorative tween — parent metrics should expose settled values via aria-label/live.
-  return <span aria-hidden>{formatNumber(shown)}</span>
+  return <span aria-hidden>{rate ? formatRate(shown) : formatNumber(shown)}</span>
 }
 
 /** Button kind → click cue, so different kinds of buttons sound different. */
@@ -236,6 +243,7 @@ export function ClickerApp() {
   /** Region whose field challenge is open (mini-game overlay), or null. */
   const [challengeRegionId, setChallengeRegionId] = useState<string | null>(null)
   const [drillHits, setDrillHits] = useState(0)
+  const drillCue = useDrillCues(game.save?.runState.currentRegionId)
 
   // Prime Web Audio on first gesture so click/laser SFX are not stuck suspended.
   useEffect(() => {
@@ -272,7 +280,6 @@ export function ClickerApp() {
   const [stageEvent, setStageEvent] = useState(false)
   const [popIcons, setPopIcons] = useState<Record<string, number>>({})
   const [confirmPotion, setConfirmPotion] = useState<string | null>(null)
-  const [endingOpen, setEndingOpen] = useState(false)
   const [pendingRebirth, setPendingRebirth] = useState<{ id: string; label: string } | null>(null)
   /** Title card shown over the fresh worldline right after the rebirth sequence. */
   const [arrival, setArrival] = useState<{ key: number; line: number; label: string; mult: number } | null>(null)
@@ -311,8 +318,8 @@ export function ClickerApp() {
   const adminRef = useRef<HTMLElement | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [skillMapOpen, setSkillMapOpen] = useState(false)
-  /** Ending sequence after the guardian falls: two videos, then the story cards. */
-  const [endingPhase, setEndingPhase] = useState<"fall" | "awaken" | null>(null)
+  /** Ending sequence (two videos, then the story cards): `live` after the guardian falls, `replay` from the completion screen. */
+  const [endingMode, setEndingMode] = useState<"live" | "replay" | null>(null)
 
   const bgm = clickerBgmControls(game.save?.settings, game.otherTabActive, game.hud?.coreVisual)
   useClickerBgm(bgm.visual, {
@@ -320,12 +327,17 @@ export function ClickerApp() {
       bootLoading: !game.save,
       enteringMine,
       regionIntro: game.regionIntro,
-      endingPhase,
+      // The whole ending (videos, cards, replay) silences the world score; the ending media bring their own audio.
+      endingPhase: endingMode,
       pendingRebirth: Boolean(pendingRebirth),
-      endingOpen,
+      endingOpen: false,
       playSurface: game.save?.settings.playSurface ?? "hub",
       currentRegionId: game.save?.runState.currentRegionId,
       bossFight: Boolean(game.save?.runState.boss),
+      // The core guardian is the only region boss: its fight gets the boss loop (the ending's silence still wins).
+      finalBossFight:
+        Boolean(game.save?.runState.boss) &&
+        Boolean(game.config.regions.find((r) => r.id === game.save?.runState.currentRegionId)?.boss),
     }),
     muted: bgm.muted,
     volume: bgm.volume,
@@ -485,12 +497,9 @@ export function ClickerApp() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented) return
       // Rebirth, settings and the skill map own Esc themselves.
-      if (pendingRebirth || settingsOpen || skillMapOpen || endingPhase) return
-
-      if (endingOpen) {
-        // Ending owns Esc (confirm cancel vs close) via ClickerEnding.
-        return
-      }
+      if (pendingRebirth || settingsOpen || skillMapOpen) return
+      // The ending owns Esc (skip a video / close a replay).
+      if (endingMode) return
       if (adminAllowed && adminOpen) {
         e.preventDefault()
         setAdminResetArmed(false)
@@ -533,8 +542,7 @@ export function ClickerApp() {
     pendingRebirth,
     settingsOpen,
     skillMapOpen,
-    endingPhase,
-    endingOpen,
+    endingMode,
     adminOpen,
     game.toast,
     game.dismissToast,
@@ -712,19 +720,20 @@ export function ClickerApp() {
   }, [atHomeNow, engageClip, unlockedKey, visited, game.config.regions])
 
   const bossDefeated = Boolean(game.save?.metaState.bossDefeated)
+  const gameCompleted = Boolean(game.save?.metaState.gameCompleted)
   const prevBossDefeated = useRef<boolean | null>(null)
   const bossFighting = Boolean(game.save?.runState.boss)
   useEffect(() => {
     if (bossDefeated || bossFighting) {
-      preloadCinematic("/clicker/ending/ending_guardian_fall.mp4")
-      preloadCinematic("/clicker/ending/ending_core_awaken.mp4")
+      const quality = readEndingVideoQuality()
+      for (const id of ENDING_VIDEO_ORDER) preloadCinematic(endingVideoSrc(id, quality))
+      preloadEndingAudio([...ENDING_VIDEO_ORDER.map((id) => ENDING_MEDIA.sfx[id]), ENDING_MEDIA.bgm])
     }
-    if (prevBossDefeated.current === false && bossDefeated) {
-      playSfx("bossDown")
-      setEndingPhase("fall")
-    }
+    // Live kill: stinger first. A reload after the kill (record not sealed yet) also resumes the ending.
+    if (prevBossDefeated.current === false && bossDefeated) playSfx("bossDown")
     prevBossDefeated.current = bossDefeated
-  }, [bossDefeated, bossFighting])
+    if (shouldStartEnding({ bossDefeated, gameCompleted, active: endingMode !== null })) setEndingMode("live")
+  }, [bossDefeated, bossFighting, gameCompleted, endingMode])
 
   // Lair battle feedback: every boss hit flashes the screen red; being knocked out
   // makes the boss roar in triumph and raise its shield.
@@ -822,13 +831,36 @@ export function ClickerApp() {
     )
   }
 
+  const endingFlow = endingMode ? (
+    <ClickerEndingFlow
+      mode={endingMode}
+      sfxMuted={game.save.settings.muted}
+      musicMuted={game.save.settings.musicMuted}
+      musicVolume={game.save.settings.musicVolume}
+      summary={{
+        worldlinesOwned: new Set(game.save.metaState.transcendenceIds).size,
+        worldlinesTotal: game.config.transcendence.length,
+        rebirthCount: game.save.metaState.rebirthCount,
+        lifetimeCoreText: formatNumber(game.save.metaState.totalCoreEnergy),
+      }}
+      onComplete={() => {
+        if (endingMode === "replay") setEndingMode(null)
+        else if (game.completeEnding()) setEndingMode(null)
+      }}
+    />
+  ) : null
+
   if (game.isCompleted) {
     return (
-      <ClickerComplete
-        meta={game.save.metaState}
-        worldlineTotal={game.config.transcendence.length}
-        onReset={game.adminReset}
-      />
+      <>
+        <ClickerComplete
+          meta={game.save.metaState}
+          worldlineTotal={game.config.transcendence.length}
+          onReset={game.adminReset}
+          onReplayEnding={() => setEndingMode("replay")}
+        />
+        {endingMode === "replay" ? endingFlow : null}
+      </>
     )
   }
 
@@ -931,6 +963,28 @@ export function ClickerApp() {
       ...(showTranscendenceTab ? ([["transcendence", "TRANSCENDENCE", "초월"]] as const) : []),
     ] as const
   )
+  const upgradeNavTabs = buildUpgradeNavTabs({
+    station: stageStationFor({
+      inMine,
+      isHome: Boolean(regionDef?.isHome),
+      hasBoss: Boolean(regionDef?.boss),
+      huntMode: Boolean(regionDef?.huntMode),
+      hasMonster: Boolean(monsterDef),
+    }),
+    rebirthVisible: showTranscendenceTab,
+  })
+  const onUpgradeNavRoute = (action: UpgradeNavAction) => {
+    if (action.kind === "open-rebirth") {
+      selectTab("transcendence")
+      return
+    }
+    if (action.kind === "open-stage") {
+      // Back to the region stage, where the monster fight / drill rig already lives.
+      setScreenTab("mine")
+      setEngagedRegion(run.currentRegionId)
+      setHubView("entrance")
+    }
+  }
   const automationBuff =
     run.ownedSkillNodeIds.some((id) => id.startsWith("auto_")) ||
     game.save.metaState.transcendenceIds.includes("auto_line") ||
@@ -967,13 +1021,13 @@ export function ClickerApp() {
     >
       <header className="clicker-top">
         {!inMine ? (
-          <div className="clicker-metric" aria-label={`코어 광석 ${formatNumber(run.coreEnergy)} · 초당 ${formatNumber(game.snapshot?.perSecond ?? 0)}`}>
+          <div className="clicker-metric" aria-label={`코어 광석 ${formatNumber(run.coreEnergy)} · 초당 ${formatRate(game.snapshot?.perSecond ?? 0)}`}>
             <span>코어 광석</span>
             <strong>
               <CountUpNumber value={run.coreEnergy} />
             </strong>
             <em>
-              +<CountUpNumber value={game.snapshot?.perSecond ?? 0} />/s
+              +<CountUpNumber rate value={game.snapshot?.perSecond ?? 0} />/s
             </em>
             {heldCurrencies.length ? (
               // Every world currency the player has opened so far, the current world's first.
@@ -1541,6 +1595,7 @@ export function ClickerApp() {
                   const paid = game.drillVein(e.clientX, e.clientY)
                   if (paid === null) return
                   playLaser(game.save?.settings.muted ?? false, paid > 0)
+                  drillCue(paid)
                   if (paid > 0) flashStage()
                   setDrillHits((n) => n + 1)
                 }}
@@ -1728,7 +1783,7 @@ export function ClickerApp() {
           <ClickerProducersPanel {...panelProps} automationBuff={automationBuff} />
         ) : null}
 
-        {tab === "upgrades" ? <ClickerUpgradesPanel game={game} run={run} /> : null}
+        {tab === "upgrades" ? <ClickerUpgradesPanel game={game} run={run} navTabs={upgradeNavTabs} onNavRoute={onUpgradeNavRoute} /> : null}
 
         {tab === "shop" ? <ClickerShopPanel {...panelProps} /> : null}
         {tab === "forge" && forgeUnlocked ? <ClickerForge game={game} run={run} /> : null}
@@ -1754,7 +1809,7 @@ export function ClickerApp() {
         <footer className="clicker-drawer-foot">
           <span>
             CORE <strong>{formatNumber(run.coreEnergy)}</strong>
-            {game.snapshot ? ` · +${formatNumber(game.snapshot.perSecond)}/s` : ""}
+            {game.snapshot ? ` · +${formatRate(game.snapshot.perSecond)}/s` : ""}
             {tab === "skills"
               ? ` · 회로 ${visibleSkillNodes.filter((n) => n.status === "OWNED").length}/${visibleSkillNodes.length}`
               : tab === "world"
@@ -1810,10 +1865,14 @@ export function ClickerApp() {
           src={MineArt.enterCinematic}
           poster={MineArt.entranceGate}
           label="광산 입장 중"
-          muted={game.save.settings.musicMuted}
+          // The BGM engine plays the same 10 s entrance track (bgm_mine_enter_10s) and hands over to the mine loop.
+          muted={mineEntryVideoMuted(game.save.settings.musicMuted)}
           volume={game.save.settings.musicVolume}
           onDone={() => {
             setEnteringMine(false)
+          }}
+          // Mine goes underneath as the closing cross-fade starts (at once on skip / error / reduced motion).
+          onReveal={() => {
             setDrawerSnap("peek")
             game.enterMine()
           }}
@@ -1963,37 +2022,7 @@ export function ClickerApp() {
         <ClickerTutorial onDone={game.finishTutorial} hidden={inMine} />
       ) : null}
 
-      {endingPhase ? (
-        <ClickerCinematic
-          key={endingPhase}
-          src={endingPhase === "fall" ? "/clicker/ending/ending_guardian_fall.mp4" : "/clicker/ending/ending_core_awaken.mp4"}
-          poster={endingPhase === "fall" ? "/clicker/bg/region_core_heart.jpg" : "/clicker/bg/loading_core_awakening.webp"}
-          label="엔딩"
-          muted={game.save.settings.musicMuted}
-          volume={game.save.settings.musicVolume}
-          onDone={() => {
-            if (endingPhase === "fall") setEndingPhase("awaken")
-            else {
-              setEndingPhase(null)
-              setEndingOpen(true)
-            }
-          }}
-        />
-      ) : null}
-
-      {endingOpen ? (
-        <ClickerEnding
-          summary={{
-            worldlinesOwned: transcendenceOwned,
-            worldlinesTotal: transcendenceTotal,
-            rebirthCount: game.save.metaState.rebirthCount,
-            lifetimeCoreText: formatNumber(game.save.metaState.totalCoreEnergy),
-          }}
-          onComplete={() => {
-            if (game.completeEnding()) setEndingOpen(false)
-          }}
-        />
-      ) : null}
+      {endingMode === "live" ? endingFlow : null}
 
       {adminAllowed && adminOpen ? (
         <aside

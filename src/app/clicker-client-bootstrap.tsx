@@ -6,6 +6,7 @@
  * the adapters from a Client Component.
  */
 import "@/infrastructure/audio/clicker-bgm-client-bind"
+import "@/infrastructure/audio/clicker-cue-client-bind"
 import "@/infrastructure/persistence/clicker-client-bind"
 
 export function ClickerClientBootstrap({ children }: { children: React.ReactNode }) {

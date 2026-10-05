@@ -9,6 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { MineArt, MINE_ORE_PLATE } from "@/data/clicker/mine-assets"
+import { mineOreLayout, type OrePlateLayout } from "@/lib/clicker-ore-plate"
 import { VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/application/clicker-ui"
 import { playSfx } from "@/lib/clicker-sfx"
 import "./clicker-mine.css"
@@ -96,21 +97,10 @@ type Vein = { x: number; y: number; expiresAt: number }
 
 type Box = { left: number; top: number; width: number; height: number }
 
-/**
- * Where the crystal sits inside the plate, and the plate's cover-fit
- * placement for a given viewport — must match `background-size: cover` + center.
- */
-function oreBoxFor(width: number, height: number): Box {
-  const { width: iw, height: ih, ore } = MINE_ORE_PLATE
-  const scale = Math.max(width / iw, height / ih)
-  const ox = (width - iw * scale) / 2
-  const oy = (height - ih * scale) / 2
-  return {
-    left: ox + ore.x * scale,
-    top: oy + ore.y * scale,
-    width: ore.w * scale,
-    height: ore.h * scale,
-  }
+/** Soft dark-cyan ellipse fill: full `alpha` at the core, half at mid-radius, nothing at the rim. */
+function shadowGradient(rgb: readonly number[], alpha: number): string {
+  const c = rgb.join(" ")
+  return `radial-gradient(closest-side, rgb(${c} / ${alpha}), rgb(${c} / ${alpha / 2}) 50%, rgb(${c} / 0))`
 }
 
 /** Single center ore: tap the big crystal, a laser fires from the rig below. */
@@ -130,8 +120,9 @@ export function ClickerMine({
   lightning = false,
   nova = null,
 }: Props) {
-  const [box, setBox] = useState<Box | null>(null)
-  const [size, setSize] = useState({ width: 0, height: 0 })
+  /** Shrunk ore box, tap target and ground shadow for the current mine size (pure rule in the domain). */
+  const [layout, setLayout] = useState<OrePlateLayout | null>(null)
+  const box: Box | null = layout ? layout.hit : null
   const [hitSeq, setHitSeq] = useState(0)
   const broken = false
   const [sparks, setSparks] = useState<Spark[]>([])
@@ -166,8 +157,7 @@ export function ClickerMine({
     const measure = () => {
       const { width, height } = el.getBoundingClientRect()
       sizeRef.current = { width, height }
-      setSize({ width, height })
-      setBox(oreBoxFor(width, height))
+      setLayout(mineOreLayout(width, height))
     }
     measure()
     const ro = new ResizeObserver(measure)
@@ -398,8 +388,8 @@ export function ClickerMine({
   }
 
   const plate = MineArt.orePlate
-  const { width: iw, height: ih, ore } = MINE_ORE_PLATE
-  const scale = size.width ? Math.max(size.width / iw, size.height / ih) : 0
+  /** The crystal is cropped from the ORIGINAL plate (it still has the big crystal baked in); the background is the clean one. */
+  const crystalSrc = MineArt.orePlateCrystal
 
   return (
     <div
@@ -407,7 +397,21 @@ export function ClickerMine({
       data-visual={visual}
       className={`clicker-mine clicker-mine-single is-tier-${fxTier}${storm ? " is-storm" : ""}${pop ? " is-pop" : ""}${shake ? " is-shake" : ""}`}
     >
-      <div className="clicker-mine-plate" style={{ backgroundImage: `url(${plate})` }} aria-hidden />
+      <div className="clicker-mine-plate" style={{ backgroundImage: `url(${plate})` }} aria-hidden>
+        {/* The plate is the CLEAN picture (no crystal); this soft shadow grounds the shrunk crystal drawn above it. */}
+        {layout && layout.shadow.alpha > 0 ? (
+          <span
+            className="clicker-mine-plate-shadow"
+            style={{
+              left: layout.shadow.rect.left,
+              top: layout.shadow.rect.top,
+              width: layout.shadow.rect.width,
+              height: layout.shadow.rect.height,
+              backgroundImage: shadowGradient(MINE_ORE_PLATE.shadow.rgb, layout.shadow.alpha),
+            }}
+          />
+        ) : null}
+      </div>
 
       {box ? (
         <button
@@ -421,14 +425,14 @@ export function ClickerMine({
           style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
           onPointerDown={strike}
         >
-          {/* Same plate, cropped to the crystal, so hits can pulse just the ore. */}
+          {/* The original plate (crystal baked in), cropped to the crystal and shrunk with it, so hits can pulse just the ore. */}
           <span
             className="clicker-mine-crystal-art"
             style={
               {
-                backgroundImage: `url(${plate})`,
-                backgroundSize: `${iw * scale}px ${ih * scale}px`,
-                backgroundPosition: `${-ore.x * scale}px ${-ore.y * scale}px`,
+                backgroundImage: `url(${crystalSrc})`,
+                backgroundSize: `${layout?.art.width ?? 0}px ${layout?.art.height ?? 0}px`,
+                backgroundPosition: `${layout?.art.x ?? 0}px ${layout?.art.y ?? 0}px`,
               } as CSSProperties
             }
           />

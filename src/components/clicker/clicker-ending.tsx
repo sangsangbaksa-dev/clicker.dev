@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react"
 import { CLICKER_TRUE_ENDING_STEPS } from "@/data/clicker/ending"
-import { useArmedPress, useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
+import { useArmedPress, useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
 
 export type EndingSummary = {
   worldlinesOwned: number
@@ -14,15 +14,19 @@ export type EndingSummary = {
 type Props = {
   onComplete: () => void
   summary?: EndingSummary
+  /** Watching again from the completion screen: the last card closes instead of sealing. */
+  replay?: boolean
 }
 
 /** Ending story cards after the ending videos; the last card seals the record. */
-export function ClickerEnding({ onComplete, summary }: Props) {
+export function ClickerEnding({ onComplete, summary, replay = false }: Props) {
   const [step, setStep] = useState(0)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const current = CLICKER_TRUE_ENDING_STEPS[step]
   const last = step >= CLICKER_TRUE_ENDING_STEPS.length - 1
   useClickerDialogFocus(rootRef)
+  // A replay can always be dismissed; the real ending must be sealed with the button.
+  useClickerEscape(replay, onComplete)
   // "다음" and "완료" sit in the same spot: a fast double-click through the story must not seal the record.
   const armedPress = useArmedPress(String(step))
 
@@ -64,7 +68,7 @@ export function ClickerEnding({ onComplete, summary }: Props) {
         </div>
         <footer className="clicker-ending-foot">
           <button type="button" className="clicker-primary" autoFocus onClick={last ? armedPress(onComplete) : () => setStep(step + 1)}>
-            {last ? "완료" : "다음"}
+            {last ? (replay ? "닫기" : "완료") : "다음"}
           </button>
         </footer>
       </article>

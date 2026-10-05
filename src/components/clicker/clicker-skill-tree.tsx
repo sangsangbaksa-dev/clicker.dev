@@ -8,7 +8,7 @@ import {
   connectorPath,
   type SkillCell,
 } from "@/data/clicker/skill-tree-layout"
-import { formatNumber, type SkillNodeView } from "@/application/clicker-ui"
+import { formatNumber, skillStatusLabel, type SkillNodeView } from "@/application/clicker-ui"
 import { useClickerEscape } from "@/components/clicker/clicker-a11y"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 
@@ -26,17 +26,6 @@ const CELL = 84
 /** Moving the pointer this close to an edge pans the map that way. */
 const EDGE = 56
 const EDGE_SPEED = 9
-
-function statusLabel(status: SkillNodeView["status"]): string {
-  switch (status) {
-    case "OWNED":
-      return "활성"
-    case "POOR":
-      return "CORE 부족"
-    default:
-      return "해금 가능"
-  }
-}
 
 /**
  * Full-screen circuit map. Only circuits whose prerequisites are all owned are drawn —
@@ -207,7 +196,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
               type="button"
               className={`clicker-skillmap-node is-${node.status.toLowerCase()}${selectedId === node.id ? " is-selected" : ""}${node.tier >= 5 ? " is-apex" : ""}${node.id === layout.centerId ? " is-final" : ""}`}
               style={{ left: (node.col + 0.5) * CELL, top: (node.row + 0.5) * CELL, "--branch-color": SKILL_BRANCH_COLOR[node.branch] } as CSSProperties}
-              aria-label={`${node.name} · ${statusLabel(node.status)} · ${formatNumber(node.cost)} CORE`}
+              aria-label={`${node.name} · ${skillStatusLabel(node.status)} · ${formatNumber(node.cost)} CORE`}
               onClick={() => {
                 if (drag.current?.moved) return
                 setSelectedId(node.id)

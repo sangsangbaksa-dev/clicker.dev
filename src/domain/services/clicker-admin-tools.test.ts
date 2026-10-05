@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { clickerConfig } from "../../data/clicker/catalog.ts"
-import { createInitialSave } from "./clicker-engine.ts"
+import { bossFightHp, createInitialSave } from "./clicker-engine.ts"
 import {
   adminGrantCurrencies,
   adminJumpToFinalBoss,
@@ -41,7 +41,9 @@ test("jump to final boss unlocks, travels, skips the tutorial and starts the fig
   assert.equal(save.settings.gameStarted, true)
   assert.equal(save.settings.playSurface, "hub")
   assert.ok(save.runState.boss)
-  assert.equal(save.runState.boss?.hp, cfg.regions.find((r) => r.id === "core_heart")?.boss?.hp)
+  const def = cfg.regions.find((r) => r.id === "core_heart")?.boss
+  assert.ok(def)
+  assert.equal(save.runState.boss?.hp, bossFightHp(def, save.runState, save.metaState, cfg))
   assert.ok(save.runState.currentWorldLine >= 6)
   assert.ok(save.metaState.visitedRegionIds.includes("core_heart"))
 })
