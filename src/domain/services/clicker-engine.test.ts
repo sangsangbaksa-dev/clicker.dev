@@ -912,3 +912,24 @@ test("secret code: typed anywhere, grants 100T CORE and of every world currency"
   assert.equal(rich.lifetimeCoreEnergy, run.lifetimeCoreEnergy, "spendable CORE only; it opens nothing on its own")
   for (const r of clickerConfig.regions.filter((x) => x.currency)) assert.equal(eng.regionCurrencyBalance(rich, r.id), 1e14)
 })
+
+test("sanitizeSave: NaN, Infinity and non-numeric values revert to defaults instead of poisoning the run", async () => {
+  const eng = await import("./clicker-engine.ts")
+  const base = eng.createInitialSave(0, config)
+  const raw = JSON.parse(JSON.stringify(base))
+  raw.runState.coreEnergy = "lots"
+  raw.runState.skillPoints = Number.POSITIVE_INFINITY
+  raw.runState.lifetimeCoreEnergy = Number.NaN
+  raw.metaState.completedAt = Number.NaN
+  raw.metaState.statistics.clicks = Number.POSITIVE_INFINITY
+  raw.savedAt = Number.NaN
+  const out = eng.sanitizeSave(raw, config, 1000)
+  assert.equal(out.runState.coreEnergy, base.runState.coreEnergy)
+  assert.equal(out.runState.skillPoints, base.runState.skillPoints)
+  assert.equal(out.runState.lifetimeCoreEnergy, base.runState.lifetimeCoreEnergy)
+  assert.equal(out.metaState.completedAt, null)
+  assert.equal(out.metaState.statistics.clicks, 0)
+  assert.equal(out.savedAt, 1000)
+  const ticked = eng.processTick(out.runState, out.metaState, config, 5000)
+  assert.ok(Number.isFinite(ticked.run.coreEnergy))
+})

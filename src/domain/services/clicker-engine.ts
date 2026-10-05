@@ -1700,6 +1700,16 @@ export function grantAdminEnergy(run: RunState, amount: number): RunState {
   }
 }
 
+/** Numeric fields (and non-numeric ones holding NaN/Infinity) that came back NaN/Infinity/non-numeric (hand-edited or `1e999` saves) revert to their defaults. */
+function finiteNumbersOr<T extends object>(defaults: T, value: T): T {
+  const out = { ...value } as Record<string, unknown>
+  for (const [key, def] of Object.entries(defaults)) {
+    const v = out[key]
+    if (typeof def === "number" ? !(typeof v === "number" && Number.isFinite(v)) : typeof v === "number" && !Number.isFinite(v)) out[key] = def
+  }
+  return out as T
+}
+
 export function sanitizeSave(raw: unknown, config: GameConfig, now: number): SaveData {
   const fallback = createInitialSave(now, config)
   if (!raw || typeof raw !== "object") return fallback
@@ -1710,9 +1720,9 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
     // Missing or non-finite numbers fall back to the initial run's defaults below; only a
     // save without run/meta objects is unrecoverable.
     if (!run || !meta || typeof run !== "object" || typeof meta !== "object") return fallback
-    return {
+    const cleaned: SaveData = {
       schemaVersion: config.schemaVersion,
-      savedAt: typeof data.savedAt === "number" ? data.savedAt : now,
+      savedAt: typeof data.savedAt === "number" && Number.isFinite(data.savedAt) ? data.savedAt : now,
       settings: {
         muted: Boolean(data.settings?.muted),
         musicMuted: Boolean(data.settings?.musicMuted),
@@ -1820,6 +1830,10 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         })(),
       },
     }
+    cleaned.metaState = finiteNumbersOr(fallback.metaState, cleaned.metaState)
+    cleaned.metaState.statistics = finiteNumbersOr(fallback.metaState.statistics, cleaned.metaState.statistics)
+    cleaned.runState = finiteNumbersOr(fallback.runState, cleaned.runState)
+    return cleaned
   } catch {
     return fallback
   }
