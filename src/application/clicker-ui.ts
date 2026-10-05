@@ -22,7 +22,6 @@ export {
   type SkillNodeView,
 } from "@/domain/services/clicker-view"
 export type {
-  GachaLogEntry,
   BossDef,
   BossFight,
   ClickerSettings,
@@ -58,17 +57,9 @@ export {
   worldTreeOwned,
   worldTreeNodeCost,
   worldTreeNodeError,
-  gachaCost,
   lairDamageMultiplier,
-  gachaFreeReady,
-  gachaLegendaryRate,
   gachaStarMultiplier,
-  GACHA_PITY,
-  GACHA_SOFT_PITY,
-  GACHA_FREE_EVERY_MS,
   GACHA_STAR_PRODUCTION,
-  type GachaReward,
-  type GachaRarity,
 } from "@/domain/services/clicker-engine"
 export {
   CLICKER_ADMIN_REMEMBER_KEY,

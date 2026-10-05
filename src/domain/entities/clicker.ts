@@ -171,25 +171,8 @@ export type MetaState = {
   monstersSlain: number
   /** Relic Vault: relic id → level. Permanent across rebirths. */
   relicLevels: Record<string, number>
-  /** Core capsule gacha: pulls since the last legendary (pity), lifetime pulls, legendary stars owned. */
-  gachaPity?: number
-  gachaPulls?: number
+  /** Legendary stars won in the retired capsule shop: permanent production bonus. */
   gachaStars?: number
-  /** When the last free daily capsule was opened (ms). */
-  gachaFreeAt?: number
-  /** Capsules opened per rarity, all time. */
-  gachaCounts?: Partial<Record<"common" | "rare" | "epic" | "legendary", number>>
-  /** The most recent capsules (newest first), for the history screen. */
-  gachaLog?: GachaLogEntry[]
-}
-
-/** One opened capsule: when, its rarity, what it held (skill / upgrade / circuit id, or star count). */
-export type GachaLogEntry = {
-  at: number
-  rarity: "common" | "rare" | "epic" | "legendary"
-  kind: "skill" | "upgrade" | "circuit" | "star"
-  id: string
-  count?: number
 }
 
 export type ClickerSettings = {

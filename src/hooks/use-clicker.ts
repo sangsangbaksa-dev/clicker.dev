@@ -54,7 +54,6 @@ import {
   clickerForge,
   clickerBuyRelic,
   clickerBuyWorldTreeNode,
-  clickerPullGacha,
   allowMineStrike,
   clearClickerStoredSave,
   clickerFreshSaveJson,
@@ -855,22 +854,6 @@ export function useClicker() {
     [refuse, flash, commitAndSave],
   )
 
-  /** Pull core capsules; returns the rewards so the panel can reveal them (null when refused). */
-  /** Open capsules (the gacha screen plays the reveal and its sounds). Returns the rewards, or null when refused. */
-  const pullGacha = useCallback(
-    (count: 1 | 10, free = false) => {
-      if (!saveRef.current) return null
-      const result = clickerPullGacha(saveRef.current, count, now(), free)
-      if (!result.ok) {
-        refuse(result.error)
-        return null
-      }
-      commitAndSave(result.value.save)
-      return result.value.rewards
-    },
-    [refuse, commitAndSave],
-  )
-
   /** One tap on the region drill rig. Returns the payout when this tap bored the vein, else 0 (null when refused). */
   const drillVein = useCallback(
     (clientX: number, clientY: number) => {
@@ -1103,7 +1086,6 @@ export function useClicker() {
     buyRelic,
     buyWorldTreeNode,
     redeemSecretCode,
-    pullGacha,
     drillVein,
     purchaseFx,
     startBoss,

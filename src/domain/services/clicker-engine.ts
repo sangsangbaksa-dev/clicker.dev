@@ -6,7 +6,6 @@ import type {
   FeverState,
   GameConfig,
   InstabilityLevel,
-  GachaLogEntry,
   MetaState,
   PotionDef,
   ProductionSnapshot,
@@ -1783,12 +1782,7 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         bossDefeated: Boolean(meta.bossDefeated),
         monstersSlain: typeof meta.monstersSlain === "number" ? meta.monstersSlain : 0,
         relicLevels: sanitizeRelicLevels(meta.relicLevels, config),
-        gachaPity: nonNegativeInt(meta.gachaPity),
-        gachaPulls: nonNegativeInt(meta.gachaPulls),
         gachaStars: nonNegativeInt(meta.gachaStars),
-        gachaFreeAt: typeof meta.gachaFreeAt === "number" && Number.isFinite(meta.gachaFreeAt) ? meta.gachaFreeAt : 0,
-        gachaCounts: sanitizeGachaCounts(meta.gachaCounts),
-        gachaLog: sanitizeGachaLog(meta.gachaLog),
       },
       runState: {
         ...createInitialRun(now, createInitialMeta(), config),
@@ -2093,208 +2087,12 @@ export function buyWorldTreeNode(run: RunState, config: GameConfig, nodeId: stri
   }
 }
 
-/* ---------- Core capsule gacha ---------- */
+/* ---------- Legendary stars (from the retired capsule shop) ---------- */
 
-export type GachaRarity = "common" | "rare" | "epic" | "legendary"
-
-export type GachaReward =
-  | { rarity: GachaRarity; kind: "skill"; skillId: string; count: number }
-  | { rarity: GachaRarity; kind: "upgrade"; upgradeId: string }
-  | { rarity: GachaRarity; kind: "circuit"; nodeId: string }
-  | { rarity: "legendary"; kind: "star"; stars: number }
-
-/** Pulls without a legendary before one is guaranteed. */
-export const GACHA_PITY = 60
-/** From this many pulls without a legendary, its odds climb every pull (soft pity)… */
-export const GACHA_SOFT_PITY = 45
-/** …by this much per pull. */
-export const GACHA_SOFT_PITY_STEP = 0.06
-/** One free capsule per this long. */
-export const GACHA_FREE_EVERY_MS = 24 * 60 * 60 * 1000
-/** Each legendary star: permanent production ×1.08 (survives rebirth). */
+/** Each legendary star: permanent production ×1.08 (survives rebirth). Stars won before the
+    capsule shop closed keep their bonus; no new ones are handed out. */
 export const GACHA_STAR_PRODUCTION = 1.08
-/** A ten-pull costs nine. */
-export const GACHA_TEN_PULL_DISCOUNT = 0.9
-/**
- * Capsules hand out things, never CORE: common = active skill charges, rare = a free upgrade,
- * epic = a free skill circuit. Only items priced within a few pulls are in the pool, so a
- * capsule saves a little time but never skips far ahead.
- */
-export const GACHA_COMMON_CHARGES = 1
-export const GACHA_UPGRADE_MAX_PULLS = 2
-export const GACHA_CIRCUIT_MAX_PULLS = 4
-/** Each draw picks from this many of the cheapest eligible items. */
-const GACHA_POOL = 5
-const GACHA_RATES: Array<[GachaRarity, number]> = [
-  ["legendary", 0.02],
-  ["epic", 0.1],
-  ["rare", 0.28],
-  ["common", 0.6],
-]
 
 export function gachaStarMultiplier(meta: MetaState): number {
   return GACHA_STAR_PRODUCTION ** (meta.gachaStars ?? 0)
-}
-
-/** Value of a second of play: production plus a slice of a click, never 0 (fresh runs). */
-function gachaUnit(run: RunState, meta: MetaState, config: GameConfig, now: number): number {
-  return Math.max(productionSnapshot(run, meta, config, now).perSecond, derivedClick(run, meta, config).click * 0.3, config.baseClick)
-}
-
-/** One capsule costs ten minutes of current income, so it stays meaningful all game. */
-export function gachaCost(run: RunState, meta: MetaState, config: GameConfig, now: number, count: 1 | 10 = 1): number {
-  const one = Math.ceil(gachaUnit(run, meta, config, now) * 600)
-  return count === 10 ? Math.ceil(one * 10 * GACHA_TEN_PULL_DISCOUNT) : one
-}
-
-/** How many opened capsules the history keeps. */
-export const GACHA_LOG_MAX = 100
-const GACHA_RARITIES = ["common", "rare", "epic", "legendary"] as const
-
-function sanitizeGachaCounts(value: unknown): MetaState["gachaCounts"] {
-  const src = value && typeof value === "object" ? (value as Record<string, unknown>) : {}
-  return Object.fromEntries(GACHA_RARITIES.map((r) => [r, nonNegativeInt(src[r])]))
-}
-
-function sanitizeGachaLog(value: unknown): GachaLogEntry[] {
-  if (!Array.isArray(value)) return []
-  return value
-    .filter(
-      (e): e is GachaLogEntry =>
-        Boolean(e) &&
-        typeof e === "object" &&
-        typeof e.at === "number" &&
-        (GACHA_RARITIES as readonly string[]).includes(e.rarity) &&
-        ["skill", "upgrade", "circuit", "star"].includes(e.kind) &&
-        typeof e.id === "string",
-    )
-    .slice(0, GACHA_LOG_MAX)
-    .map((e) => ({ at: e.at, rarity: e.rarity, kind: e.kind, id: e.id, ...(typeof e.count === "number" ? { count: e.count } : {}) }))
-}
-
-/** Legendary odds for the next pull, with soft pity after GACHA_SOFT_PITY dry pulls. */
-export function gachaLegendaryRate(pity: number): number {
-  if (pity + 1 >= GACHA_PITY) return 1
-  const base = GACHA_RATES[0][1]
-  return Math.min(1, base + Math.max(0, pity + 1 - GACHA_SOFT_PITY) * GACHA_SOFT_PITY_STEP)
-}
-
-export function gachaFreeReady(meta: MetaState, now: number): boolean {
-  return now - (meta.gachaFreeAt ?? 0) >= GACHA_FREE_EVERY_MS
-}
-
-function rollRarity(pity: number, rng: () => number): GachaRarity {
-  const legendary = gachaLegendaryRate(pity)
-  if (legendary >= 1) return "legendary"
-  let r = rng()
-  if (r < legendary) return "legendary"
-  r -= legendary
-  // The other rarities keep their relative odds in what is left.
-  const scale = (1 - legendary) / (1 - GACHA_RATES[0][1])
-  for (const [rarity, rate] of GACHA_RATES.slice(1)) {
-    if (r < rate * scale) return rarity
-    r -= rate * scale
-  }
-  return "common"
-}
-
-function pickCheapest<T>(items: T[], price: (item: T) => number, rng: () => number): T | undefined {
-  const pool = [...items].sort((x, y) => price(x) - price(y)).slice(0, GACHA_POOL)
-  return pool.length ? pool[Math.floor(rng() * pool.length) % pool.length] : undefined
-}
-
-/** Upgrades the player could buy right now (conditions met), priced within `maxCost`. */
-export function gachaUpgradePool(run: RunState, config: GameConfig, maxCost: number) {
-  return config.upgrades.filter(
-    (u) =>
-      !run.ownedUpgradeIds.includes(u.id) &&
-      (!u.unlockProducerId || (run.producerLevels[u.unlockProducerId] ?? 0) > 0) &&
-      (!u.unlockFeverStarts || run.feverStarts >= u.unlockFeverStarts) &&
-      scaledCost(run, u.cost) <= maxCost,
-  )
-}
-
-/** Circuits whose prerequisites are owned, priced within `maxCost`. Rebirth-side nodes never drop. */
-export function gachaCircuitPool(run: RunState, config: GameConfig, maxCost: number) {
-  return config.skillNodes.filter(
-    (n) =>
-      n.branch !== "TRANSCENDENCE" &&
-      !run.ownedSkillNodeIds.includes(n.id) &&
-      (n.requires ?? []).every((id) => run.ownedSkillNodeIds.includes(id)) &&
-      scaledCost(run, n.cost) <= maxCost,
-  )
-}
-
-/**
- * Pull `count` capsules: pays CORE, rolls rarities (legendary guaranteed by the pity counter) and
- * grants each reward. A rarity with nothing left to give falls back a step: circuit → upgrade →
- * skill charges.
- */
-export function pullGacha(
-  run: RunState,
-  meta: MetaState,
-  config: GameConfig,
-  now: number,
-  rng: () => number,
-  count: 1 | 10 = 1,
-  free = false,
-): { run: RunState; meta: MetaState; rewards: GachaReward[]; error?: string } {
-  if (free && (count !== 1 || !gachaFreeReady(meta, now))) return { run, meta, rewards: [], error: "무료 캡슐은 하루에 한 번입니다." }
-  const cost = free ? 0 : gachaCost(run, meta, config, now, count)
-  if (run.coreEnergy < cost) return { run, meta, rewards: [], error: "CORE가 부족합니다." }
-  const one = gachaCost(run, meta, config, now, 1)
-  let next: RunState = { ...run, coreEnergy: run.coreEnergy - cost }
-  let nextMeta: MetaState = free ? { ...meta, gachaFreeAt: now } : { ...meta }
-  const rewards: GachaReward[] = []
-  const giveCharges = (rarity: GachaRarity, charges: number) => {
-    const skill = config.activeSkills[Math.floor(rng() * config.activeSkills.length) % config.activeSkills.length]
-    if (!skill) return
-    next = { ...next, skillItems: { ...next.skillItems, [skill.id]: (next.skillItems[skill.id] ?? 0) + charges } }
-    rewards.push({ rarity, kind: "skill", skillId: skill.id, count: charges })
-  }
-  const giveUpgrade = (rarity: GachaRarity): boolean => {
-    const upgrade = pickCheapest(gachaUpgradePool(next, config, one * GACHA_UPGRADE_MAX_PULLS), (u) => u.cost, rng)
-    if (!upgrade) return false
-    next = { ...next, ownedUpgradeIds: [...next.ownedUpgradeIds, upgrade.id] }
-    rewards.push({ rarity, kind: "upgrade", upgradeId: upgrade.id })
-    return true
-  }
-  const giveCircuit = (rarity: GachaRarity): boolean => {
-    const node = pickCheapest(gachaCircuitPool(next, config, one * GACHA_CIRCUIT_MAX_PULLS), (n) => n.cost, rng)
-    if (!node) return false
-    next = { ...next, ownedSkillNodeIds: [...next.ownedSkillNodeIds, node.id] }
-    rewards.push({ rarity, kind: "circuit", nodeId: node.id })
-    return true
-  }
-  let gotRare = false
-  for (let i = 0; i < count; i++) {
-    let rarity = rollRarity(nextMeta.gachaPity ?? 0, rng)
-    // A ten-pull always holds at least one rare or better.
-    if (count === 10 && i === count - 1 && !gotRare && rarity === "common") rarity = "rare"
-    if (rarity !== "common") gotRare = true
-    nextMeta = { ...nextMeta, gachaPulls: (nextMeta.gachaPulls ?? 0) + 1, gachaPity: rarity === "legendary" ? 0 : (nextMeta.gachaPity ?? 0) + 1 }
-    if (rarity === "legendary") {
-      nextMeta = { ...nextMeta, gachaStars: (nextMeta.gachaStars ?? 0) + 1 }
-      rewards.push({ rarity, kind: "star", stars: nextMeta.gachaStars ?? 1 })
-    } else if (rarity === "epic") {
-      if (!giveCircuit(rarity) && !giveUpgrade(rarity)) giveCharges(rarity, GACHA_COMMON_CHARGES * 3)
-    } else if (rarity === "rare") {
-      if (!giveUpgrade(rarity)) giveCharges(rarity, GACHA_COMMON_CHARGES * 2)
-    } else {
-      giveCharges(rarity, GACHA_COMMON_CHARGES)
-    }
-  }
-  // History: per-rarity totals and the newest capsules first.
-  const counts = { ...(nextMeta.gachaCounts ?? {}) }
-  for (const r of rewards) counts[r.rarity] = (counts[r.rarity] ?? 0) + 1
-  const logged: GachaLogEntry[] = rewards
-    .map((r): GachaLogEntry => {
-      if (r.kind === "skill") return { at: now, rarity: r.rarity, kind: "skill", id: r.skillId, count: r.count }
-      if (r.kind === "upgrade") return { at: now, rarity: r.rarity, kind: "upgrade", id: r.upgradeId }
-      if (r.kind === "circuit") return { at: now, rarity: r.rarity, kind: "circuit", id: r.nodeId }
-      return { at: now, rarity: r.rarity, kind: "star", id: "star", count: r.stars }
-    })
-    .reverse()
-  nextMeta = { ...nextMeta, gachaCounts: counts, gachaLog: [...logged, ...(nextMeta.gachaLog ?? [])].slice(0, GACHA_LOG_MAX) }
-  return { run: next, meta: nextMeta, rewards }
 }

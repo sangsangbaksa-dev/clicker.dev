@@ -189,7 +189,7 @@ function bell(c: AudioContext, freq: number, gain: number, start: number, dur: n
 }
 
 /** ±6% pitch drift so looping creature sounds never repeat exactly. */
-/** Shimmering run of high sine blips (gacha, world skills). */
+/** Shimmering run of high sine blips (world skills, skill casts). */
 function sparkle(c: AudioContext, start: number, base = 1568, count = 6, gain = 0.018, step = 0.028) {
   for (let i = 0; i < count; i++) {
     const f = base * 2 ** ((i * 3 + Math.random()) / 12)
@@ -250,14 +250,19 @@ const CUES = {
   tick(c: AudioContext, t: number) {
     pluck(c, 1760, 0.014, t, 0.04)
   },
-  /** Buy OK: warm two-note coin chime that climbs on streaks. */
+  /** Buy OK: coin clink, then a warm three-note chime that climbs on streaks, with a soft kick and sparkle. */
   purchase(c: AudioContext, t: number) {
     const step = PURCHASE_STEPS[purchaseStep % PURCHASE_STEPS.length]
     purchaseStep += 1
     const root = semis(784, step)
-    const e = echo(c, 0.08, 0.18, 0.18)
-    bell(c, root, 0.04, t, 0.18, e)
-    bell(c, root * 1.5, 0.035, t + 0.05, 0.26, e)
+    const e = echo(c, 0.08, 0.2, 0.22)
+    bell(c, root * 2, 0.026, t, 0.1, e)
+    bell(c, root * 2.52, 0.02, t + 0.022, 0.12, e)
+    bell(c, root, 0.042, t + 0.035, 0.2, e)
+    bell(c, root * 1.26, 0.036, t + 0.075, 0.24, e)
+    bell(c, root * 1.5, 0.036, t + 0.115, 0.34, e)
+    sparkle(c, t + 0.13, root * 2, 4, 0.01, 0.024)
+    thump(c, t, 0.045, 170)
   },
   /** Permanent upgrade: two-note rise with a sparkle tail. */
   upgrade(c: AudioContext, t: number) {
@@ -547,45 +552,12 @@ const CUES = {
       tone(c, "square", 1400 + Math.random() * 900, 300, 0.012, at, 0.04, { attack: 0.001 })
     }
   },
-  // Cues added after the original set (gacha, world skills, boss hits, skill casts), in their first form.
+  // Cues added after the original set (world skills, boss hits, skill casts), in their first form.
   /** Guardian struck: short meaty impact. */
   bossHit(c: AudioContext, t: number) {
     noise(c, "bandpass", 1600, 1.5, 0.05, t, 0.07)
     tone(c, "square", 260 * vary(), 140, 0.035, t, 0.09)
     thump(c, t, 0.08, 150)
-  },
-  /** Gacha: crank ratchet + capsule rattle + drop. */
-  gachaPull(c: AudioContext, t: number) {
-    for (let i = 0; i < 5; i++) noise(c, "bandpass", 1800 + i * 150, 6, 0.035, t + i * 0.05, 0.04)
-    for (let i = 0; i < 4; i++) pluck(c, 900 + Math.random() * 500, 0.02, t + 0.3 + i * 0.045, 0.06)
-    thump(c, t + 0.5, 0.07, 180)
-  },
-  /** Gacha reveal · rare: bright two-chime pop. */
-  gachaRare(c: AudioContext, t: number) {
-    const e = echo(c, 0.09, 0.25, 0.25)
-    bell(c, 1175, 0.045, t, 0.3, e)
-    bell(c, 1760, 0.04, t + 0.06, 0.4, e)
-    sparkle(c, t + 0.1, 2093, 5)
-    thump(c, t, 0.06)
-  },
-  /** Gacha reveal · epic: whoosh riser into a shimmering minor-to-major lift. */
-  gachaEpic(c: AudioContext, t: number) {
-    const e = echo(c, 0.12, 0.35, 0.35)
-    noise(c, "bandpass", 600, 1.4, 0.05, t, 0.4, { sweepTo: 6000, attack: 0.15 })
-    ;[587, 740, 880, 1175, 1480].forEach((f, i) => tone(c, "triangle", f, f, 0.045, t + 0.3 + i * 0.06, 0.5, { dest: e }))
-    sparkle(c, t + 0.55, 2349, 8, 0.02)
-    thump(c, t + 0.3, 0.1)
-  },
-  /** Gacha reveal · legendary: big riser, impact, golden fanfare and a glitter shower. */
-  gachaLegendary(c: AudioContext, t: number) {
-    const e = echo(c, 0.16, 0.42, 0.42)
-    noise(c, "bandpass", 300, 1.2, 0.06, t, 0.7, { sweepTo: 8000, attack: 0.4 })
-    tone(c, "sawtooth", 110, 440, 0.035, t, 0.7, { attack: 0.5 })
-    thump(c, t + 0.7, 0.16, 180)
-    noise(c, "highpass", 5000, 0.7, 0.05, t + 0.7, 0.6)
-    ;[523, 659, 784, 1046].forEach((f) => tone(c, "triangle", f, f, 0.05, t + 0.72, 1.4, { dest: e }))
-    ;[1046, 1318, 1568, 2093, 2637].forEach((f, i) => tone(c, "sine", f, f, 0.04, t + 0.8 + i * 0.07, 0.6, { dest: e }))
-    sparkle(c, t + 1.0, 2093, 12, 0.02, 0.04)
   },
   /** World skill learned: deep gong + rising chime. */
   worldSkill(c: AudioContext, t: number) {
