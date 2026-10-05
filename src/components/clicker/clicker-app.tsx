@@ -159,6 +159,12 @@ function CountUpNumber({ value }: { value: number }) {
 }
 
 /** Button kind → click cue, so different kinds of buttons sound different. */
+/** m:ss for countdowns on buttons (shield, boss respawn). */
+function clockText(ms: number): string {
+  const sec = Math.ceil(ms / 1000)
+  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`
+}
+
 function buttonCue(el: Element): SfxName {
   if (el.closest(".clicker-tabs, .clicker-hub-dock, .clicker-stage-region")) return "nav"
   if (el.matches(".clicker-manage-back, .clicker-skillmap-close, .clicker-ghost")) return "back"
@@ -1557,10 +1563,10 @@ export function ClickerApp() {
                     onClick={game.enterLair}
                   >
                     {shieldMs > 0
-                      ? `보호막 · ${Math.floor(Math.ceil(shieldMs / 1000) / 60)}:${String(Math.ceil(shieldMs / 1000) % 60).padStart(2, "0")}`
+                      ? `보호막 · ${clockText(shieldMs)}`
                       : monsterIsAlive
                         ? `${monsterDef.name} 토벌하러 들어가기`
-                        : "보스가 돌아오는 중…"}
+                        : `보스가 돌아오는 중 · ${clockText(Math.max(0, (run.monsterRespawnAt[run.currentRegionId] ?? 0) - tickNow))}`}
                   </button>
                 </>
               )}
