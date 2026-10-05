@@ -126,7 +126,7 @@ const NODE_SPECS: NodeSpec[] = [
   ["reso_wave2", "RESONANCE", 3, "Standing Wave", 25_000_000, "reso_bell", { feverIntensity: 1.2 }, "FEVER 강도 +20%"],
   ["reso_peak", "RESONANCE", 4, "Peak Harmony", 700_000_000, "reso_wave2", { productionMultiplier: 1.4 }, "생산 ×1.4"],
   ["reso_crown", "RESONANCE", 5, "Harmonic Crown", 50_000_000_000, "reso_peak", { clickMultiplier: 1.8, productionMultiplier: 1.8 }, "채굴·생산 ×1.8"],
-  ["reso_risk", "RESONANCE", 3, "Edge Dance", 20_000_000, "reso_edge", { instabilityRewardBonus: 0.1 }, "생산 +10%"],
+  ["reso_risk", "RESONANCE", 3, "Harmonic Dance", 20_000_000, "reso_edge", { flatProductionBonus: 0.1 }, "생산 +10%"],
   ["trans_spark", "TRANSCENDENCE", 1, "Memory Spark", 25_000, "trans_start", { startingEnergy: 20 }, "다음 런 시작 +20 CORE"],
   ["trans_kin", "TRANSCENDENCE", 2, "Kinship", 400_000, "trans_spark", { clickMultiplier: 1.2 }, "채굴 ×1.2"],
   ["trans_flow", "TRANSCENDENCE", 2, "World Flow", 1_500_000, "trans_kin", { productionMultiplier: 1.2 }, "생산 ×1.2"],
@@ -181,7 +181,7 @@ export const EXTRA_ACTIVE_SKILLS: ActiveSkillDef[] = [
   { id: "crit_surge", name: "CRIT SURGE", description: "8초 치명타 확률 +60%", cooldown: 50, duration: 8, shopCost: 120_000, criticalChanceAdd: 0.6, assetId: "/clicker/skill/skill_crit_surge.webp" },
   { id: "thunder_call", name: "THUNDER CALL", description: "10초 동안 모든 타격에 번개", cooldown: 70, duration: 10, shopCost: 220_000, lightningStorm: true, assetId: "/clicker/skill/skill_thunder_call.webp" },
   { id: "fever_ignite", name: "FEVER IGNITE", description: "FEVER를 즉시 점화", cooldown: 90, duration: 0, shopCost: 260_000, feverIgnite: true, assetId: "/clicker/skill/skill_fever_ignite.webp" },
-  { id: "cryo_purge", name: "CRYO PURGE", description: "불안정도 -50 · 다른 스킬 쿨다운 초기화", cooldown: 120, duration: 0, shopCost: 400_000, instabilityDelta: -50, cooldownReset: true, assetId: "/clicker/skill/skill_cryo_purge.webp" },
+  { id: "cryo_purge", name: "CRYO PURGE", description: "다른 스킬 쿨다운 초기화 · 6초 채굴 ×1.5", cooldown: 120, duration: 6, shopCost: 400_000, clickMultiplier: 1.5, cooldownReset: true, assetId: "/clicker/skill/skill_cryo_purge.webp" },
 ]
 
 /**

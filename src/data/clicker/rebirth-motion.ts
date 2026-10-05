@@ -78,7 +78,7 @@ const VARIANTS: Record<string, VariantBase> = {
     particleMode: "orbit",
   },
   risk_line: {
-    label: "Volatile Core",
+    label: "Critical Core",
     primary: "#FF6A3D",
     accent: "#FF2E63",
     motif: "core",

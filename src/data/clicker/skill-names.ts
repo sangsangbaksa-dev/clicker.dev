@@ -94,7 +94,7 @@ export const SKILL_NAMES: Record<string, string> = {
   drone_mesh: "Murmuration",
   drone_fleet: "Iron Locusts",
   drone_apex: "Queen of the Hive",
-  // RESONANCE — FEVER and instability
+  // RESONANCE — FEVER and resonance
   reso_fever: "Fever Echo",
   reso_hum: "Low Drone",
   reso_glow: "Ember Glow",
@@ -108,10 +108,10 @@ export const SKILL_NAMES: Record<string, string> = {
   reso_bell: "Bronze Bell",
   reso_encore: "Encore",
   reso_finale: "Grand Finale",
-  reso_edge: "Edge Hum",
-  reso_risk: "Knife Dance",
-  reso_brink: "Brinkmanship",
-  reso_abyss: "Abyss Tone",
+  reso_edge: "Resonant Hum",
+  reso_risk: "Harmonic Dance",
+  reso_brink: "Crescendo Engine",
+  reso_abyss: "Deep Chord",
   reso_static: "Static Psalm",
   reso_wave: "Standing Wave",
   reso_wave2: "Crest Harmonic",
@@ -194,7 +194,7 @@ export function describeSkillNode(n: SkillNodeDef): string {
   if (n.feverDurationAdd) parts.push(`FEVER 지속 +${n.feverDurationAdd}초 연장`)
   if (n.feverIntensity) parts.push(`FEVER 보상 강도 +${pct(n.feverIntensity - 1)}`)
   if (n.finisherReward) parts.push(`FEVER 피니셔 보상 ${times(n.finisherReward)}`)
-  if (n.instabilityRewardBonus) parts.push(`생산 +${pct(n.instabilityRewardBonus)}`)
+  if (n.flatProductionBonus) parts.push(`생산 +${pct(n.flatProductionBonus)}`)
   if (n.monsterRewardMultiplier) parts.push(`크리처 처치 보상 ${times(n.monsterRewardMultiplier)}`)
   if (n.bossDamageMultiplier) parts.push(`수호자에게 주는 피해 ${times(n.bossDamageMultiplier)}`)
   return parts.join(" · ")

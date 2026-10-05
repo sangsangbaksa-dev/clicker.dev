@@ -803,15 +803,15 @@ export function productionSnapshot(
   const skills = ownedSkills(run, config)
   const trans = ownedTranscendence(meta, config)
   const fever = feverMultipliers(run, meta, config)
-  let instabBonus = 0
+  let flatBonus = 0 // flat production bonus from circuits, worldlines and synergies
   for (const syn of config.synergies) {
     if ((run.producerLevels[syn.producerId] ?? 0) >= syn.minLevel) {
-      instabBonus += syn.instabilityRewardBonus ?? 0
+      flatBonus += syn.flatProductionBonus ?? 0
     }
   }
-  instabBonus += trans.reduce((s, t) => s + (t.instabilityRewardBonus ?? 0), 0)
-  instabBonus += skills.reduce((s, n) => s + (n.instabilityRewardBonus ?? 0), 0)
-  const instab = instabilityReward(run.instability, instabBonus)
+  flatBonus += trans.reduce((s, t) => s + (t.flatProductionBonus ?? 0), 0)
+  flatBonus += skills.reduce((s, n) => s + (n.flatProductionBonus ?? 0), 0)
+  const flatMult = 1 + flatBonus
   const buffs = buffMultiplier(run, now, "productionMultiplier", config)
   const region = regionPresenceMultipliers(run, config)
   const boughtGlobal =
@@ -820,7 +820,7 @@ export function productionSnapshot(
   const globalProd =
     product(trans.map((t) => t.productionMultiplier ?? 1)) *
     fever.production *
-    instab *
+    flatMult *
     buffs *
     region.production *
     eventBoostMultiplier(run, "surge", now) *

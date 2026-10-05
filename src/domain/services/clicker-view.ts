@@ -408,7 +408,6 @@ function activeSkillEffectSummary(skill: ActiveSkillDef): string {
   if (skill.criticalChanceAdd) parts.push(`치명타 +${Math.round(skill.criticalChanceAdd * 100)}%`)
   if (skill.lightningStorm) parts.push("모든 타격에 번개")
   if (skill.feverIgnite) parts.push("FEVER 즉시 점화")
-  if (skill.instabilityDelta) parts.push(`불안정도 ${skill.instabilityDelta > 0 ? "+" : ""}${skill.instabilityDelta}`)
   if (skill.cooldownReset) parts.push("다른 스킬 쿨다운 초기화")
   if (skill.duration > 0) parts.push(`${skill.duration}초`)
   if (skill.cooldown > 0) parts.push(`쿨다운 ${skill.cooldown}초`)

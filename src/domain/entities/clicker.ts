@@ -290,7 +290,7 @@ export type SkillNodeDef = {
   criticalMultiplier?: number
   comboMaxAdd?: number
   finisherReward?: number
-  instabilityRewardBonus?: number
+  flatProductionBonus?: number
   comboWindowAdd?: number
   /** Owning this circuit unlocks FEVER (gauge, gauge start and potions); locked until then. */
   unlocksFever?: boolean
@@ -491,7 +491,7 @@ export type TranscendenceDef = {
   clickMultiplier?: number
   productionMultiplier?: number
   feverDurationAdd?: number
-  instabilityRewardBonus?: number
+  flatProductionBonus?: number
   startingEnergy?: number
   comboWindowAdd?: number
   criticalMultiplier?: number
@@ -599,6 +599,6 @@ export type GameConfig = {
     productionTargetId?: string
     productionBonus?: number
     feverDurationBonus?: number
-    instabilityRewardBonus?: number
+    flatProductionBonus?: number
   }>
 }

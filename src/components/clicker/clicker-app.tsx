@@ -2118,8 +2118,8 @@ export function ClickerApp() {
             >
               속도 ×{game.adminModes.speed}
             </button>
-            <button type="button" className="clicker-danger" aria-label="치트 · CORE CRISIS 발동" onClick={game.adminCrisis}>
-              CRISIS
+            <button type="button" className="clicker-ghost" aria-label="치트 · 모든 액티브 스킬 5개 충전" onClick={game.adminSkills}>
+              스킬 충전
             </button>
             {!adminResetArmed ? (
               <button type="button" className="clicker-danger" onClick={() => setAdminResetArmed(true)}>

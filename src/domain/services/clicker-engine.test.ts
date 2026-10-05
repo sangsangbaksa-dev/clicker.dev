@@ -878,12 +878,12 @@ test("new active skills: crit surge, thunder call, fever ignite, cryo purge", ()
   const refused = activateSkill(run, meta, config, "fever_ignite", now)
   assert.ok(refused.error)
   assert.equal(refused.run.skillItems.fever_ignite, 1)
-  // Cryo purge clears other cooldowns and cools the core.
-  run = { ...run, instability: 80, skillCooldowns: { overclock: 30 } }
+  // Cryo purge clears other cooldowns and gives a short mining boost.
+  run = { ...run, skillCooldowns: { overclock: 30 } }
   const purged = activateSkill(run, meta, config, "cryo_purge", now)
   assert.equal(purged.error, undefined)
   assert.equal(purged.run.skillCooldowns.overclock, 0)
-  assert.ok(purged.run.instability < 80)
+  assert.ok(purged.run.activeBuffs.some((b) => b.id === "cryo_purge"))
   // Crit surge adds crit chance while it runs.
   const surged = activateSkill(run, meta, config, "crit_surge", now)
   assert.equal(buffCritChance(surged.run, now + 1000, config), 0.6)
@@ -920,4 +920,9 @@ test("coming back after a gap calls a lair fight off instead of replaying the mi
   const resumed = resumeAfterGap(run)
   assert.equal(resumed.lair, null)
   assert.deepEqual(resumed.monsterShieldUntil, run.monsterShieldUntil)
+})
+
+test("nothing left in the catalog leans on instability", () => {
+  for (const s of config.activeSkills) assert.ok(!s.instabilityDelta && !s.instabilityPerSecond, s.id)
+  for (const p of config.potions) assert.ok(!p.instabilityPerSecond, p.id)
 })

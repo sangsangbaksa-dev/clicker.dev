@@ -585,9 +585,11 @@ export function useClicker() {
     )
   }, [commit])
 
-  const adminCrisis = useCallback(() => {
+  /** Admin: five charges of every active skill, all cooldowns cleared. */
+  const adminSkills = useCallback(() => {
     if (!isClickerAdminAllowed() || !saveRef.current) return
-    commit(clickerAdminPatch(saveRef.current, { instability: 100, crisisActive: true }))
+    const skillItems = Object.fromEntries(clickerGameConfig.activeSkills.map((s) => [s.id, 5]))
+    commit(clickerAdminPatch(saveRef.current, { skillItems, skillCooldowns: {} }))
   }, [commit])
 
   const adminPotions = useCallback(() => {
@@ -1053,7 +1055,7 @@ export function useClicker() {
     adminCycleSpeed,
     adminModes,
     adminFillFever,
-    adminCrisis,
+    adminSkills,
     adminPotions,
     adminUnlock,
     toggleMute,
