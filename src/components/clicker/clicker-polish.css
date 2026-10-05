@@ -520,17 +520,21 @@
   background: rgb(0 0 0 / 0.35);
 }
 
-/* Dev-only admin launcher: keep it out of the HUD. */
-[data-clicker] .clicker-admin-launch {
+/* Dev-only admin launcher sits in the header row, beside 설정, so it never covers the dock or card buttons. */
+[data-clicker] .clicker-top > .clicker-admin-launch {
+  position: static;
   top: auto;
-  /* Above the bottom status bar, which is ~36px tall. */
-  bottom: calc(48px + env(safe-area-inset-bottom, 0px));
-  left: 12px;
   right: auto;
-  min-height: 30px;
-  padding: 4px 10px;
+  bottom: auto;
+  left: auto;
+  z-index: auto;
+  flex: none;
+  align-self: center;
+  margin: 0;
+  min-height: 32px;
+  padding: 0 10px;
   font-size: 11px;
-  opacity: 0.55;
+  opacity: 0.72;
 }
 
 [data-clicker] .clicker-admin-launch:hover {
@@ -1203,7 +1207,7 @@
     flex: 1 1 50%;
   }
 
-  [data-clicker] .clicker-top > :is(.clicker-save-pulse, .clicker-settings-launch) {
+  [data-clicker] .clicker-top > :is(.clicker-save-pulse, .clicker-settings-launch, .clicker-admin-launch) {
     order: 1;
     flex: none;
     align-self: center;
@@ -1273,13 +1277,18 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 16px;
+  padding:
+    max(10px, env(safe-area-inset-top, 0px))
+    max(16px, env(safe-area-inset-right, 0px))
+    10px
+    max(16px, env(safe-area-inset-left, 0px));
   border-bottom: 1px solid rgb(120 200 230 / 0.18);
   color: #dff6ff;
 }
 [data-clicker] .clicker-skillmap-head strong { font-size: 16px; letter-spacing: 0.06em; }
 [data-clicker] .clicker-skillmap-head span { font-size: 12px; color: #9fc3cf; }
-[data-clicker] .clicker-skillmap-close { margin-left: auto; }
+/* Left of the title: the header's right edge is where 설정 sits under this overlay. */
+[data-clicker] .clicker-skillmap-close { order: -1; margin-right: auto; }
 [data-clicker] .clicker-skillmap-view {
   position: relative;
   flex: 1;
@@ -1293,6 +1302,7 @@
   position: absolute;
   left: 0;
   top: 0;
+  transform-origin: 0 0;
   will-change: transform;
 }
 [data-clicker] .clicker-skillmap-lines {
@@ -1380,7 +1390,11 @@
   z-index: 58;
   display: grid;
   place-items: end center;
-  padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  padding:
+    max(16px, env(safe-area-inset-top, 0px))
+    max(16px, env(safe-area-inset-right, 0px))
+    calc(24px + env(safe-area-inset-bottom, 0px))
+    max(16px, env(safe-area-inset-left, 0px));
   background: rgb(2 6 12 / 0.55);
 }
 [data-clicker] .clicker-tutorial.is-story { place-items: end center; background: #000; }
@@ -1441,6 +1455,13 @@
   backdrop-filter: blur(6px);
   cursor: zoom-out;
   animation: clicker-zoom-fade 160ms ease-out;
+}
+.clicker-zoom-close {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  left: max(12px, env(safe-area-inset-left, 0px));
+  right: auto;
+  z-index: 1;
 }
 .clicker-zoom img {
   width: min(78vw, 78vh, 420px);
@@ -1840,17 +1861,19 @@
 @media (max-width: 520px) {
   [data-clicker] .clicker-tabs {
     display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    /* 100px min drops to 3 columns on phones so TRANSCENDENCE stays inside the button. */
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     padding-inline: 8px;
     width: auto !important;
     max-width: calc(100% - 16px);
     box-sizing: border-box;
   }
   [data-clicker] .clicker-tabs button {
-    padding: 7px 2px !important;
+    padding: 7px 4px !important;
     min-height: 0 !important;
-    font-size: 10px;
-    letter-spacing: 0;
+    font-size: 9px;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
   }
   .clicker-story-beat {
     z-index: 30;
@@ -2582,4 +2605,101 @@
   filter: none;
   transform: none;
   vertical-align: -3px;
+}
+
+/* ---------- Phone clip fixes ---------- */
+
+/* Tutorial actions sit above the hub dock instead of on its labels. */
+@media (max-width: 720px) and (min-height: 560px) {
+  [data-clicker] .clicker-tutorial {
+    padding-bottom: calc(148px + env(safe-area-inset-bottom, 0px));
+  }
+}
+@media (max-height: 520px) {
+  [data-clicker] .clicker-tutorial {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+  }
+}
+
+/* Landscape: the one-row dock covers the boss entry button.
+   The region plate keeps a 320px min-height, so on a short stage it spills
+   past the viewport and `bottom` is measured from that overflow. Pin the
+   plate to the stage, then lift the station clear of the dock. */
+@media (max-height: 520px) and (min-width: 721px) {
+  [data-clicker].is-region-hub .clicker-core-wrap {
+    min-height: 0;
+    height: 100%;
+  }
+  [data-clicker].is-region-hub .clicker-region-station {
+    bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+    width: min(78vw, 22rem);
+  }
+  [data-clicker] .clicker-world-gate-go {
+    max-width: 100%;
+  }
+}
+
+/* Short login: drop the art offset so 게스트로 시작 is on the first screen.
+   Landscape is two columns — the form and the guest button share the right side. */
+@media (max-height: 780px) {
+  [data-clicker] .clicker-login {
+    box-sizing: border-box;
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    align-items: center;
+    padding:
+      max(10px, env(safe-area-inset-top, 0px))
+      max(12px, env(safe-area-inset-right, 0px))
+      max(10px, env(safe-area-inset-bottom, 0px))
+      max(12px, env(safe-area-inset-left, 0px));
+  }
+  [data-clicker] .clicker-login-panel {
+    width: min(100%, 420px);
+    max-height: 100%;
+    min-height: 0;
+    margin-top: 0;
+    overflow: auto;
+    gap: 8px;
+    padding: 14px;
+  }
+  [data-clicker] .clicker-login-brand { font-size: 1.7rem; }
+  [data-clicker] .clicker-login-lead { font-size: 13px; line-height: 1.4; margin-bottom: 0; }
+  [data-clicker] .clicker-account-form { gap: 8px; }
+}
+
+@media (max-height: 520px) {
+  [data-clicker] .clicker-login-panel {
+    width: min(100%, 820px);
+    align-content: start;
+    grid-template-columns: minmax(0, 1fr) minmax(230px, 300px);
+    column-gap: 18px;
+    row-gap: 6px;
+    padding: 12px 16px;
+  }
+  [data-clicker] .clicker-login-kicker,
+  [data-clicker] .clicker-login-brand,
+  [data-clicker] .clicker-login-lead,
+  [data-clicker] .clicker-login-panel > .clicker-account-note:not(.is-warn) {
+    grid-column: 1;
+  }
+  [data-clicker] .clicker-login-panel > .clicker-account-note.is-warn,
+  [data-clicker] .clicker-login-panel > .clicker-account-form,
+  [data-clicker] .clicker-login-divider,
+  [data-clicker] .clicker-login-guest,
+  [data-clicker] .clicker-login-panel > .clicker-account-msg {
+    grid-column: 2;
+  }
+  [data-clicker] .clicker-login-brand { font-size: 1.45rem; }
+  [data-clicker] .clicker-login-lead {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  [data-clicker] .clicker-account-form input,
+  [data-clicker] .clicker-account-form .clicker-primary,
+  [data-clicker] .clicker-login-guest { min-height: 36px; }
 }

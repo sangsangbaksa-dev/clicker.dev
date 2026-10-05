@@ -2336,16 +2336,14 @@ button.clicker-metric-action.is-fever-ready em {
 }
 
 .clicker-admin-launch {
-  position: fixed;
-  right: 12px;
-  top: 76px;
-  z-index: 40;
+  position: static;
+  z-index: auto;
   border-radius: var(--radius-btn);
   border: 1px solid color-mix(in srgb, #3d6a78 55%, var(--line));
   background: color-mix(in srgb, #0c141c 92%, black);
   color: color-mix(in srgb, #9ec4d0 85%, white);
   padding: 8px 12px;
-  min-height: 40px;
+  min-height: 36px;
 }
 
 .clicker-admin {
@@ -2936,10 +2934,47 @@ button.clicker-metric-action.is-fever-ready em {
 
 .clicker-complete {
   position: relative;
-  min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
+  box-sizing: border-box;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+  align-items: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding:
+    max(24px, env(safe-area-inset-top, 0px))
+    max(24px, env(safe-area-inset-right, 0px))
+    max(24px, env(safe-area-inset-bottom, 0px))
+    max(24px, env(safe-area-inset-left, 0px));
+}
+
+/* Landscape phones: the card is taller than the screen. Start at the top so the title scrolls into view. */
+@media (max-height: 560px) {
+  .clicker-complete {
+    justify-content: flex-start;
+  }
+
+  .clicker-complete-card {
+    padding: 16px 14px;
+  }
+
+  .clicker-complete-card h1 {
+    margin: 6px 0 8px;
+    font-size: 22px;
+  }
+
+  .clicker-complete-epilogue {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .clicker-complete-stats {
+    gap: 8px;
+    margin-top: 12px;
+  }
 }
 
 .clicker-complete-bg {
@@ -4926,12 +4961,9 @@ button.clicker-metric-action.is-fever-ready em {
     width: calc(100vw - 16px);
   }
 
-  .clicker-admin-launch {
-    top: auto;
-    bottom: calc(112px + env(safe-area-inset-bottom, 0px));
-    right: 8px;
-    min-height: 36px;
-    padding: 6px 10px;
+  .clicker-top > .clicker-admin-launch {
+    min-height: 32px;
+    padding: 4px 8px;
     font-size: 11px;
   }
 

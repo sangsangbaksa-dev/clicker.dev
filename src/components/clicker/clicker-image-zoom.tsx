@@ -42,8 +42,7 @@ export function ClickerImageZoom() {
     <div ref={rootRef} className="clicker-zoom" role="dialog" aria-modal="true" aria-label="이미지 크게 보기" onClick={() => setSrc(null)}>
       <button
         type="button"
-        className="clicker-ghost"
-        style={{ position: "absolute", top: 12, right: 12 }}
+        className="clicker-ghost clicker-zoom-close"
         aria-label="닫기"
         aria-keyshortcuts="Escape"
         onClick={() => setSrc(null)}

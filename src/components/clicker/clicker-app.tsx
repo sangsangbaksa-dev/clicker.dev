@@ -1161,6 +1161,17 @@ export function ClickerApp() {
         >
           {game.savePulse === "saving" ? "저장 중…" : game.savePulse === "saved" ? "저장됨" : "자동 저장"}
         </button>
+        {adminAllowed && !adminOpen ? (
+          <button
+            type="button"
+            className="clicker-admin-launch"
+            aria-label="임시 관리자 패널 열기"
+            title="개발 전용 · Esc로 닫기"
+            onClick={() => setAdminOpen(true)}
+          >
+            관리자
+          </button>
+        ) : null}
         <button
           type="button"
           className="clicker-settings-launch"
@@ -1968,18 +1979,6 @@ export function ClickerApp() {
           <span className="clicker-toast-msg">{game.toast}</span>
         </button>
       ) : null}
-      {adminAllowed && !adminOpen ? (
-        <button
-          type="button"
-          className="clicker-admin-launch"
-          aria-label="임시 관리자 패널 열기"
-          title="개발 전용 · Esc로 닫기"
-          onClick={() => setAdminOpen(true)}
-        >
-          관리자
-        </button>
-      ) : null}
-
       {pendingRebirth ? (
         <ClickerRebirthMotion
           key={pendingRebirth.id}
