@@ -9,7 +9,7 @@ components, app/  →  application/  →  domain/
 | 경로 | 역할 |
 |------|------|
 | `domain/` | 타입·권한·순수 규칙 (프레임워크 무관). 노트 범위는 `notes-scope.ts`, 조 문서는 `group-docs.ts`, 조 대화는 `group-chat.ts` |
-| `application/` | `auth.ts`, `rooms.ts`, `group-docs.ts`, `group-chat.ts`, `group-collab.ts`, `admin.ts`, `classes.ts`, `school-notes.ts`, `notes-board.ts`, `home.ts`, `result.ts` |
+| `application/` | `auth.ts`, `rooms.ts`, `group-docs.ts`, `group-chat.ts`, `group-collab.ts`, `admin.ts`, `classes.ts`, `school-notes.ts`, `notes-board.ts`, `home.ts`, `result.ts`, 클리커: `clicker.ts`, `clicker-account.ts`, `clicker-ui.ts`, `clicker-client-bind.ts` |
 | `infrastructure/` | JSON/Blobs, JWT, guard |
 | `shared/` | ids, classes, URL, sync 간격 |
 

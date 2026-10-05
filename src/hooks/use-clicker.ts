@@ -184,7 +184,7 @@ export function useClicker() {
   }, [])
 
   useEffect(() => {
-    loadAsOwner()
+    queueMicrotask(() => loadAsOwner())
   }, [loadAsOwner])
 
   useEffect(() => {

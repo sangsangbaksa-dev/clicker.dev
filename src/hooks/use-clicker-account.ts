@@ -14,6 +14,7 @@ import {
   type ClickerAccountInfo,
   type ClickerCloudSave,
 } from "@/application/clicker-account"
+import { isClickerStaticHost } from "@/application/clicker-static-host"
 
 /** While logged in, the run is copied to the cloud this often (and when the page closes). */
 const AUTO_UPLOAD_MS = 2 * 60 * 1000
@@ -57,6 +58,12 @@ export function useClickerAccount({ getSaveJson, applySaveJson, startFresh }: Op
   }, [])
 
   useEffect(() => {
+    if (isClickerStaticHost()) {
+      setAvailable(false)
+      setStorage(false)
+      setChecked(true)
+      return
+    }
     let alive = true
     // A slow or hung account server must not hold the game behind the boot screen.
     const giveUp = window.setTimeout(() => alive && setChecked(true), 5000)

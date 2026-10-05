@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useState } from "react"
 import {
   normalizeClickerUiLang,
   resolveClickerUiLang,
@@ -17,12 +17,6 @@ export function useClickerUiLang(): [ClickerUiLang, (tag: string) => void] {
   const [lang, setLang] = useState<ClickerUiLang>(() =>
     resolveClickerUiLang({ stored: readStoredUiLang(), navigatorLanguage: readNavigatorUiLang() }),
   )
-
-  useEffect(() => {
-    setLang(
-      resolveClickerUiLang({ stored: readStoredUiLang(), navigatorLanguage: readNavigatorUiLang() }),
-    )
-  }, [])
 
   const save = useCallback((raw: string) => {
     const next = normalizeClickerUiLang(raw)
