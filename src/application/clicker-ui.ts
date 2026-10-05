@@ -146,3 +146,12 @@ export {
   type RebirthChoiceState,
 } from "@/domain/services/clicker-rebirth-choice"
 export { rebirthKeyframePreloadOrder } from "@/domain/services/clicker-rebirth-keyframes"
+export {
+  clampSkillMapPan,
+  skillMapContentBounds,
+  skillMapInitialView,
+  type SkillMapMarker,
+  type SkillMapRect,
+  type SkillMapSize,
+  type SkillMapView,
+} from "@/domain/services/clicker-skillmap-fit"

@@ -8,7 +8,15 @@ import {
   connectorPath,
   type SkillCell,
 } from "@/data/clicker/skill-tree-layout"
-import { formatNumber, skillStatusLabel, type SkillNodeView } from "@/application/clicker-ui"
+import {
+  clampSkillMapPan,
+  formatNumber,
+  skillMapContentBounds,
+  skillMapInitialView,
+  skillStatusLabel,
+  type SkillMapView,
+  type SkillNodeView,
+} from "@/application/clicker-ui"
 import { useClickerEscape } from "@/components/clicker/clicker-a11y"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 
@@ -49,44 +57,60 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
   const selected = (selectedId && byId.get(selectedId)) || null
 
   const viewRef = useRef<HTMLDivElement>(null)
-  const [pan, setPan] = useState<{ x: number; y: number } | null>(null)
-  const panRef = useRef({ x: 0, y: 0 })
+  const [pan, setPan] = useState<SkillMapView | null>(null)
+  const panRef = useRef<SkillMapView>({ x: 0, y: 0, scale: 1 })
   const drag = useRef<{ x: number; y: number; px: number; py: number; moved: boolean } | null>(null)
   const edge = useRef({ dx: 0, dy: 0 })
+  const userPanned = useRef(false)
 
   const boardW = layout.cols * CELL
   const boardH = layout.rows * CELL
+  const content = useMemo(() => {
+    const markers = treeNodes.map((node) => ({
+      x: (node.col + 0.5) * CELL,
+      y: (node.row + 0.5) * CELL,
+      r: node.id === layout.centerId ? 32 : node.tier >= 5 ? 37 : 31,
+    }))
+    markers.push({ x: (layout.hub.col + 0.5) * CELL, y: (layout.hub.row + 0.5) * CELL, r: 64 })
+    return skillMapContentBounds(markers, 10) ?? { x: 0, y: 0, w: boardW, h: boardH }
+  }, [boardH, boardW, layout.centerId, layout.hub.col, layout.hub.row, treeNodes])
 
-  const clampPan = (x: number, y: number) => {
+  const applyPan = (x: number, y: number, scale = panRef.current.scale, fromUser = false) => {
     const el = viewRef.current
-    const w = el?.clientWidth ?? 800
-    const h = el?.clientHeight ?? 600
-    const pad = 160
-    return {
-      x: Math.min(pad, Math.max(w - boardW - pad, x)),
-      y: Math.min(pad, Math.max(h - boardH - pad, y)),
+    const view = { w: el?.clientWidth ?? 0, h: el?.clientHeight ?? 0 }
+    const next = {
+      ...clampSkillMapPan({ x, y }, view, { w: boardW, h: boardH }, scale),
+      scale,
     }
-  }
-  const applyPan = (x: number, y: number) => {
-    const next = clampPan(x, y)
+    if (fromUser) userPanned.current = true
     panRef.current = next
     setPan(next)
   }
 
-  // Start centred on the hub.
+  // First frame (and each resize before the player pans) fits the whole tree in the view.
   useEffect(() => {
     const el = viewRef.current
     if (!el) return
-    applyPan(el.clientWidth / 2 - (layout.hub.col + 0.5) * CELL, el.clientHeight / 2 - (layout.hub.row + 0.5) * CELL)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    const fit = () => {
+      if (userPanned.current) return
+      const view = { w: el.clientWidth, h: el.clientHeight }
+      if (view.w < 2 || view.h < 2) return
+      const next = skillMapInitialView(view, content, 14)
+      panRef.current = next
+      setPan(next)
+    }
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [boardH, boardW, content])
 
   // Edge panning loop (desktop pointers only).
   useEffect(() => {
     let raf = 0
     const loop = () => {
       const { dx, dy } = edge.current
-      if ((dx || dy) && !drag.current) applyPan(panRef.current.x - dx * EDGE_SPEED, panRef.current.y - dy * EDGE_SPEED)
+      if ((dx || dy) && !drag.current) applyPan(panRef.current.x - dx * EDGE_SPEED, panRef.current.y - dy * EDGE_SPEED, panRef.current.scale, true)
       raf = window.requestAnimationFrame(loop)
     }
     raf = window.requestAnimationFrame(loop)
@@ -117,7 +141,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
       d.moved = true
       e.currentTarget.setPointerCapture(e.pointerId)
     }
-    applyPan(d.px + mx, d.py + my)
+    applyPan(d.px + mx, d.py + my, panRef.current.scale, true)
   }
   const endDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (drag.current?.moved && e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
@@ -163,14 +187,15 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         onPointerLeave={() => (edge.current = { dx: 0, dy: 0 })}
-        onWheel={(e) => applyPan(panRef.current.x - e.deltaX, panRef.current.y - e.deltaY)}
+        onWheel={(e) => applyPan(panRef.current.x - e.deltaX, panRef.current.y - e.deltaY, panRef.current.scale, true)}
       >
         <div
           className="clicker-skillmap-board"
           style={{
             width: boardW,
             height: boardH,
-            transform: `translate3d(${pan?.x ?? 0}px, ${pan?.y ?? 0}px, 0)`,
+            transform: `translate3d(${pan?.x ?? 0}px, ${pan?.y ?? 0}px, 0) scale(${pan?.scale ?? 1})`,
+            transformOrigin: "0 0",
             visibility: pan ? "visible" : "hidden",
           }}
         >
