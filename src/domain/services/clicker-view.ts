@@ -114,17 +114,17 @@ export function buildHud(
       combo: run.fever.combo,
       finisherReady: run.fever.finisherReady,
       phaseLabel: !feverUnlocked(run, config)
-        ? "FEVER 잠김"
+        ? "FEVER LOCKED"
         : feverHeld
-        ? "FEVER 일시정지"
+        ? "FEVER PAUSED"
         : feverOn
         ? run.fever.finisherReady
-          ? "피니셔 준비"
+          ? "FINISHER READY"
           : `FEVER ×${Math.max(1, run.fever.combo)}`
         : feverCooling
-          ? "쿨다운"
+          ? "COOLDOWN"
           : run.fever.gauge >= config.feverGaugeMax
-            ? "FEVER 준비"
+            ? "FEVER READY"
             : "FEVER",
     },
     instability: {

@@ -110,6 +110,7 @@ export {
   GEAR_SLOTS,
   HELMETS,
   LAIR_BOSSES,
+  SHIELD_MS,
   WEAPONS,
   forgeError,
   gearImage,

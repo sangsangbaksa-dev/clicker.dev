@@ -2030,7 +2030,7 @@
 
 /* Locked menu entries (forge, world, rebirth before they open) read as dimmed with a lock. */
 [data-clicker] .clicker-hub-dock-btn.is-locked { opacity: 0.5; filter: grayscale(0.7); }
-[data-clicker] .clicker-hub-dock-btn.is-locked strong::after { content: " · 잠김"; font-size: 0.75em; font-weight: 600; }
+[data-clicker] .clicker-hub-dock-btn.is-locked strong::after { content: " · LOCKED"; font-size: 0.75em; font-weight: 600; }
 [data-clicker] .clicker-tabs button[data-locked="true"] { opacity: 0.45; filter: grayscale(0.7); }
 [data-clicker] .clicker-tabs button[data-locked="true"]::after { content: " 🔒"; font-size: 0.8em; }
 [data-clicker] .clicker-forge-summary { margin: 0 0 10px; font-size: 13px; color: #dff4ff; }
@@ -2545,3 +2545,97 @@
 }
 [data-clicker] .clicker-wl-select.is-locked .clicker-wl-extra-card:not(.is-walked) { opacity: 0.72; }
 [data-clicker] .clicker-transcendence-locked strong { color: #ffe08a; }
+
+/* English UI chrome in a sleek display face (Rajdhani): menu, tab strip, HUD captions,
+   manage header, mine HUD. Korean body text keeps Noto Sans KR. */
+[data-clicker] {
+  --font-display: "Rajdhani", "Noto Sans KR", system-ui, sans-serif;
+}
+[data-clicker] :is(
+  .clicker-tabs button,
+  .clicker-hub-dock-btn strong,
+  .clicker-metric > span,
+  .clicker-metric > em,
+  .clicker-manage-title,
+  .clicker-manage-back,
+  .clicker-settings-launch,
+  .clicker-save-pulse,
+  .clicker-mine-hud-stat > span,
+  .clicker-lair-leave,
+  .clicker-hub-enter
+) {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+[data-clicker] .clicker-tabs button { font-size: 14px; }
+[data-clicker] .clicker-tabs button[data-active="true"] { font-weight: 700; letter-spacing: 0.14em; }
+[data-clicker] .clicker-hub-dock-btn strong { font-size: 15px; letter-spacing: 0.08em; }
+[data-clicker] .clicker-hub-dock-btn span { letter-spacing: 0; text-transform: none; opacity: 0.7; }
+[data-clicker] .clicker-manage-title { font-size: 18px; font-weight: 700; letter-spacing: 0.22em; }
+[data-clicker] .clicker-metric > span { font-size: 12px; letter-spacing: 0.16em; }
+@media (max-width: 720px) {
+  [data-clicker] .clicker-tabs button { font-size: 12px; letter-spacing: 0.06em; }
+  [data-clicker] .clicker-hub-dock-btn strong { font-size: 12px; letter-spacing: 0.01em; }
+}
+
+/* Hunting grounds: "상세" opens how lair damage works, with the player's current numbers. */
+[data-clicker] .clicker-lair-info-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 14;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgb(120 200 255 / 0.45);
+  background: rgb(6 10 16 / 0.72);
+  color: #dff4ff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+[data-clicker] .clicker-lair-info-btn:hover { border-color: rgb(160 225 255 / 0.85); }
+[data-clicker] .clicker-lair-info {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(2 4 9 / 0.62);
+}
+[data-clicker] .clicker-lair-info > section {
+  width: min(520px, 100%);
+  max-height: min(86dvh, 720px);
+  overflow-y: auto;
+  padding: 18px 20px 20px;
+  border-radius: 16px;
+  border: 1px solid rgb(120 200 255 / 0.3);
+  background: linear-gradient(180deg, rgb(10 16 28 / 0.97), rgb(6 10 18 / 0.98));
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.55);
+  color: #d9e9f5;
+  font-size: 14px;
+  line-height: 1.55;
+}
+[data-clicker] .clicker-lair-info header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+[data-clicker] .clicker-lair-info h3 { margin: 0; font-size: 18px; color: #f6efe0; }
+[data-clicker] .clicker-lair-info h4 { margin: 14px 0 6px; font-size: 13px; letter-spacing: 0.08em; color: #8fd8ff; }
+[data-clicker] .clicker-lair-info ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+[data-clicker] .clicker-lair-info b { color: #ffe08a; }
+[data-clicker] .clicker-lair-info-formula {
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgb(120 200 255 / 0.08);
+  border: 1px solid rgb(120 200 255 / 0.18);
+}
+/* Desktop dock: English labels are wider than the old Korean ones, so each button sizes to
+   its label instead of an equal share of a fixed-width bar (PRODUCERS overflowed into UPGRADES). */
+@media (min-width: 721px) {
+  [data-clicker] .clicker-hub-dock { width: auto; }
+  [data-clicker] .clicker-hub-dock-btn { flex: 0 0 auto; min-width: 84px; padding: 10px 14px; }
+  [data-clicker] .clicker-hub-dock-btn strong { font-size: 15px; white-space: nowrap; }
+}

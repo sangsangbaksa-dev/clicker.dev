@@ -38,6 +38,7 @@ import {
   SECRET_CODE,
   typedSecretCode,
   withParticle,
+  SHIELD_MS,
 } from "@/application/clicker-ui"
 import { useClicker } from "@/hooks/use-clicker"
 import { useClickerBgm } from "@/hooks/use-clicker-bgm"
@@ -71,6 +72,7 @@ import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
 import { ClickerFloats } from "./clicker-floats"
 import { ClickerCountdown } from "./clicker-countdown"
+import { ClickerLairInfo } from "./clicker-lair-info"
 import { ClickerAchievementsPanel } from "@/components/clicker/panels/achievements-panel"
 import { ClickerProducersPanel } from "@/components/clicker/panels/producers-panel"
 import { ClickerUpgradesPanel } from "@/components/clicker/panels/upgrades-panel"
@@ -975,7 +977,7 @@ export function ClickerApp() {
       ...(relicsOpen ? ([["relics", "RELICS", "유물"]] as const) : []),
       ["world", "WORLD", "지역"],
       ["achievements", "RECORDS", "업적"],
-      ["transcendence", "TRANSCENDENCE", "초월"],
+      ["transcendence", "REBIRTH", "초월"],
     ] as const
   )
   const automationBuff =
@@ -1015,7 +1017,7 @@ export function ClickerApp() {
       <header className="clicker-top">
         {!inMine ? (
           <div className="clicker-metric" aria-label={`코어 광석 ${formatNumber(run.coreEnergy)} · 초당 ${formatNumber(game.snapshot?.perSecond ?? 0)}`}>
-            <span>코어 광석</span>
+            <span>CORE</span>
             <strong>
               <CountUpNumber value={run.coreEnergy} />
             </strong>
@@ -1094,7 +1096,7 @@ export function ClickerApp() {
                 : run.fever.phase === "COOL_DOWN"
                   ? `${hud.fever.remainingSeconds.toFixed(1)}초`
                   : hud.fever.locked
-                    ? "스킬에서 해금"
+                    ? "UNLOCK IN SKILLS"
                     : `${Math.round(hud.fever.progress * 100)}%`}
             </em>
           </div>
@@ -1110,14 +1112,14 @@ export function ClickerApp() {
               <span>WORLD LINE</span>
               <strong>#{String(run.currentWorldLine).padStart(3, "0")}</strong>
               <em>
-                {transcendenceUnlocked ? "초월 가능 · 열기" : `환생 ${game.save.metaState.rebirthCount}`}
+                {transcendenceUnlocked ? "READY · OPEN" : `REBIRTH ${game.save.metaState.rebirthCount}`}
               </em>
             </button>
           ) : (
             <div className="clicker-metric">
               <span>WORLD LINE</span>
               <strong>#{String(run.currentWorldLine).padStart(3, "0")}</strong>
-              <em>환생 {game.save.metaState.rebirthCount}</em>
+              <em>REBIRTH {game.save.metaState.rebirthCount}</em>
             </div>
           )
         ) : showTranscendenceTab ? (
@@ -1152,7 +1154,7 @@ export function ClickerApp() {
           }}
           disabled={game.savePulse === "saving"}
         >
-          {game.savePulse === "saving" ? "저장 중…" : game.savePulse === "saved" ? "저장됨" : "자동 저장"}
+          {game.savePulse === "saving" ? "SAVING…" : game.savePulse === "saved" ? "SAVED" : "AUTO SAVE"}
         </button>
         <button
           type="button"
@@ -1161,7 +1163,7 @@ export function ClickerApp() {
           aria-haspopup="dialog"
           onClick={() => setSettingsOpen(true)}
         >
-          설정
+          SETTINGS
         </button>
       </header>
 
@@ -1186,6 +1188,25 @@ export function ClickerApp() {
               const reward = game.strikeLair(x, y)
               if (reward !== null) showLairResult(true, `토벌 성공 · +${formatNumber(reward)} CORE`)
               return reward !== null
+            }}
+          />
+        ) : null}
+        {!inMine && regionDef?.huntMode && monsterDef && LAIR_BOSSES[monsterDef.kind] ? (
+          <ClickerLairInfo
+            info={{
+              bossName: monsterDef.name,
+              bossHp: LAIR_BOSSES[monsterDef.kind].hp,
+              bossDamage: LAIR_BOSSES[monsterDef.kind].damage,
+              attackEverySec: lairAttackEveryMs(run) / 1000,
+              weaponName: WEAPONS[gear.weapon].name,
+              weaponDamage: WEAPONS[gear.weapon].damage,
+              huntMultiplier: lairDamageMultiplier(run, game.config),
+              armorName: ARMORS[gear.armor].name,
+              armorReduction: ARMORS[gear.armor].reduction,
+              playerHp: playerMaxHp(run),
+              shieldMin: Math.round(SHIELD_MS / 60000),
+              respawnSec: monsterDef.respawnSec,
+              rewardSeconds: monsterDef.rewardSeconds,
             }}
           />
         ) : null}
@@ -1286,7 +1307,7 @@ export function ClickerApp() {
             <div className="clicker-mine-dig">
               <div className="clicker-mine-hud" role="status" aria-live="polite">
                 <div className="clicker-mine-hud-stat" aria-label={`채굴량 ${formatNumber(mineHaul)}`}>
-                  <span>채굴량</span>
+                  <span>HAUL</span>
                   <strong>{formatNumber(mineHaul)}</strong>
                 </div>
                 <div
@@ -1294,7 +1315,7 @@ export function ClickerApp() {
                   role="timer"
                   aria-label={`남은 시간 ${mineRemainSec.toFixed(1)}초`}
                 >
-                  <span>남은 시간</span>
+                  <span>TIME</span>
                   <strong><ClickerCountdown endsAt={run.mineSessionEndsAt} fallbackMs={mineRemainMs} /></strong>
                 </div>
                 <button
@@ -1532,7 +1553,7 @@ export function ClickerApp() {
                     {WEAPONS[gear.weapon].name} (피해 {Math.max(1, Math.round(WEAPONS[gear.weapon].damage * lairDamageMultiplier(run, game.config)))}) · {ARMORS[gear.armor].name}
                   </p>
                   <button type="button" className="clicker-ghost clicker-lair-leave" onClick={game.leaveLair}>
-                    후퇴하기
+                    RETREAT
                   </button>
                 </>
               ) : (
@@ -1638,8 +1659,8 @@ export function ClickerApp() {
                 aria-label={tabLockReason(id) ? `${ko} · 잠김` : `${ko} 화면 열기`}
                 onClick={() => selectTab(id)}
               >
-                <strong>{ko}</strong>
-                <span>{label}</span>
+                <strong>{label}</strong>
+                <span>{ko}</span>
               </button>
             ))}
           </nav>
@@ -1706,10 +1727,10 @@ export function ClickerApp() {
               aria-label={`${withParticle(atHomeHub ? "광산 입구" : (game.currentRegion?.name ?? "지역"), "으로")} 돌아가기 · Esc`}
               onClick={() => setHubView("entrance")}
             >
-              ◀ {atHomeHub ? "광산 입구" : (game.currentRegion?.name ?? "지역")}
+              ◀ {atHomeHub ? "MINE GATE" : (game.currentRegion?.name ?? "WORLD")}
             </button>
             <span className="clicker-manage-title">
-              {drawerTabs.find(([id]) => id === tab)?.[2] ?? ""}
+              {drawerTabs.find(([id]) => id === tab)?.[1] ?? ""}
             </span>
             <span className="clicker-manage-esc" aria-hidden>
               Esc
@@ -1761,10 +1782,10 @@ export function ClickerApp() {
               data-locked={tabLockReason(id) ? "true" : undefined}
               aria-label={tabLockReason(id) ? `${ko} · 잠김` : ko}
               aria-current={tab === id ? "page" : undefined}
-              title={label}
+              title={ko}
               onClick={() => selectTab(id)}
             >
-              {ko}
+              {label}
             </button>
           ))}
         </nav>
