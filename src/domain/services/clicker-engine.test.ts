@@ -911,3 +911,13 @@ test("Korean particles follow the word's final sound", async () => {
   assert.equal(withParticle("Phase Vault", "으로"), "Phase Vault로")
   assert.equal(withParticle("Core Mine", "을를"), "Core Mine을")
 })
+
+test("coming back after a gap calls a lair fight off instead of replaying the missed blows", () => {
+  const now = 30_000_000
+  const base = startClickerGame(createInitialSave(now, config))
+  const fight = { regionId: "storm_spire", bossHp: 500, bossMaxHp: 840, playerHp: 100, playerMaxHp: 100, nextAttackAt: now + 1000 }
+  const run = { ...base.runState, lair: fight as never }
+  const resumed = resumeAfterGap(run)
+  assert.equal(resumed.lair, null)
+  assert.deepEqual(resumed.monsterShieldUntil, run.monsterShieldUntil)
+})

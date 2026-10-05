@@ -1746,6 +1746,19 @@
   border: 1px solid rgb(255 120 110 / 0.35);
   backdrop-filter: blur(4px);
 }
+/* Before the fight too: the forecast and the entry button sit on the same dark card instead
+   of floating over the boss art, where the red warning was hard to read. */
+[data-clicker] .clicker-hunt-station:not(.is-battle) {
+  padding: 10px 14px 12px;
+  border-radius: 14px;
+  background: rgb(6 10 16 / 0.74);
+  border: 1px solid rgb(120 200 255 / 0.28);
+  backdrop-filter: blur(4px);
+}
+[data-clicker] .clicker-lair-forecast {
+  text-shadow: none;
+}
+
 /* Forge opens as a bottom sheet instead of shoving the arena around. */
 [data-clicker] .clicker-forge.is-open .clicker-forge-slots {
   position: fixed;
@@ -2519,3 +2532,16 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* Rebirth row armed by the first press: a warm, pulsing confirm state. */
+[data-clicker] .clicker-wl-extra-card .clicker-primary.is-armed {
+  background: linear-gradient(180deg, #ffb35c, #e0602e);
+  border-color: #ffd2a0;
+  color: #1a0b02;
+  animation: clicker-wl-armed 0.9s ease-in-out infinite;
+}
+@keyframes clicker-wl-armed {
+  50% { box-shadow: 0 0 18px rgb(255 160 80 / 0.75); }
+}
+[data-clicker] .clicker-wl-select.is-locked .clicker-wl-extra-card:not(.is-walked) { opacity: 0.72; }
+[data-clicker] .clicker-transcendence-locked strong { color: #ffe08a; }

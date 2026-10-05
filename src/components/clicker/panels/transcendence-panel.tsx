@@ -68,13 +68,21 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
           />
         </>
       ) : (
-        <div className="clicker-transcendence-locked" role="status">
-          <div className="clicker-transcendence-locked-actions">
-            <button type="button" className="clicker-primary" onClick={() => onSelectTab("producers")}>
-              돌아가기
-            </button>
+        <>
+          <div className="clicker-transcendence-locked" role="status">
+            <p>
+              환생까지 <strong>{formatNumber(Math.max(0, requirement - run.lifetimeCoreEnergy))} CORE</strong> 남았습니다.
+              생산자와 업그레이드로 누적 CORE를 늘리세요. 아래 세계선 중 하나를 골라 환생하게 됩니다.
+            </p>
           </div>
-        </div>
+          <ClickerRebirthWorldlineSelect
+            buffs={game.config.transcendence}
+            ownedIds={meta.transcendenceIds}
+            popIcons={popIcons}
+            locked
+            onChoose={() => {}}
+          />
+        </>
       )}
     </div>
   )

@@ -1715,7 +1715,10 @@ export function resumeAfterGap(run: RunState): RunState {
     combo: createInitialCombo(),
     activeBuffs: [],
     eventBoosts: [],
+    // A fight left mid-way (tab hidden, phone locked) is called off, not lost: replaying the
+    // missed boss blows used to knock the player out and raise a 3-minute shield on return.
     boss: null,
+    lair: null,
   }
 }
 
