@@ -1,75 +1,17 @@
 "use client"
 
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type RefObject } from "react"
+import { clickerFramedBossScene, sceneCameraY, weatherMotes } from "@/application/clicker-stage"
 import { playSfx } from "@/lib/clicker-sfx"
 import { formatNumber } from "@/application/clicker-ui"
 import { ClickerHpBar } from "@/components/clicker/clicker-hpbar"
 import "./clicker-boss-scene.css"
 
 /*
- * Lair bosses are painted INTO their scene (Canva, portrait): the dragon coiled round the
- * spire, the titan grown out of the vault, the behemoth climbing from the chasm. The scene
- * is a living painting: the monster's region is a second, masked copy of the art that
- * breathes, lunges and flinches independently of the backdrop, its eyes burn, and each
- * scene has its own weather (storm lightning + fog, drifting crystal motes, rising embers).
- *
- * Each scene comes in two cuts: the portrait painting for phones and other tall stages, and a
- * 16:9 cut for computers (the same painting extended sideways), so the monster always fills the
- * stage edge to edge. Coordinates are percentages of the portrait painting; the wide cut keeps
- * its full height and centres it, so they map across by `wide.scale`.
+ * Lair bosses and the core guardian are painted into their scene. Which plate, where the
+ * body sits, and which cue fires are catalog data; framing that plate onto a wide stage
+ * is a domain rule. This view only breathes, lunges, and spills the weather it was given.
  */
-type Pt = { x: number; y: number }
-type SceneDef = {
-  src: string
-  /** The 16:9 cut: its file, and the portrait painting's width as a share of it. */
-  wide: { src: string; scale: number }
-  /** Monster body: hitbox and the centre of the breathing mask. */
-  body: { x: number; y: number; w: number; h: number }
-  eyes: Pt[]
-  /** Where the attack lands / erupts from. */
-  strike: Pt
-  weather: "storm" | "crystal" | "lava"
-  tint: string
-  attackSfx: "dragonBreath" | "bossSmash"
-  /** Extra idle motion: flyers sway, walkers heave. */
-  sway: "wings" | "heave"
-}
-
-export const BOSS_SCENES: Record<string, SceneDef> = {
-  stormbird: {
-    src: "/clicker/boss/storm_spire.webp",
-    wide: { src: "/clicker/boss/storm_spire_wide.webp", scale: 0.3748 },
-    body: { x: 50, y: 30, w: 98, h: 56 },
-    eyes: [{ x: 44.1, y: 23 }, { x: 52.6, y: 23 }],
-    strike: { x: 48.8, y: 30 },
-    weather: "storm",
-    tint: "120 220 255",
-    attackSfx: "dragonBreath",
-    sway: "wings",
-  },
-  golem: {
-    src: "/clicker/boss/phase_vault.webp",
-    wide: { src: "/clicker/boss/phase_vault_wide.webp", scale: 0.3748 },
-    body: { x: 52, y: 37, w: 94, h: 62 },
-    eyes: [{ x: 49.5, y: 20.6 }, { x: 56.7, y: 21.1 }],
-    strike: { x: 50, y: 80 },
-    weather: "crystal",
-    tint: "80 245 225",
-    attackSfx: "bossSmash",
-    sway: "heave",
-  },
-  worm: {
-    src: "/clicker/boss/deep_fault.webp",
-    wide: { src: "/clicker/boss/deep_fault_wide.webp", scale: 0.374 },
-    body: { x: 52, y: 40, w: 80, h: 72 },
-    eyes: [{ x: 45, y: 12 }, { x: 52, y: 12 }],
-    strike: { x: 50, y: 82 },
-    weather: "lava",
-    tint: "255 130 40",
-    attackSfx: "bossSmash",
-    sway: "heave",
-  },
-}
 
 const ATTACK_EVERY_MS = 4200
 /** How far below the eye line (% of the art's height) a wide stage centres the camera. */
@@ -86,13 +28,10 @@ type Props = {
   battle?: { bossHp: number; bossMaxHp: number; nextAttackAt: number } | null
   shieldMs?: number
   tauntKey?: number
+  /** The guardian fight draws its own bars, so the scene can stay a painting. */
+  showHp?: boolean
   onEnter: () => void
   onStrike: (clientX: number, clientY: number) => boolean
-}
-
-/** Portrait-painting coordinates placed on the wide cut (same height, centred). */
-function toWide(p: Pt, scale: number): Pt {
-  return { x: 50 + (p.x - 50) * scale, y: p.y }
 }
 
 /** True while the stage is wider than tall — the computer layout. */
@@ -110,19 +49,10 @@ function useWideStage(ref: RefObject<HTMLDivElement | null>): boolean {
   return wide
 }
 
-export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, tauntKey = 0, onEnter, onStrike }: Props) {
+export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, tauntKey = 0, showHp = true, onEnter, onStrike }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null)
   const wide = useWideStage(rootRef)
-  const portrait = BOSS_SCENES[kind]
-  const scene: SceneDef | undefined = portrait && wide
-    ? {
-        ...portrait,
-        src: portrait.wide.src,
-        body: { ...toWide(portrait.body, portrait.wide.scale), w: portrait.body.w * portrait.wide.scale, h: portrait.body.h },
-        eyes: portrait.eyes.map((e) => toWide(e, portrait.wide.scale)),
-        strike: toWide(portrait.strike, portrait.wide.scale),
-      }
-    : portrait
+  const scene = clickerFramedBossScene(kind, wide)
   const [phase, setPhase] = useState<"idle" | "windup" | "strike">("idle")
   const [hitKey, setHitKey] = useState(0)
   const [dying, setDying] = useState(false)
@@ -191,17 +121,16 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
       setDying(true)
       later(() => setDying(false), 2400)
     } else {
-      playSfx("bossHurt")
+      playSfx(scene.hurtSfx)
     }
   }
 
   const b = scene.body
   // Camera target on a wide stage: just below the eye line, so the head is always in frame.
-  const eyeY = scene.eyes.reduce((sum, e) => sum + e.y, 0) / Math.max(1, scene.eyes.length)
   const vars = {
     "--bx": `${b.x}%`,
     "--by": `${b.y}%`,
-    "--byn": Math.min(b.y, eyeY + FRAME_BELOW_EYES) / 100,
+    "--byn": sceneCameraY(b.y, scene.eyes.map((eye) => eye.y), scene.strike.y, FRAME_BELOW_EYES),
     "--bw": `${b.w}%`,
     "--bh": `${b.h}%`,
     "--tint": scene.tint,
@@ -239,9 +168,22 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
           </div>
         </div>
         <div className="boss-scene-weather" aria-hidden>
-          {Array.from({ length: 16 }, (_, i) => (
-            <i key={i} style={{ "--i": i } as CSSProperties} />
-          ))}
+          {scene.weather === "storm"
+            ? Array.from({ length: 16 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)
+            : weatherMotes(scene.weather).map((mote, i) => (
+                <i
+                  key={i}
+                  style={
+                    {
+                      "--i": i,
+                      left: mote.left,
+                      "--dur": mote.duration,
+                      "--delay": mote.delay,
+                      "--drift": mote.drift,
+                    } as CSSProperties
+                  }
+                />
+              ))}
         </div>
         {phase === "strike" ? (
           <span className="boss-scene-impact" style={{ left: `${scene.strike.x}%`, top: `${scene.strike.y}%` }} aria-hidden>
@@ -273,7 +215,7 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
           onPointerDown={tap}
         />
       </div>
-      {battle ? (
+      {showHp && battle ? (
         <div className="boss-scene-hp">
           <ClickerHpBar
             tone="boss"

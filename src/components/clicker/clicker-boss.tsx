@@ -13,12 +13,14 @@ type Props = {
   fight: BossFight | null
   now: number
   defeated: boolean
+  /** The stage already paints the guardian, so this view keeps only the bars and the start. */
+  framedByScene?: boolean
   onStart: () => void
   onStrike: (clientX: number, clientY: number) => void
 }
 
 /** Core Heart: tap the guardian to hurt it before its blows or the clock end the fight. */
-export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike }: Props) {
+export function ClickerBossFight({ def, fight, now, defeated, framedByScene = false, onStart, onStrike }: Props) {
   const [attack, setAttack] = useState(0)
   const [lost, setLost] = useState(false)
   const [hit, setHit] = useState(0)
@@ -37,7 +39,7 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
 
   const left = fight ? Math.max(0, fight.endsAt - now) / 1000 : def.timeLimitSec
   return (
-    <div className={`clicker-boss${attack ? " is-attack" : ""}${def.imageSrc ? " has-art" : ""}${fight ? " is-fighting" : ""}`}>
+    <div className={`clicker-boss${attack ? " is-attack" : ""}${def.imageSrc && !framedByScene ? " has-art" : ""}${framedByScene ? " is-scene" : ""}${fight ? " is-fighting" : ""}`}>
       {fight ? null : <strong>{def.name}</strong>}
       {fight ? (
         <div className="clicker-boss-bars">
@@ -59,6 +61,7 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
           />
         </div>
       ) : null}
+      {framedByScene ? null : (
       <button
         type="button"
         data-sfx="off"
@@ -89,6 +92,7 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
           <MonsterArt kind={def.kind} />
         )}
       </button>
+      )}
       {!fight ? (
         <>
           {lost ? <p className="clicker-boss-note">쓰러졌습니다. 더 강해져서 다시 도전하세요.</p> : null}
@@ -98,7 +102,7 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
         </>
       ) : null}
       {attack && fight ? <div className="clicker-boss-hurt" key={`hurt-${attack}`} aria-hidden /> : null}
-      <span className="clicker-boss-dread" aria-hidden />
+      {framedByScene ? null : <span className="clicker-boss-dread" aria-hidden />}
     </div>
   )
 }

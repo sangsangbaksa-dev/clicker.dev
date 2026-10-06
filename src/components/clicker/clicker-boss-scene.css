@@ -182,25 +182,56 @@
   animation-delay: calc(var(--i) * 3.1s);
 }
 @keyframes boss-lightning { 0%, 91%, 93%, 95%, 100% { opacity: 0; } 92%, 94% { opacity: 1; } }
-/* Crystal: slow luminous motes drifting up. Lava: embers rising fast. */
+/* Crystal, lava, and the sanctum share one mote. Pace and drift come from the domain as variables. */
 .clicker-boss-scene.is-crystal .boss-scene-weather i,
-.clicker-boss-scene.is-lava .boss-scene-weather i {
-  left: calc(4% + var(--i) * 6%);
+.clicker-boss-scene.is-lava .boss-scene-weather i,
+.clicker-boss-scene.is-sanctum .boss-scene-weather i {
   bottom: -2%;
   width: 0.9%;
   aspect-ratio: 1;
   border-radius: 50%;
   background: rgb(var(--tint));
   box-shadow: 0 0 8px 2px rgb(var(--tint) / 0.8);
-  animation: boss-mote calc(6s + (var(--i) * 7 % 5) * 1s) linear infinite;
-  animation-delay: calc(var(--i) * -0.9s);
+  animation-name: boss-mote;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: var(--dur, 6s);
+  animation-delay: var(--delay, 0s);
 }
-.clicker-boss-scene.is-lava .boss-scene-weather i { width: 0.6%; animation-duration: calc(3s + (var(--i) * 7 % 4) * 0.6s); }
+.clicker-boss-scene.is-lava .boss-scene-weather i { width: 0.6%; }
+.clicker-boss-scene.is-sanctum .boss-scene-weather i {
+  width: 0.45%;
+  box-shadow: 0 0 12px 3px rgb(var(--tint) / 0.9);
+}
 @keyframes boss-mote {
   0% { transform: translate(0, 0); opacity: 0; }
   10% { opacity: 1; }
-  100% { transform: translate(calc((var(--i) * 13 % 7 - 3) * 8px), -85cqh); opacity: 0; }
+  100% { transform: translate(var(--drift, 0px), -85cqh); opacity: 0; }
 }
+/* Sanctum: the guardian's diamond breathes, and a shaft of light hangs in the vault. */
+.clicker-boss-scene.is-sanctum .boss-scene-weather::before {
+  content: "";
+  position: absolute;
+  left: 45%;
+  top: 26%;
+  width: 22%;
+  height: 18%;
+  translate: -50% -50%;
+  background: radial-gradient(circle, rgb(180 250 255 / 0.55), transparent 68%);
+  mix-blend-mode: screen;
+  animation: boss-sanctum-core 3.4s ease-in-out infinite;
+}
+.clicker-boss-scene.is-sanctum .boss-scene-weather::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 48% 12%, rgb(120 220 255 / 0.2), transparent 46%);
+  mix-blend-mode: screen;
+  animation: boss-sanctum-ray 7s ease-in-out infinite;
+}
+@keyframes boss-sanctum-core { 50% { opacity: 0.4; scale: 1.18; } }
+@keyframes boss-sanctum-ray { 50% { opacity: 0.45; } }
 /* Lava: the chasm glow breathes. */
 .clicker-boss-scene.is-lava .boss-scene-weather::before {
   content: "";
@@ -226,7 +257,7 @@
 }
 @keyframes boss-debris {
   from { transform: rotate(var(--a)) translateY(0) scale(1.6); opacity: 1; }
-  to { transform: rotate(var(--a)) translateY(calc(-40px - (var(--i) * 37 % 70) * 1px)) scale(0.3); opacity: 0; }
+  to { transform: rotate(var(--a)) translateY(calc(-36px - var(--i) * 7px)) scale(0.3); opacity: 0; }
 }
 
 /* Death: a white-hot flash, then the body slowly sags into the scene and goes dark — all

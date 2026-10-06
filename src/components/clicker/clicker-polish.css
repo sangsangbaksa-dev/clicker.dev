@@ -2736,11 +2736,11 @@
 [data-clicker] .clicker-settings-ranking { list-style: none; }
 [data-clicker] .clicker-settings-ranking .clicker-ranking { margin: 0; }
 
-/* ---------- Drill site: the drill hangs over the shaft ----------
-   The scene shares the stage background's box, and --s is that background's cover scale for its
-   1920×1079 art, so an art pixel (x, y) sits at calc(50% + (x - 960) * --s), calc(50% + (y - 539.5) * --s).
-   The rig sprite (739×1875, drawn at 0.55 art px per px) hangs so its bit tip lands at (1000, 790),
-   just under the shaft's front rim; the rim (cut from the same art) is drawn over it. */
+/* ---------- Drill site: the rig hangs in the corridor ----------
+   The scene shares the stage background's box, and --s is that background's cover scale for the
+   1920×1080 still, so an art pixel (x, y) sits at calc(50% + (x - 960) * --s), calc(50% + (y - 540) * --s).
+   The rig sprite (739×1875, drawn at 0.55 art px per px) hangs so its bit tip lands at (960, 820),
+   on the corridor floor. */
 [data-clicker] .clicker-drill-scene {
   position: absolute;
   inset: 0;
@@ -2750,15 +2750,15 @@
   container-type: size;
 }
 [data-clicker] .clicker-drill-scene > * {
-  --s: max(100cqw / 1920, 100cqh / 1079);
+  --s: max(100cqw / 1920, 100cqh / 1080);
   position: absolute;
 }
 [data-clicker] .clicker-drill-scene .clicker-drill {
   /* --k: art px per sprite px. Smaller on tall phones, where the cover scale blows the art up. */
   --k: 0.55;
   display: block;
-  left: calc(50% + (1000 - 960 - 371 * var(--k)) * var(--s));
-  top: calc(50% + (790 - 539.5 - 1866 * var(--k)) * var(--s));
+  left: calc(50% + (960 - 960 - 371 * var(--k)) * var(--s));
+  top: calc(50% + (820 - 540 - 1866 * var(--k)) * var(--s));
   width: calc(739 * var(--k) * var(--s));
   height: calc(1875 * var(--k) * var(--s));
   aspect-ratio: auto;
@@ -2786,38 +2786,30 @@
   height: 100%;
   margin: 0;
   object-fit: fill;
-  /* Graded to the cave: a touch darker and cooler, with the shaft's cyan glow on its edges. */
-  filter: brightness(0.82) saturate(0.88) contrast(1.06) drop-shadow(0 0 calc(10 * var(--s)) rgb(40 210 235 / 0.28));
+  /* Cool the bronze so the lanterns and cyan coils sit in the corridor's teal light. */
+  filter: brightness(0.92) saturate(0.95) contrast(1.05) drop-shadow(0 0 calc(14 * var(--s)) rgb(70 220 255 / 0.35));
   transform-origin: 50% 0;
   animation: clicker-drill-sway 7s cubic-bezier(0.37, 0, 0.63, 1) infinite;
 }
-[data-clicker] .clicker-drill-scene .clicker-drill-lip {
-  left: calc(50% + (740 - 960) * var(--s));
-  top: calc(50% + (690 - 539.5) * var(--s));
-  width: calc(520 * var(--s));
-  height: auto;
-  z-index: 1;
-  pointer-events: none;
-}
-/* The cables swing a hair, so the rig reads as hanging, not pasted on. */
+/* The cables swing, and the bit hums, so the rig reads as hanging and live. */
 @keyframes clicker-drill-sway {
-  0%, 100% { transform: rotate(0.35deg) translateY(0); }
-  50% { transform: rotate(-0.35deg) translateY(calc(4 * var(--s))); }
+  0%, 100% { transform: rotate(0.6deg) translateY(0); }
+  50% { transform: rotate(-0.6deg) translateY(calc(8 * var(--s))); }
 }
-/* A tap drives the bit down past the rim, then the cables pull it back up. */
+/* A tap drives the bit into the floor, then the cables pull it back up. */
 [data-clicker] .clicker-drill-scene .clicker-drill.is-hit .clicker-drill-rig {
-  animation: clicker-drill-drive 300ms cubic-bezier(0.2, 0.9, 0.3, 1), clicker-drill-sway 7s cubic-bezier(0.37, 0, 0.63, 1) 300ms infinite;
+  animation: clicker-drill-drive 320ms cubic-bezier(0.2, 0.9, 0.3, 1), clicker-drill-sway 7s cubic-bezier(0.37, 0, 0.63, 1) 320ms infinite;
 }
 @keyframes clicker-drill-drive {
-  0% { transform: translateY(0); }
-  28% { transform: translateY(calc(34 * var(--s))) scale(1.01, 0.995); filter: brightness(1.05) saturate(1) contrast(1.06) drop-shadow(0 0 calc(18 * var(--s)) rgb(90 235 255 / 0.6)); }
-  100% { transform: translateY(0); }
+  0% { transform: translateY(0) rotate(0); }
+  22% { transform: translateY(calc(48 * var(--s))) rotate(-0.4deg) scale(1.015, 0.99); filter: brightness(1.15) saturate(1.1) contrast(1.06) drop-shadow(0 0 calc(22 * var(--s)) rgb(120 245 255 / 0.75)); }
+  100% { transform: translateY(0) rotate(0); }
 }
 [data-clicker] .clicker-drill-scene .clicker-drill.is-cooling .clicker-drill-rig {
   filter: brightness(0.6) saturate(0.5) contrast(1.06);
   animation-play-state: paused;
 }
-/* Light rising out of the shaft at the bit, flaring on each strike. */
+/* Cyan pool on the floor under the bit, flaring on each strike. */
 [data-clicker] .clicker-drill-scene .clicker-drill-glow {
   display: block !important;
   left: 50%;
@@ -2833,16 +2825,88 @@
 [data-clicker] .clicker-drill-scene .clicker-drill.is-hit .clicker-drill-glow { animation: clicker-drill-flash 300ms ease-out; opacity: 0.45; }
 [data-clicker] .clicker-drill-scene .clicker-drill.is-cooling .clicker-drill-glow { opacity: 0.12; animation: none; }
 [data-clicker] .clicker-drill-scene .clicker-drill-debris { bottom: 2%; }
+[data-clicker] .clicker-drill-scene .clicker-drill-gush { display: block; }
+/* Spinning energy disc at the bit. */
+[data-clicker] .clicker-drill-scene .clicker-drill-ring {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 70%;
+  height: 14%;
+  translate: -50% 40%;
+  border-radius: 50%;
+  border: 2px solid rgb(140 245 255 / 0.7);
+  box-shadow: 0 0 16px rgb(80 230 255 / 0.55), inset 0 0 10px rgb(80 230 255 / 0.35);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: clicker-drill-ring 1.6s linear infinite;
+}
+@keyframes clicker-drill-ring {
+  from { transform: rotateX(68deg) rotate(0deg); }
+  to { transform: rotateX(68deg) rotate(360deg); }
+}
+[data-clicker] .clicker-drill-scene .clicker-drill.is-hit .clicker-drill-ring {
+  animation: clicker-drill-ring 0.45s linear infinite;
+  border-color: rgb(220 255 255 / 0.95);
+}
+/* Idle motes drifting up off the floor. */
+[data-clicker] .clicker-drill-scene .clicker-drill-motes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+[data-clicker] .clicker-drill-scene .clicker-drill-motes i {
+  position: absolute;
+  left: 46%;
+  bottom: 4%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #d8fbff;
+  box-shadow: 0 0 8px #3ee0ff;
+  animation: clicker-drill-mote calc(2.4s + var(--i) * 0.28s) linear infinite;
+  animation-delay: calc(var(--i) * -0.35s);
+}
+@keyframes clicker-drill-mote {
+  0% { transform: translate(0, 0); opacity: 0; }
+  15% { opacity: 0.9; }
+  100% { transform: translate(calc((var(--i) - 4) * 6px), -70%); opacity: 0; }
+}
+/* Shock ring on a strike. */
+[data-clicker] .clicker-drill-scene .clicker-drill-shock {
+  position: absolute;
+  left: 50%;
+  bottom: 2%;
+  width: 30%;
+  aspect-ratio: 1;
+  translate: -50% 50%;
+  border-radius: 50%;
+  border: 2px solid rgb(180 250 255 / 0.8);
+  box-shadow: 0 0 18px rgb(80 230 255 / 0.7);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: clicker-drill-shock 420ms ease-out forwards;
+}
+@keyframes clicker-drill-shock {
+  from { transform: scale(0.3); opacity: 1; }
+  to { transform: scale(2.4); opacity: 0; }
+}
+[data-clicker] .clicker-drill-scene .clicker-drill.is-cooling .clicker-drill-ring,
+[data-clicker] .clicker-drill-scene .clicker-drill.is-cooling .clicker-drill-motes { opacity: 0.25; }
 @media (prefers-reduced-motion: reduce) {
   [data-clicker] .clicker-drill-scene .clicker-drill-rig,
   [data-clicker] .clicker-drill-scene .clicker-drill.is-hit .clicker-drill-rig,
-  [data-clicker] .clicker-drill-scene .clicker-drill-glow { animation: none; }
+  [data-clicker] .clicker-drill-scene .clicker-drill-glow,
+  [data-clicker] .clicker-drill-scene .clicker-drill-ring,
+  [data-clicker] .clicker-drill-scene .clicker-drill-motes i { animation: none; }
+  [data-clicker] .clicker-drill-scene .clicker-drill-shock,
+  [data-clicker] .clicker-drill-scene .clicker-drill-motes { display: none; }
 }
 
 /* ---------- World backgrounds breathe ----------
    Away from home (never in the mine or at the gate, whose art lines up with hitboxes) the
    backdrop drifts like a slow handheld camera and its light swells and settles. The drill scene
-   runs the very same animation on the very same box, so the rig stays pinned to the shaft. */
+   runs the very same animation on the very same box, so the rig stays pinned to the floor. */
 [data-clicker] .clicker-stage-bg.is-drift:not(.is-region-transition),
 [data-clicker] .clicker-stage:has(.clicker-stage-bg.is-drift:not(.is-region-transition)) .clicker-drill-scene {
   animation: clicker-bg-drift 26s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;

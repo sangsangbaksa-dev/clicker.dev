@@ -540,6 +540,32 @@ const CUES = {
     noise(c, "lowpass", 1600, 0.8, 0.16, t + 0.7, 1.2, { sweepTo: 60 })
     for (let i = 0; i < 12; i++) noise(c, "bandpass", 900 + ((i * 677) % 2400), 5, 0.025, t + 0.8 + i * 0.07, 0.05)
   },
+  /** Deep Fault: the chasm cracks, then lava pops and a spray of embers. */
+  lavaBurst(c: AudioContext, t: number) {
+    const v = vary()
+    const e = echo(c, 0.16, 0.3, 0.28)
+    noise(c, "highpass", 900, 0.6, 0.1, t, 0.04)
+    tone(c, "sine", 70 * v, 28, 0.22, t, 0.55, { attack: 0.002, dest: e })
+    noise(c, "lowpass", 1400, 0.8, 0.12, t, 0.4, { sweepTo: 180 })
+    for (let i = 0; i < 6; i++) noise(c, "bandpass", 900 + i * 380, 4, 0.03, t + 0.08 + i * 0.04, 0.05)
+    tone(c, "triangle", 520 * v, 180, 0.04, t + 0.05, 0.2, { attack: 0.002 })
+  },
+  /** Core guardian strikes: stone grinding open, then the diamond rings. */
+  wardenPulse(c: AudioContext, t: number) {
+    const v = vary()
+    const e = echo(c, 0.18, 0.36, 0.34)
+    noise(c, "bandpass", 420 * v, 1.4, 0.08, t, 0.35, { sweepTo: 140 })
+    tone(c, "sine", 98 * v, 42, 0.16, t, 0.5, { attack: 0.004, dest: e })
+    tone(c, "triangle", 740, 1480, 0.045, t + 0.08, 0.42, { attack: 0.01, dest: e })
+    bell(c, 1318 * v, 0.03, t + 0.16, 0.5, e)
+  },
+  /** A tap on the guardian: a crystal tick and a short stone knock. */
+  wardenHit(c: AudioContext, t: number) {
+    const v = vary()
+    noise(c, "bandpass", 1800 * v, 2, 0.05, t, 0.05)
+    tone(c, "triangle", 1560 * v, 2100, 0.03, t, 0.12, { attack: 0.002 })
+    tone(c, "sine", 210 * v, 90, 0.06, t, 0.1, { attack: 0.002 })
+  },
   /** Dragon breath: roaring voice under a crackling, buzzing lightning torrent. */
   dragonBreath(c: AudioContext, t: number) {
     const v = vary()
@@ -642,6 +668,27 @@ export function playSfx(name: SfxName) {
  * impact and a rock crunch. Crits add a bright crystal ring with an echo tail.
  * Pitch wobbles a little so rapid taps don't phase into one tone.
  */
+/**
+ * Corridor drill: a short metal bite and a cyan spark. A full gauge adds a rising chime.
+ * Pitch jitters so repeated taps don't lock into one tone.
+ */
+export function playDrillStrike(burst: boolean) {
+  if (muted) return
+  const c = audio()
+  if (!c) return
+  const t0 = c.currentTime
+  const j = 1 + (Math.random() - 0.5) * 0.07
+  noise(c, "bandpass", 1600 * j, 1.6, burst ? 0.1 : 0.05, t0, burst ? 0.18 : 0.08, { sweepTo: 320 })
+  tone(c, "square", 240 * j, 70, burst ? 0.045 : 0.028, t0, 0.07, { attack: 0.001 })
+  tone(c, "sine", 96, 42, burst ? 0.14 : 0.08, t0, 0.14)
+  tone(c, "triangle", 1280 * j, burst ? 2100 : 1680, burst ? 0.045 : 0.02, t0 + 0.015, 0.1, { attack: 0.002 })
+  if (burst) {
+    const e = echo(c, 0.1, 0.28, 0.32)
+    tone(c, "sine", 784, 1318, 0.05, t0 + 0.04, 0.32, { dest: e })
+    tone(c, "triangle", 1760, 1760, 0.028, t0 + 0.1, 0.36, { dest: e })
+  }
+}
+
 export function playLaser(mutedArg: boolean, critical: boolean) {
   if (mutedArg || muted) return
   const c = audio()

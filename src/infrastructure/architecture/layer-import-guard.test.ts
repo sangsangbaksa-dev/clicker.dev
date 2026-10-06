@@ -24,11 +24,13 @@ function assertNoImports(file: string, forbiddenPrefixes: string[]) {
 const clickerApplication = [
   "application/clicker-audio.ts",
   "application/clicker-bgm-engine.ts",
+  "application/clicker-stage.ts",
 ]
 
 const clickerDomain = [
   "domain/services/clicker-bgm.ts",
   "domain/services/clicker-ui-lang.ts",
+  "domain/services/clicker-stage.ts",
 ]
 
 test("clicker application modules do not import infrastructure, hooks, or components", () => {
