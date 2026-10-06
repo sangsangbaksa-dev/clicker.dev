@@ -89,7 +89,7 @@ export function ClickerComplete({ meta, worldlineTotal, onReset, signedIn = fals
     <div data-clicker className="clicker-shell clicker-complete">
       <div
         className="clicker-complete-bg"
-        style={{ backgroundImage: `url(/clicker/ending/ending_dawn.webp), url(${CLICKER_ASSETS.bgTranscendence})` }}
+        style={{ backgroundImage: `url("/clicker/ending/ending_dawn.webp"), url(${CLICKER_ASSETS.bgTranscendence})` }}
         aria-hidden
       />
       <article
