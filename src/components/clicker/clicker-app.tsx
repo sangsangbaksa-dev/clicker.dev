@@ -1371,8 +1371,8 @@ export function ClickerApp() {
           {mountMineChamber ? (
             <div className="clicker-mine-dig">
               <div className="clicker-mine-hud" role="status" aria-live="polite">
-                <div className="clicker-mine-hud-stat" aria-label={`채굴량 ${formatNumber(mineHaul)}`}>
-                  <span>HAUL</span>
+                <div className="clicker-mine-hud-stat" aria-label={`CORE ${formatNumber(mineHaul)}`}>
+                  <span>CORE</span>
                   <strong>{formatNumber(mineHaul)}</strong>
                 </div>
                 <div
