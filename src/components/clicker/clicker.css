@@ -5324,39 +5324,114 @@ button.clicker-metric-action.is-fever-ready em {
 .clicker-ending-stage {
   position: absolute;
   inset: 0;
+  isolation: isolate;
   pointer-events: none;
 }
 .clicker-ending-plate {
   position: absolute;
   inset: 0;
+  z-index: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transform: scale(1.12);
-  transition: opacity 1400ms ease, transform 9000ms cubic-bezier(0.2, 0.6, 0.35, 1), filter 1400ms ease;
-  will-change: opacity, transform;
+  transform: scale(1.14);
+  transition: opacity 1400ms ease, filter 1400ms ease;
 }
 .clicker-ending-plate.is-on {
   opacity: 1;
-  transform: scale(1.02);
+  animation: ending-shot-drift 18s cubic-bezier(0.2, 0.6, 0.35, 1) both;
 }
 .clicker-ending-plate.is-past {
   transform: scale(1);
   filter: brightness(0.6);
 }
-/* Each beat drifts its own way. */
-.is-fall .clicker-ending-plate.is-on { transform-origin: 50% 30%; }
-.is-breath .clicker-ending-plate.is-on { transform-origin: 50% 40%; }
-.is-worldlines .clicker-ending-plate.is-on { transform-origin: 50% 50%; animation: ending-turn 18s linear both; }
-.is-dawn .clicker-ending-plate.is-on { transform-origin: 85% 40%; }
+.is-fall .clicker-ending-plate.is-on { transform-origin: 50% 30%; animation-name: ending-shot-fall; filter: saturate(1.22) contrast(1.06); }
+.is-breath .clicker-ending-plate.is-on { transform-origin: 50% 40%; animation-name: ending-shot-breath; filter: saturate(1.18) brightness(1.04); }
+.is-worldlines .clicker-ending-plate.is-on { transform-origin: 50% 50%; animation-name: ending-shot-worldlines; filter: saturate(1.28) contrast(1.08); }
+.is-dawn .clicker-ending-plate.is-on { transform-origin: 85% 40%; animation-name: ending-shot-dawn; filter: saturate(1.2) brightness(1.08); }
 .is-record .clicker-ending-plate.is-on { filter: brightness(0.55) saturate(1.1) blur(2px); }
-@keyframes ending-turn {
-  from { rotate: -1.5deg; }
-  to { rotate: 1.5deg; }
+@keyframes ending-shot-drift {
+  from { transform: scale(1.14) translate3d(0, 1%, 0); }
+  to { transform: scale(1.04) translate3d(0, -0.5%, 0); }
+}
+@keyframes ending-shot-fall {
+  from { transform: scale(1.17) translate3d(1%, 1%, 0); }
+  to { transform: scale(1.04) translate3d(-1%, -0.5%, 0); }
+}
+@keyframes ending-shot-breath {
+  from { transform: scale(1.16) translate3d(-1%, 1%, 0); }
+  to { transform: scale(1.035) translate3d(1%, -0.5%, 0); }
+}
+@keyframes ending-shot-worldlines {
+  from { transform: scale(1.16) rotate(-1.5deg); }
+  to { transform: scale(1.035) rotate(1deg); }
+}
+@keyframes ending-shot-dawn {
+  from { transform: scale(1.16) translate3d(1%, 0.5%, 0); }
+  to { transform: scale(1.035) translate3d(-0.5%, -0.5%, 0); }
+}
+.clicker-ending-stage::before,
+.clicker-ending-stage::after {
+  position: absolute;
+  inset: -15%;
+  content: "";
+  pointer-events: none;
+}
+.clicker-ending-stage::before {
+  z-index: 1;
+  opacity: 0.2;
+  background: repeating-conic-gradient(from -15deg at 70% 38%, rgb(255 226 153 / 0.22) 0deg 1.2deg, transparent 1.2deg 15deg);
+  -webkit-mask-image: radial-gradient(ellipse 54% 58% at 70% 38%, #000 0%, transparent 78%);
+  mask-image: radial-gradient(ellipse 54% 58% at 70% 38%, #000 0%, transparent 78%);
+  animation: ending-rays-turn 70s linear infinite;
+}
+.clicker-ending-stage::after {
+  z-index: 1;
+  opacity: 0.46;
+  background:
+    radial-gradient(ellipse 20% 12% at 70% 38%, rgb(255 221 148 / 0.3), transparent 100%),
+    radial-gradient(ellipse 40% 24% at 68% 40%, rgb(68 196 255 / 0.16), transparent 100%);
+  animation: ending-core-breathe 6s ease-in-out infinite alternate;
+}
+.clicker-ending-constellation {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  opacity: 0.58;
+  mix-blend-mode: screen;
+}
+.clicker-ending-rays {
+  fill: none;
+  stroke: url("#ending-orbit-light");
+  stroke-width: 1;
+  opacity: 0.35;
+  transform-origin: 600px 390px;
+  animation: ending-ray-breathe 8s ease-in-out infinite alternate;
+}
+.clicker-ending-orbit {
+  fill: none;
+  stroke: url("#ending-orbit-light");
+  stroke-width: 1.2;
+  stroke-dasharray: 2 9;
+  transform-box: view-box;
+  transform-origin: 50% 43.33%;
+}
+.clicker-ending-orbit-a { animation: ending-orbit-turn 52s linear infinite; }
+.clicker-ending-orbit-b { stroke-width: 0.8; stroke-dasharray: 1 7; animation: ending-orbit-turn 38s linear infinite reverse; }
+.clicker-ending-stars {
+  fill: url("#ending-core-light");
+  stroke: rgb(255 239 196 / 0.78);
+  stroke-width: 1.4;
+  filter: drop-shadow(0 0 7px rgb(255 214 132 / 0.7));
+  animation: ending-star-pulse 3.8s ease-in-out infinite alternate;
 }
 .clicker-ending-glow {
   position: absolute;
+  z-index: 3;
   inset: 0;
   background:
     radial-gradient(ellipse at 50% 35%, transparent 40%, rgb(3 5 10 / 0.55) 100%),
@@ -5364,6 +5439,7 @@ button.clicker-metric-action.is-fever-ready em {
 }
 .clicker-ending-motes {
   position: absolute;
+  z-index: 4;
   inset: -10%;
   opacity: 0.55;
   background-image:
@@ -5376,10 +5452,30 @@ button.clicker-metric-action.is-fever-ready em {
   animation: ending-motes 24s linear infinite;
   mix-blend-mode: screen;
 }
+.clicker-ending-motes::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background-image:
+    radial-gradient(2px 2px at 16% 66%, rgb(179 239 255 / 0.9), transparent),
+    radial-gradient(1px 1px at 62% 34%, rgb(255 245 210 / 0.85), transparent),
+    radial-gradient(1.5px 1.5px at 91% 76%, rgb(164 225 255 / 0.8), transparent);
+  background-size: 470px 420px;
+  animation: ending-motes-drift 32s ease-in-out infinite alternate;
+}
 @keyframes ending-motes {
   from { transform: translateY(0); }
   to { transform: translateY(-340px); }
 }
+@keyframes ending-motes-drift {
+  from { transform: translate3d(-1%, 1%, 0); }
+  to { transform: translate3d(2%, -2%, 0); }
+}
+@keyframes ending-rays-turn { to { transform: rotate(360deg); } }
+@keyframes ending-orbit-turn { to { transform: rotate(360deg); } }
+@keyframes ending-core-breathe { from { opacity: 0.28; scale: 0.98; } to { opacity: 0.72; scale: 1.04; } }
+@keyframes ending-ray-breathe { from { opacity: 0.18; } to { opacity: 0.52; } }
+@keyframes ending-star-pulse { from { opacity: 0.35; scale: 0.92; } to { opacity: 0.9; scale: 1.06; } }
 .clicker-ending-letterbox {
   position: absolute;
   left: 0;
@@ -5471,8 +5567,12 @@ button.clicker-metric-action.is-fever-ready em {
   .clicker-ending-backdrop .clicker-ending-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .clicker-ending-plate { transition: opacity 400ms ease; transform: none !important; }
+  .clicker-ending-plate { transition: opacity 400ms ease; animation: none !important; transform: none !important; }
+  .clicker-ending-stage::before,
+  .clicker-ending-stage::after,
+  .clicker-ending-constellation *,
   .clicker-ending-motes,
+  .clicker-ending-motes::after,
   .is-worldlines .clicker-ending-plate.is-on,
   .clicker-ending-letterbox,
   .clicker-ending-backdrop .clicker-ending,

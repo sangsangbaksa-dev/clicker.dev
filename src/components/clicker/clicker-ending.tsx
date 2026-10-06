@@ -83,6 +83,39 @@ export function ClickerEnding({ onComplete, summary }: Props) {
             decoding="async"
           />
         ))}
+        <svg className="clicker-ending-constellation" viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <radialGradient id="ending-core-light">
+              <stop stopColor="#fff7cf" stopOpacity=".95" />
+              <stop offset=".3" stopColor="#ffd47a" stopOpacity=".48" />
+              <stop offset="1" stopColor="#80dfff" stopOpacity="0" />
+            </radialGradient>
+            <linearGradient id="ending-orbit-light">
+              <stop stopColor="#8be8ff" stopOpacity="0" />
+              <stop offset=".48" stopColor="#b9f2ff" stopOpacity=".72" />
+              <stop offset="1" stopColor="#ffd98b" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <g className="clicker-ending-rays">
+            <path d="M600 390 600 25M600 390 880 88M600 390 1118 250M600 390 1150 520M600 390 900 810M600 390 600 880M600 390 290 808M600 390 55 570M600 390 100 200M600 390 340 60" />
+          </g>
+          <g className="clicker-ending-orbit clicker-ending-orbit-a">
+            <ellipse cx="600" cy="390" rx="300" ry="92" />
+            <path d="M316 325Q600 225 884 325" />
+          </g>
+          <g className="clicker-ending-orbit clicker-ending-orbit-b">
+            <ellipse cx="600" cy="390" rx="220" ry="142" />
+            <path d="M420 515Q600 570 780 515" />
+          </g>
+          <g className="clicker-ending-stars">
+            <circle cx="600" cy="390" r="78" />
+            <circle cx="300" cy="390" r="4" />
+            <circle cx="900" cy="390" r="3" />
+            <circle cx="430" cy="270" r="3" />
+            <circle cx="760" cy="505" r="4" />
+            <path d="M600 280v-13m0 246v-13m-110-110h-13m246 0h-13M522 312l-9-9m183 183-9-9m0-165-9 9m-165 165-9 9" />
+          </g>
+        </svg>
         <span className="clicker-ending-glow" />
         <span className="clicker-ending-motes" />
       </div>

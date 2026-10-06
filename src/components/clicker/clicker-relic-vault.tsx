@@ -60,7 +60,9 @@ export function ClickerRelicVault({ game, run, meta }: { game: ClickerGame; run:
                     {ascended ? (
                       <svg className="clicker-relic-ascension-ring" viewBox="0 0 72 72" aria-hidden="true">
                         <circle cx="36" cy="36" r="31" />
+                        <circle className="clicker-relic-ascension-inner" cx="36" cy="36" r="24" />
                         <path d="M36 2v8m0 52v8M2 36h8m52 0h8M12 12l6 6m36 36 6 6m0-48-6 6m-36 36-6 6" />
+                        <path className="clicker-relic-ascension-glyphs" d="m36 8 2 4-2 4-2-4zm28 28-4 2-4-2 4-2zm-28 28-2-4 2-4 2 4zm-28-28 4-2 4 2-4 2z" />
                       </svg>
                     ) : null}
                   </span>
