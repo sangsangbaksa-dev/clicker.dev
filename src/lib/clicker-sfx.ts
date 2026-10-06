@@ -22,6 +22,7 @@ const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   deny: 140,
   tick: 90,
   achievement: 400,
+  relicAwaken: 900,
   save: 400,
   lightning: 220,
   quake: 380,
@@ -362,6 +363,16 @@ const CUES = {
       tone(c, "sine", f, f, 0.05, t + i * 0.07, 0.5, { dest: e })
       tone(c, "sine", f * 2.01, f * 2.01, 0.012, t + i * 0.07, 0.3, { dest: e })
     })
+  },
+  /** Final relic awakening: a low crystalline crack followed by a wide, sustained ascent. */
+  relicAwaken(c: AudioContext, t: number) {
+    const e = echo(c, 0.19, 0.48, 0.52)
+    noise(c, "bandpass", 460, 1.2, 0.11, t, 0.42, { sweepTo: 4200, attack: 0.04 })
+    tone(c, "sine", 92, 38, 0.24, t, 0.65, { attack: 0.003 })
+    ;[392, 587.3, 784, 1174.7, 1568].forEach((f, i) => {
+      tone(c, "triangle", f, f * 1.002, 0.046 - i * 0.004, t + 0.16 + i * 0.075, 1.15, { dest: e })
+    })
+    sparkle(c, t + 0.3, 2093, 8, 0.018, 0.035)
   },
   /** Region travel: warp sweep. */
   travel(c: AudioContext, t: number) {

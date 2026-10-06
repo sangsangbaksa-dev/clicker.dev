@@ -29,12 +29,13 @@ export const MineArt = {
   /** Same gate, cropped so the door's centre is the image centre (title screen). */
   titleGate: "/clicker/mine/title_door_centered.webp",
   /**
-   * Entry cinematic v18 (1920×1080, 10 s, scripts/clicker-mine-enter.py): from `entranceGate` the
-   * trim lights pulse, the lock clunks (camera kick), the door cracks at its seam (x=960), holds,
-   * then slides open while the camera pushes through with motion blur and eases out exactly on
-   * `orePlate`; no frozen tail, and both cuts are seamless.
+   * Entry cinematic v19 (1920×1080, 10 s, scripts/clicker-mine-enter.py): from `entranceGate` the
+   * trim lights pulse, steam vents and the lock clunks (camera kick), the door cracks at its seam
+   * (x=960), holds, then its thick halves slide open; the chamber powers up behind a shadowed doorway,
+   * its light blooms through the gap onto the floor and the dust, and the camera pushes through with
+   * motion blur to ease out exactly on `orePlate`; no frozen tail, and both cuts are seamless.
    */
-  enterCinematic: "/clicker/mine/mine_enter_door_walk_v18.mp4",
+  enterCinematic: "/clicker/mine/mine_enter_door_walk_v19.mp4",
   /** Previous 720p door-walk (kept on disk for reference). */
   enterCinematicV11: "/clicker/mine/mine_enter_door_walk_v11.mp4",
   /** Timed-session hi-tech interior — full-bleed chamber. */
@@ -66,5 +67,5 @@ export function mineGateIndex(rebirthCount: number): number {
 export function mineGate(rebirthCount: number): { still: string; enter: string } {
   const i = mineGateIndex(rebirthCount)
   if (i === 0) return { still: MineArt.entranceGate, enter: MineArt.enterCinematic }
-  return { still: `/clicker/mine/gates/gate_${i}.webp`, enter: `/clicker/mine/gates/enter_${i}.mp4` }
+  return { still: `/clicker/mine/gates/gate_${i}.webp`, enter: `/clicker/mine/gates/enter_${i}_v2.mp4` }
 }

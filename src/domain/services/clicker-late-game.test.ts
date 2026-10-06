@@ -11,7 +11,9 @@ import {
   isRegionUnlocked,
   productionSnapshot,
   relicCost,
+  relicEffectAt,
   relicError,
+  relicLevelCap,
   relicLevel,
   sanitizeSave,
 } from "./clicker-engine.ts"
@@ -73,6 +75,37 @@ test("relic vault: opens on the fourth worldline, costs world currency, stays fo
   assert.deepEqual(reloaded.metaState.relicLevels, { [relic.id]: relic.maxLevel })
   const maxed = { ...meta, relicLevels: { [relic.id]: relic.maxLevel } }
   assert.ok(relicError({ ...run, regionCurrency: { [relic.regionId]: Number.MAX_VALUE } }, maxed, config, relic.id))
+})
+
+test("ninth worldline unlocks the final awakening for every relic", () => {
+  const save = createInitialSave(NOW, config)
+  const meta = { ...save.metaState, rebirthCount: 8 }
+  const run = { ...save.runState, currentWorldLine: 9 }
+
+  for (const relic of config.relics) {
+    const levelFive = { ...meta, relicLevels: { [relic.id]: 5 } }
+    assert.equal(relic.maxLevel, 6, relic.id)
+    assert.equal(relicLevelCap({ ...run, currentWorldLine: 8 }, relic), 5, `${relic.id} stays capped before the final worldline`)
+    assert.equal(relicLevelCap(run, relic), 6, `${relic.id} awakens on the ninth worldline`)
+    assert.equal(relicError({ ...run, regionCurrency: { [relic.regionId]: Number.MAX_VALUE } }, levelFive, config, relic.id), undefined)
+
+    const withoutCurrency = buyRelic(run, levelFive, config, relic.id)
+    assert.ok(withoutCurrency.error, `${relic.id} still costs its world's currency`)
+    const cost = relicCost(levelFive, config, relic)
+    const awakened = buyRelic({ ...run, regionCurrency: { [relic.regionId]: cost } }, levelFive, config, relic.id)
+    assert.equal(awakened.error, undefined, relic.id)
+    assert.equal(relicLevel(awakened.meta, relic.id), 6)
+    assert.equal(awakened.run.regionCurrency[relic.regionId], 0)
+    assert.ok(relicError({ ...run, regionCurrency: { [relic.regionId]: Number.MAX_VALUE } }, awakened.meta, config, relic.id))
+
+    const effect = relicEffectAt(relic, 6)
+    for (const [key, value] of Object.entries(relic.perLevel)) {
+      const expected = ["clickMultiplier", "productionMultiplier", "criticalMultiplier", "feverIntensity"].includes(key)
+        ? value ** 6
+        : value * 6
+      assert.equal(effect[key as keyof typeof effect], expected, `${relic.id} level VI ${key}`)
+    }
+  }
 })
 
 test("production relics lift production", () => {

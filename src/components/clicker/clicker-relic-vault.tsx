@@ -38,25 +38,36 @@ export function ClickerRelicVault({ game, run, meta }: { game: ClickerGame; run:
   return (
     <div className="clicker-forge clicker-forge-panel clicker-relic-vault">
       <p className="clicker-forge-summary">
-        유물 보관소 · 유물은 <b>환생해도 사라지지 않습니다</b>. 각 월드의 화폐로 강화하세요. 세계선마다 한 단계씩 더 강화할 수 있습니다.
+        유물 보관소 · 유물은 <b>환생해도 사라지지 않습니다</b>. 각 월드의 화폐로 강화하세요. 마지막 각성은 9번째 세계선에서 열립니다.
       </p>
       <div className="clicker-forge-slots">
         {game.config.relics.map((relic) => {
           const level = relicLevel(meta, relic.id)
           const maxed = level >= relic.maxLevel
+          const ascended = maxed && relic.maxLevel >= 6
           const error = relicError(run, meta, game.config, relic.id)
           const region = game.config.regions.find((r) => r.id === relic.regionId)
           const cost = relicCost(meta, game.config, relic)
           return (
-            <article key={relic.id} className={`clicker-forge-slot clicker-relic${maxed ? " is-maxed" : ""}`}>
+            <article key={relic.id} className={`clicker-forge-slot clicker-relic${maxed ? " is-maxed" : ""}${ascended ? " is-ascended" : ""}`}>
               <p className="clicker-forge-label">
-                {relic.name} <small>Lv.{level}/{relic.maxLevel}</small>
+                {relic.name} <small>Lv.{level}/{relic.maxLevel}{ascended ? " · 각성" : ""}</small>
               </p>
               <div className="clicker-forge-items">
                 <figure className="clicker-forge-item">
-                  <img className="clicker-zoomable" src={relic.assetId} alt="" />
+                  <span className={`clicker-relic-art${ascended ? " is-ascended" : ""}`} key={ascended ? "ascended" : "base"}>
+                    <img className="clicker-zoomable" src={relic.assetId} alt="" />
+                    {ascended ? (
+                      <svg className="clicker-relic-ascension-ring" viewBox="0 0 72 72" aria-hidden="true">
+                        <circle cx="36" cy="36" r="31" />
+                        <circle className="clicker-relic-ascension-inner" cx="36" cy="36" r="24" />
+                        <path d="M36 2v8m0 52v8M2 36h8m52 0h8M12 12l6 6m36 36 6 6m0-48-6 6m-36 36-6 6" />
+                        <path className="clicker-relic-ascension-glyphs" d="m36 8 2 4-2 4-2-4zm28 28-4 2-4-2 4-2zm-28 28-2-4 2-4 2 4zm-28-28 4-2 4 2-4 2z" />
+                      </svg>
+                    ) : null}
+                  </span>
                   <figcaption>
-                    <b>{maxed ? "완성" : level > 0 ? `현재 Lv.${level}` : "미보유"}</b>
+                    <b>{ascended ? "최종 각성" : maxed ? "완성" : level > 0 ? `현재 Lv.${level}` : "미보유"}</b>
                     <span>{relicEffectText(relic, level)}</span>
                   </figcaption>
                 </figure>
@@ -92,7 +103,7 @@ export function ClickerRelicVault({ game, run, meta }: { game: ClickerGame; run:
                   </button>
                 </>
               ) : (
-                <p className="clicker-forge-next">최대 레벨</p>
+                <p className="clicker-forge-next">{ascended ? "세계선의 끝에서 각성" : "최대 레벨"}</p>
               )}
             </article>
           )
