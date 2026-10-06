@@ -23,3 +23,8 @@ test("formatNumber never prints -0 and shows infinity explicitly", () => {
   assert.equal(formatNumber(Number.POSITIVE_INFINITY), "∞")
   assert.equal(formatNumber(Number.NEGATIVE_INFINITY), "-∞")
 })
+
+test("formatNumber rolls the top suffix over into scientific notation", () => {
+  assert.equal(formatNumber(999.999e33), "1e36")
+  assert.equal(formatNumber(-999.999e33), "-1e36")
+})

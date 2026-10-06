@@ -27,7 +27,7 @@ export function formatNumber(value: number): string {
     if (abs < v) continue
     const scaled = trimZeros((abs / v).toFixed(2))
     // 999.999K rounds to "1000K": promote to the next suffix instead.
-    if (scaled === "1000" && i > 0) return `${sign}1${SUFFIXES[i - 1].s}`
+    if (scaled === "1000") return i > 0 ? `${sign}1${SUFFIXES[i - 1].s}` : `${sign}1e36`
     return `${sign}${scaled}${s}`
   }
   return `${sign}1K` // 999.995 … 999.999 rounds up to 1K
