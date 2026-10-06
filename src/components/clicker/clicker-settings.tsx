@@ -2,7 +2,15 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
-import { formatNumber, registerSecretTap, type ParsedSaveCode, type SecretTapState } from "@/application/clicker-ui"
+import {
+  clickerElapsedPlayTimeMs,
+  formatClickerPlayTime,
+  formatNumber,
+  registerSecretTap,
+  type ParsedSaveCode,
+  type SecretTapState,
+} from "@/application/clicker-ui"
+import { ClickerRanking } from "@/components/clicker/clicker-ranking"
 import { ClickerAccountPanel } from "@/components/clicker/clicker-account"
 import type { ClickerAccountState } from "@/hooks/use-clicker-account"
 
@@ -22,7 +30,21 @@ type Props = {
   onSecretAdmin?: () => void
   /** Login / signup / cloud save; hidden where there is no account server. */
   account?: ClickerAccountState
+  /** First title-screen start of this save (null for old saves): drives the play-time clock. */
+  startedAt: number | null
+  worldlineTotal: number
   onClose: () => void
+}
+
+/** Live play time (start → now), ticking once a second while the sheet is open. */
+function PlayTime({ startedAt }: { startedAt: number | null }) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(id)
+  }, [])
+  const ms = clickerElapsedPlayTimeMs({ startedAt, completedAt: null }, now)
+  return <>{ms === null ? "기록 없음" : formatClickerPlayTime(ms)}</>
 }
 
 function useReducedMotion(): boolean {
@@ -51,8 +73,11 @@ export function ClickerSettings({
   onImportJson,
   onSecretAdmin,
   account,
+  startedAt,
+  worldlineTotal,
   onClose,
 }: Props) {
+  const [rankingOpen, setRankingOpen] = useState(false)
   const secretTaps = useRef<SecretTapState>({ count: 0, first: 0 })
   const [resetArmed, setResetArmed] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -92,6 +117,27 @@ export function ClickerSettings({
         {account ? <ClickerAccountPanel state={account} /> : null}
 
         <ul className="clicker-settings-list">
+          <li className="clicker-settings-row">
+            <div className="clicker-settings-copy">
+              <strong>플레이 시간</strong>
+              <p>
+                <PlayTime startedAt={startedAt} />
+              </p>
+            </div>
+            <button
+              type="button"
+              className={`clicker-settings-toggle${rankingOpen ? " is-on" : ""}`}
+              aria-expanded={rankingOpen}
+              onClick={() => setRankingOpen((v) => !v)}
+            >
+              {rankingOpen ? "랭킹 닫기" : "랭킹 보기"}
+            </button>
+          </li>
+          {rankingOpen ? (
+            <li className="clicker-settings-ranking">
+              <ClickerRanking signedIn={Boolean(account?.account)} worldlineTotal={worldlineTotal} initialKind="core" />
+            </li>
+          ) : null}
           <li className="clicker-settings-row">
             <div className="clicker-settings-copy">
               <strong>효과음</strong>

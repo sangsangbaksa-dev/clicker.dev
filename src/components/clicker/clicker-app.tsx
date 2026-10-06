@@ -898,6 +898,8 @@ export function ClickerApp() {
         meta={game.save.metaState}
         worldlineTotal={game.config.transcendence.length}
         onReset={game.adminReset}
+        signedIn={Boolean(account.account)}
+        pushNow={account.pushNow}
       />
     )
   }
@@ -1878,6 +1880,8 @@ export function ClickerApp() {
           onParseCode={game.parseSaveCode}
           onImportJson={game.importSaveJson}
           account={account}
+          startedAt={game.save.metaState.startedAt}
+          worldlineTotal={game.config.transcendence.length}
           onSecretAdmin={() => {
             openAdminByCode()
             game.notify("관리자 모드 10초간 켜짐")
@@ -2077,6 +2081,12 @@ export function ClickerApp() {
             worldlinesTotal: transcendenceTotal,
             rebirthCount: game.save.metaState.rebirthCount,
             lifetimeCoreText: formatNumber(game.save.metaState.totalCoreEnergy),
+            startedAt: game.save.metaState.startedAt,
+            clicksText: formatNumber(game.save.metaState.statistics.clicks),
+            monstersSlain: game.save.metaState.monstersSlain,
+            worldlineNames: game.save.metaState.transcendenceIds.map(
+              (id) => game.config.transcendence.find((t) => t.id === id)?.name ?? id,
+            ),
           }}
           onComplete={() => {
             if (game.completeEnding()) setEndingOpen(false)

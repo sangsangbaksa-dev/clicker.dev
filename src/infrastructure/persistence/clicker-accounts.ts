@@ -1,6 +1,7 @@
 import "server-only"
 
 import type { ClickerAccount, CloudSaveMeta } from "@/domain/services/clicker-account"
+import type { Leaderboard } from "@/domain/services/clicker-leaderboard"
 import {
   durableStorageRequired,
   readJsonFile,
@@ -78,4 +79,15 @@ export async function readCloudSave(accountId: string): Promise<StoredSave | nul
 export async function writeCloudSave(accountId: string, json: string, savedAt: number): Promise<Omit<CloudSaveMeta, "totalCore">> {
   await writeKey(saveKey(accountId), { json, savedAt } satisfies StoredSave)
   return { savedAt, size: json.length }
+}
+
+const LEADERBOARD_KEY = "clicker-leaderboard/board"
+
+export async function readLeaderboard(): Promise<Leaderboard> {
+  const board = await readKey<Leaderboard>(LEADERBOARD_KEY)
+  return board && Array.isArray(board.entries) ? board : { entries: [] }
+}
+
+export async function writeLeaderboard(board: Leaderboard): Promise<void> {
+  await writeKey(LEADERBOARD_KEY, board)
 }

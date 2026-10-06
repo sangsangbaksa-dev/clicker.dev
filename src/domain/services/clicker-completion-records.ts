@@ -22,6 +22,14 @@ export function clickerPlayTimeMs(meta: Pick<MetaState, "startedAt" | "completed
   return meta.completedAt - meta.startedAt
 }
 
+/** Play time so far: start → completion, or start → now while the run is still going. */
+export function clickerElapsedPlayTimeMs(meta: Pick<MetaState, "startedAt" | "completedAt">, now: number): number | null {
+  const sealed = clickerPlayTimeMs(meta)
+  if (sealed !== null) return sealed
+  if (typeof meta.startedAt !== "number" || !Number.isFinite(meta.startedAt) || now < meta.startedAt) return null
+  return now - meta.startedAt
+}
+
 export function createClickerCompletionRecord(meta: MetaState): ClickerCompletionRecord | null {
   const playTimeMs = clickerPlayTimeMs(meta)
   if (!meta.gameCompleted || meta.completedAt === null || playTimeMs === null) return null

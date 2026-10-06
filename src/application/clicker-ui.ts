@@ -10,6 +10,7 @@ export { formatNumber, withParticle } from "@/domain/services/clicker-format"
 export {
   clickerCompletionRank,
   clickerPlayTimeMs,
+  clickerElapsedPlayTimeMs,
   formatClickerPlayTime,
   sortClickerCompletionRecords,
   type ClickerCompletionRecord,

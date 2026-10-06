@@ -26,7 +26,7 @@ export async function PUT(request: Request) {
   if (!account) return unauthorized()
   try {
     const body = (await request.json().catch(() => ({}))) as { json?: unknown }
-    const result = await storeCloudSave(account.id, body.json)
+    const result = await storeCloudSave(account, body.json)
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status })
     return NextResponse.json({ meta: result.value })
   } catch (error) {

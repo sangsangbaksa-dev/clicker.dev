@@ -81,3 +81,21 @@ export function fetchCloudSave() {
 export function uploadCloudSave(json: string, keepalive = false) {
   return call<{ meta: ClickerCloudSave["meta"] }>("/api/clicker/save", { method: "PUT", body: JSON.stringify({ json }), keepalive })
 }
+
+export type ClickerLeaderboardKind = "clear" | "core"
+export type ClickerLeaderboardRow = {
+  rank: number
+  nickname: string
+  totalCore: number
+  rebirthCount: number
+  worldlinesOwned: number
+  clearMs: number | null
+  playTimeMs: number | null
+  isMe: boolean
+}
+export type ClickerLeaderboard = { kind: ClickerLeaderboardKind; top: ClickerLeaderboardRow[]; me: ClickerLeaderboardRow | null; total: number }
+
+/** Online ranking (fastest clear or lifetime CORE). Unavailable on the static host. */
+export function fetchClickerLeaderboard(kind: ClickerLeaderboardKind) {
+  return call<ClickerLeaderboard>(`/api/clicker/leaderboard?kind=${kind}`)
+}

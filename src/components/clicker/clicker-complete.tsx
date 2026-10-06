@@ -14,16 +14,21 @@ import {
   type MetaState,
 } from "@/application/clicker-ui"
 import { useArmedPress, useClickerDialogFocus, useFocusOnChange } from "@/components/clicker/clicker-a11y"
+import { ClickerRanking } from "@/components/clicker/clicker-ranking"
 
 type Props = {
   meta: MetaState
   worldlineTotal: number
   /** Full wipe — prod-safe completion restart (not an admin cheat). */
   onReset: () => void
+  signedIn?: boolean
+  /** Upload the sealed run so the online ranking sees the clear. */
+  pushNow?: () => Promise<boolean>
 }
 
-export function ClickerComplete({ meta, worldlineTotal, onReset }: Props) {
+export function ClickerComplete({ meta, worldlineTotal, onReset, signedIn = false, pushNow }: Props) {
   const [confirmReset, setConfirmReset] = useState(false)
+  const [rankingKey, setRankingKey] = useState(0)
   const [localRecords, setLocalRecords] = useState<{ available: boolean; records: ClickerCompletionRecord[] } | null>(null)
   const rootRef = useRef<HTMLElement | null>(null)
   const startRef = useRef<HTMLButtonElement | null>(null)
@@ -53,6 +58,16 @@ export function ClickerComplete({ meta, worldlineTotal, onReset }: Props) {
     }
   }, [])
 
+  // The sealed run goes to the cloud first; the ranking refetches once it has landed.
+  useEffect(() => {
+    if (!signedIn || !pushNow) return
+    let alive = true
+    void pushNow().then((ok) => alive && ok && setRankingKey((k) => k + 1))
+    return () => {
+      alive = false
+    }
+  }, [signedIn, pushNow])
+
   useEffect(() => {
     if (!confirmReset) return
     const timer = window.setTimeout(() => setConfirmReset(false), 8000)
@@ -74,7 +89,7 @@ export function ClickerComplete({ meta, worldlineTotal, onReset }: Props) {
     <div data-clicker className="clicker-shell clicker-complete">
       <div
         className="clicker-complete-bg"
-        style={{ backgroundImage: `url(${CLICKER_ASSETS.bgTranscendence})` }}
+        style={{ backgroundImage: `url(/clicker/ending/ending_dawn.webp), url(${CLICKER_ASSETS.bgTranscendence})` }}
         aria-hidden
       />
       <article
@@ -121,6 +136,7 @@ export function ClickerComplete({ meta, worldlineTotal, onReset }: Props) {
             <dd>{completedDate}</dd>
           </div>
         </dl>
+        <ClickerRanking signedIn={signedIn} refreshKey={rankingKey} worldlineTotal={worldlineTotal} />
         <section className="clicker-complete-leaderboard" aria-labelledby="clicker-complete-leaderboard-title">
           <div className="clicker-complete-leaderboard-head">
             <div>

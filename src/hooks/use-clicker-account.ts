@@ -213,5 +213,15 @@ export function useClickerAccount({ getSaveJson, applySaveJson, startFresh }: Op
 
   const clearMessage = useCallback(() => setMessage(null), [])
 
-  return { clearMessage, checked, signedInAtBoot, available, storage, account, cloud, busy, message, login, signup, logout, upload, download }
+  /** Quiet upload (no status message): e.g. right after the ending so the ranking sees the clear. */
+  const pushNow = useCallback(async (): Promise<boolean> => {
+    if (!signedInId) return false
+    const json = getJson.current()
+    if (!json) return false
+    const r = await uploadCloudSave(json)
+    if (r.ok) setCloud(r.value.meta)
+    return r.ok
+  }, [signedInId])
+
+  return { clearMessage, checked, signedInAtBoot, available, storage, account, cloud, busy, message, login, signup, logout, upload, download, pushNow }
 }
