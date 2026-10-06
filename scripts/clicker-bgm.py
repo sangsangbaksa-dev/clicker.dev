@@ -654,6 +654,87 @@ def heart() -> np.ndarray:
     return tr.render(reverb=0.5, room=3.8)
 
 
+def crash(dur: float = 3.5, rise: float = 0.0) -> np.ndarray:
+    """Orchestral cymbal: bright noise; `rise` seconds of swell before the hit."""
+    n = int((dur + rise) * SR)
+    t = np.arange(n) / SR
+    x = RNG.standard_normal(n)
+    x = lowpass(x - lowpass(x, 2500), 7000)
+    shape = np.where(t < rise, (t / max(rise, 1e-3)) ** 3 * 0.6, np.exp(-(t - rise) * 1.6))
+    return x * shape
+
+
+def ending() -> np.ndarray:
+    """Ending — D major, 70 BPM, 16 bars: after eight dark minor worlds the score finally turns to
+    light. Bells and choir rise, then full brass carries the anthem over strings, organ and
+    timpani, closing on a ♭VI–♭VII–I cadence back to the opening."""
+    tr = Track(70, 16)
+
+    def warm(freqs: list[float], dur: float) -> np.ndarray:
+        return lowpass(lowpass(strings(freqs, dur), 1700), 2400)
+
+    def bells(f: float, dur: float) -> np.ndarray:
+        return lowpass(glass(f, dur), 2600)
+
+    prog = [
+        ("D", "M"), ("B", "m"), ("G", "M"), ("A", "M"),
+        ("D", "M"), ("A", "M"), ("B", "m"), ("G", "M"),
+        ("G", "M"), ("A", "M"), ("F#", "m"), ("B", "m"),
+        ("G", "M"), ("A", "M"), ("A#", "M"), ("C", "M"),
+    ]
+    for bar, (root, q) in enumerate(prog):
+        b = bar * 4
+        full = bar >= 4
+        big = bar >= 8
+        dur = 4 * tr.beat
+        tr.add(b, choir(chord(root, q, 3) + chord(root, q, 4)[:2], dur + 0.8), 0.22 if full else 0.16)
+        tr.add(b, warm(chord(root, q, 3) + chord(root, q, 4), dur), 0.10 if big else 0.06 if full else 0.03)
+        tr.add(b, low_strings([hz(f"{root}2"), hz(f"{root}1")], dur), 0.16 if full else 0.08)
+        tr.add(b, organ(chord(root, q, 2) + [hz(f"{root}1")], dur, 2600), 0.13 if full else 0.08)
+        tr.add(b, toll(hz(f"{root}3"), 5), 0.10, -0.3)
+        # Glittering bell arpeggio over every bar.
+        notes = chord(root, q, 4)
+        for k in range(8):
+            tr.add(b + k * 0.5, bells(notes[k % 3] * (2 if k >= 6 else 1), 1.4), 0.035 if full else 0.05, 0.4 - 0.1 * (k % 3))
+        if full:
+            tr.add(b, timpani(hz(f"{root}2"), 1.6), 0.32)
+            tr.add(b + 2, timpani(hz(f"{root}2"), 1.0), 0.18)
+        if big:
+            tr.add(b + 1, timpani(hz(f"{root}2"), 0.8), 0.12)
+            tr.add(b + 3, timpani(hz(f"{root}2"), 0.8), 0.14)
+            tr.add(b + 3.5, timpani(hz(f"{root}2"), 0.6), 0.12)
+    # Crescendo into the anthem and the climax; cymbal hits on the big downbeats.
+    for bar in range(0, 4):
+        for k in range(16):
+            tr.add(bar * 4 + k * 0.25, timpani(hz("A1"), 0.4), 0.004 * (bar * 16 + k) / 4)
+    tr.add(16 - 2, crash(4.0, 2 * tr.beat), 0.06)
+    tr.add(32 - 2, crash(4.0, 2 * tr.beat), 0.07)
+    tr.add(56 - 2, crash(5.0, 2 * tr.beat), 0.08)
+    for k in range(16):  # timpani roll into the loop's downbeat
+        tr.add(60 + k * 0.25, timpani(hz("C2"), 0.4), 0.05 + 0.012 * k)
+    # Horn call over the intro, then the brass anthem.
+    call = [("A3", 4, 1.5), ("D4", 5.5, 0.5), ("F#4", 6, 2), ("E4", 12, 1), ("F#4", 13, 1), ("A4", 14, 2)]
+    play(tr, call, horn, 0.22, -0.15, 0.97)
+    anthem = [
+        ("F#4", 16, 1.5), ("E4", 17.5, 0.5), ("D4", 18, 1), ("A4", 19, 1),
+        ("A4", 20, 1.5), ("G4", 21.5, 0.5), ("E4", 22, 2),
+        ("F#4", 24, 1), ("D4", 25, 1), ("B3", 26, 1), ("D4", 27, 1),
+        ("D4", 28, 1), ("E4", 29, 1), ("G4", 30, 2),
+        ("B4", 32, 1.5), ("A4", 33.5, 0.5), ("G4", 34, 1), ("D5", 35, 1),
+        ("C#5", 36, 1.5), ("B4", 37.5, 0.5), ("A4", 38, 2),
+        ("A4", 40, 1), ("C#5", 41, 1), ("F#5", 42, 1), ("E5", 43, 1),
+        ("D5", 44, 1.5), ("C#5", 45.5, 0.5), ("B4", 46, 2),
+        ("B4", 48, 1), ("D5", 49, 1), ("G5", 50, 2),
+        ("E5", 52, 1), ("F#5", 53, 1), ("A5", 54, 2),
+        ("F5", 56, 2), ("D5", 58, 2),
+        ("E5", 60, 2), ("G5", 62, 2),
+    ]
+    play(tr, anthem, brass, 0.40, 0.05, 0.97)
+    # Strings double the anthem an octave down from the climax on.
+    play(tr, [(n[:-1] + str(int(n[-1]) - 1), b, l) for n, b, l in anthem if b >= 32], lambda f, d: warm([f], d), 0.16, -0.25, 0.97)
+    return tr.render(reverb=0.5, room=4.0)
+
+
 TRACKS = {
     "bgm_hub_v2": hub,
     "bgm_mine_v2": mine,
@@ -663,6 +744,7 @@ TRACKS = {
     "bgm_world_storm": storm,
     "bgm_world_fault": fault,
     "bgm_world_heart": heart,
+    "bgm_ending": ending,
 }
 
 

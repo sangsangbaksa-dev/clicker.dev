@@ -62,7 +62,7 @@ test("bgmTrackFadeTarget drives rebirth intro then loop beds", () => {
   assert.equal(bgmTrackFadeTarget("rebirthIntro", "rebirth", false, 0.5, "loop"), 0)
 })
 
-test("resolveBgmScene picks mine, chamber, silent, and world themes", () => {
+test("resolveBgmScene picks mine, chamber, ending, silent, and world themes", () => {
   const base = {
     enteringMine: false,
     regionIntro: null,
@@ -75,7 +75,7 @@ test("resolveBgmScene picks mine, chamber, silent, and world themes", () => {
   assert.equal(resolveBgmScene(base), "storm")
   assert.equal(resolveBgmScene({ ...base, playSurface: "mine" }), "mine")
   assert.equal(resolveBgmScene({ ...base, pendingRebirth: true }), "chamber")
-  assert.equal(resolveBgmScene({ ...base, endingOpen: true }), "chamber")
+  assert.equal(resolveBgmScene({ ...base, endingOpen: true }), "ending")
   assert.equal(resolveBgmScene({ ...base, enteringMine: true }), "silent")
   assert.equal(resolveBgmScene({ ...base, bootLoading: true }), "silent")
   assert.equal(resolveBgmScene({ ...base, bossFight: true }), "storm")

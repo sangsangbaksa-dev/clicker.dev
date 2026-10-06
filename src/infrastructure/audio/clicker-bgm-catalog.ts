@@ -15,6 +15,8 @@ export const CLICKER_BGM_URL: Record<BgmTrackId, string> = {
   storm: "/clicker/audio/bgm_world_storm.mp3",
   fault: "/clicker/audio/bgm_world_fault.mp3",
   heart: "/clicker/audio/bgm_world_heart.mp3",
+  // Ending story: D major anthem (scripts/clicker-bgm.py `ending`).
+  ending: "/clicker/audio/bgm_ending.mp3",
 }
 
 /** Default loop=true; one-shot beds (rebirth intro) opt out. */

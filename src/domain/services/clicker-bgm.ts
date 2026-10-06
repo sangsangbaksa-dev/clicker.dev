@@ -14,6 +14,7 @@ export type BgmTrackId =
   | "storm"
   | "fault"
   | "heart"
+  | "ending"
 
 /** `rebirth` plays HQ intro once, then crossfades to `rebirthHq` loop. */
 export type BgmScene = BgmTrackId | "silent" | "rebirth"
@@ -112,13 +113,14 @@ export function bgmTracksToWarm(scene: BgmScene): BgmTrackId[] {
 }
 
 /**
- * Cinematics and the boot screen silence the score; rebirth and the ending play the chamber
- * cue; boss fights keep the world theme (the original score — no separate loading/boss beds).
+ * Cinematics and the boot screen silence the score; rebirth plays the chamber cue and the
+ * ending story its own major-key anthem; boss fights keep the world theme.
  */
 export function resolveBgmScene(overlay: BgmOverlayState): BgmScene {
   if (overlay.enteringMine || overlay.regionIntro || overlay.endingPhase) return "silent"
   if (overlay.bootLoading) return "silent"
-  if (overlay.pendingRebirth || overlay.endingOpen) return "chamber"
+  if (overlay.endingOpen) return "ending"
+  if (overlay.pendingRebirth) return "chamber"
   if (overlay.playSurface === "mine") return "mine"
   return worldBgmTrack(overlay.currentRegionId)
 }
