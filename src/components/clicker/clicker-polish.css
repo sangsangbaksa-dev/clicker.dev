@@ -2229,6 +2229,17 @@
   filter: blur(5px);
   animation: clicker-relic-halo-turn 8s linear infinite;
 }
+[data-clicker] .clicker-relic-art.is-ascended::after {
+  position: absolute;
+  z-index: 0;
+  inset: -2px;
+  border: 1px solid rgb(199 241 255 / 0.38);
+  border-radius: 50%;
+  box-shadow: inset 0 0 12px rgb(84 194 255 / 0.16), 0 0 11px rgb(84 194 255 / 0.18);
+  content: "";
+  pointer-events: none;
+  animation: clicker-relic-core-pulse 3.2s ease-in-out infinite alternate;
+}
 [data-clicker] .clicker-relic-art img {
   position: relative;
   z-index: 1;
@@ -2253,6 +2264,16 @@
   animation: clicker-relic-ring-turn 18s linear infinite;
 }
 [data-clicker] .clicker-relic-ascension-ring path { stroke-dasharray: 3 4; }
+[data-clicker] .clicker-relic-ascension-ring .clicker-relic-ascension-inner {
+  stroke-dasharray: 1 3;
+  stroke-width: 0.65;
+  opacity: 0.64;
+}
+[data-clicker] .clicker-relic-ascension-ring .clicker-relic-ascension-glyphs {
+  fill: rgb(215 247 255 / 0.9);
+  stroke: none;
+  filter: drop-shadow(0 0 3px rgb(74 199 255 / 0.86));
+}
 @keyframes clicker-relic-awaken {
   0% { transform: translateY(10px) scale(0.94); box-shadow: 0 0 0 rgb(84 194 255 / 0); }
   55% { transform: translateY(-2px) scale(1.015); }
@@ -2265,9 +2286,14 @@
 }
 @keyframes clicker-relic-ring-turn { to { transform: rotate(360deg); } }
 @keyframes clicker-relic-halo-turn { to { transform: rotate(-360deg); } }
+@keyframes clicker-relic-core-pulse {
+  from { opacity: 0.45; transform: scale(0.94); }
+  to { opacity: 0.95; transform: scale(1.06); }
+}
 @media (prefers-reduced-motion: reduce) {
   [data-clicker] .clicker-relic.is-ascended,
   [data-clicker] .clicker-relic-art.is-ascended::before,
+  [data-clicker] .clicker-relic-art.is-ascended::after,
   [data-clicker] .clicker-relic-art.is-ascended img,
   [data-clicker] .clicker-relic-ascension-ring {
     animation: none;
