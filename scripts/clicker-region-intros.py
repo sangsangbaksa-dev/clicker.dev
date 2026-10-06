@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Re-render the world arrival cinematics from each world's own art — no particles.
 
-10s at 1920x1080/30fps: the world's poster fades up under a drifting sub-pixel push-in with a
-breathing light sweep, the camera speeds in through a crossfade to its still, and the still eases
-out onto the exact framing the world screen shows next. The picture is new;
-the soundtrack is lifted from the existing video, so each world keeps its score.
+10s at 1920x1080/30fps: one continuous push-in on the world's still. No second plate
+and no mid-shot crossfade. The camera eases onto the exact framing the world screen
+shows next. The soundtrack is lifted from the existing video.
 
     pip install numpy pillow imageio-ffmpeg
     python3 scripts/clicker-region-intros.py [world_id ...]   (default: every world below)
@@ -63,35 +62,18 @@ def ease_out(x: float, k: float = 3.0) -> float:
     return 1 - (1 - x) ** k
 
 
-def frames(poster: np.ndarray, still: np.ndarray):
-    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
-    vignette = (1 - 0.42 * (((xx - W / 2) / (W / 2)) ** 2 + ((yy - H / 2) / (H / 2)) ** 2)).clip(0.3, 1)[..., None]
-    X0, X1 = 4.2, 7.0  # crossfade window (s)
+def frames(still: np.ndarray):
+    """One plate: glide from a slight push-in to the exact still. No crossfade."""
     for f in range(int(LENGTH * FPS)):
         t = f / FPS
-        # Poster: a slow drifting push that speeds up into the crossfade (the camera "goes in").
-        drift = smooth(t / X1)
-        a = zoom(poster, 1.03 + 0.09 * drift + 0.22 * smooth((t - X0 + 0.6) / (X1 - X0 + 0.6)) ** 2,
-                 cx=-0.018 + 0.03 * drift, cy=0.01 - 0.016 * drift)
-        # Still: arrives slightly pushed in and off-centre, then settles with a long ease-out onto
-        # the exact framing of the world screen (scale 1, centred) by the last frame.
-        u = ease_out((t - X0) / (LENGTH - X0), 3.2)
-        b = zoom(still, 1.0 + 0.14 * (1 - u), cx=0.02 * (1 - u), cy=-0.012 * (1 - u))
-        mix = smooth((t - X0) / (X1 - X0))
-        img = a * (1 - mix) + b * mix
-        # Light breathes on the poster and a soft glow sweeps across it; both fade with the poster.
-        breath = 1 + 0.06 * np.sin(t * 2.1) * (1 - mix)
-        sweep_x = W * (-0.3 + 1.6 * smooth(t / X1))
-        sweep = np.exp(-(((xx - sweep_x) / (W * 0.22)) ** 2))[..., None] * 0.12 * (1 - mix)
-        img = img * breath + sweep * img
-        # Vignette eases out as the still settles, so the last frame matches the screen.
-        v = vignette * (1 - mix) + mix
-        fade = smooth(t / 1.0)
-        yield (np.clip(img * v * fade, 0, 1) * 255).astype(np.uint8)
+        u = ease_out(t / LENGTH, 2.4)
+        img = zoom(still, 1.12 - 0.12 * u, cx=0.02 * (1 - u), cy=-0.012 * (1 - u))
+        fade = smooth(min(1.0, t / 0.45))
+        yield (np.clip(img * fade, 0, 1) * 255).astype(np.uint8)
 
 
 def render(world: str) -> None:
-    poster_rel, still_rel = WORLDS[world]
+    _poster_rel, still_rel = WORLDS[world]
     out = PUBLIC / "region" / f"{world}_intro.mp4"
     ff = imageio_ffmpeg.get_ffmpeg_exe()
     with tempfile.TemporaryDirectory() as tmp:
@@ -103,7 +85,7 @@ def render(world: str) -> None:
              "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-crf", "20", "-preset", "slow", str(video)],
             stdin=subprocess.PIPE, stderr=subprocess.DEVNULL,
         )
-        for frame in frames(load(PUBLIC / poster_rel), load(PUBLIC / still_rel)):
+        for frame in frames(load(PUBLIC / still_rel)):
             proc.stdin.write(frame.tobytes())
         proc.stdin.close()
         proc.wait()

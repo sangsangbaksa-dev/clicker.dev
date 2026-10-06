@@ -37,9 +37,9 @@ export const CLICKER_REGIONS: RegionDef[] = [
       rewardSeconds: 60,
       cooldownSec: 150,
     },
-    // The drill site (a teal grade of the old foundry painting) — distinct from the intro still you land on.
-    bgAssetId: "/clicker/bg/region_signal_relay_drill.webp",
-    intro: { video: "/clicker/region/signal_relay_intro.mp4", poster: "/clicker/bg/region_signal_relay.webp", still: "/clicker/region/signal_relay_still.webp", engageVideo: "/clicker/region/signal_relay_drill_enter.mp4" },
+    // Drill on the same corridor you arrive in — no second plate and no entrance clip.
+    bgAssetId: "/clicker/region/signal_relay_still.webp",
+    intro: { video: "/clicker/region/signal_relay_intro.mp4", poster: "/clicker/bg/region_signal_relay.webp", still: "/clicker/region/signal_relay_still.webp" },
     unlockAtLifetimeEnergy: 250_000_000_000,
     productionMultiplier: 1.12,
     activity: {

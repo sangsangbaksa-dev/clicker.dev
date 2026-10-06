@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Render the Core Mine (home) arrival cinematic from the home art, with its own score.
 
-9s at 1280x720/30fps: the dark core chamber fades up under a slow push-in, crossfades to the mine entrance, whose cyan lights flicker awake, and settles on
-the same framing as the home hub. Scored in D minor (drone, choir, bell, low brass) with
+9s at 1280x720/30fps: one continuous push-in on the mine entrance (no mid-shot
+crossfade). Cyan lights flicker awake, and the shot settles on the same framing
+as the home hub. The existing score is kept. Scored originally in D minor with
 a door thud at the end. Needs the instruments in scripts/clicker-bgm.py.
 
     pip install numpy pillow soundfile imageio-ffmpeg
@@ -50,27 +51,18 @@ def smooth(t: float) -> float:
 
 
 def frames():
-    hall = load(PUBLIC / "bg" / "region_core_chamber.webp")
     gate = load(PUBLIC / "mine" / "mine_entrance_hub_closed_door_v2.webp")
-    # Cyan lights on the gate: the bright, blue-dominant pixels flicker awake.
-    lights = ((gate[..., 2] > 0.45) & (gate[..., 2] > gate[..., 0] * 1.4)).astype(np.float32)[..., None]
-    yy, xx = np.mgrid[0:H, 0:W]
-    vignette = (1 - 0.55 * (((xx - W / 2) / (W / 2)) ** 2 + ((yy - H / 2) / (H / 2)) ** 2)).clip(0.25, 1)[..., None]
     total = int(LENGTH * FPS)
     for f in range(total):
         t = f / FPS
-        a = zoom(hall, 1.0 + 0.10 * t / LENGTH)
-        # The gate ends at scale 1.0 — the exact hub framing.
-        b = zoom(gate, 1.06 - 0.06 * smooth((t - 3.5) / 5.0))
-        mix = smooth((t - 3.5) / 1.8)
-        img = a * (1 - mix) + b * mix
-        if mix > 0:
-            flicker = 0.0
-            if t > 5.4:
-                flicker = 0.6 + 0.4 * np.sin(t * 9) * (1 if (int(t * 7) % 5) else 0.2)
-            img = img + lights * gate * flicker * 0.9 * mix
-        img = img * vignette
-        fade = smooth(t / 1.4) * (1 - 0.35 * smooth((t - 8.3) / 0.7))
+        # One shot on the gate. Ends at scale 1.0 — the exact hub framing.
+        u = smooth(t / LENGTH)
+        img = zoom(gate, 1.08 - 0.08 * u)
+        if t > 5.4:
+            flicker = 0.6 + 0.4 * np.sin(t * 9) * (1 if (int(t * 7) % 5) else 0.2)
+            lit = ((img[..., 2] > 0.45) & (img[..., 2] > img[..., 0] * 1.4)).astype(np.float32)[..., None]
+            img = img + lit * img * flicker * 0.9
+        fade = smooth(min(1.0, t / 0.45)) * (1 - 0.35 * smooth((t - 8.3) / 0.7))
         yield (np.clip(img * fade, 0, 1) * 255).astype(np.uint8)
 
 
@@ -117,18 +109,23 @@ def score() -> np.ndarray:
 def main() -> None:
     ff = imageio_ffmpeg.get_ffmpeg_exe()
     with tempfile.TemporaryDirectory() as tmp:
-        wav = Path(tmp) / "score.wav"
-        sf.write(wav, score(), bgm.SR)
+        audio = Path(tmp) / "audio.m4a"
+        subprocess.run([ff, "-y", "-i", str(OUT), "-vn", "-c:a", "copy", str(audio)], check=True, stderr=subprocess.DEVNULL)
+        video = Path(tmp) / "video.mp4"
         proc = subprocess.Popen(
             [ff, "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-             "-i", str(wav), "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-crf", "23",
-             "-preset", "slow", "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart", str(OUT)],
+             "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "slow", str(video)],
             stdin=subprocess.PIPE, stderr=subprocess.DEVNULL,
         )
         for frame in frames():
             proc.stdin.write(frame.tobytes())
         proc.stdin.close()
         proc.wait()
+        subprocess.run(
+            [ff, "-y", "-i", str(video), "-i", str(audio), "-map", "0:v", "-map", "1:a", "-c", "copy",
+             "-shortest", "-movflags", "+faststart", str(OUT)],
+            check=True, stderr=subprocess.DEVNULL,
+        )
     print(f"wrote {OUT.relative_to(HERE.parent)}")
 
 
