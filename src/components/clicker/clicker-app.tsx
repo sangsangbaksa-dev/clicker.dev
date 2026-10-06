@@ -2075,7 +2075,7 @@ export function ClickerApp() {
         <ClickerCinematic
           key={endingPhase}
           src={endingPhase === "fall" ? "/clicker/ending/ending_guardian_fall.mp4" : "/clicker/ending/ending_core_awaken.mp4"}
-          poster={endingPhase === "fall" ? "/clicker/bg/region_core_heart.jpg" : "/clicker/bg/loading_core_awakening.webp"}
+          poster={endingPhase === "fall" ? "/clicker/bg/region_core_heart_arena.webp" : "/clicker/bg/loading_core_awakening.webp"}
           label="엔딩"
           muted={game.save.settings.musicMuted}
           volume={game.save.settings.musicVolume}

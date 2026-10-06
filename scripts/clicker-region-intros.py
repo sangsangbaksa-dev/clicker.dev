@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Re-render the world arrival cinematics from each world's own art — no particles.
 
-10s at 1280x720/30fps: the world's poster fades up under a drifting sub-pixel push-in with a
+10s at 1920x1080/30fps: the world's poster fades up under a drifting sub-pixel push-in with a
 breathing light sweep, the camera speeds in through a crossfade to its still, and the still eases
 out onto the exact framing the world screen shows next. The picture is new;
 the soundtrack is lifted from the existing video, so each world keeps its score.
@@ -21,7 +21,7 @@ import numpy as np
 from PIL import Image
 
 PUBLIC = Path(__file__).resolve().parent.parent / "public" / "clicker"
-W, H, FPS, LENGTH = 1280, 720, 30, 10.0
+W, H, FPS, LENGTH = 1920, 1080, 30, 10.0
 
 WORLDS = {
     "signal_relay": ("bg/region_signal_relay.webp", "region/signal_relay_still.webp"),
@@ -100,7 +100,7 @@ def render(world: str) -> None:
         video = Path(tmp) / "video.mp4"
         proc = subprocess.Popen(
             [ff, "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-             "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-crf", "22", "-preset", "slow", str(video)],
+             "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-crf", "20", "-preset", "slow", str(video)],
             stdin=subprocess.PIPE, stderr=subprocess.DEVNULL,
         )
         for frame in frames(load(PUBLIC / poster_rel), load(PUBLIC / still_rel)):

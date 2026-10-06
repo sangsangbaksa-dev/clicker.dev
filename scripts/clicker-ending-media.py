@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Core Heart intro + the two ending videos (guardian fall, core awakening).
+"""The two ending videos: the Core Guardian's fall and the core's awakening.
 
-Frames are composed with PIL from existing plates plus a drawn guardian; the soundtracks
-are synthesized with numpy; ffmpeg muxes them (H.264 + AAC, faststart).
+1920x1080/30fps. The fall uses the Core Heart arena plate and the guardian sprite: each hit
+splits it with glowing cracks, then it sinks and burns away into embers while the core it
+guarded floods the room with light. The awakening pushes into the awakened-core chamber under
+soft turning god-rays and drifting motes. Soundtracks are synthesized with numpy; ffmpeg muxes
+them (H.264 + AAC, faststart).
 
+    pip install numpy pillow imageio-ffmpeg
     python3 scripts/clicker-ending-media.py
 """
 from __future__ import annotations
@@ -14,12 +18,14 @@ import tempfile
 import wave
 from pathlib import Path
 
+import imageio_ffmpeg
 import numpy as np
-from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent / "public" / "clicker"
-W, H, FPS = 1280, 720, 24
+W, H, FPS = 1920, 1080, 30
 SR = 44100
+YY, XX = np.mgrid[0:H, 0:W].astype(np.float32)
 
 
 def cover(path: Path) -> Image.Image:
@@ -30,44 +36,37 @@ def cover(path: Path) -> Image.Image:
     return im.crop((x, y, x + W, y + H))
 
 
-def zoom(im: Image.Image, z: float, dx: float = 0, dy: float = 0) -> Image.Image:
-    cw, ch = W / z, H / z
-    x = (W - cw) / 2 + dx
-    y = (H - ch) / 2 + dy
-    return im.crop((x, y, x + cw, y + ch)).resize((W, H), Image.BILINEAR)
+def zoom(im: Image.Image, z: float, cx: float = 0.5, cy: float = 0.5, dx: float = 0, dy: float = 0) -> np.ndarray:
+    """Sub-pixel push-in on (cx, cy) as a float RGB array in 0..1."""
+    ox, oy = cx * W + dx, cy * H + dy
+    m = (1 / z, 0, ox - ox / z, 0, 1 / z, oy - oy / z)
+    return np.asarray(im.transform((W, H), Image.AFFINE, m, resample=Image.BICUBIC), np.float32) / 255
 
 
-def warden(size: int) -> Image.Image:
-    """The guardian from the in-game SVG (viewBox 220×240), drawn at `size` px tall."""
-    s = size / 240
-    im = Image.new("RGBA", (int(220 * s), size), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-    P = lambda pts: [(x * s, y * s) for x, y in pts]
-    d.polygon(P([(40, 100), (6, 170), (28, 180), (62, 120)]), fill=(74, 42, 24))
-    d.polygon(P([(180, 100), (214, 170), (192, 180), (158, 120)]), fill=(74, 42, 24))
-    d.polygon(P([(50, 70), (170, 70), (190, 190), (110, 230), (30, 190)]), fill=(93, 54, 32))
-    d.polygon(P([(70, 90), (150, 90), (162, 180), (110, 206), (58, 180)]), fill=(122, 69, 38))
-    d.polygon(P([(80, 20), (140, 20), (156, 72), (64, 72)]), fill=(106, 60, 34))
-    d.polygon(P([(84, 14), (96, 0), (100, 20)]), fill=(255, 179, 71))
-    d.polygon(P([(136, 14), (124, 0), (120, 20)]), fill=(255, 179, 71))
-    d.ellipse([82 * s, 110 * s, 138 * s, 166 * s], fill=(255, 140, 26))
-    d.ellipse([96 * s, 124 * s, 124 * s, 152 * s], fill=(255, 241, 194))
-    d.rounded_rectangle([88 * s, 42 * s, 132 * s, 52 * s], radius=5 * s, fill=(255, 221, 85))
-    return im
+def smooth(x: float) -> float:
+    x = min(1.0, max(0.0, x))
+    return x * x * (3 - 2 * x)
 
 
-def glow(frame: Image.Image, cx: float, cy: float, radius: float, color, strength: float) -> Image.Image:
-    yy, xx = np.mgrid[0:H, 0:W]
-    r = np.hypot(xx - cx, yy - cy) / max(radius, 1)
-    g = np.clip(1 - r, 0, 1) ** 2 * strength / 255
-    arr = np.asarray(frame, float) + g[..., None] * np.array(color, float)
-    return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
+def screen(base: np.ndarray, light: np.ndarray) -> np.ndarray:
+    return 1 - (1 - base) * (1 - np.clip(light, 0, 1))
 
 
-def fade(frame: Image.Image, to, amount: float) -> Image.Image:
-    if amount <= 0:
-        return frame
-    return Image.blend(frame, Image.new("RGB", (W, H), to), min(1, amount))
+def radial(cx: float, cy: float, r: float) -> np.ndarray:
+    return np.exp(-(((XX - cx) ** 2 + (YY - cy) ** 2) / (r * r)))
+
+
+VIGNETTE = (1 - 0.55 * np.clip(np.hypot((XX - W / 2) / (W * 0.62), (YY - H / 2) / (H * 0.7)) - 0.35, 0, 1) ** 1.6)[..., None]
+
+
+def dots(xs, ys, vals, blur: float) -> np.ndarray:
+    """Splat soft points (additive) into an HxW float layer."""
+    layer = np.zeros((H, W), np.float32)
+    xi, yi = np.round(xs).astype(int), np.round(ys).astype(int)
+    ok = (xi >= 0) & (xi < W) & (yi >= 0) & (yi < H) & (vals > 0)
+    np.add.at(layer, (yi[ok], xi[ok]), vals[ok])
+    im = Image.fromarray(np.clip(layer * 255, 0, 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(blur))
+    return np.asarray(im, np.float32) / 255 * (blur * blur * 3)
 
 
 # ---------- audio ----------
@@ -122,18 +121,6 @@ def chord(n_total: int, at: float, dur: float, freqs, gain=0.2, attack=1.0) -> n
     return out
 
 
-def audio_heart(sec: float) -> np.ndarray:
-    rng = np.random.default_rng(3)
-    n = int(sec * SR)
-    t = np.arange(n) / SR
-    beat = np.zeros(n)
-    for k in np.arange(0.4, sec, 1.1):
-        beat += boom(n, k, rng, 0.55) + boom(n, k + 0.28, rng, 0.35)
-    drone = np.sin(2 * np.pi * 55 * t) * 0.25 + np.sin(2 * np.pi * 82.4 * t) * 0.12
-    drone *= np.minimum(1, t / 2)
-    return beat + drone + chord(n, 3.5, sec - 3.5, [220, 261.6, 329.6], 0.05, 3)
-
-
 def audio_fall(sec: float) -> np.ndarray:
     rng = np.random.default_rng(7)
     n = int(sec * SR)
@@ -164,55 +151,182 @@ def audio_awaken(sec: float) -> np.ndarray:
 
 # ---------- scenes ----------
 
-def scene_heart(i: int, n: int, bg: Image.Image, guard: Image.Image) -> Image.Image:
-    p = i / (n - 1)
-    f = zoom(bg, 1.0 + 0.25 * (0.5 - 0.5 * math.cos(math.pi * p)))
-    pulse = 0.5 + 0.5 * math.sin(2 * math.pi * i / (FPS * 1.1))
-    f = glow(f, W / 2, H * 0.45, 420, (255, 120, 20), 60 + 70 * pulse)
-    if p > 0.35:
-        a = min(1, (p - 0.35) / 0.3)
-        g = guard.copy()
-        g.putalpha(g.getchannel("A").point(lambda v: int(v * a * 0.85)))
-        f.paste(g, (W // 2 - g.width // 2, int(H * 0.52 - g.height / 2)), g)
-    f = fade(f, (0, 0, 0), max(0, 1 - i / (FPS * 1.2)) + max(0, (i - (n - FPS * 1.2)) / (FPS * 1.2)))
-    return f
+class Guardian:
+    """The Core Guardian sprite, standing on the arena floor, with its crack and dissolve maps."""
+
+    def __init__(self):
+        src = Image.open(ROOT / "boss" / "core_guardian.webp").convert("RGBA")
+        box = src.getchannel("A").getbbox()
+        core = ((0.482 * src.width - box[0]) / (box[2] - box[0]), (0.378 * src.height - box[1]) / (box[3] - box[1]))
+        src = src.crop(box)
+        self.h = int(H * 0.9)
+        self.w = round(src.width * self.h / src.height)
+        self.img = src.resize((self.w, self.h), Image.LANCZOS)
+        self.x0, self.y0 = (W - self.w) / 2, H * 1.01 - self.h
+        self.core = (self.x0 + core[0] * self.w, self.y0 + core[1] * self.h)
+        rng = np.random.default_rng(5)
+        # Branching cracks out of the chest core, drawn in four waves (one per hit).
+        self.cracks = []
+        cx, cy = core[0] * self.w, core[1] * self.h
+        for wave_i in range(4):
+            layer = Image.new("L", (self.w, self.h), 0)
+            d = ImageDraw.Draw(layer)
+            for _ in range(5 + wave_i * 3):
+                x, y = cx, cy
+                ang = rng.uniform(0, 2 * math.pi)
+                width = 7 - wave_i
+                for _ in range(rng.integers(6, 12 + wave_i * 4)):
+                    ang += rng.normal(0, 0.45)
+                    step = rng.uniform(18, 46)
+                    nx, ny = x + math.cos(ang) * step, y + math.sin(ang) * step * 1.15
+                    d.line([x, y, nx, ny], fill=255, width=max(2, round(width)))
+                    x, y = nx, ny
+                    width = max(2, width - 0.4)
+            sharp = np.asarray(layer, np.float32) / 255
+            soft = np.asarray(layer.filter(ImageFilter.GaussianBlur(9)), np.float32) / 255
+            self.cracks.append(np.clip(sharp + soft * 2.2, 0, 1.6))
+        # Dissolve order: noisy, burning from the top of the body downward.
+        n = rng.random((self.h // 16 + 2, self.w // 16 + 2)).astype(np.float32)
+        n = np.asarray(Image.fromarray((n * 255).astype(np.uint8)).resize((self.w, self.h), Image.BICUBIC), np.float32) / 255
+        fine = rng.random((self.h // 4 + 2, self.w // 4 + 2)).astype(np.float32)
+        fine = np.asarray(Image.fromarray((fine * 255).astype(np.uint8)).resize((self.w, self.h), Image.BICUBIC), np.float32) / 255
+        yn = np.linspace(0, 1, self.h, dtype=np.float32)[:, None]
+        self.order = 0.5 * n + 0.15 * fine + 0.35 * yn
+        a = np.asarray(self.img.getchannel("A"), np.float32) / 255
+        ys, xs = np.nonzero(a > 0.6)
+        pick = rng.choice(len(xs), 900, replace=False)
+        self.ember_xy = np.stack([xs[pick], ys[pick]], 1).astype(np.float32)
+        self.ember_t = self.order[ys[pick], xs[pick]]
+        self.ember_v = np.stack([rng.normal(0, 40, 900), -rng.uniform(90, 260, 900)], 1).astype(np.float32)
+        self.ember_b = rng.uniform(0.5, 1.0, 900).astype(np.float32)
+
+    def layer(self, crack: float, burn: float, rim_heat: float, sink: float, tilt: float, dx: float, dy: float):
+        """RGBA float layer for the full frame, plus its emissive (glow) channel."""
+        rgba = np.asarray(self.img, np.float32) / 255
+        rgb, a = rgba[..., :3], rgba[..., 3]
+        emit = np.zeros(a.shape, np.float32)
+        for k, c in enumerate(self.cracks):
+            emit += c * float(np.clip(crack - k, 0, 1)) * 0.7
+        if burn > 0:
+            thr = burn * 1.12 - 0.06
+            keep = np.clip((self.order - thr) / 0.035, 0, 1)
+            rim = np.exp(-(((self.order - thr) / 0.035) ** 2)) * (keep > 0)
+            emit += rim * 1.8 * rim_heat
+            a = a * keep
+        heat = np.clip(emit, 0, 1.6)[..., None]
+        rgb = rgb * (1 - 0.25 * min(1.0, crack / 4)) + heat * np.array([1.0, 0.55, 0.18], np.float32)
+        out = np.concatenate([np.clip(rgb, 0, 1), a[..., None], np.clip(heat, 0, 1)], 2)
+        im = Image.fromarray((out[..., :4] * 255).astype(np.uint8), "RGBA")
+        gl = Image.fromarray((out[..., 4] * 255).astype(np.uint8), "L")
+        # Pivot at the feet: tilt and sink as one.
+        pivot = (self.w / 2, self.h)
+        im = im.rotate(tilt, resample=Image.BICUBIC, center=pivot)
+        gl = gl.rotate(tilt, resample=Image.BICUBIC, center=pivot)
+        frame = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        glow = Image.new("L", (W, H), 0)
+        pos = (int(round(self.x0 + dx)), int(round(self.y0 + sink + dy)))
+        frame.paste(im, pos, im)
+        glow.paste(gl, pos)
+        f = np.asarray(frame, np.float32) / 255
+        g = np.asarray(glow.filter(ImageFilter.GaussianBlur(14)), np.float32) / 255
+        return f[..., :3], f[..., 3:], g
 
 
-def scene_fall(i: int, n: int, bg: Image.Image, guard: Image.Image) -> Image.Image:
+def scene_fall(i: int, n: int, bg: Image.Image, guard: Guardian) -> np.ndarray:
     t = i / FPS
-    shake = 14 * math.exp(-((t - 0.3) % 1.1) * 3) if t < 4.8 else 0
-    f = zoom(bg, 1.12, math.sin(t * 43) * shake, math.cos(t * 37) * shake)
-    drop = max(0, t - 2.4) ** 2 * 60
-    tilt = max(0, t - 2.4) * 9
-    a = 1 if t < 3.6 else max(0, 1 - (t - 3.6) / 1.2)
-    g = guard.rotate(tilt, expand=True, resample=Image.BICUBIC)
-    if a < 1:
-        g.putalpha(g.getchannel("A").point(lambda v: int(v * a)))
-    if a > 0:
-        f.paste(g, (W // 2 - g.width // 2, int(H * 0.5 - g.height / 2 + drop)), g)
-    for k in (0.3, 1.4, 2.3, 3.0):
-        if 0 <= t - k < 0.25:
-            f = fade(f, (255, 240, 200), 0.6 * (1 - (t - k) / 0.25))
-    core = max(0, t - 3.4)
-    f = glow(f, W / 2, H * 0.55, 200 + core * 380, (255, 190, 90), min(255, core * 120))
-    f = fade(f, (255, 250, 235), max(0, (t - 5.2) / 1.3))
+    hits = (0.3, 1.4, 2.3, 3.0)
+    since = [t - k for k in hits if t >= k]
+    last = min(since) if since else 9.0
+    shake = (18 * math.exp(-last * 5) if t < 4.8 else 0) + 4 * smooth((t - 2.5) / 1.5) * (1 - smooth((t - 4.6) / 0.8))
+    sx, sy = math.sin(t * 47) * shake, math.cos(t * 39) * shake * 0.7
+    z = 1.06 + 0.05 * smooth(t / 6.5)
+    core_x, core_y = guard.core
+    base = zoom(bg, z, core_x / W, core_y / H, sx * 0.6, sy * 0.6) * 0.82
+
+    crack = sum(smooth((t - k) / 0.18) for k in hits)
+    burn = smooth((t - 3.3) / 1.7)
+    sink = max(0.0, t - 2.4) ** 2 * 26
+    tilt = -7 * smooth((t - 2.5) / 2.2) + 1.2 * math.sin(t * 9) * smooth((t - 2.4) / 0.4) * (1 - burn)
+    rgb, a, glow = guard.layer(crack, burn, 1.0, sink, tilt, sx, sy)
+    f = base * (1 - a) + rgb * a
+
+    # Core light: pulses with each hit, then swells as the body burns away.
+    pulse = sum(math.exp(-(t - k) * 4) for k in hits if t >= k)
+    swell = smooth((t - 3.2) / 2.6)
+    cx, cy = core_x + sx, core_y + sink * 0.3 + sy
+    light = radial(cx, cy, 120 + 60 * pulse + 1300 * swell)[..., None] * (0.35 + 0.35 * pulse + 0.9 * swell)
+    f = screen(f, light * np.array([1.0, 0.62, 0.28], np.float32))
+    f = screen(f, glow[..., None] * np.array([1.0, 0.5, 0.15], np.float32) * 0.9)
+
+    # Embers shed as the body burns.
+    if burn > 0:
+        thr = burn * 1.12 - 0.06
+        age = np.where(guard.ember_t < thr, (thr - guard.ember_t) * 1.7 / 1.12 * 1.0, -1)
+        alive = (age >= 0) & (age < 1.6)
+        px = guard.x0 + guard.ember_xy[:, 0] + guard.ember_v[:, 0] * age + sx
+        py = guard.y0 + sink + guard.ember_xy[:, 1] + guard.ember_v[:, 1] * age - 30 * age * age + sy
+        v = np.where(alive, guard.ember_b * (1 - age / 1.6), 0).astype(np.float32)
+        e = dots(px, py, v, 2.2)
+        f = screen(f, e[..., None] * np.array([1.0, 0.7, 0.3], np.float32))
+
+    for k in hits:
+        if 0 <= t - k < 0.3:
+            f = screen(f, np.full_like(f, 0.42 * (1 - (t - k) / 0.3)) * np.array([1.0, 0.85, 0.65], np.float32))
+    f = f * VIGNETTE
+    w = smooth((t - 5.0) / 1.5)
+    f = f * (1 - w) + np.array([1.0, 0.98, 0.92], np.float32) * w
     return f
 
 
-def scene_awaken(i: int, n: int, bg: Image.Image) -> Image.Image:
+class Motes:
+    def __init__(self, count: int, seed: int):
+        rng = np.random.default_rng(seed)
+        self.p = rng.random((count, 2)).astype(np.float32) * np.array([W, H], np.float32)
+        self.v = np.stack([rng.normal(0, 8, count), -rng.uniform(10, 40, count)], 1).astype(np.float32)
+        self.ph = rng.uniform(0, 2 * math.pi, count).astype(np.float32)
+        self.b = rng.uniform(0.3, 1.0, count).astype(np.float32)
+
+    def at(self, t: float, cx: float, cy: float, push: float):
+        pos = self.p + self.v * t
+        # Drift outward from the core as the camera pushes in.
+        pos = np.array([cx, cy], np.float32) + (pos - np.array([cx, cy], np.float32)) * (1 + push)
+        pos[:, 0] %= W
+        pos[:, 1] %= H
+        tw = 0.55 + 0.45 * np.sin(self.ph + t * 2.3)
+        return pos[:, 0], pos[:, 1], self.b * tw
+
+
+RAY_W, RAY_H = W // 4, H // 4
+RY, RX = np.mgrid[0:RAY_H, 0:RAY_W].astype(np.float32)
+
+
+def rays(t: float, cx: float, cy: float, reach: float) -> np.ndarray:
+    dx, dy = RX - cx / 4, RY - cy / 4
+    ang = np.arctan2(dy, dx)
+    r = np.hypot(dx, dy) * 4
+    beams = 0.6 * (0.5 + 0.5 * np.cos(11 * (ang + 0.05 * t))) ** 6 + 0.45 * (0.5 + 0.5 * np.cos(7 * (ang - 0.032 * t) + 1.3)) ** 10
+    m = beams * np.exp(-r / reach) * np.clip(r / 60, 0, 1)
+    im = Image.fromarray(np.clip(m * 255, 0, 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(3)).resize((W, H), Image.BICUBIC)
+    return np.asarray(im, np.float32) / 255
+
+
+def scene_awaken(i: int, n: int, bg: Image.Image, motes: Motes) -> np.ndarray:
     t = i / FPS
     p = i / (n - 1)
-    f = ImageEnhance.Brightness(zoom(bg, 1.35 - 0.3 * p)).enhance(0.35 + 1.1 * p)
-    f = glow(f, W / 2, H * 0.48, 180 + 600 * p, (120, 220, 255), 90 + 120 * p)
-    d = ImageDraw.Draw(f, "RGBA")
-    for k in range(18):
-        ang = k / 18 * 2 * math.pi + t * 0.15
-        L = 200 + 900 * p
-        d.line([W / 2, H * 0.48, W / 2 + math.cos(ang) * L, H * 0.48 + math.sin(ang) * L], fill=(200, 240, 255, int(40 + 60 * p)), width=6)
-    f = f.filter(ImageFilter.GaussianBlur(0.6))
-    f = fade(f, (0, 0, 0), max(0, 1 - t / 1.2))
-    f = fade(f, (255, 255, 255), max(0, (t - (n / FPS - 1.6)) / 1.6))
-    return f
+    e = 1 - (1 - p) ** 2.2
+    cx, cy = W / 2, H * 0.48
+    f = zoom(bg, 1.32 - 0.3 * e, 0.5, 0.48) * (0.38 + 0.8 * smooth(p * 1.2))
+    breathe = 0.5 + 0.5 * math.sin(t * 2.1)
+    f = screen(f, rays(t, cx, cy, 240 + 700 * e)[..., None] * np.array([0.55, 0.85, 1.0], np.float32) * (0.2 + 0.4 * e))
+    core = radial(cx, cy, 70 + 260 * e + 20 * breathe)[..., None]
+    f = screen(f, core * np.array([0.7, 0.92, 1.0], np.float32) * (0.5 + 0.5 * e))
+    f = screen(f, radial(cx, cy, 18 + 30 * e)[..., None] * (0.6 + 0.4 * breathe))
+    mx, my, mv = motes.at(t, cx, cy, 0.25 * e)
+    f = screen(f, dots(mx, my, mv * (0.4 + 0.6 * e), 1.6)[..., None] * np.array([0.75, 0.95, 1.0], np.float32))
+    f = f * VIGNETTE
+    f = f * smooth(t / 1.4)
+    w = smooth((t - (n / FPS - 1.8)) / 1.8)
+    return f * (1 - w) + w
 
 
 def render(name: str, sec: float, frame_fn, audio: np.ndarray, out: Path):
@@ -221,26 +335,32 @@ def render(name: str, sec: float, frame_fn, audio: np.ndarray, out: Path):
         wav = Path(tmp) / "a.wav"
         write_wav(wav, audio)
         proc = subprocess.Popen(
-            ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS),
-             "-i", "-", "-i", str(wav), "-c:v", "libx264", "-preset", "medium", "-crf", "25", "-pix_fmt", "yuv420p",
-             "-g", str(FPS), "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-shortest", str(out)],
+            [imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
+             "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-", "-i", str(wav), "-c:v", "libx264", "-preset", "slow",
+             "-crf", "20", "-pix_fmt", "yuv420p", "-g", str(FPS), "-c:a", "aac", "-b:a", "128k",
+             "-movflags", "+faststart", "-shortest", str(out)],
             stdin=subprocess.PIPE,
         )
         for i in range(n):
-            proc.stdin.write(frame_fn(i, n).tobytes())
+            frame = np.clip(frame_fn(i, n) * 255 + 0.5, 0, 255).astype(np.uint8)
+            proc.stdin.write(frame.tobytes())
         proc.stdin.close()
         proc.wait()
     print(name, out.stat().st_size // 1024, "KB")
 
 
 def main():
+    import sys
+    which = set(sys.argv[1:]) or {"fall", "awaken"}
     (ROOT / "ending").mkdir(exist_ok=True)
-    heart = cover(ROOT / "bg" / "region_core_heart.jpg")
-    guard = warden(430)
-    render("heart", 9, lambda i, n: scene_heart(i, n, heart, guard), audio_heart(9), ROOT / "region" / "core_heart_intro.mp4")
-    render("fall", 6.5, lambda i, n: scene_fall(i, n, heart, warden(470)), audio_fall(6.5), ROOT / "ending" / "ending_guardian_fall.mp4")
-    wake = cover(ROOT / "bg" / "loading_core_awakening.png")
-    render("awaken", 10, lambda i, n: scene_awaken(i, n, wake), audio_awaken(10), ROOT / "ending" / "ending_core_awaken.mp4")
+    if "fall" in which:
+        arena = cover(ROOT / "bg" / "region_core_heart_arena.webp")
+        guard = Guardian()
+        render("fall", 6.5, lambda i, n: scene_fall(i, n, arena, guard), audio_fall(6.5), ROOT / "ending" / "ending_guardian_fall.mp4")
+    if "awaken" in which:
+        wake = cover(ROOT / "bg" / "loading_core_awakening.webp")
+        motes = Motes(320, 11)
+        render("awaken", 10, lambda i, n: scene_awaken(i, n, wake, motes), audio_awaken(10), ROOT / "ending" / "ending_core_awaken.mp4")
 
 
 if __name__ == "__main__":
