@@ -67,7 +67,5 @@ export function mineGateIndex(rebirthCount: number): number {
 export function mineGate(rebirthCount: number): { still: string; enter: string } {
   const i = mineGateIndex(rebirthCount)
   if (i === 0) return { still: MineArt.entranceGate, enter: MineArt.enterCinematic }
-  // Gates re-rendered with the v19 effects carry a _v2 cinematic; the rest keep their first cut.
-  const v2 = i <= 2 ? "_v2" : ""
-  return { still: `/clicker/mine/gates/gate_${i}.webp`, enter: `/clicker/mine/gates/enter_${i}${v2}.mp4` }
+  return { still: `/clicker/mine/gates/gate_${i}.webp`, enter: `/clicker/mine/gates/enter_${i}_v2.mp4` }
 }
