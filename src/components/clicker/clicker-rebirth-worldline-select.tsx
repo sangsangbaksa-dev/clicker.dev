@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import { CLICKER_ASSETS } from "@/data/clicker/catalog"
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { RebirthPhaseArt } from "@/data/clicker/rebirth-assets"
+import { rebirthVariantFor } from "@/data/clicker/rebirth-motion"
 import type { TranscendenceDef } from "@/application/clicker-ui"
+import { useArmedPress, useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
 import { preloadRebirthArt } from "@/components/clicker/clicker-rebirth-motion"
 import "./clicker-rebirth-worldline-select.css"
 
@@ -16,92 +17,127 @@ type Props = {
   onChoose: (buff: TranscendenceDef) => void
 }
 
-/** A rebirth cannot be undone: the first press arms the row, a second press within this window confirms. */
-const ARM_WINDOW_MS = 3000
+/** What a rebirth wipes and what it carries, shown before the player commits. */
+const RESETS = ["CORE와 누적 CORE", "생산자·업그레이드", "이번 런의 스킬 회로", "지역 재화·장비·물약"]
+const KEEPS = ["걸은 세계선과 그 효과", "환생 보너스(채굴·생산 배율)", "유물·업적"]
 
-const SELECT_CONFIRM_MS = 180
-const SELECT_CONFIRM_REDUCED_MS = 0
+const art = (buff: TranscendenceDef) => RebirthPhaseArt.stampFor(buff.id) ?? buff.assetId
+const tint = (buff: TranscendenceDef) => {
+  const v = rebirthVariantFor(buff.id)
+  return { "--wl-primary": v.primary, "--wl-accent": v.accent } as CSSProperties
+}
 
-/** Every worldline is one row: icon, name, identity, effect, and the rebirth button. */
+/**
+ * Worldline picker: one card per worldline (still-open ones first, walked ones after), and a
+ * confirm sheet that says exactly what the rebirth resets and keeps before it starts.
+ */
 export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, locked = false, onChoose }: Props) {
-  const [selectBgFailed, setSelectBgFailed] = useState(false)
-  const [armedId, setArmedId] = useState<string | null>(null)
-  useEffect(() => {
-    if (!armedId) return
-    const t = window.setTimeout(() => setArmedId(null), ARM_WINDOW_MS)
-    return () => window.clearTimeout(t)
-  }, [armedId])
-  const reducedMotion = useMemo(
-    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-    [],
-  )
+  const [confirming, setConfirming] = useState<TranscendenceDef | null>(null)
+  const owned = useMemo(() => new Set(ownedIds), [ownedIds])
+  const ordered = useMemo(() => [...buffs].sort((a, b) => Number(owned.has(a.id)) - Number(owned.has(b.id))), [buffs, owned])
+
   // Warm every worldline's rebirth plates while the player is still choosing.
   useEffect(() => {
     if (locked) return
     for (const b of buffs) preloadRebirthArt(b.id)
   }, [buffs, locked])
-  const owned = new Set(ownedIds)
-
-  const choose = (buff: TranscendenceDef) => {
-    if (armedId !== buff.id) {
-      setArmedId(buff.id)
-      return
-    }
-    setArmedId(null)
-    const delay = reducedMotion ? SELECT_CONFIRM_REDUCED_MS : SELECT_CONFIRM_MS
-    if (delay <= 0) {
-      onChoose(buff)
-      return
-    }
-    window.setTimeout(() => onChoose(buff), delay)
-  }
 
   return (
-    <div className={`clicker-wl-select${reducedMotion ? " is-reduced" : ""}${locked ? " is-locked" : ""}`}>
-      <img
-        src={selectBgFailed ? CLICKER_ASSETS.bgTranscendence : RebirthPhaseArt.worldlineSelectBg}
-        alt=""
-        className={`clicker-wl-select-room-bg${selectBgFailed ? "" : " clicker-wl-select-room-bg--hq"}`}
-        aria-hidden
-        onError={() => setSelectBgFailed(true)}
-      />
-      <div className="clicker-wl-select-extra">
-        {buffs.map((buff) => {
-            const walked = owned.has(buff.id)
-            return (
-              <article
-                key={buff.id}
-                className={`clicker-card clicker-wl-extra-card${(popIcons[buff.id] ?? 0) > 0 ? " is-pop-icon" : ""}${walked ? " is-walked" : ""}`}
-              >
-                <img src={RebirthPhaseArt.stampFor(buff.id) ?? buff.assetId} alt="" />
-                <div>
-                  <strong>
-                    {buff.name}
-                    {walked ? <em className="clicker-wl-walked">완료</em> : null}
-                  </strong>
-                  <div style={{ color: "var(--text-2)", fontSize: 12 }}>{buff.identity}</div>
-                  <div style={{ fontSize: 12 }}>{buff.description}</div>
-                </div>
+    <div className={`clicker-wl-select${locked ? " is-locked" : ""}`}>
+      <ul className="clicker-wl-list">
+        {ordered.map((buff) => {
+          const walked = owned.has(buff.id)
+          return (
+            <li
+              key={buff.id}
+              className={`clicker-wl-card${walked ? " is-walked" : ""}${(popIcons[buff.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
+              style={tint(buff)}
+            >
+              <img className="clicker-wl-stamp" src={art(buff)} alt="" />
+              <div className="clicker-wl-copy">
+                <strong>{buff.name}</strong>
+                <span className="clicker-wl-identity">{buff.identity}</span>
+                <p>{buff.description}</p>
+              </div>
+              {walked ? (
+                <span className="clicker-wl-chip">완료</span>
+              ) : (
                 <button
                   type="button"
-                  className={`clicker-primary${armedId === buff.id ? " is-armed" : ""}`}
-                  disabled={walked || locked}
-                  aria-label={
-                    walked
-                      ? `${buff.name} · 이미 걸은 세계선`
-                      : locked
-                        ? `${buff.name} · 환생 목표를 채우면 선택 가능`
-                        : armedId === buff.id
-                          ? `${buff.name} · 다시 눌러 환생 확정`
-                          : `${buff.name} · 환생하기`
-                  }
-                  onClick={() => choose(buff)}
+                  className="clicker-primary clicker-wl-go"
+                  disabled={locked}
+                  aria-label={locked ? `${buff.name} · 환생 목표를 채우면 선택 가능` : `${buff.name} 세계선으로 환생`}
+                  onClick={() => setConfirming(buff)}
                 >
-                  {walked ? "완료" : locked ? "잠김" : armedId === buff.id ? "정말 환생 · 다시 누르기" : "환생하기"}
+                  {locked ? "잠김" : "환생"}
                 </button>
-              </article>
-            )
+              )}
+            </li>
+          )
         })}
+      </ul>
+      {confirming ? (
+        <RebirthConfirm
+          buff={confirming}
+          onCancel={() => setConfirming(null)}
+          onConfirm={() => {
+            const chosen = confirming
+            setConfirming(null)
+            onChoose(chosen)
+          }}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function RebirthConfirm({ buff, onCancel, onConfirm }: { buff: TranscendenceDef; onCancel: () => void; onConfirm: () => void }) {
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  useClickerDialogFocus(rootRef)
+  useClickerEscape(true, onCancel)
+  // The confirm button appears where the card's button was tapped: ignore an accidental double tap.
+  const armedPress = useArmedPress(buff.id)
+  return (
+    <div className="clicker-wl-confirm-backdrop" onClick={onCancel}>
+      <div
+        ref={rootRef}
+        className="clicker-wl-confirm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="clicker-wl-confirm-title"
+        style={tint(buff)}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img className="clicker-wl-confirm-stamp" src={art(buff)} alt="" />
+        <p className="clicker-wl-confirm-kicker">WORLD LINE · 환생</p>
+        <h3 id="clicker-wl-confirm-title">{buff.name}</h3>
+        <p className="clicker-wl-confirm-effect">{buff.description}</p>
+        <div className="clicker-wl-confirm-lists">
+          <div>
+            <h4>초기화</h4>
+            <ul>
+              {RESETS.map((r) => (
+                <li key={r}>{r}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="is-keep">
+            <h4>유지</h4>
+            <ul>
+              {KEEPS.map((k) => (
+                <li key={k}>{k}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <div className="clicker-wl-confirm-actions">
+          <button type="button" className="clicker-ghost" onClick={onCancel}>
+            취소 · Esc
+          </button>
+          <button type="button" className="clicker-primary" autoFocus onClick={armedPress(onConfirm)}>
+            환생 시작
+          </button>
+        </div>
       </div>
     </div>
   )

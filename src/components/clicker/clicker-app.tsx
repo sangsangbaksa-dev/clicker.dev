@@ -1000,7 +1000,7 @@ export function ClickerApp() {
       ...(relicsOpen ? ([["relics", "RELICS", "유물"]] as const) : []),
       ["world", "WORLD", "지역"],
       ["achievements", "RECORDS", "업적"],
-      ["transcendence", "REBIRTH", "초월"],
+      ["transcendence", "REBIRTH", "환생"],
     ] as const
   )
   const automationBuff =
@@ -1149,7 +1149,7 @@ export function ClickerApp() {
           <button
             type="button"
             className={`clicker-metric clicker-metric-action${tab === "transcendence" ? " is-active" : ""}`}
-            aria-label={`초월 진행 ${Math.round(rebirthRatio * 100)}퍼센트 — TRANSCENDENCE 열기`}
+            aria-label={`환생 진행 ${Math.round(rebirthRatio * 100)}퍼센트 — 환생 화면 열기`}
             onClick={() => selectTab("transcendence")}
           >
             <span>TRANSCENDENCE</span>

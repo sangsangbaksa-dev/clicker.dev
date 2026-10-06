@@ -106,7 +106,7 @@ if (process.env.SCALE) {
 const TARGETS = process.env.CALIBRATE ? process.env.CALIBRATE.split(",").map(Number) : null
 // The catalog goal table stays in place (worlds open at a share of it); rebirth is held back until
 // each target time instead, then that worldline's goal is set to what was earned.
-if (TARGETS) config.rebirthGoalScale = [...(config.rebirthGoalScale ?? [])]
+if (TARGETS) config.rebirthGoalStretch = []
 const calibrated: number[] = []
 let seed = 11
 let lastDump = -1
@@ -391,9 +391,10 @@ while (elapsed() < MAX_HOURS * 3600) {
     const k = save.metaState.rebirthCount
     if (TARGETS[k] > 0 && elapsed() - runStart >= TARGETS[k] * 60) {
       // Set this worldline's goal to exactly what was earned by its target time.
-      const base = config.rebirthEnergy * config.rebirthGrowth ** k
+      // Only the rebirth stretch moves: the goal table (and so every world's opening) stays put.
+      const base = config.rebirthEnergy * config.rebirthGrowth ** k * (config.rebirthGoalScale?.[k] ?? 1)
       calibrated[k] = save.runState.lifetimeCoreEnergy / base
-      config.rebirthGoalScale![k] = calibrated[k]
+      config.rebirthGoalStretch![k] = calibrated[k]
       console.log(`  calibrated[${k}] = ${calibrated[k].toPrecision(6)}`)
     }
   }
@@ -427,6 +428,6 @@ while (elapsed() < MAX_HOURS * 3600) {
   }
 }
 
-if (TARGETS) console.log(`REBIRTH_GOAL_SCALE = [${config.rebirthGoalScale!.slice(0, TARGETS.length).map((v) => Number(v.toPrecision(4))).join(", ")}]`)
+if (TARGETS) console.log(`rebirthGoalStretch: [${config.rebirthGoalStretch!.slice(0, TARGETS.length).map((v) => Number(Math.max(1, v).toPrecision(4))).join(", ")}]`)
 console.log(`clicks/s ${CLICKS_PER_SEC} · mine sessions ${mineCycles}`)
 console.log(`total ${fmt(elapsed())}${heartReached ? " · Core Heart open" : " · NOT FINISHED"}`)

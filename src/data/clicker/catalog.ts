@@ -47,9 +47,12 @@ const baseConfig: GameConfig = {
   rebirthGrowth: 120,
   // ×2 per worldline (was ×5): with rebirth circuits from 200M, later runs must still speed up.
   priceGrowth: 2,
-  // Per-worldline goal correction (scripts/playtime-sim.ts CALIBRATE=120,50,30,20,15,10,30,90): each
-  // worldline ends near its target minutes; the 9th entry anchors the Core Heart threshold.
+  // Per-worldline goal correction: worlds open at a share of this goal; the 9th entry anchors the
+  // Core Heart threshold.
   rebirthGoalScale: [85000, 720, 6.151, 0.08943, 0.002621, 0.0000229, 0.0008351, 0.004, 0.000035],
+  // Rebirth-only stretch on top (scripts/playtime-sim.ts CALIBRATE=120,50,30,20,15,10,30,90): each
+  // worldline ends near its target minutes while its worlds still open on the same schedule.
+  rebirthGoalStretch: [80.88, 1, 1, 6.194, 2.637, 2.371, 2.679, 7],
   // Bought multipliers (upgrades + circuits) past ×100 count as (excess)^0.35, so purchases keep
   // paying off all worldline long instead of snowballing into a buy-everything burst.
   stackSoftCap: 100,

@@ -529,7 +529,7 @@ export function scaledCost(run: RunState, cost: number): number {
 
 /** Lifetime CORE the current worldline must reach before it can fold. */
 export function rebirthRequirement(meta: MetaState, config: GameConfig): number {
-  return worldlineGoal(config, meta.rebirthCount)
+  return worldlineGoal(config, meta.rebirthCount) * (config.rebirthGoalStretch?.[meta.rebirthCount] ?? 1)
 }
 
 function startingEnergy(meta: MetaState, config: GameConfig): number {

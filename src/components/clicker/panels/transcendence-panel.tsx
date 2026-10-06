@@ -20,7 +20,7 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
     <div className="clicker-transcendence">
       <header className="clicker-transcendence-head">
         <div className="clicker-transcendence-head-row">
-          <p className="clicker-transcendence-kicker">WORLD LINE · 초월</p>
+          <p className="clicker-transcendence-kicker">WORLD LINE · 환생</p>
           <button
             type="button"
             className="clicker-ghost clicker-transcendence-back"
@@ -71,8 +71,8 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
         <>
           <div className="clicker-transcendence-locked" role="status">
             <p>
-              환생까지 <strong>{formatNumber(Math.max(0, requirement - run.lifetimeCoreEnergy))} CORE</strong> 남았습니다.
-              생산자와 업그레이드로 누적 CORE를 늘리세요. 아래 세계선 중 하나를 골라 환생하게 됩니다.
+              환생까지 누적 CORE <strong>{formatNumber(Math.max(0, requirement - run.lifetimeCoreEnergy))}</strong> 남았습니다.
+              목표를 채우면 아래 세계선 중 하나를 골라 환생합니다.
             </p>
           </div>
           <ClickerRebirthWorldlineSelect

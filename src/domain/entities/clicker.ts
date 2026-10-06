@@ -584,6 +584,12 @@ export type GameConfig = {
    * worldline can be paced to its own length.
    */
   rebirthGoalScale?: number[]
+  /**
+   * Extra factor on the rebirth requirement only (index = rebirths so far; missing = 1). Worlds
+   * open at a share of the scaled goal above, so this lengthens a worldline after its last world
+   * has opened without pushing the worlds themselves later.
+   */
+  rebirthGoalStretch?: number[]
   /** Each rebirth multiplies every CORE price (producers, upgrades, circuits, shop) by this. */
   priceGrowth: number
   /**

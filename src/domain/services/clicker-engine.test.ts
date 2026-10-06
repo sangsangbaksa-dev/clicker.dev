@@ -58,7 +58,7 @@ const config = clickerConfig
 const worldCore = (id: string) =>
   regionUnlockThreshold(createInitialRun(0, createInitialMeta(), config), config, config.regions.find((r) => r.id === id)!)
 /** Lifetime CORE that ends the first worldline (goal table applied). */
-const firstGoal = worldlineGoal(config, 0)
+const firstGoal = rebirthRequirement(createInitialMeta(), config)
 const rng = () => 0.99
 const critRng = () => 0.0
 
@@ -279,8 +279,13 @@ test("rebirth gate starts at rebirthEnergy lifetime CORE and grows each worldlin
   run = grantAdminEnergy(run, firstGoal * 0.001)
   assert.equal(canRebirth(run, meta, config), true)
   const later = { ...meta, rebirthCount: 1 }
-  assert.equal(canRebirth(run, later, config), false)
-  assert.equal(rebirthRequirement(later, config), worldlineGoal(config, 1))
+  // A fresh worldline starts from zero lifetime CORE and needs its own goal.
+  const fresh = createInitialRun(now, later, config)
+  assert.equal(canRebirth(grantAdminEnergy(fresh, rebirthRequirement(later, config) * 0.999), later, config), false)
+  assert.equal(canRebirth(grantAdminEnergy(fresh, rebirthRequirement(later, config)), later, config), true)
+  assert.equal(rebirthRequirement(later, config), worldlineGoal(config, 1) * (config.rebirthGoalStretch?.[1] ?? 1))
+  // The stretch lengthens a worldline without moving its worlds: the goal is never below the table.
+  assert.ok(firstGoal >= worldlineGoal(config, 0))
   // Every worldline buff walked once: no more rebirths, Core Heart instead.
   const done = { ...meta, transcendenceIds: config.transcendence.map((t) => t.id) }
   assert.equal(canRebirth(grantAdminEnergy(run, 1e30), done, config), false)

@@ -2593,16 +2593,9 @@
 }
 
 /* Rebirth row armed by the first press: a warm, pulsing confirm state. */
-[data-clicker] .clicker-wl-extra-card .clicker-primary.is-armed {
-  background: linear-gradient(180deg, #ffb35c, #e0602e);
-  border-color: #ffd2a0;
-  color: #1a0b02;
-  animation: clicker-wl-armed 0.9s ease-in-out infinite;
-}
 @keyframes clicker-wl-armed {
   50% { box-shadow: 0 0 18px rgb(255 160 80 / 0.75); }
 }
-[data-clicker] .clicker-wl-select.is-locked .clicker-wl-extra-card:not(.is-walked) { opacity: 0.72; }
 [data-clicker] .clicker-transcendence-locked strong { color: #ffe08a; }
 
 /* English UI chrome in a sleek display face (Rajdhani): menu, tab strip, HUD captions,

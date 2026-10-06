@@ -19,7 +19,7 @@ export function buildScreenTabs(opts: { showRebirth: boolean }): ScreenTabDef[] 
     { id: "shop", labelEn: "Shop", labelKo: "상점" },
   ]
   if (opts.showRebirth) {
-    tabs.push({ id: "rebirth", labelEn: "Rebirth", labelKo: "초월" })
+    tabs.push({ id: "rebirth", labelEn: "Rebirth", labelKo: "환생" })
   }
   return tabs
 }
