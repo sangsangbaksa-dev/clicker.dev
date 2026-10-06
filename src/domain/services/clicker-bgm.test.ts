@@ -80,3 +80,25 @@ test("resolveBgmScene picks mine, chamber, ending, silent, and world themes", ()
   assert.equal(resolveBgmScene({ ...base, bootLoading: true }), "silent")
   assert.equal(resolveBgmScene({ ...base, bossFight: true }), "storm")
 })
+
+test("each rebirth gets its own hub theme and mine bed, cycling every eight", () => {
+  const base = {
+    enteringMine: false,
+    regionIntro: null,
+    endingPhase: null,
+    pendingRebirth: false,
+    endingOpen: false,
+    playSurface: "hub" as const,
+    currentRegionId: "core_chamber",
+  }
+  assert.equal(resolveBgmScene(base), "hub")
+  assert.equal(resolveBgmScene({ ...base, rebirthCount: 0 }), "hub")
+  assert.equal(resolveBgmScene({ ...base, rebirthCount: 3 }), "hub_r3")
+  assert.equal(resolveBgmScene({ ...base, rebirthCount: 3, playSurface: "mine" }), "mine_r3")
+  assert.equal(resolveBgmScene({ ...base, rebirthCount: 8 }), "hub")
+  assert.equal(resolveBgmScene({ ...base, rebirthCount: 15, playSurface: "mine" }), "mine_r7")
+  // World themes, rebirth and the ending keep their own score.
+  assert.equal(resolveBgmScene({ ...base, rebirthCount: 3, currentRegionId: "storm_spire" }), "storm")
+  assert.equal(resolveBgmScene({ ...base, rebirthCount: 3, pendingRebirth: true }), "chamber")
+  assert.equal(resolveBgmScene({ ...base, rebirthCount: 3, endingOpen: true }), "ending")
+})

@@ -8,8 +8,9 @@ light spills through the widening gap. Only when the doorway is mostly open does
 the opening and the last frame is the mine plate (mine_interior_mineral_ore_v2.webp) exactly as the
 timed mine shows it, with the same crystal the player strikes. Audio: the first seconds of v12's
 soundtrack (door unlock + slide + whoosh), 10 s like the original door walk; steady camera.
+Each rebirth has its own gate (see GATES); the same cinematic is rendered for every one.
 
-    python3 scripts/clicker-mine-enter.py
+    python3 scripts/clicker-mine-enter.py [gate ...]
 """
 from __future__ import annotations
 
@@ -37,6 +38,35 @@ K = W / SRC_W  # source px → output px
 DOOR = [(535, 175), (745, 175), (835, 310), (835, 440), (750, 580), (530, 580), (445, 440), (445, 310)]
 SEAM_X = 640
 DOOR_C = (640, 377)
+
+# One gate per rebirth (index = rebirth count mod 8). Gate 0 is the original hub gate; the
+# others are Canva art (public/clicker/mine/gates/gate_N.webp) with their door traced by hand
+# in 1280x720 source px. Each renders its own entry cinematic onto the same mine plate.
+GATES: dict[int, tuple[Path, list[tuple[int, int]], Path]] = {
+    0: (GATE, DOOR, OUT),
+    1: (MINE / "gates" / "gate_1.webp", [(530, 222), (730, 222), (800, 295), (800, 455), (735, 525), (525, 525), (458, 455), (458, 295)], MINE / "gates" / "enter_1.mp4"),
+    2: (MINE / "gates" / "gate_2.webp", [(510, 135), (770, 135), (850, 215), (850, 520), (760, 612), (520, 612), (430, 520), (430, 215)], MINE / "gates" / "enter_2.mp4"),
+    3: (MINE / "gates" / "gate_3.webp", [(525, 78), (755, 78), (870, 190), (870, 470), (775, 575), (505, 575), (410, 470), (410, 190)], MINE / "gates" / "enter_3.mp4"),
+    4: (MINE / "gates" / "gate_4.webp", [(530, 120), (750, 120), (825, 200), (825, 450), (740, 530), (540, 530), (455, 450), (455, 200)], MINE / "gates" / "enter_4.mp4"),
+    5: (MINE / "gates" / "gate_5.webp", [(535, 108), (745, 108), (850, 215), (850, 480), (750, 585), (530, 585), (430, 480), (430, 215)], MINE / "gates" / "enter_5.mp4"),
+    6: (MINE / "gates" / "gate_6.webp", [(535, 140), (745, 140), (825, 215), (825, 455), (745, 525), (535, 525), (455, 455), (455, 215)], MINE / "gates" / "enter_6.mp4"),
+    7: (MINE / "gates" / "gate_7.webp", [(530, 140), (750, 140), (850, 250), (855, 540), (425, 540), (430, 250)], MINE / "gates" / "enter_7.mp4"),
+}
+
+
+def use_gate(idx: int) -> None:
+    """Point the renderer at gate `idx`: its plate, door outline (seam at its centre) and output."""
+    global GATE, DOOR, OUT, SEAM_X, DOOR_C, DOOR_TOP, DOOR_BOT, DOOR_L, DOOR_R, GATE_ZOOM_END
+    GATE, DOOR, OUT = GATES[idx]
+    xs, ys = [x for x, _ in DOOR], [y for _, y in DOOR]
+    DOOR_L, DOOR_R, DOOR_TOP, DOOR_BOT = min(xs), max(xs), min(ys), max(ys)
+    SEAM_X = 640
+    DOOR_C = (640, (DOOR_TOP + DOOR_BOT) / 2)
+    # The push ends with the doorway filling the frame whatever the door's size.
+    GATE_ZOOM_END = 3.8 * 390 / (DOOR_R - DOOR_L)
+
+
+DOOR_TOP, DOOR_BOT, DOOR_L, DOOR_R = 175, 580, 445, 835
 
 # Timeline (s). No frozen tail: the push decelerates right into the last frame.
 HOLD, UNLOCK, OPEN = 0.5, 1.1, 2.9
@@ -154,15 +184,21 @@ def main() -> None:
     left_mask = door_mask(side="left")
     right_mask = door_mask(side="right")
     g = np.asarray(gate).astype(np.int16)
-    cyan = ((g[:, :, 1] > 110) & (g[:, :, 2] > 110) & (g[:, :, 0] < 90)).astype(np.float32)
+    # The gate's own lights: bright, saturated pixels (cyan trim, amber runes, red lamps, ...).
+    gf = g.astype(np.float32)
+    mx, mn = gf.max(axis=2), gf.min(axis=2)
+    cyan = ((mx > 120) & ((mx - mn) / np.maximum(mx, 1) > 0.45)).astype(np.float32)
     cyan_glow = np.asarray(Image.fromarray((cyan * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(10))).astype(np.float32) / 255
+    # Light colour (0..1 per channel, brightest channel = 1) for flare, seam, bevel and spill.
+    tint = gf[cyan > 0].mean(axis=0) if cyan.sum() > 50 else np.array([90.0, 210.0, 230.0])
+    tint = tint / tint.max()
     # The gate with the door panel removed (frame + rock), and the two panel halves on their own.
     frame_only = gate.copy()
     left_panel = Image.new("RGBA", (W, H))
     left_panel.paste(gate, (0, 0), left_mask)
     right_panel = Image.new("RGBA", (W, H))
     right_panel.paste(gate, (0, 0), right_mask)
-    door_w = (835 - 445) * K
+    door_w = (DOOR_R - DOOR_L) * K
 
     n = int(round(DURATION * FPS))
     dcx, dcy = DOOR_C[0] * K, DOOR_C[1] * K
@@ -201,7 +237,7 @@ def main() -> None:
                 ba = np.asarray(base).astype(np.float32)
                 yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
                 glow = np.exp(-(((xx - tx) / (W * 0.18)) ** 2 + ((yy - ty) / (H * 0.32)) ** 2))[..., None]
-                ba += glow * np.array([90, 210, 230], np.float32) * 0.28 * spill
+                ba += glow * (0.35 + 0.65 * tint) * 230 * 0.28 * spill
                 base = Image.fromarray(np.clip(ba, 0, 255).astype(np.uint8))
             # Panels slide apart inside the door opening (they disappear behind the frame).
             panels = Image.new("RGBA", (W, H))
@@ -213,9 +249,9 @@ def main() -> None:
                 pa = np.asarray(panels).astype(np.float32)
                 x_l, x_r = int(SEAM_X * K - slide), int(SEAM_X * K + slide)
                 bevel = int(10 * K)
-                y_top, y_bot = int(175 * K), int(580 * K)
+                y_top, y_bot = int(DOOR_TOP * K), int(DOOR_BOT * K)
                 ramp = np.linspace(0, 1, bevel, dtype=np.float32)[None, :, None]
-                lit = np.array([90, 200, 210], np.float32)
+                lit = (0.4 + 0.6 * tint) * 210
                 if x_l - bevel > 0:
                     pa[y_top:y_bot, x_l - bevel : x_l, :3] += ramp * lit * (0.4 + 0.6 * (1 - open_t))
                 if x_r + bevel < W:
@@ -236,19 +272,17 @@ def main() -> None:
                 u *= 0.55 + 0.45 * abs(math.sin(math.pi * 2 * (t - T_UNLOCK) / UNLOCK))
             if u > 0:
                 flare = cyan_glow * (70 * u) + cyan * (60 * u)
-                arr[:, :, 0] += flare * 0.35
-                arr[:, :, 1] += flare
-                arr[:, :, 2] += flare
+                for ch in range(3):
+                    arr[:, :, ch] += flare * tint[ch]
                 if t < T_OPEN + 0.25:
                     seam = np.zeros((H, W), np.float32)
                     x0 = int(SEAM_X * K)
-                    y_top, y_bot = int(175 * K), int(580 * K)
+                    y_top, y_bot = int(DOOR_TOP * K), int(DOOR_BOT * K)
                     seam[y_top:y_bot, x0 - 2 : x0 + 2] = 1
                     seam = np.asarray(Image.fromarray((seam * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(6))).astype(np.float32) / 255
                     s_a = u * (1 - ease((t - T_OPEN) / 0.25))
-                    arr[:, :, 1] += seam * 255 * s_a
-                    arr[:, :, 2] += seam * 255 * s_a
-                    arr[:, :, 0] += seam * 160 * s_a
+                    for ch in range(3):
+                        arr[:, :, ch] += seam * 255 * s_a * (0.55 + 0.45 * tint[ch])
             gate_layer = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), "RGBA")
             gate_view = zoom_about(gate_layer, z, dcx, dcy, tx, ty)
             # Fade the gate out once the doorway fills the screen.
@@ -276,7 +310,19 @@ def main() -> None:
     print(OUT.name, f"{OUT.stat().st_size // 1024} KB", f"{DURATION:.1f}s")
 
 
-FFMPEG = sys.argv[1] if len(sys.argv) > 1 else "ffmpeg"
+def _ffmpeg() -> str:
+    try:
+        import imageio_ffmpeg
+
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except ImportError:
+        return "ffmpeg"
+
+
+FFMPEG = _ffmpeg()
 
 if __name__ == "__main__":
-    main()
+    # python3 scripts/clicker-mine-enter.py [gate ...]   (default: every gate, 0..7)
+    for idx in [int(a) for a in sys.argv[1:]] or sorted(GATES):
+        use_gate(idx)
+        main()

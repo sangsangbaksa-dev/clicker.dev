@@ -49,3 +49,22 @@ export const MineArt = {
   feverLights: "/clicker/mine/mine_fever_lights.webp",
   coreOre: "/clicker/mine/mine_core_ore_click_v1.webp",
 } as const
+
+/** Gates in the rebirth cycle: gate 0 is the original hub gate, 1–7 the Canva gates. */
+export const MINE_GATE_COUNT = 8
+
+/** Which gate a run shows: one per rebirth, cycling after eight. */
+export function mineGateIndex(rebirthCount: number): number {
+  const n = Math.floor(Number.isFinite(rebirthCount) ? rebirthCount : 0)
+  return ((n % MINE_GATE_COUNT) + MINE_GATE_COUNT) % MINE_GATE_COUNT
+}
+
+/**
+ * The hub gate still and its entry cinematic for a run. Every gate's cinematic is rendered by
+ * scripts/clicker-mine-enter.py from that gate onto the same mine plate, so both cuts stay seamless.
+ */
+export function mineGate(rebirthCount: number): { still: string; enter: string } {
+  const i = mineGateIndex(rebirthCount)
+  if (i === 0) return { still: MineArt.entranceGate, enter: MineArt.enterCinematic }
+  return { still: `/clicker/mine/gates/gate_${i}.webp`, enter: `/clicker/mine/gates/enter_${i}.mp4` }
+}

@@ -49,7 +49,7 @@ import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine, type MineFxTier } from "@/components/clicker/clicker-mine"
 import { ClickerCinematic, preloadCinematic } from "@/components/clicker/clicker-cinematic"
 import { ClickerRegionChallenge } from "@/components/clicker/clicker-region-challenge"
-import { MineArt } from "@/data/clicker/mine-assets"
+import { MineArt, mineGate } from "@/data/clicker/mine-assets"
 import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
 import { ClickerOtherTab } from "@/components/clicker/clicker-other-tab"
 import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motion"
@@ -383,6 +383,7 @@ export function ClickerApp() {
       playSurface: game.save?.settings.playSurface ?? "hub",
       currentRegionId: game.save?.runState.currentRegionId,
       bossFight: Boolean(game.save?.runState.boss),
+      rebirthCount: game.save?.metaState.rebirthCount,
     }),
     muted: bgm.muted,
     volume: bgm.volume,
@@ -767,12 +768,13 @@ export function ClickerApp() {
 
   // Warm the videos the player is about to see: mine entry at home, intros of unlocked unvisited regions.
   const atHomeNow = Boolean(game.currentRegion?.isHome)
+  const rebirthCountNow = game.save?.metaState.rebirthCount ?? 0
   const engageClip = game.config.regions.find((r) => r.id === game.save?.runState.currentRegionId)?.intro?.engageVideo
   const visited = game.save?.metaState.visitedRegionIds
   const unlockedKey = game.regions.filter((r) => r.unlocked).map((r) => r.id).join(",")
   useEffect(() => {
     const idle = window.setTimeout(() => {
-      if (atHomeNow) preloadCinematic(MineArt.enterCinematic)
+      if (atHomeNow) preloadCinematic(mineGate(rebirthCountNow).enter)
       if (engageClip) preloadCinematic(engageClip)
       for (const id of unlockedKey.split(",")) {
         const intro = game.config.regions.find((r) => r.id === id)?.intro
@@ -780,7 +782,7 @@ export function ClickerApp() {
       }
     }, 1500)
     return () => window.clearTimeout(idle)
-  }, [atHomeNow, engageClip, unlockedKey, visited, game.config.regions])
+  }, [atHomeNow, rebirthCountNow, engageClip, unlockedKey, visited, game.config.regions])
 
   const bossDefeated = Boolean(game.save?.metaState.bossDefeated)
   const prevBossDefeated = useRef<boolean | null>(null)
@@ -962,7 +964,7 @@ export function ClickerApp() {
   const stageBg = inMine
     ? CLICKER_ASSETS.bgMine
     : game.currentRegion?.isHome
-      ? CLICKER_ASSETS.bgMineEntrance
+      ? mineGate(game.save.metaState.rebirthCount).still
       : worldStill && !worldEngaged
         ? worldStill
         : (game.currentRegion?.bgAssetId ?? CLICKER_ASSETS.bgChamber)
@@ -1915,8 +1917,8 @@ export function ClickerApp() {
 
       {enteringMine ? (
         <ClickerCinematic
-          src={MineArt.enterCinematic}
-          poster={MineArt.entranceGate}
+          src={mineGate(game.save.metaState.rebirthCount).enter}
+          poster={mineGate(game.save.metaState.rebirthCount).still}
           label="광산 입장 중"
           muted={game.save.settings.musicMuted}
           volume={game.save.settings.musicVolume}

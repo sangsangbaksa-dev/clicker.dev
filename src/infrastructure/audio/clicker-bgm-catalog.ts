@@ -17,6 +17,21 @@ export const CLICKER_BGM_URL: Record<BgmTrackId, string> = {
   heart: "/clicker/audio/bgm_world_heart.mp3",
   // Ending story: D major anthem (scripts/clicker-bgm.py `ending`).
   ending: "/clicker/audio/bgm_ending.mp3",
+  // One hub theme + mine bed per rebirth (scripts/clicker-bgm.py HUB_VARIANTS / mine_of).
+  hub_r1: "/clicker/audio/bgm_hub_r1.mp3",
+  mine_r1: "/clicker/audio/bgm_mine_r1.mp3",
+  hub_r2: "/clicker/audio/bgm_hub_r2.mp3",
+  mine_r2: "/clicker/audio/bgm_mine_r2.mp3",
+  hub_r3: "/clicker/audio/bgm_hub_r3.mp3",
+  mine_r3: "/clicker/audio/bgm_mine_r3.mp3",
+  hub_r4: "/clicker/audio/bgm_hub_r4.mp3",
+  mine_r4: "/clicker/audio/bgm_mine_r4.mp3",
+  hub_r5: "/clicker/audio/bgm_hub_r5.mp3",
+  mine_r5: "/clicker/audio/bgm_mine_r5.mp3",
+  hub_r6: "/clicker/audio/bgm_hub_r6.mp3",
+  mine_r6: "/clicker/audio/bgm_mine_r6.mp3",
+  hub_r7: "/clicker/audio/bgm_hub_r7.mp3",
+  mine_r7: "/clicker/audio/bgm_mine_r7.mp3",
 }
 
 /** Default loop=true; one-shot beds (rebirth intro) opt out. */

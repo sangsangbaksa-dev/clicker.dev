@@ -15,6 +15,11 @@ export type BgmTrackId =
   | "fault"
   | "heart"
   | "ending"
+  | `hub_r${RebirthVariant}`
+  | `mine_r${RebirthVariant}`
+
+/** Rebirths 1–7 of each 8-rebirth cycle get their own hub theme and mine bed (0 keeps the original). */
+export type RebirthVariant = 1 | 2 | 3 | 4 | 5 | 6 | 7
 
 /** `rebirth` plays HQ intro once, then crossfades to `rebirthHq` loop. */
 export type BgmScene = BgmTrackId | "silent" | "rebirth"
@@ -95,6 +100,16 @@ export type BgmOverlayState = {
   currentRegionId: string | undefined
   /** Core guardian (or other region boss) fight in progress. */
   bossFight?: boolean
+  /** Completed rebirths: picks this run's hub theme and mine bed. */
+  rebirthCount?: number
+}
+
+/** The hub/mine track for a run: rebirth n plays variant n mod 8 (0 = the original score). */
+export function rebirthVariantTrack(track: BgmTrackId, rebirthCount: number | undefined): BgmTrackId {
+  if (track !== "hub" && track !== "mine") return track
+  const n = Math.floor(rebirthCount ?? 0)
+  const i = ((n % 8) + 8) % 8
+  return i === 0 ? track : (`${track}_r${i as RebirthVariant}` as const)
 }
 
 /**
@@ -121,6 +136,6 @@ export function resolveBgmScene(overlay: BgmOverlayState): BgmScene {
   if (overlay.bootLoading) return "silent"
   if (overlay.endingOpen) return "ending"
   if (overlay.pendingRebirth) return "chamber"
-  if (overlay.playSurface === "mine") return "mine"
-  return worldBgmTrack(overlay.currentRegionId)
+  if (overlay.playSurface === "mine") return rebirthVariantTrack("mine", overlay.rebirthCount)
+  return rebirthVariantTrack(worldBgmTrack(overlay.currentRegionId), overlay.rebirthCount)
 }
