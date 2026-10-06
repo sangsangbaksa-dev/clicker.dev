@@ -873,9 +873,10 @@ export function useClicker() {
       const result = clickerBuyRelic(saveRef.current, relicId)
       if (!result.ok) return refuse(result.error)
       commitAndSave(result.value)
-      playSfx("upgrade")
       const relic = clickerGameConfig.relics.find((r) => r.id === relicId)
-      flash(`유물 강화 · ${relic?.name ?? relicId} Lv.${result.value.metaState.relicLevels[relicId] ?? 0}`)
+      const level = result.value.metaState.relicLevels[relicId] ?? 0
+      playSfx(relic && level === relic.maxLevel ? "relicAwaken" : "upgrade")
+      flash(`${level === relic?.maxLevel ? "유물 최종 각성" : "유물 강화"} · ${relic?.name ?? relicId} Lv.${level}`)
     },
     [refuse, flash, commitAndSave],
   )
