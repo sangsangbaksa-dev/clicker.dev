@@ -83,7 +83,7 @@ async function expireRoomTasksIfNeeded(room: Room): Promise<Room> {
 }
 
 async function loadRoom(normalized: string, fresh = false): Promise<Room | null> {
-  const { dir, unreliable, confirmedEmpty } = await loadRoomDirectory({ fresh })
+  const { dir } = await loadRoomDirectory({ fresh })
   const room = dir.rooms[normalized] ?? null
 
   if (!room) {
@@ -123,7 +123,8 @@ function normalizeStoredRoom(raw: Room & { resources?: unknown[] }): Room {
       createdAt: comment.createdAt,
     })),
   }))
-  const { resources: _resources, ...rest } = raw
+  const { resources: _unusedResources, ...rest } = raw
+  void _unusedResources
   const subjectNotes = normalizeSubjectNotes(rest.subjectNotes, rest.notes)
   return {
     ...rest,

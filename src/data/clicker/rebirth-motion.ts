@@ -148,7 +148,7 @@ export function rebirthPhaseAt(
   return { phase: hit.id, phaseT, totalT }
 }
 
-/** Audio cue placeholder names — no assets in this pack */
+/** Rebirth ceremony SFX keys — HQ mp3 in `public/clicker/audio/` when available (see `playRebirthCue`). */
 export const REBIRTH_AUDIO_CUES = {
   confirm: "sfx_rebirth_confirm_click",
   collapse: "sfx_rebirth_collapse_whoosh",

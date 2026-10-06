@@ -732,11 +732,50 @@ const STAMP_ROOT: Record<string, number> = {
   adaptive_architect: 466,
 }
 
-/** Rebirth beat cues, keyed by the placeholder names in `REBIRTH_AUDIO_CUES`. */
-export function playRebirthCue(name: string) {
-  if (muted) return
+const REBIRTH_CUE_SAMPLE: Record<string, string> = {
+  sfx_rebirth_confirm_click: "/clicker/audio/sfx_rebirth_trigger_hq.mp3",
+  sfx_rebirth_void_tear: "/clicker/audio/sfx_rebirth_void_tear_v3.mp3",
+  sfx_rebirth_rebuild_rise: "/clicker/audio/sfx_rebirth_rebuild_hq.mp3",
+  sfx_rebirth_settle_chime: "/clicker/audio/sfx_rebirth_complete_hq.mp3",
+}
+
+function rebirthCueSampleUrl(name: string): string | null {
+  const direct = REBIRTH_CUE_SAMPLE[name]
+  if (direct) return direct
+  if (name.startsWith("sfx_rebirth_stamp_")) return `/clicker/audio/${name}_hq.mp3`
+  return null
+}
+
+type RebirthSampleRec = { audio: HTMLAudioElement; wired: boolean }
+const rebirthSamples = new Map<string, RebirthSampleRec>()
+
+/** One-shot rebirth ceremony samples (HQ mp3) routed through the same master bus as synth SFX. */
+function playRebirthSample(url: string, onFail: () => void): boolean {
+  if (typeof window === "undefined") return false
   const c = audio()
-  if (!c) return
+  if (!c) return false
+  let rec = rebirthSamples.get(url)
+  if (!rec) {
+    const audioEl = new Audio(url)
+    audioEl.preload = "auto"
+    rec = { audio: audioEl, wired: false }
+    rebirthSamples.set(url, rec)
+  }
+  if (!rec.wired) {
+    try {
+      c.createMediaElementSource(rec.audio).connect(out(c))
+      rec.wired = true
+      rec.audio.volume = 1
+    } catch {
+      rec.audio.volume = MASTER_GAIN
+    }
+  }
+  rec.audio.currentTime = 0
+  void rec.audio.play().catch(onFail)
+  return true
+}
+
+function playRebirthCueSynth(name: string, c: AudioContext) {
   const t = c.currentTime
   if (name === "sfx_rebirth_confirm_click") {
     tone(c, "square", 1200, 900, 0.04, t, 0.06)
@@ -759,6 +798,23 @@ export function playRebirthCue(name: string) {
     tone(c, "sine", 1046, 1046, 0.04, t, 0.8, { dest: e })
     tone(c, "sine", 1318, 1318, 0.03, t + 0.08, 0.7, { dest: e })
   }
+}
+
+/** Rebirth beat cues, keyed by the names in `REBIRTH_AUDIO_CUES`. Prefers HQ mp3 when mapped. */
+export function playRebirthCue(name: string) {
+  if (muted) return
+  const synth = () => {
+    const c = audio()
+    if (!c) return
+    try {
+      playRebirthCueSynth(name, c)
+    } catch {
+      /* context closed */
+    }
+  }
+  const sampleUrl = rebirthCueSampleUrl(name)
+  if (sampleUrl && playRebirthSample(sampleUrl, synth)) return
+  synth()
 }
 
 /** Region field challenge feedback: a clean hit, a miss, and the final whistle. */
