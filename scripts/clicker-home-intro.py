@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Render the Core Mine (home) arrival cinematic from the home art, with its own score.
 
-9s at 1280x720/30fps: one continuous push-in on the mine entrance (no mid-shot
+9s at 1920x1080/30fps: one continuous push-in on the mine entrance (no mid-shot
 crossfade). Cyan lights flicker awake, and the shot settles on the same framing
 as the home hub. The existing score is kept. Scored originally in D minor with
 a door thud at the end. Needs the instruments in scripts/clicker-bgm.py.
@@ -24,7 +24,7 @@ from PIL import Image
 HERE = Path(__file__).resolve().parent
 PUBLIC = HERE.parent / "public" / "clicker"
 OUT = PUBLIC / "region" / "core_chamber_intro.mp4"
-W, H, FPS, LENGTH = 1280, 720, 30, 9.0
+W, H, FPS, LENGTH = 1920, 1080, 30, 9.0
 
 spec = importlib.util.spec_from_file_location("bgm", HERE / "clicker-bgm.py")
 bgm = importlib.util.module_from_spec(spec)
@@ -42,7 +42,7 @@ def zoom(img: np.ndarray, scale: float, cy: float = 0.5) -> np.ndarray:
     x0 = (W - cw) // 2
     y0 = int(np.clip((H - ch) * cy, 0, H - ch))
     crop = Image.fromarray((img[y0 : y0 + ch, x0 : x0 + cw] * 255).astype(np.uint8))
-    return np.asarray(crop.resize((W, H), Image.BILINEAR), dtype=np.float32) / 255
+    return np.asarray(crop.resize((W, H), Image.BICUBIC), dtype=np.float32) / 255
 
 
 def smooth(t: float) -> float:
@@ -114,7 +114,7 @@ def main() -> None:
         video = Path(tmp) / "video.mp4"
         proc = subprocess.Popen(
             [ff, "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-             "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "slow", str(video)],
+             "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-crf", "16", "-preset", "slow", str(video)],
             stdin=subprocess.PIPE, stderr=subprocess.DEVNULL,
         )
         for frame in frames():
