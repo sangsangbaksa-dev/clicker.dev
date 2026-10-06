@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mine entry cinematic v17, rendered from the game's own stills so both cuts are seamless.
+"""Mine entry cinematic v18, rendered from the game's own stills so both cuts are seamless.
 
 Frame 0 is the hub gate still (mine_entrance_hub_closed_door_v2.webp) exactly as the hub shows it;
 the camera creeps forward, the trim lights pulse twice and the seam lights up; the door cracks open
@@ -27,7 +27,7 @@ MINE = ROOT / "public" / "clicker" / "mine"
 GATE = MINE / "mine_entrance_hub_closed_door_v2.webp"
 PLATE = MINE / "mine_interior_mineral_ore_v2.webp"
 AUDIO_SRC = MINE / "mine_enter_door_walk_v12.mp4"
-OUT = MINE / "mine_enter_door_walk_v17.mp4"
+OUT = MINE / "mine_enter_door_walk_v18.mp4"
 
 SRC_W, SRC_H = 1280, 720
 W, H, FPS = 1920, 1080, 24
@@ -38,17 +38,20 @@ DOOR = [(535, 175), (745, 175), (835, 310), (835, 440), (750, 580), (530, 580), 
 SEAM_X = 640
 DOOR_C = (640, 377)
 
-# Timeline (s)
-HOLD, UNLOCK, OPEN, PUSH, SETTLE = 0.6, 1.2, 3.0, 3.2, 2.0  # 10 s
+# Timeline (s). No frozen tail: the push decelerates right into the last frame.
+HOLD, UNLOCK, OPEN = 0.5, 1.1, 2.9
 T_UNLOCK = HOLD
 T_OPEN = T_UNLOCK + UNLOCK
-T_PUSH = T_OPEN + OPEN * 0.7  # the push starts once the doorway is mostly open
-T_END = T_OPEN + OPEN + PUSH
+T_PUSH = T_OPEN + OPEN * 0.45  # the push starts while the halves are still sliding
+DURATION = 10.0
+T_END = DURATION - 1 / 24
 # Opening: a quick crack to CRACK of the travel, a held beat, then the long slide.
-CRACK, CRACK_S, CRACK_HOLD = 0.06, 0.25, 0.35
-DURATION = T_END + SETTLE
+CRACK, CRACK_S, CRACK_HOLD = 0.07, 0.18, 0.3
+# Camera kicks (time, amplitude px): the unlock clunk and the crack.
+SHAKES = [(T_UNLOCK + 0.05, 4.0), (T_OPEN, 9.0)]
+SUBFRAMES = 4  # motion blur while the camera is moving fast
 
-INTERIOR_START = 0.5  # plate scale seen through the closed door (far away)
+INTERIOR_START = 0.84  # plate scale seen through the closed door: the real chamber fills the doorway, no fake surround
 GATE_ZOOM_END = 3.8
 
 
@@ -60,6 +63,27 @@ def ease(t: float) -> float:
 def ease_in_out_cubic(t: float) -> float:
     t = min(1.0, max(0.0, t))
     return 4 * t * t * t if t < 0.5 else 1 - (-2 * t + 2) ** 3 / 2
+
+
+def push_curve(u: float) -> float:
+    """Slow start, confident middle, long deceleration that lands exactly on 1 at the last frame."""
+    u = min(1.0, max(0.0, u))
+    a, k = 0.35, 2.2  # share of the push spent accelerating; deceleration exponent
+    start = k * a / (2 + (k - 2) * a)  # value at u=a where both pieces meet with equal slope
+    if u < a:
+        return start * (u / a) ** 2
+    return start + (1 - start) * (1 - (1 - (u - a) / (1 - a)) ** k)
+
+
+def shake(t: float) -> tuple[float, float]:
+    x = y = 0.0
+    for t0, amp in SHAKES:
+        d = t - t0
+        if 0 <= d < 0.6:
+            k = amp * math.exp(-d * 7)
+            x += k * math.sin(d * 71)
+            y += k * math.cos(d * 53) * 0.8
+    return x, y
 
 
 def door_open(t: float) -> float:
@@ -155,14 +179,14 @@ def main() -> None:
              "-g", str(FPS), "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-shortest", str(OUT)],
             stdin=subprocess.PIPE,
         )
-        for i in range(n):
-            t = i / FPS
+        def render(t: float) -> np.ndarray:
             # Camera: push from the hub framing into the doorway; the door centre drifts to screen centre.
-            p = ease_in_out_cubic((t - T_PUSH) / (T_END - T_PUSH))
+            p = push_curve((t - T_PUSH) / (T_END - T_PUSH))
             # A slow creep toward the door before the push, so the shot is always moving forward.
             creep = 1 + 0.1 * ease(t / T_PUSH) * (1 - p)
             z = creep * GATE_ZOOM_END ** p
-            tx, ty = dcx + (W / 2 - dcx) * p, dcy + (H / 2 - dcy) * p
+            sx, sy = shake(t)
+            tx, ty = dcx + (W / 2 - dcx) * p + sx * (1 - p), dcy + (H / 2 - dcy) * p + sy * (1 - p)
             # Interior is deeper than the gate, so it grows slower (parallax) and ends exactly full-frame.
             k_int = INTERIOR_START ** (1 - p)
             interior = plate if p >= 1 else zoom_about(interior_src, k_int, icx, icy, tx, ty)
@@ -177,7 +201,7 @@ def main() -> None:
                 ba = np.asarray(base).astype(np.float32)
                 yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
                 glow = np.exp(-(((xx - tx) / (W * 0.18)) ** 2 + ((yy - ty) / (H * 0.32)) ** 2))[..., None]
-                ba += glow * np.array([110, 230, 240], np.float32) * 0.55 * spill
+                ba += glow * np.array([90, 210, 230], np.float32) * 0.28 * spill
                 base = Image.fromarray(np.clip(ba, 0, 255).astype(np.uint8))
             # Panels slide apart inside the door opening (they disappear behind the frame).
             panels = Image.new("RGBA", (W, H))
@@ -234,8 +258,19 @@ def main() -> None:
                 gate_view.putalpha(Image.fromarray(a.astype(np.uint8)))
             frame = base.convert("RGBA")
             frame.alpha_composite(gate_view)
-            frame = frame.convert("RGB")
-            proc.stdin.write(frame.tobytes())
+            return np.asarray(frame.convert("RGB")).astype(np.float32)
+
+        prev_p = 0.0
+        for i in range(n):
+            t = i / FPS
+            p_now = push_curve((t - T_PUSH) / (T_END - T_PUSH))
+            fast = abs(p_now - prev_p) > 0.004 or any(0 <= t - t0 < 0.25 for t0, _ in SHAKES)
+            prev_p = p_now
+            if fast and i < n - 1:
+                acc = sum(render(t + (k / SUBFRAMES - 0.5) / FPS * 0.8) for k in range(SUBFRAMES)) / SUBFRAMES
+            else:
+                acc = render(t)
+            proc.stdin.write(np.clip(acc + 0.5, 0, 255).astype(np.uint8).tobytes())
         proc.stdin.close()
         proc.wait()
     print(OUT.name, f"{OUT.stat().st_size // 1024} KB", f"{DURATION:.1f}s")

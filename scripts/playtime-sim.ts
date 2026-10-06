@@ -101,12 +101,21 @@ if (process.env.SCALE) {
     config.rebirthGoalScale[k] = v
   }
 }
+// STRETCH: override rebirth-stretch entries for a plain run, e.g. "3=5.4,7=8" (index = worldline - 1).
+if (process.env.STRETCH) {
+  config.rebirthGoalStretch = [...(config.rebirthGoalStretch ?? [])]
+  for (const pair of process.env.STRETCH.split(",")) {
+    const [k, v] = pair.split("=").map(Number)
+    config.rebirthGoalStretch[k] = v
+  }
+}
 // CALIBRATE: worldline lengths in minutes (e.g. "120,50,30"; 0 keeps the table goal). Each worldline rebirths exactly at its
 // target and prints the goal scale that would end it there; paste those into REBIRTH_GOAL_SCALE.
 const TARGETS = process.env.CALIBRATE ? process.env.CALIBRATE.split(",").map(Number) : null
 // The catalog goal table stays in place (worlds open at a share of it); rebirth is held back until
 // each target time instead, then that worldline's goal is set to what was earned.
-if (TARGETS) config.rebirthGoalStretch = []
+// A 0 target keeps that worldline's current stretch, so later worldlines can be re-tuned alone.
+if (TARGETS) config.rebirthGoalStretch = TARGETS.map((t, k) => (t > 0 ? 1 : (config.rebirthGoalStretch?.[k] ?? 1)))
 const calibrated: number[] = []
 let seed = 11
 let lastDump = -1
@@ -428,6 +437,6 @@ while (elapsed() < MAX_HOURS * 3600) {
   }
 }
 
-if (TARGETS) console.log(`rebirthGoalStretch: [${config.rebirthGoalStretch!.slice(0, TARGETS.length).map((v) => Number(Math.max(1, v).toPrecision(4))).join(", ")}]`)
+if (TARGETS) console.log(`rebirthGoalStretch: [${config.rebirthGoalStretch!.slice(0, TARGETS.length).map((v) => Number(v.toPrecision(4))).join(", ")}]`)
 console.log(`clicks/s ${CLICKS_PER_SEC} · mine sessions ${mineCycles}`)
 console.log(`total ${fmt(elapsed())}${heartReached ? " · Core Heart open" : " · NOT FINISHED"}`)

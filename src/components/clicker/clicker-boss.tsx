@@ -81,6 +81,7 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
                   <img className="boss-art-img" src={def.imageSrc} alt="" draggable={false} />
                 </span>
                 <span className="boss-art-core" aria-hidden />
+                <span className="boss-art-eyes" aria-hidden />
               </span>
             </span>
           </span>
@@ -97,6 +98,7 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
         </>
       ) : null}
       {attack && fight ? <div className="clicker-boss-hurt" key={`hurt-${attack}`} aria-hidden /> : null}
+      <span className="clicker-boss-dread" aria-hidden />
     </div>
   )
 }

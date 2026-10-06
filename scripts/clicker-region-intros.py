@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Re-render the world arrival cinematics from each world's own art — no particles.
 
-10s at 1280x720/30fps: the world's poster fades up under a slow push-in, crossfades to its
-still and settles on the exact still framing the world screen shows next. The picture is new;
+10s at 1280x720/30fps: the world's poster fades up under a drifting sub-pixel push-in with a
+breathing light sweep, the camera speeds in through a crossfade to its still, and the still eases
+out onto the exact framing the world screen shows next. The picture is new;
 the soundtrack is lifted from the existing video, so each world keeps its score.
 
     pip install numpy pillow imageio-ffmpeg
@@ -40,14 +41,16 @@ def load(path: Path) -> np.ndarray:
     return np.asarray(im.crop((left, top, left + W, top + H)), dtype=np.float32) / 255
 
 
-def zoom(img: np.ndarray, scale: float) -> np.ndarray:
-    """Crop-and-scale push-in about the centre."""
-    if scale <= 1.0001:
+def zoom(img: np.ndarray, scale: float, cx: float = 0.0, cy: float = 0.0) -> np.ndarray:
+    """Sub-pixel push-in: scale about the frame centre shifted by (cx, cy) frame-fractions, so slow
+    moves glide instead of stepping a whole pixel at a time."""
+    if abs(scale - 1) < 1e-6 and cx == 0 and cy == 0:
         return img
-    cw, ch = int(W / scale), int(H / scale)
-    x0, y0 = (W - cw) // 2, (H - ch) // 2
-    crop = Image.fromarray((img[y0 : y0 + ch, x0 : x0 + cw] * 255).astype(np.uint8))
-    return np.asarray(crop.resize((W, H), Image.BILINEAR), dtype=np.float32) / 255
+    src = Image.fromarray((img * 255).astype(np.uint8))
+    ox, oy = W / 2 + cx * W, H / 2 + cy * H
+    # output (x, y) → input ((x - W/2) / s + ox, (y - H/2) / s + oy)
+    m = (1 / scale, 0, ox - W / 2 / scale, 0, 1 / scale, oy - H / 2 / scale)
+    return np.asarray(src.transform((W, H), Image.AFFINE, m, resample=Image.BICUBIC), dtype=np.float32) / 255
 
 
 def smooth(x: float) -> float:
@@ -55,19 +58,35 @@ def smooth(x: float) -> float:
     return x * x * (3 - 2 * x)
 
 
+def ease_out(x: float, k: float = 3.0) -> float:
+    x = min(1.0, max(0.0, x))
+    return 1 - (1 - x) ** k
+
+
 def frames(poster: np.ndarray, still: np.ndarray):
-    yy, xx = np.mgrid[0:H, 0:W]
-    vignette = (1 - 0.4 * (((xx - W / 2) / (W / 2)) ** 2 + ((yy - H / 2) / (H / 2)) ** 2)).clip(0.35, 1)[..., None]
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    vignette = (1 - 0.42 * (((xx - W / 2) / (W / 2)) ** 2 + ((yy - H / 2) / (H / 2)) ** 2)).clip(0.3, 1)[..., None]
+    X0, X1 = 4.2, 7.0  # crossfade window (s)
     for f in range(int(LENGTH * FPS)):
         t = f / FPS
-        a = zoom(poster, 1.0 + 0.10 * t / LENGTH)
-        # The still ends at scale 1.0 — the exact framing of the world screen that follows.
-        b = zoom(still, 1.08 - 0.08 * smooth((t - 4.5) / 5.5))
-        mix = smooth((t - 4.5) / 2.5)
+        # Poster: a slow drifting push that speeds up into the crossfade (the camera "goes in").
+        drift = smooth(t / X1)
+        a = zoom(poster, 1.03 + 0.09 * drift + 0.22 * smooth((t - X0 + 0.6) / (X1 - X0 + 0.6)) ** 2,
+                 cx=-0.018 + 0.03 * drift, cy=0.01 - 0.016 * drift)
+        # Still: arrives slightly pushed in and off-centre, then settles with a long ease-out onto
+        # the exact framing of the world screen (scale 1, centred) by the last frame.
+        u = ease_out((t - X0) / (LENGTH - X0), 3.2)
+        b = zoom(still, 1.0 + 0.14 * (1 - u), cx=0.02 * (1 - u), cy=-0.012 * (1 - u))
+        mix = smooth((t - X0) / (X1 - X0))
         img = a * (1 - mix) + b * mix
+        # Light breathes on the poster and a soft glow sweeps across it; both fade with the poster.
+        breath = 1 + 0.06 * np.sin(t * 2.1) * (1 - mix)
+        sweep_x = W * (-0.3 + 1.6 * smooth(t / X1))
+        sweep = np.exp(-(((xx - sweep_x) / (W * 0.22)) ** 2))[..., None] * 0.12 * (1 - mix)
+        img = img * breath + sweep * img
         # Vignette eases out as the still settles, so the last frame matches the screen.
         v = vignette * (1 - mix) + mix
-        fade = smooth(t / 1.2)
+        fade = smooth(t / 1.0)
         yield (np.clip(img * v * fade, 0, 1) * 255).astype(np.uint8)
 
 

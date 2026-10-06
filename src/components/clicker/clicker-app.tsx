@@ -1011,6 +1011,16 @@ export function ClickerApp() {
   const panelProps = { game, run, popIcons, bumpIcon }
 
   const atHomeHub = !inMine && Boolean(game.currentRegion?.isHome)
+  // Away from home with no boss, hunt or closed gate up: the region's core vein is drilled.
+  const showDrill = Boolean(
+    !inMine &&
+      !atHomeHub &&
+      !(worldStill && !worldEngaged && regionDef) &&
+      !regionDef?.boss &&
+      !(regionDef?.huntMode && monsterDef) &&
+      game.currentRegion &&
+      !game.currentRegion.isHome,
+  )
   const regionIntroPlaying = Boolean(game.regionIntro)
   const managing = shouldShowManageScreen(screenTab) || (!mountMineChamber && hubView === "manage")
 
@@ -1192,10 +1202,48 @@ export function ClickerApp() {
 
       <div className="clicker-stage">
         <StageBg
-          className={`clicker-stage-bg ${stageEvent ? "is-event" : ""}${regionTransition ? " is-region-transition" : ""}${inMine && hud.fever.active ? " is-fever" : ""}`}
+          className={`clicker-stage-bg ${stageEvent ? "is-event" : ""}${regionTransition ? " is-region-transition" : ""}${inMine && hud.fever.active ? " is-fever" : ""}${!inMine && !atHomeHub ? " is-drift" : ""}`}
           src={stageBg}
         />
         <div className="clicker-vignette" />
+        {showDrill && game.currentRegion ? (
+          // Pinned to the background's own pixels (same cover math as the stage), so the rig hangs
+          // over the shaft and the shaft's front rim hides the bit at any screen size.
+          <div className="clicker-drill-scene">
+            <button
+              type="button"
+              data-sfx="off"
+              key={drillHits}
+              className={`clicker-drill${drillHits ? " is-hit" : ""}${drillCoolSec > 0 ? " is-cooling" : ""}`}
+              disabled={regionIntroPlaying || drillCoolSec > 0}
+              aria-label={drillCoolSec > 0 ? `시추 장비 냉각 중 ${drillCoolSec}초` : `코어 에너지 시추 · 게이지 ${Math.round(run.drillGauge * 100)}%`}
+              onPointerDown={(e) => {
+                if (e.button !== 0) return
+                e.preventDefault()
+                const paid = game.drillVein(e.clientX, e.clientY)
+                if (paid === null) return
+                playLaser(game.save?.settings.muted ?? false, paid > 0)
+                if (paid > 0) flashStage()
+                setDrillHits((n) => n + 1)
+              }}
+            >
+              {/* The drill hangs over the shaft on its cables; each tap drives the bit into the vein. */}
+              <img src="/clicker/drill/drill_hanging_v1.webp" className="clicker-drill-rig" alt="" draggable={false} />
+              <span className="clicker-drill-glow" aria-hidden />
+              {drillHits ? (
+                <>
+                  <span className="clicker-drill-gush" aria-hidden />
+                  <span className="clicker-drill-debris" aria-hidden>
+                    {[0, 1, 2, 3, 4, 5].map((i) => (
+                      <i key={i} style={{ ["--i" as string]: i }} />
+                    ))}
+                  </span>
+                </>
+              ) : null}
+            </button>
+            <img className="clicker-drill-lip" src="/clicker/drill/drill_pit_lip.webp" alt="" draggable={false} aria-hidden />
+          </div>
+        ) : null}
         {!inMine && worldEngaged && monsterDef && !regionDef?.boss && LAIR_BOSSES[monsterDef.kind] ? (
           <ClickerBossScene
             key={run.currentRegionId}
@@ -1619,39 +1667,6 @@ export function ClickerApp() {
             // Away from home there is no mine: drill the region's core vein for CORE instead.
             <div className="clicker-region-station clicker-drill-station" aria-label={`${game.currentRegion.name} · 코어 에너지 시추`}>
               <p className="clicker-region-station-kicker">{game.currentRegion.name} · 코어 에너지 시추</p>
-              <button
-                type="button"
-                data-sfx="off"
-                key={drillHits}
-                className={`clicker-drill${drillHits ? " is-hit" : ""}${drillCoolSec > 0 ? " is-cooling" : ""}`}
-                disabled={regionIntroPlaying || drillCoolSec > 0}
-                aria-label={drillCoolSec > 0 ? `시추 장비 냉각 중 ${drillCoolSec}초` : `코어 에너지 시추 · 게이지 ${Math.round(run.drillGauge * 100)}%`}
-                onPointerDown={(e) => {
-                  if (e.button !== 0) return
-                  e.preventDefault()
-                  const paid = game.drillVein(e.clientX, e.clientY)
-                  if (paid === null) return
-                  playLaser(game.save?.settings.muted ?? false, paid > 0)
-                  if (paid > 0) flashStage()
-                  setDrillHits((n) => n + 1)
-                }}
-              >
-                {/* The rig stands on a rock bed; each tap plunges it in and kicks up debris. */}
-                <span className="clicker-drill-ground" aria-hidden />
-                <img src="/clicker/drill/scifi_drill.webp" alt="" draggable={false} />
-                <span className="clicker-drill-glow" aria-hidden />
-                <span className="clicker-drill-ground is-front" aria-hidden />
-                {drillHits ? (
-                  <>
-                  <span className="clicker-drill-gush" aria-hidden />
-                  <span className="clicker-drill-debris" aria-hidden>
-                    {[0, 1, 2, 3, 4, 5].map((i) => (
-                      <i key={i} style={{ ["--i" as string]: i }} />
-                    ))}
-                  </span>
-                  </>
-                ) : null}
-              </button>
               <div className={`clicker-drill-gauge${drillCoolSec > 0 ? " is-cooling" : ""}`} aria-hidden>
                 <i style={{ width: `${drillCoolSec > 0 ? (drillCoolSec / drillCoolTotalSec) * 100 : run.drillGauge * 100}%` }} />
               </div>

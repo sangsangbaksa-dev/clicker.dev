@@ -2735,3 +2735,158 @@
 [data-clicker] .clicker-ranking-foot { margin: 10px 0 0; font-size: 12px; line-height: 1.5; opacity: 0.75; }
 [data-clicker] .clicker-settings-ranking { list-style: none; }
 [data-clicker] .clicker-settings-ranking .clicker-ranking { margin: 0; }
+
+/* ---------- Drill site: the drill hangs over the shaft ----------
+   The scene shares the stage background's box, and --s is that background's cover scale for its
+   1920×1079 art, so an art pixel (x, y) sits at calc(50% + (x - 960) * --s), calc(50% + (y - 539.5) * --s).
+   The rig sprite (739×1875, drawn at 0.55 art px per px) hangs so its bit tip lands at (1000, 790),
+   just under the shaft's front rim; the rim (cut from the same art) is drawn over it. */
+[data-clicker] .clicker-drill-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+  container-type: size;
+}
+[data-clicker] .clicker-drill-scene > * {
+  --s: max(100cqw / 1920, 100cqh / 1079);
+  position: absolute;
+}
+[data-clicker] .clicker-drill-scene .clicker-drill {
+  /* --k: art px per sprite px. Smaller on tall phones, where the cover scale blows the art up. */
+  --k: 0.55;
+  display: block;
+  left: calc(50% + (1000 - 960 - 371 * var(--k)) * var(--s));
+  top: calc(50% + (790 - 539.5 - 1866 * var(--k)) * var(--s));
+  width: calc(739 * var(--k) * var(--s));
+  height: calc(1875 * var(--k) * var(--s));
+  aspect-ratio: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none !important;
+  /* Only the drill body takes taps, not the cables above it. */
+  pointer-events: none;
+  cursor: pointer;
+}
+[data-clicker] .clicker-drill-scene .clicker-drill::before {
+  content: "";
+  position: absolute;
+  inset: 22% 6% 0;
+  pointer-events: auto;
+}
+@media (max-aspect-ratio: 4 / 5) {
+  [data-clicker] .clicker-drill-scene .clicker-drill { --k: 0.4; }
+}
+[data-clicker] .clicker-drill-scene .clicker-drill-rig {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  object-fit: fill;
+  /* Graded to the cave: a touch darker and cooler, with the shaft's cyan glow on its edges. */
+  filter: brightness(0.82) saturate(0.88) contrast(1.06) drop-shadow(0 0 calc(10 * var(--s)) rgb(40 210 235 / 0.28));
+  transform-origin: 50% 0;
+  animation: clicker-drill-sway 7s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+}
+[data-clicker] .clicker-drill-scene .clicker-drill-lip {
+  left: calc(50% + (740 - 960) * var(--s));
+  top: calc(50% + (690 - 539.5) * var(--s));
+  width: calc(520 * var(--s));
+  height: auto;
+  z-index: 1;
+  pointer-events: none;
+}
+/* The cables swing a hair, so the rig reads as hanging, not pasted on. */
+@keyframes clicker-drill-sway {
+  0%, 100% { transform: rotate(0.35deg) translateY(0); }
+  50% { transform: rotate(-0.35deg) translateY(calc(4 * var(--s))); }
+}
+/* A tap drives the bit down past the rim, then the cables pull it back up. */
+[data-clicker] .clicker-drill-scene .clicker-drill.is-hit .clicker-drill-rig {
+  animation: clicker-drill-drive 300ms cubic-bezier(0.2, 0.9, 0.3, 1), clicker-drill-sway 7s cubic-bezier(0.37, 0, 0.63, 1) 300ms infinite;
+}
+@keyframes clicker-drill-drive {
+  0% { transform: translateY(0); }
+  28% { transform: translateY(calc(34 * var(--s))) scale(1.01, 0.995); filter: brightness(1.05) saturate(1) contrast(1.06) drop-shadow(0 0 calc(18 * var(--s)) rgb(90 235 255 / 0.6)); }
+  100% { transform: translateY(0); }
+}
+[data-clicker] .clicker-drill-scene .clicker-drill.is-cooling .clicker-drill-rig {
+  filter: brightness(0.6) saturate(0.5) contrast(1.06);
+  animation-play-state: paused;
+}
+/* Light rising out of the shaft at the bit, flaring on each strike. */
+[data-clicker] .clicker-drill-scene .clicker-drill-glow {
+  display: block !important;
+  left: 50%;
+  bottom: -6%;
+  width: 90%;
+  height: 22%;
+  opacity: 0.45;
+  mix-blend-mode: screen;
+  background: radial-gradient(closest-side, rgb(120 240 255 / 0.75), rgb(40 200 230 / 0.25) 60%, transparent);
+  animation: clicker-drill-hum 2.4s ease-in-out infinite;
+}
+@keyframes clicker-drill-hum { 50% { opacity: 0.7; } }
+[data-clicker] .clicker-drill-scene .clicker-drill.is-hit .clicker-drill-glow { animation: clicker-drill-flash 300ms ease-out; opacity: 0.45; }
+[data-clicker] .clicker-drill-scene .clicker-drill.is-cooling .clicker-drill-glow { opacity: 0.12; animation: none; }
+[data-clicker] .clicker-drill-scene .clicker-drill-debris { bottom: 2%; }
+@media (prefers-reduced-motion: reduce) {
+  [data-clicker] .clicker-drill-scene .clicker-drill-rig,
+  [data-clicker] .clicker-drill-scene .clicker-drill.is-hit .clicker-drill-rig,
+  [data-clicker] .clicker-drill-scene .clicker-drill-glow { animation: none; }
+}
+
+/* ---------- World backgrounds breathe ----------
+   Away from home (never in the mine or at the gate, whose art lines up with hitboxes) the
+   backdrop drifts like a slow handheld camera and its light swells and settles. The drill scene
+   runs the very same animation on the very same box, so the rig stays pinned to the shaft. */
+[data-clicker] .clicker-stage-bg.is-drift:not(.is-region-transition),
+[data-clicker] .clicker-stage:has(.clicker-stage-bg.is-drift:not(.is-region-transition)) .clicker-drill-scene {
+  animation: clicker-bg-drift 26s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+  transform-origin: 50% 55%;
+}
+@keyframes clicker-bg-drift {
+  0% { transform: scale(1.035) translate(-0.7%, 0.3%); }
+  50% { transform: scale(1.05) translate(0.2%, -0.5%); }
+  100% { transform: scale(1.04) translate(0.8%, 0.2%); }
+}
+[data-clicker] .clicker-stage-bg.is-drift::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 60% 55% at 50% 55%, rgb(255 255 255 / 0.07), transparent 70%);
+  mix-blend-mode: soft-light;
+  animation: clicker-bg-light 7.5s ease-in-out infinite;
+}
+@keyframes clicker-bg-light {
+  0%, 100% { opacity: 0.2; }
+  45% { opacity: 1; }
+  60% { opacity: 0.7; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-clicker] .clicker-stage-bg.is-drift,
+  [data-clicker] .clicker-stage .clicker-drill-scene,
+  [data-clicker] .clicker-stage-bg.is-drift::after { animation: none; }
+}
+/* The four cables carry on above the sprite to the top of the stage, so the rig never ends mid-air
+   on tall screens (overlapping the sprite a little so a strike's drop never opens a gap). */
+[data-clicker] .clicker-drill-scene .clicker-drill::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 95%;
+  height: 400%;
+  pointer-events: none;
+  --cable: linear-gradient(90deg, #161715, #44453f 45%, #232421);
+  background:
+    var(--cable) 28.71% 0 / 2.3% 100% no-repeat,
+    var(--cable) 41.4% 0 / 2.3% 100% no-repeat,
+    var(--cable) 58.6% 0 / 2.3% 100% no-repeat,
+    var(--cable) 71.29% 0 / 2.3% 100% no-repeat;
+  filter: brightness(0.82);
+}
