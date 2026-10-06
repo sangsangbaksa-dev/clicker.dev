@@ -1184,7 +1184,7 @@ export function ClickerApp() {
           aria-haspopup="dialog"
           onClick={() => setSettingsOpen(true)}
         >
-          SETTINGS
+          설정
         </button>
       </header>
 
@@ -2123,6 +2123,9 @@ export function ClickerApp() {
             </button>
             <button type="button" className="clicker-primary" onClick={() => game.adminGrantAllCurrencies(1_000_000)}>
               지역 재화 +1M
+            </button>
+            <button type="button" className="clicker-primary" aria-label="치트 · 모든 업그레이드 달성" onClick={game.adminMaxAllUpgrades}>
+              모든 업그레이드 달성
             </button>
             <button type="button" className="clicker-primary" onClick={game.adminSkipTutorial}>
               튜토리얼 건너뛰기

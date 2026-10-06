@@ -1,5 +1,6 @@
 import type { GameConfig, RunState, SaveData } from "../entities/clicker.ts"
 import { regionUnlockThreshold, startBossFight } from "./clicker-engine.ts"
+import { GEAR, GEAR_SLOTS } from "./clicker-lair.ts"
 
 /** Client-only admin switches (not saved). */
 export type AdminModes = {
@@ -19,6 +20,29 @@ export function adminGrantCurrencies(run: RunState, config: GameConfig, amount: 
   const wallet = { ...run.regionCurrency }
   for (const r of config.regions) if (r.currency) wallet[r.id] = (wallet[r.id] ?? 0) + amount
   return { ...run, regionCurrency: wallet }
+}
+
+/**
+ * Playtest: every upgrade done at once — all shop upgrades, skill circuits and world-tree
+ * nodes owned, every gear slot at its top tier and every relic at max level.
+ */
+export function adminMaxAllUpgrades(save: SaveData, config: GameConfig): SaveData {
+  const gear = Object.fromEntries(GEAR_SLOTS.map((slot) => [slot, GEAR[slot].length - 1])) as Required<NonNullable<RunState["gear"]>>
+  return {
+    ...save,
+    runState: {
+      ...save.runState,
+      ownedUpgradeIds: config.upgrades.map((u) => u.id),
+      ownedSkillNodeIds: config.skillNodes.map((n) => n.id),
+      worldTreeIds: (config.worldTrees ?? []).map((n) => n.id),
+      gear,
+      forgeFails: {},
+    },
+    metaState: {
+      ...save.metaState,
+      relicLevels: Object.fromEntries(config.relics.map((r) => [r.id, r.maxLevel])),
+    },
+  }
 }
 
 /** Secret code typed anywhere in the game (see `clickerRedeemSecretCode`). */

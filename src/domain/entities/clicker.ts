@@ -53,6 +53,8 @@ export type LairFight = {
   playerHp: number
   playerMaxHp: number
   nextAttackAt: number
+  /** Strikes landed this fight (drives the lair-only shockwave and stun). */
+  strikes?: number
 }
 
 export type RunState = {
@@ -84,6 +86,8 @@ export type RunState = {
   lastCollapse?: { at: number; loss: number }
   /** Forged gear tiers (index into WEAPONS / ARMORS / HELMETS / AMULETS). */
   gear?: { weapon: number; armor: number; helmet?: number; amulet?: number }
+  /** Failed forge attempts since the last success, per slot (drives the pity odds). */
+  forgeFails?: Partial<Record<"weapon" | "armor" | "helmet" | "amulet", number>>
   /** Active lair battle against the current region's boss. */
   lair?: LairFight | null
   /** After beating the player, a boss is shielded until this time (region id → ms). */
@@ -327,6 +331,17 @@ export type SkillNodeDef = {
   bossDamageMultiplier?: number
   /** Strike damage against lair creatures (multiplies the forged weapon). */
   lairDamageMultiplier?: number
+  /** Lair-only shockwave: every Nth strike on a creature adds weapon damage × this. */
+  lairQuakeMultiplierAdd?: number
+  lairQuakeIntervalReduce?: number
+  /** Lair-only weak spot: chance per strike to hit a creature for extra damage. */
+  lairCritChanceAdd?: number
+  /** Added to the weak-spot multiplier (base ×3). */
+  lairCritMultiplierAdd?: number
+  /** Fraction of max HP healed on every strike in a lair. */
+  lairLifesteal?: number
+  /** Every LAIR_STUN_EVERY strikes the creature's next swing comes this many ms later. */
+  lairStunMs?: number
 }
 
 export type AchievementKind =

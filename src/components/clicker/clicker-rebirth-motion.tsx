@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { REBIRTH_CHAMBER_REMINDER } from "@/data/clicker/onboarding"
-import { RebirthPhaseArt } from "@/data/clicker/rebirth-assets"
+import { RebirthPhaseArt, rebirthArtFor } from "@/data/clicker/rebirth-assets"
 import { RebirthMwParams, type MwEaseSample } from "@/data/clicker/rebirth-mw-params"
 import {
   REBIRTH_AUDIO_CUES,
@@ -159,6 +159,22 @@ function spawnParticles(
   return out
 }
 
+/** Decoded images stay alive here so a phase cut never waits on a fetch or a decode. */
+const decoded = new Map<string, HTMLImageElement>()
+
+/** Fetch and decode a worldline's plates ahead of time (safe to call repeatedly). */
+export function preloadRebirthArt(transcendenceId: string): void {
+  if (typeof window === "undefined") return
+  for (const src of rebirthArtFor(transcendenceId)) {
+    if (decoded.has(src)) continue
+    const img = new Image()
+    img.decoding = "async"
+    img.src = src
+    decoded.set(src, img)
+    img.decode?.().catch(() => decoded.delete(src))
+  }
+}
+
 function RebirthAssetImage({
   src,
   className,
@@ -172,7 +188,7 @@ function RebirthAssetImage({
 }) {
   const [failed, setFailed] = useState(false)
   if (!src || failed) return <div className={placeholderClassName} aria-hidden />
-  return <img src={src} alt={alt} className={className} onError={() => setFailed(true)} />
+  return <img src={src} alt={alt} className={className} decoding="sync" onError={() => setFailed(true)} />
 }
 
 function platePhaseFor(phase: RebirthPhaseId): Exclude<RebirthPhaseId, "select_confirm"> {
@@ -338,6 +354,8 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
     [],
   )
   const duration = reducedMotion ? REBIRTH_DURATION_REDUCED_MS : REBIRTH_DURATION_FULL_MS
+  // Usually already warm from the worldline picker; covers a direct start too.
+  useEffect(() => preloadRebirthArt(transcendenceId), [transcendenceId])
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const particlesRef = useRef<Particle[]>([])
@@ -434,8 +452,12 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
         ? RebirthMwParams.PHONE_PARTICLE_SOFT_MAX
         : RebirthMwParams.DESKTOP_PARTICLE_SOFT_MAX
 
+    let lastNow = startRef.current
     const tick = (now: number) => {
       const elapsed = now - startRef.current
+      // Particles step in 60 fps units scaled by real frame time, so a slow frame never slows the swirl.
+      const step = Math.min(3, Math.max(0.25, (now - lastNow) / (1000 / 60)))
+      lastNow = now
       const { phase, phaseT, totalT } = rebirthPhaseAt(elapsed, reducedMotion)
       const mw = RebirthMwParams.sample(phase, phaseT, reducedMotion)
 
@@ -489,12 +511,12 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
           ctx.clearRect(0, 0, w, h)
           for (const p of particlesRef.current) {
             if (mw.particleBias === "suck") {
-              p.vx += (cx - p.x) * 0.003
-              p.vy += (cy - p.y) * 0.003
+              p.vx += (cx - p.x) * 0.003 * step
+              p.vy += (cy - p.y) * 0.003 * step
             }
-            p.x += p.vx
-            p.y += p.vy
-            p.life += 1
+            p.x += p.vx * step
+            p.y += p.vy * step
+            p.life += step
             if (mw.particleBias === "suck") {
               const dx = p.x - cx
               const dy = p.y - cy
@@ -536,7 +558,7 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
           completeTimerRef.current = window.setTimeout(() => {
             completeTimerRef.current = 0
             onCompleteRef.current()
-          }, 180)
+          }, 0)
         }
         return
       }

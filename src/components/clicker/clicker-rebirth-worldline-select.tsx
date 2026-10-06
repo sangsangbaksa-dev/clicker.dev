@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
 import { RebirthPhaseArt } from "@/data/clicker/rebirth-assets"
 import type { TranscendenceDef } from "@/application/clicker-ui"
+import { preloadRebirthArt } from "@/components/clicker/clicker-rebirth-motion"
 import "./clicker-rebirth-worldline-select.css"
 
 type Props = {
@@ -34,6 +35,11 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, locke
     () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     [],
   )
+  // Warm every worldline's rebirth plates while the player is still choosing.
+  useEffect(() => {
+    if (locked) return
+    for (const b of buffs) preloadRebirthArt(b.id)
+  }, [buffs, locked])
   const owned = new Set(ownedIds)
 
   const choose = (buff: TranscendenceDef) => {

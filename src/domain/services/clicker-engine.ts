@@ -323,6 +323,35 @@ export function lairDamageMultiplier(run: RunState, config: GameConfig): number 
   return ownedSkills(run, config).reduce((m, n) => m * (n.lairDamageMultiplier ?? 1), 1)
 }
 
+export const LAIR_QUAKE_BASE_INTERVAL = 10
+export const LAIR_QUAKE_MIN_INTERVAL = 4
+export const LAIR_CRIT_BASE_MULTIPLIER = 3
+export const LAIR_STUN_EVERY = 12
+
+/** Monster-only strike skills from the HUNT tree (shockwave, weak spot, lifesteal, stun). */
+export type LairSkills = {
+  quakeMultiplier: number
+  quakeInterval: number
+  critChance: number
+  critMultiplier: number
+  lifesteal: number
+  stunMs: number
+}
+
+export function lairSkills(run: RunState, config: GameConfig): LairSkills {
+  const owned = ownedSkills(run, config)
+  const sum = (k: "lairQuakeMultiplierAdd" | "lairQuakeIntervalReduce" | "lairCritChanceAdd" | "lairCritMultiplierAdd" | "lairLifesteal" | "lairStunMs") =>
+    owned.reduce((s, n) => s + (n[k] ?? 0), 0)
+  return {
+    quakeMultiplier: sum("lairQuakeMultiplierAdd"),
+    quakeInterval: Math.max(LAIR_QUAKE_MIN_INTERVAL, LAIR_QUAKE_BASE_INTERVAL - sum("lairQuakeIntervalReduce")),
+    critChance: Math.min(1, sum("lairCritChanceAdd")),
+    critMultiplier: LAIR_CRIT_BASE_MULTIPLIER + sum("lairCritMultiplierAdd"),
+    lifesteal: sum("lairLifesteal"),
+    stunMs: sum("lairStunMs"),
+  }
+}
+
 function ownedSkills(run: RunState, config: GameConfig): SkillNodeDef[] {
   const set = new Set(run.ownedSkillNodeIds)
   return config.skillNodes.filter((n) => set.has(n.id))
@@ -1853,6 +1882,11 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
           helmet: Number.isInteger(run.gear?.helmet) ? Math.max(0, run.gear!.helmet!) : 0,
           amulet: Number.isInteger(run.gear?.amulet) ? Math.max(0, run.gear!.amulet!) : 0,
         },
+        forgeFails: Object.fromEntries(
+          Object.entries(run.forgeFails && typeof run.forgeFails === "object" ? run.forgeFails : {}).filter(
+            ([k, v]) => ["weapon", "armor", "helmet", "amulet"].includes(k) && Number.isInteger(v) && (v as number) >= 0,
+          ),
+        ),
         // A reload walks you back out of any lair fight; shields keep running.
         lair: null,
         monsterShieldUntil: Object.fromEntries(

@@ -26,16 +26,16 @@ type PlatePhase = "collapse" | "void_tear" | "stamp" | "rebuild" | "settle"
 
 export const RebirthPhaseArt = {
   /** 1920×1080 worldline picker backdrop (dark lower band for cards). */
-  worldlineSelectBg: `${DIR}/rebirth_worldline_select_bg_v1.png`,
+  worldlineSelectBg: `${DIR}/rebirth_worldline_select_bg_v1.webp`,
   /** Key visual: void tear + nascent core; also settle-phase flash backdrop. */
-  keyVisualVoidTear: `${DIR}/rebirth_key_visual_void_tear_v1.png`,
+  keyVisualVoidTear: `${DIR}/rebirth_key_visual_void_tear_v1.webp`,
   // v2: painted 1920×1080 plates (Canva) replacing the flat Wave A placeholders.
   collapseShared: `${DIR}/rebirth_collapse_shared_v2.webp`,
   rebuildShared: `${DIR}/rebirth_rebuild_shared_v2.webp`,
   settleShared: `${DIR}/rebirth_settle_shared_v2.webp`,
   particlesShared: `${DIR}/rebirth_particles_shared_v2.webp`,
-  particlesResonanceProtocol: `${DIR}/rebirth_particles_resonance_protocol_v2.png`,
-  particlesVolatileCore: `${DIR}/rebirth_particles_volatile_core_v2.png`,
+  particlesResonanceProtocol: `${DIR}/rebirth_particles_resonance_protocol_v2.webp`,
+  particlesVolatileCore: `${DIR}/rebirth_particles_volatile_core_v2.webp`,
   voidTearShared: `${DIR}/rebirth_void_tear_shared_v1.webp`,
   selectChromeShared: `${DIR}/rebirth_worldline_select_chrome_shared_v1.webp`,
   selectFocus: `${DIR}/rebirth_worldline_select_focus_v1.webp`,
@@ -56,7 +56,7 @@ export const RebirthPhaseArt = {
     return slug ? `${DIR}/rebirth_stamp_${slug}_v2.webp` : STAMP_FALLBACK[transcendenceId]
   },
 
-  /** Stamp-phase particle plate; resonance / volatile worldlines use v2 PNG overlays. */
+  /** Stamp-phase particle plate; resonance / volatile worldlines use their own v2 plates. */
   particlesFor(transcendenceId: string): string {
     if (transcendenceId === "reso_line") return RebirthPhaseArt.particlesResonanceProtocol
     if (transcendenceId === "risk_line") return RebirthPhaseArt.particlesVolatileCore
@@ -85,4 +85,12 @@ export const RebirthPhaseArt = {
     if (phase === "void_tear") return RebirthPhaseArt.keyVisualVoidTear
     return undefined
   },
+}
+
+/** Every image the rebirth sequence shows for a worldline, in the order it shows them. */
+export function rebirthArtFor(transcendenceId: string): string[] {
+  const phases: PlatePhase[] = ["collapse", "void_tear", "stamp", "rebuild", "settle"]
+  const urls = phases.map((p) => RebirthPhaseArt.keyVisualBackdropFor(p) ?? RebirthPhaseArt.plateForPhase(p, transcendenceId))
+  const stamp = RebirthPhaseArt.stampFor(transcendenceId)
+  return [...new Set(stamp ? [...urls, stamp] : urls)]
 }

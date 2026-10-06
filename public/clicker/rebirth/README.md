@@ -10,8 +10,8 @@ Hex PROVISIONAL. Wired via `RebirthPhaseArt` in `src/data/clicker/rebirth-assets
 
 ## Particles / phase plates
 - `rebirth_particles_shared_v1.webp`
-- `rebirth_particles_resonance_protocol_v2.png` — Resonance Protocol stamp overlay (`reso_line`)
-- `rebirth_particles_volatile_core_v2.png` — Volatile Core stamp overlay (`risk_line`)
+- `rebirth_particles_resonance_protocol_v2.webp` — Resonance Protocol stamp overlay (`reso_line`)
+- `rebirth_particles_volatile_core_v2.webp` — Volatile Core stamp overlay (`risk_line`)
 - `rebirth_collapse_shared_v1.webp`
 - `rebirth_rebuild_shared_v1.webp`
 - `rebirth_settle_shared_v1.webp`
@@ -20,8 +20,8 @@ Hex PROVISIONAL. Wired via `RebirthPhaseArt` in `src/data/clicker/rebirth-assets
 - `rebirth_motion_preview_directive_v1.gif` — ~5s collapse→Directive stamp→rebuild preview
 
 ## HQ stills (2026-10-01)
-- `rebirth_worldline_select_bg_v1.png` — worldline select room backdrop (`RebirthPhaseArt.worldlineSelectBg`)
-- `rebirth_key_visual_void_tear_v1.png` — void tear + settle motion backdrop (`RebirthPhaseArt.keyVisualVoidTear`)
+- `rebirth_worldline_select_bg_v1.webp` — worldline select room backdrop (`RebirthPhaseArt.worldlineSelectBg`)
+- `rebirth_key_visual_void_tear_v1.webp` — void tear + settle motion backdrop (`RebirthPhaseArt.keyVisualVoidTear`)
 - Details: `README-hq-images-2026-10-01.txt`
 
 ## Worldline select chrome (sheets 08/10)

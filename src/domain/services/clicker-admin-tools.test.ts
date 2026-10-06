@@ -104,3 +104,14 @@ test("secret taps: N quick taps unlock, a pause resets", () => {
     slow = r.state
   }
 })
+
+test("admin: max all upgrades owns every upgrade, circuit, tree node, top gear and max relics", async () => {
+  const { adminMaxAllUpgrades } = await import("./clicker-admin-tools.ts")
+  const { GEAR, GEAR_SLOTS } = await import("./clicker-lair.ts")
+  const save = adminMaxAllUpgrades(createInitialSave(0, clickerConfig), clickerConfig)
+  assert.equal(save.runState.ownedUpgradeIds.length, clickerConfig.upgrades.length)
+  assert.equal(save.runState.ownedSkillNodeIds.length, clickerConfig.skillNodes.length)
+  assert.equal(save.runState.worldTreeIds?.length, (clickerConfig.worldTrees ?? []).length)
+  for (const slot of GEAR_SLOTS) assert.equal(save.runState.gear?.[slot], GEAR[slot].length - 1)
+  for (const r of clickerConfig.relics) assert.equal(save.metaState.relicLevels[r.id], r.maxLevel)
+})

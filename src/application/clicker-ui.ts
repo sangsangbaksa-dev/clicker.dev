@@ -119,10 +119,13 @@ export {
   LAIR_BOSSES,
   SHIELD_MS,
   WEAPONS,
+  FORGE_SUCCESS_RATES,
   forgeError,
+  forgeOdds,
   gearImage,
   gearOf,
   lairAttackEveryMs,
   playerMaxHp,
   shieldRemainingMs,
+  type ForgeOdds,
 } from "@/domain/services/clicker-lair"

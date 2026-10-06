@@ -1,16 +1,16 @@
 rebirth-hq-2026-10-01 (generated 2026-10-01 KST)
 
 FILES (final, true PNG magic 89504e47, 1920x1080, no text/UI/characters/watermark)
-1. rebirth_worldline_select_bg_v1.png  - world-line select backdrop. Bright nexus + magenta(left)/orange(right) ribbons in the top ~45%; lower ~50% is near-empty dark void for UI cards (measured: lower-center mean luma ~16/255, max 100px block ~29).
-2. rebirth_key_visual_void_tear_v1.png - rebirth key visual. Central jagged void tear with white-hot/cyan/teal edges, crystal + rock shards and cyan particles spiralling in, shockwave rings, foreground shards blurred.
+1. rebirth_worldline_select_bg_v1.webp  - world-line select backdrop. Bright nexus + magenta(left)/orange(right) ribbons in the top ~45%; lower ~50% is near-empty dark void for UI cards (measured: lower-center mean luma ~16/255, max 100px block ~29).
+2. rebirth_key_visual_void_tear_v1.webp - rebirth key visual. Central jagged void tear with white-hot/cyan/teal edges, crystal + rock shards and cyan particles spiralling in, shockwave rings, foreground shards blurred.
 Not delivered: 3rd "settle/after-rebirth" plate - judged not clearly needed (existing rebirth_settle_shared_v1 / hud_settle_idle are UI chrome frames, and the key visual can double as the settle-flash backdrop); Runway credits were also low (~130).
 _attempts_not_selected/ : rejected attempts, kept for reference (select attempt1; key attempt2 which had baked-in black letterbox bars).
 
 METHOD
 Runway MCP generate_image, model nano-banana-pro (gemini-3-pro-image), ratio 16:9, imageSize 2K -> 2752x1536 output. Center-cropped to exact 16:9 (top/bottom trim) and Lanczos-resized to 1920x1080, saved as true PNG via Pillow (RGB).
 References (JPEG-in-.png sources were not used; refs are true PNG copies, uploaded via init_upload/complete_upload):
- - needed-images-2026-10-01/rebirth_particles_resonance_protocol_v2.png (tag particles/magenta)
- - needed-images-2026-10-01/rebirth_particles_volatile_core_v2.png (tag orange, select bg only)
+ - needed-images-2026-10-01/rebirth_particles_resonance_protocol_v2.webp (tag particles/magenta)
+ - needed-images-2026-10-01/rebirth_particles_volatile_core_v2.webp (tag orange, select bg only)
  - needed-images-2026-10-01/mine_interior_hitech_mineral_1080p_v1.png (tag mine; crystal look)
  Viewed for style (not sent): rebirth_collapse_shared_v1, rebirth_worldline_select_focus_v1, rebirth_settle_shared_v1 (wave-a, JPEG-in-.png), mine_interior ore ref.
 Attempts: 2 per image max. Select: a1 (center-heavy streams reaching mid frame, lower area busier) rejected; a2 selected. Key: a1 selected; a2 had black letterbox bars -> rejected. Runway task IDs: select a1 315ba55a-0379-4e85-9ea9-5922291eab31, a2 6b17f9fd-ade1-4e5d-ace7-20c23b806d56; key a1 1db35e35-d413-46e4-9a25-a1ea647b33a1, a2 ea22d6cd-aba5-4a80-906e-6198fd53a49f.

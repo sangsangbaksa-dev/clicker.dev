@@ -47,7 +47,7 @@ export const CLICKER_TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: "worldline",
     title: "세계선",
-    bgAssetId: "/clicker/rebirth/rebirth_key_visual_void_tear_v1.png",
+    bgAssetId: "/clicker/rebirth/rebirth_key_visual_void_tear_v1.webp",
     body: "\"한 번의 삶으로는 부족합니다.\" 코어가 말합니다. 충분한 빛이 모이면 세계를 무너뜨리고 다시 시작할 수 있습니다. 모든 것을 잃는 대신, 당신은 더 강한 세계선에서 다시 태어납니다. 그 힘은 다음 생으로 이어집니다.",
   },
   {

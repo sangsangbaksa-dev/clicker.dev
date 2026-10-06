@@ -62,6 +62,7 @@ import {
 } from "@/domain/services/clicker-mine-session"
 import {
   adminGrantCurrencies,
+  adminMaxAllUpgrades,
   adminJumpToFinalBoss,
   adminTriggerFinalBossDefeated,
   adminReplayTutorial,
@@ -444,16 +445,23 @@ export function clickerLeaveLair(save: SaveData): SaveData {
 }
 
 export function clickerStrikeLair(save: SaveData, now: number) {
-  const next = strikeLair(save.runState, save.metaState, config, now)
+  const next = strikeLair(save.runState, save.metaState, config, now, rng)
   const runState = next.reward > 0 ? accrueRegionCurrency(save.runState, next.run, config) : next.run
   const out = { ...save, runState, metaState: next.meta }
-  return { save: next.defeated ? withAchievements(out) : out, damage: next.damage, reward: next.reward, defeated: next.defeated }
+  return {
+    save: next.defeated ? withAchievements(out) : out,
+    damage: next.damage,
+    reward: next.reward,
+    defeated: next.defeated,
+    procs: next.procs,
+  }
 }
 
-export function clickerForge(save: SaveData, slot: GearSlot): UseCaseResult<SaveData> {
-  const next = forgeGear(save.runState, config, slot)
+/** One forge attempt: the price is paid either way; `success` says whether the tier went up. */
+export function clickerForge(save: SaveData, slot: GearSlot): UseCaseResult<{ save: SaveData; success: boolean }> {
+  const next = forgeGear(save.runState, config, slot, rng)
   if (next.error) return { ok: false, status: 400, error: next.error }
-  return ok({ ...save, runState: next.run })
+  return ok({ save: { ...save, runState: next.run }, success: Boolean(next.success) })
 }
 
 /* ---------- Relic Vault ---------- */
@@ -493,6 +501,10 @@ export { mineSessionStart as clickerMineSessionStart }
 
 export function clickerAdminGrantCurrencies(save: SaveData, amount: number): SaveData {
   return { ...save, runState: adminGrantCurrencies(save.runState, config, amount) }
+}
+
+export function clickerAdminMaxAllUpgrades(save: SaveData): SaveData {
+  return adminMaxAllUpgrades(save, config)
 }
 
 export function clickerAdminJumpToFinalBoss(save: SaveData, now: number): SaveData {

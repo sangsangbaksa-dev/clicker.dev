@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   clickerAdminGrant,
   clickerAdminGrantCurrencies,
+  clickerAdminMaxAllUpgrades,
   clickerRedeemSecretCode,
   clickerAdminJumpToFinalBoss,
   clickerAdminTriggerFinalBossDefeated,
@@ -88,6 +89,7 @@ import {
   SECRET_CODE_AMOUNT,
   GEAR,
   gearOf,
+  forgeOdds,
   isClickerAdminAllowed,
   productionSnapshot,
   type ClickerSettings,
@@ -538,6 +540,13 @@ export function useClicker() {
     [commit, flash],
   )
 
+  const adminMaxAllUpgrades = useCallback(() => {
+    if (!isClickerAdminAllowed() || !saveRef.current) return
+    commitAndSave(clickerAdminMaxAllUpgrades(saveRef.current))
+    playSfx("achievement")
+    flash("관리자 · 모든 업그레이드 달성")
+  }, [flash, commitAndSave])
+
   /** The secret code typed anywhere: 100T CORE and of every world currency. */
   const redeemSecretCode = useCallback(() => {
     if (!saveRef.current) return
@@ -818,8 +827,13 @@ export function useClicker() {
       const result = clickerStrikeLair(saveRef.current, now())
       if (result.damage <= 0) return null
       commit(result.save)
-      const text = result.defeated ? `+${formatNumber(result.reward)}` : `-${result.damage}`
-      pushFloat({ text, critical: result.defeated, x: clientX, y: clientY }, result.defeated ? 1100 : 600)
+      const { procs } = result
+      const tag = `${procs.quake ? "지진파 " : ""}${procs.weakSpot ? "약점 " : ""}`
+      const text = result.defeated ? `+${formatNumber(result.reward)}` : `${tag}-${result.damage}${procs.stun ? " · 기절" : ""}`
+      const big = result.defeated || procs.quake || procs.weakSpot
+      pushFloat({ text, critical: big, x: clientX, y: clientY }, big ? 1100 : 600)
+      if (procs.quake) playSfx("quake")
+      else if (procs.weakSpot) playSfx("lightning")
       if (result.defeated) {
         playSfx("monsterDie")
         persistNow(result.save)
@@ -834,10 +848,21 @@ export function useClicker() {
       if (!saveRef.current) return
       const result = clickerForge(saveRef.current, slot)
       if (!result.ok) return refuse(result.error)
-      commitAndSave(result.value)
+      const { save, success } = result.value
+      commitAndSave(save)
+      if (!success) {
+        playSfx("deny")
+        const odds = forgeOdds(save.runState, slot)
+        flash(
+          odds?.guaranteed
+            ? "강화 실패 · 장인의 기운 100% — 다음 강화는 반드시 성공"
+            : `강화 실패 · 다음 확률 ${Math.round((odds?.rate ?? 0) * 1000) / 10}% · 장인의 기운 ${Math.round((odds?.energy ?? 0) * 1000) / 10}%`,
+        )
+        return
+      }
       playSfx("upgrade")
-      const tier = GEAR[slot][gearOf(result.value.runState)[slot]]
-      flash(`제작 완료 · ${tier.name}`)
+      const tier = GEAR[slot][gearOf(save.runState)[slot]]
+      flash(`강화 성공 · ${tier.name}`)
     },
     [refuse, flash, commitAndSave],
   )
@@ -1059,6 +1084,7 @@ export function useClicker() {
     adminReset,
     adminGrant,
     adminGrantAllCurrencies,
+    adminMaxAllUpgrades,
     adminJumpFinalBoss,
     adminJumpFinalBossDefeated,
     adminSkipTutorial,
