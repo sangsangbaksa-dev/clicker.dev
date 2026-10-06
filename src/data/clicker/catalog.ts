@@ -52,7 +52,7 @@ const baseConfig: GameConfig = {
   rebirthGoalScale: [85000, 720, 6.151, 0.08943, 0.002621, 0.0000229, 0.0008351, 0.004, 0.000035],
   // Rebirth-only stretch on top (scripts/playtime-sim.ts CALIBRATE=120,50,30,20,15,10,30,90): each
   // worldline ends near its target minutes while its worlds still open on the same schedule.
-  rebirthGoalStretch: [80.88, 1, 1, 6.194, 2.637, 2.371, 2.679, 7],
+  rebirthGoalStretch: [80.88, 1, 1, 6.194, 2.637, 2.371, 2.679, 2.4],
   // Bought multipliers (upgrades + circuits) past ×100 count as (excess)^0.35, so purchases keep
   // paying off all worldline long instead of snowballing into a buy-everything burst.
   stackSoftCap: 100,
