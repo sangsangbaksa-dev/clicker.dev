@@ -24,6 +24,8 @@ export type BgmTrackDef = {
   readonly loop: boolean
   /** Known length of a one-shot track; beds use it to time the hand-over. */
   readonly durationMs?: number
+  /** Manual loop wrap (seconds); used when gapless decode length differs from the musical loop. */
+  readonly loopRegionSec?: { readonly start: number; readonly end: number }
 }
 
 export const BGM_TRACK_REGISTRY: Record<BgmTrackId, BgmTrackDef> = {
@@ -42,6 +44,13 @@ export const BGM_TRACK_REGISTRY: Record<BgmTrackId, BgmTrackDef> = {
   heart: { file: "bgm_world_heart", format: "mp3", loop: true },
   // 새벽의 광산 loop: gapless mp3 (loop 0–75 s); plays on the plain HTMLAudio loop like every other BGM.
   dawn: { file: "bgm_dawn_mine_loop_v1_loop", format: "mp3", loop: true },
+  tutorial: {
+    file: "bgm_tutorial_loop_v1",
+    format: "mp3",
+    loop: true,
+    durationMs: 67_500,
+    loopRegionSec: { start: 0, end: 67.5 },
+  },
 }
 
 export const BGM_TRACK_IDS = Object.keys(BGM_TRACK_REGISTRY) as BgmTrackId[]
@@ -57,6 +66,10 @@ export function bgmTrackUrl(id: BgmTrackId): string {
 
 export function bgmTrackLoops(id: BgmTrackId): boolean {
   return BGM_TRACK_REGISTRY[id].loop
+}
+
+export function bgmTrackLoopRegionSec(id: BgmTrackId): { start: number; end: number } | undefined {
+  return BGM_TRACK_REGISTRY[id].loopRegionSec
 }
 
 /** Entrance -> mine loop crossfade (the brief asks for 4-6 s; the middle of that range). */

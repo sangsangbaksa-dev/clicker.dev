@@ -17,6 +17,7 @@ export type BgmTrackId =
   | "fault"
   | "heart"
   | "dawn"
+  | "tutorial"
 
 /**
  * `rebirth` plays HQ intro once, then crossfades to the `rebirthHq` loop; `mineEnter` plays the
@@ -118,6 +119,8 @@ export type BgmOverlayState = {
   finalBossFight?: boolean
   /** 새벽의 광산 is open (after the ending): the dawn loop replaces the hub / world / mine themes. */
   dawnMine?: boolean
+  /** Onboarding overlay is visible (plays the tutorial loop). */
+  tutorialOpen?: boolean
 }
 
 /**
@@ -148,6 +151,7 @@ export function resolveBgmScene(overlay: BgmOverlayState): BgmScene {
   if (overlay.regionIntro || overlay.endingPhase) return "silent"
   if (overlay.bootLoading) return "silent"
   if (overlay.enteringMine) return "mineEnter"
+  if (overlay.tutorialOpen) return "tutorial"
   if (overlay.pendingRebirth || overlay.rebirthBgmTail) return "rebirth"
   if (overlay.endingOpen) return "chamber"
   if (overlay.finalBossFight) return "boss"

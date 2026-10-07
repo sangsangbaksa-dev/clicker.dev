@@ -376,6 +376,9 @@ export function ClickerApp() {
         Boolean(game.save?.runState.boss) &&
         Boolean(game.config.regions.find((r) => r.id === game.save?.runState.currentRegionId)?.boss),
       dawnMine: Boolean(game.awakenedGuardian),
+      tutorialOpen: Boolean(
+        game.save?.settings.gameStarted && !game.save?.settings.tutorialSeen && game.save?.settings.playSurface !== "mine",
+      ),
     }),
     muted: bgm.muted,
     volume: bgm.volume,

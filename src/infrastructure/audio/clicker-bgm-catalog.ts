@@ -1,5 +1,5 @@
 import type { BgmTrackId } from "@/domain/services/clicker-bgm"
-import { BGM_TRACK_IDS, bgmTrackLoops, bgmTrackUrl } from "@/domain/services/clicker-bgm-tracks"
+import { BGM_TRACK_IDS, bgmTrackLoopRegionSec, bgmTrackLoops, bgmTrackUrl } from "@/domain/services/clicker-bgm-tracks"
 
 /** Public URLs for the BGM tracks, derived from the domain registry (which file, which format, loop or not). */
 export const CLICKER_BGM_URL: Record<BgmTrackId, string> = Object.fromEntries(
@@ -7,7 +7,11 @@ export const CLICKER_BGM_URL: Record<BgmTrackId, string> = Object.fromEntries(
 ) as Record<BgmTrackId, string>
 
 export function bgmTrackShouldLoop(id: BgmTrackId): boolean {
-  return bgmTrackLoops(id)
+  return bgmTrackLoops(id) && !bgmTrackLoopRegionSec(id)
+}
+
+export function bgmTrackLoopRegion(id: BgmTrackId) {
+  return bgmTrackLoopRegionSec(id)
 }
 
 const warmed = new Map<string, Promise<void>>()
