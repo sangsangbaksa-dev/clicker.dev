@@ -40,6 +40,8 @@ export const BGM_TRACK_REGISTRY: Record<BgmTrackId, BgmTrackDef> = {
   storm: { file: "bgm_world_storm", format: "mp3", loop: true },
   fault: { file: "bgm_world_fault", format: "mp3", loop: true },
   heart: { file: "bgm_world_heart", format: "mp3", loop: true },
+  // 새벽의 광산 loop: gapless mp3 (loop 0–75 s); plays on the plain HTMLAudio loop like every other BGM.
+  dawn: { file: "bgm_dawn_mine_loop_v1_loop", format: "mp3", loop: true },
 }
 
 export const BGM_TRACK_IDS = Object.keys(BGM_TRACK_REGISTRY) as BgmTrackId[]

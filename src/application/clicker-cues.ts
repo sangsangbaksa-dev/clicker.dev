@@ -8,6 +8,7 @@ export {
   drillTapPlan,
   guardianAudioPlan,
   navTabCue,
+  dawnDepthCue,
   DRILL_LOOP_IDLE_MS,
 } from "@/domain/services/clicker-audio-cues"
 export type { CueId, GuardianAudioPlan, GuardianAudioSnap } from "@/domain/services/clicker-audio-cues"

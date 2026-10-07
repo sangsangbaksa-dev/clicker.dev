@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react"
 import type { GuardianLayout } from "@/application/clicker-guardian-frame"
-import { GUARDIAN_SHADOW_SRC, GUARDIAN_SPRITE, guardianFrameSrc, type GuardianTier } from "@/data/clicker/guardian-sprite"
+import { GUARDIAN_SHADOW_SRC, GUARDIAN_SPRITE, awakenedGuardianTier, guardianFrameSrc, type GuardianTier } from "@/data/clicker/guardian-sprite"
 import {
   allFrames,
   frameId,
@@ -26,9 +26,11 @@ type Props = {
   defeats: number
   /** 0..1 */
   enrage: number
+  /** 각성 수호자 art. */
+  awakened?: boolean
 }
 
-const fileKey = (tier: GuardianTier, clip: ClipName, index: number) => `${tier.id}/${frameId(clip, index)}`
+const fileKey = (tier: GuardianTier, clip: ClipName, index: number) => `${tier.dir}/${frameId(clip, index)}`
 
 /** Loads (and decodes) every frame of a tier; resolves once the first-needed frames (appear + idle) are ready. */
 function preloadTier(tier: GuardianTier, loaded: Set<string>, keep: HTMLImageElement[], isStale: () => boolean): Promise<void> {
@@ -57,9 +59,10 @@ function preloadTier(tier: GuardianTier, loaded: Set<string>, keep: HTMLImageEle
  * squash / lean pose applied around the feet pivot, and a contact shadow on the ground line.
  * Only reads the clock and writes styles; what moves how is decided in clicker-guardian-motion.
  */
-export function GuardianSprite({ layout, hits, attacks, defeats, enrage }: Props) {
+export function GuardianSprite({ layout, hits, attacks, defeats, enrage, awakened = false }: Props) {
   const reduced = usePrefersReducedMotion()
-  const { art, tier: wantedTier, shadow } = layout
+  const { art, shadow } = layout
+  const wantedTier = awakened ? awakenedGuardianTier(layout.tier) : layout.tier
   const [readyTier, setReadyTier] = useState<GuardianTier | null>(null)
   const [need, setNeed] = useState<readonly { clip: ClipName; index: number; w: number }[]>([])
   const loadedRef = useRef(new Set<string>())

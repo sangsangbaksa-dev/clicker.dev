@@ -146,3 +146,4 @@ export {
   type RebirthChoiceState,
 } from "@/domain/services/clicker-rebirth-choice"
 export { rebirthKeyframePreloadOrder } from "@/domain/services/clicker-rebirth-keyframes"
+export { awakenedGuardianLabel } from "@/domain/services/clicker-guardian-rematch"

@@ -17,7 +17,6 @@ import {
   regionHasMine,
   exitClickerMine,
   grantAdminEnergy,
-  isGameCompleted,
   processClick,
   processTick,
   resumeAfterGap,
@@ -47,6 +46,8 @@ import {
   buyWorldTreeNode,
   pullGacha,
 } from "@/domain/services/clicker-engine"
+import { AWAKENED_ROAR_TEXT, awakenFight, awakenedGuardianAvailable, awakenedGuardianLabel, awakenedReward, claimAwakenedVictory, isAwakenedFight } from "@/domain/services/clicker-guardian-rematch"
+import { advancePostgame, canPlayAfterCompletion, continueAfterEnding, dawnDepthNotice, getDawnDepth, showsCompletionScreen } from "@/domain/services/clicker-postgame"
 import {
   awardAchievements,
   claimGoldenVein,
@@ -97,6 +98,12 @@ function withRun(save: SaveData, next: { run: RunState; error?: string }): UseCa
 }
 
 /** Unlock any achievements the latest state satisfies (permanent, meta-level). */
+/** CORE mined after the ending deepens the dawn mine (no-op before it opens). */
+function withDawnProgress(prev: SaveData, next: SaveData): SaveData {
+  const advanced = advancePostgame(next.metaState, next.runState.lifetimeCoreEnergy - prev.runState.lifetimeCoreEnergy)
+  return advanced.meta === next.metaState ? next : { ...next, metaState: advanced.meta }
+}
+
 function withAchievements(save: SaveData): SaveData {
   const awarded = awardAchievements(save.runState, save.metaState, config.achievements)
   if (!awarded.unlocked.length) return save
@@ -185,14 +192,14 @@ export function resetClickerPersistence(): void {
 const TICK_GAP_MS = 2500
 
 export function clickerTick(save: SaveData, now: number): SaveData {
-  if (isGameCompleted(save.metaState)) return save
+  if (!canPlayAfterCompletion(save.metaState)) return save
   const synced = syncClickerMineSession(save, now, config)
   const run =
     now - synced.runState.lastTickAt > TICK_GAP_MS
       ? { ...resumeAfterGap(synced.runState), lastTickAt: now }
       : synced.runState
   const next = processTick(run, synced.metaState, config, now)
-  return withAchievements(maybeAutoStartGaugeFever({ ...synced, runState: tickLair(accrueRegionCurrency(run, next.run, config), config, now), metaState: next.meta }))
+  return withDawnProgress(synced, withAchievements(maybeAutoStartGaugeFever({ ...synced, runState: tickLair(accrueRegionCurrency(run, next.run, config), config, now), metaState: next.meta })))
 }
 
 export function clickerStartGame(save: SaveData): SaveData {
@@ -226,17 +233,17 @@ export function clickerClick(save: SaveData, now: number): {
   quake: boolean
   echo: boolean
 } {
-  if (isGameCompleted(save.metaState)) {
+  if (!canPlayAfterCompletion(save.metaState)) {
     return { save, energy: 0, critical: false, lightning: false, quake: false, echo: false }
   }
   const next = processClick(save.runState, save.metaState, config, now, rng)
-  const saveAfterClick = withAchievements(
+  const saveAfterClick = withDawnProgress(save, withAchievements(
     maybeAutoStartGaugeFever({
       ...save,
       runState: accrueRegionCurrency(save.runState, next.run, config),
       metaState: next.meta,
     }),
-  )
+  ))
   return {
     save: saveAfterClick,
     energy: next.result.energyGained,
@@ -337,6 +344,30 @@ export function clickerCompleteEnding(save: SaveData, now: number): UseCaseResul
   const next = applyTrueEnding(save, config, now)
   if (next.error) return { ok: false, status: 400, error: next.error }
   return ok(next.save)
+}
+
+/** Current depth of 새벽의 광산 (0 until it opens). */
+export function clickerDawnDepth(save: SaveData): number {
+  return getDawnDepth(save.metaState)
+}
+
+export { dawnDepthNotice as clickerDawnDepthNotice }
+
+/** After the ending: open the dawn mine and keep playing (rebirth stays closed). */
+export function clickerContinueAfterEnding(save: SaveData, now: number): UseCaseResult<SaveData> {
+  const next = continueAfterEnding(save.metaState, now)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ ...save, metaState: next.meta, runState: { ...save.runState, lastTickAt: now } })
+}
+
+/** The game can tick and take taps (before the ending, or in the dawn mine). */
+export function clickerCanPlay(save: SaveData): boolean {
+  return canPlayAfterCompletion(save.metaState)
+}
+
+/** Show the frozen completion screen (completed, dawn mine not opened). */
+export function clickerShowsCompletion(save: SaveData): boolean {
+  return showsCompletionScreen(save.metaState)
 }
 
 export function clickerAdminGrant(save: SaveData, amount: number): SaveData {
@@ -468,9 +499,31 @@ export function clickerStartBoss(save: SaveData, now: number): UseCaseResult<Sav
 }
 
 export function clickerStrikeBoss(save: SaveData, now: number) {
+  const fight = save.runState.boss
   const next = strikeBoss(save.runState, save.metaState, config, now, rng)
-  return { save: { ...save, runState: accrueRegionCurrency(save.runState, next.run, config), metaState: next.meta }, damage: next.damage, critical: next.critical, defeated: next.defeated }
+  // 각성 수호자: the killing blow pays 새벽 조각 (the normal guardian pays nothing new).
+  const won = next.defeated && fight ? claimAwakenedVictory(next.meta, fight) : { meta: next.meta, reward: 0 }
+  const after = withDawnProgress(save, { ...save, runState: accrueRegionCurrency(save.runState, next.run, config), metaState: won.meta })
+  return { save: after, damage: next.damage, critical: next.critical, defeated: next.defeated, shards: won.reward }
 }
+
+/** 각성 수호자 rematch (새벽의 광산 only): the guardian fight with health scaled by dawn depth. */
+export function clickerStartAwakenedGuardian(save: SaveData, now: number): UseCaseResult<SaveData> {
+  if (!awakenedGuardianAvailable(save.metaState)) return { ok: false, status: 400, error: "새벽의 광산을 연 뒤에 도전할 수 있습니다." }
+  if (save.runState.boss) return { ok: false, status: 400, error: "이미 싸우는 중입니다." }
+  const started = startBossFight(save.runState, save.metaState, config, now)
+  if (started.error || !started.run.boss) return { ok: false, status: 400, error: started.error ?? "여기에는 수호자가 없습니다." }
+  return ok({ ...save, runState: { ...started.run, boss: awakenFight(started.run.boss, save.metaState) } })
+}
+
+/** What the boss screen needs to offer the rematch (null before 새벽의 광산). */
+export function clickerAwakenedGuardianView(save: SaveData): { label: string; reward: number } | null {
+  if (!awakenedGuardianAvailable(save.metaState)) return null
+  const depth = clickerDawnDepth(save)
+  return { label: awakenedGuardianLabel(depth), reward: awakenedReward(depth) }
+}
+
+export { AWAKENED_ROAR_TEXT as CLICKER_AWAKENED_ROAR_TEXT, isAwakenedFight as clickerIsAwakenedFight, awakenedGuardianLabel as clickerAwakenedLabel }
 
 /**
  * Mine strike limiter: at most MINE_MAX_CPS strikes (taps + drill) in any rolling second.

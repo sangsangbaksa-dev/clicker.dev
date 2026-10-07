@@ -338,6 +338,7 @@ export function ClickerApp() {
       finalBossFight:
         Boolean(game.save?.runState.boss) &&
         Boolean(game.config.regions.find((r) => r.id === game.save?.runState.currentRegionId)?.boss),
+      dawnMine: Boolean(game.awakenedGuardian),
     }),
     muted: bgm.muted,
     volume: bgm.volume,
@@ -858,6 +859,7 @@ export function ClickerApp() {
           worldlineTotal={game.config.transcendence.length}
           onReset={game.adminReset}
           onReplayEnding={() => setEndingMode("replay")}
+          onContinue={game.continueAfterEnding}
         />
         {endingMode === "replay" ? endingFlow : null}
       </>
@@ -1515,6 +1517,7 @@ export function ClickerApp() {
               now={tickNow}
               defeated={bossDefeated}
               onStart={game.startBoss}
+              awakened={game.awakenedGuardian ? { ...game.awakenedGuardian, onStart: game.startAwakenedGuardian } : null}
               onStrike={(x, y) => {
                 playLaser(game.save!.settings.muted, false)
                 game.strikeBoss(x, y)

@@ -16,6 +16,7 @@ export type BgmTrackId =
   | "storm"
   | "fault"
   | "heart"
+  | "dawn"
 
 /**
  * `rebirth` plays HQ intro once, then crossfades to the `rebirthHq` loop; `mineEnter` plays the
@@ -110,6 +111,8 @@ export type BgmOverlayState = {
   bossFight?: boolean
   /** The final guardian fight is running: plays the boss loop (silent scenes and the chamber still win). */
   finalBossFight?: boolean
+  /** 새벽의 광산 is open (after the ending): the dawn loop replaces the hub / world / mine themes. */
+  dawnMine?: boolean
 }
 
 /**
@@ -141,6 +144,7 @@ export function resolveBgmScene(overlay: BgmOverlayState): BgmScene {
   if (overlay.enteringMine) return "mineEnter"
   if (overlay.pendingRebirth || overlay.endingOpen) return "chamber"
   if (overlay.finalBossFight) return "boss"
+  if (overlay.dawnMine) return "dawn"
   if (overlay.playSurface === "mine") return "mine"
   return worldBgmTrack(overlay.currentRegionId)
 }

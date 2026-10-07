@@ -137,6 +137,9 @@ export type BossFight = {
   playerMaxHp: number
   endsAt: number
   nextAttackAt: number
+  /** 각성 수호자 rematch (after the ending); its health was scaled at this dawn depth. */
+  awakened?: boolean
+  awakenedDepth?: number
 }
 
 export type ClickerStatistics = {
@@ -181,6 +184,21 @@ export type MetaState = {
   gachaCounts?: Partial<Record<"common" | "rare" | "epic" | "legendary", number>>
   /** The most recent capsules (newest first), for the history screen. */
   gachaLog?: GachaLogEntry[]
+  /** Dawn Mine after the true ending; absent until the player presses 계속하기. */
+  postgame?: PostgameState
+}
+
+/** Post-ending dawn mine progress (permanent, meta-level). */
+export type PostgameState = {
+  depth: number
+  shards: number
+  /** CORE mined toward the next depth. */
+  progress: number
+  /** CORE goal of depth 0 → 1, fixed when the dawn mine opens. */
+  base: number
+  startedAt: number
+  /** Wins against 각성 수호자. */
+  awakenedWins?: number
 }
 
 /** One opened capsule: when, its rarity, what it held (skill / upgrade / circuit id, or star count). */
@@ -357,6 +375,17 @@ export type AchievementKind =
   | "ORES"
   | "MINE_SESSIONS"
   | "MINE_HAUL"
+  | LateGameAchievementKind
+
+/** Late-game kinds (progress lives in clicker-achievements-lategame.ts). */
+export type LateGameAchievementKind =
+  | "BOSS"
+  | "ENDING"
+  | "TRANSCENDENCE"
+  | "RELIC_LEVELS"
+  | "GACHA_PULLS"
+  | "GACHA_LEGENDARY"
+  | "POSTGAME_DEPTH"
 
 export type AchievementDef = {
   id: string
@@ -364,6 +393,8 @@ export type AchievementDef = {
   description: string
   kind: AchievementKind
   target: number
+  /** Adds ACHIEVEMENT_PRODUCTION_BONUS when unlocked. Default true. */
+  grantsProductionBonus?: boolean
 }
 
 export type ActiveSkillDef = {

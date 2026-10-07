@@ -27,6 +27,7 @@ import {
 } from "./clicker-bonus.ts"
 import { gachaBatchFactor, gachaPriceFactor } from "./clicker-gacha-cost.ts"
 import { clearMinePause, resumeMine } from "./clicker-mine-pause.ts"
+import { sanitizePostgame } from "./clicker-postgame.ts"
 import { worldlineGoalValue, worldlinePowerMultiplier, worldlinePriceScale } from "./clicker-worldline-economy.ts"
 
 /** Base timed-mine length before skill-tree extensions. Balance PROVISIONAL. */
@@ -820,7 +821,7 @@ export function productionSnapshot(
     eventBoostMultiplier(run, "gacha", now) *
     gachaStarMultiplier(meta) *
     worldlineMultiplier(meta, config) *
-    achievementProductionMultiplier(meta)
+    achievementProductionMultiplier(meta, config.achievements)
 
   const byProducer: Record<string, number> = {}
   let perSecond = 0
@@ -1768,6 +1769,7 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         gachaStars: nonNegativeInt(meta.gachaStars),
         gachaFreeAt: typeof meta.gachaFreeAt === "number" && Number.isFinite(meta.gachaFreeAt) ? meta.gachaFreeAt : 0,
         gachaCounts: sanitizeGachaCounts(meta.gachaCounts),
+        postgame: meta.gameCompleted && meta.postgame ? sanitizePostgame(meta.postgame) : undefined,
         gachaLog: sanitizeGachaLog(meta.gachaLog),
       },
       runState: {

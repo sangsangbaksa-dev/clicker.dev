@@ -15,7 +15,7 @@ import {
 } from "./clicker-audio-cues.ts"
 
 test("registry: every cue is an mp3 under the public audio folder, gain never boosts, loops are the beds only", () => {
-  assert.equal(ALL_CUE_IDS.length, 13)
+  assert.equal(ALL_CUE_IDS.length, 16)
   for (const id of ALL_CUE_IDS) {
     const def = CUE_REGISTRY[id]
     assert.match(def.file, /^sfx_[a-z0-9_]+\.mp3$/, id)
