@@ -50,7 +50,7 @@ bgm_boss_loop_v1 | Boss fight BGM (crossfade via BgmScene `boss`, loop=true) | l
 sfx_boss_appear_v1 | Wired: `startBoss` (guardian fight begins) | —
 sfx_boss_hit_v1 | Wired: `strikeBoss` on damage | —
 sfx_boss_defeat_v1 | Wired: `bossDown` when `meta.bossDefeated` flips (ending cue) | —
-sfx_boss_phase_change_v1 | Mapped only — no boss HP phase in engine yet | —
+sfx_boss_phase_change_v1 | Synth `bossPhase` cue plays at <30% guardian HP (sample not wired) | —
 
 === Rebirth HQ audio (2026-10-01) — ceremony bed + motion SFX ===
 bgm_rebirth_hq_intro | BGM `BgmScene` `rebirth` (pendingRebirth): plays once, then hands off to loop | ~9s

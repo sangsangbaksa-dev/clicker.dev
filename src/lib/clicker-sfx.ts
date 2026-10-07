@@ -23,6 +23,7 @@ const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   tick: 90,
   achievement: 400,
   relicAwaken: 900,
+  bossPhase: 1500,
   save: 400,
   lightning: 220,
   quake: 380,
@@ -595,6 +596,13 @@ const CUES = {
     noise(c, "bandpass", 1600, 1.5, 0.05, t, 0.07)
     tone(c, "square", 260 * vary(), 140, 0.035, t, 0.09)
     thump(c, t, 0.08, 150)
+  },
+  /** Guardian crosses into its enraged phase: a low swelling roar over a sub drop. */
+  bossPhase(c: AudioContext, t: number) {
+    tone(c, "sawtooth", 70, 140, 0.07, t, 0.55, { attack: 0.08 })
+    tone(c, "sine", 110, 38, 0.2, t + 0.05, 0.5)
+    noise(c, "bandpass", 500, 0.8, 0.09, t, 0.5, { sweepTo: 1600, attack: 0.1 })
+    thump(c, t + 0.02, 0.16, 90)
   },
   /** World skill learned: deep gong + rising chime. */
   worldSkill(c: AudioContext, t: number) {

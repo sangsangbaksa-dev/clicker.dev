@@ -101,6 +101,13 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
     return () => window.clearTimeout(id)
   }, [tauntKey])
 
+  const enraged = Boolean(battle && battle.bossHp > 0 && battle.bossHp / Math.max(1, battle.bossMaxHp) < 0.3)
+  const wasEnraged = useRef(false)
+  useEffect(() => {
+    if (enraged && !wasEnraged.current) playSfx("bossPhase")
+    wasEnraged.current = enraged
+  }, [enraged])
+
   if (!scene) return <div ref={rootRef} className="clicker-boss-scene" />
   const tap = (e: ReactPointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0 || dying) return
@@ -145,7 +152,7 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
     taunting ? "is-taunting" : "",
     battle ? "is-battle" : "",
     // Under 30% HP the guardian enrages: red pulse, so the last stretch feels like a finish.
-    battle && battle.bossHp / Math.max(1, battle.bossMaxHp) < 0.3 ? "is-enraged" : "",
+    enraged ? "is-enraged" : "",
   ]
     .filter(Boolean)
     .join(" ")
