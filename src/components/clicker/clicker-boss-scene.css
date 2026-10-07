@@ -252,6 +252,14 @@
 }
 @keyframes boss-sanctum-core { 50% { opacity: 0.4; scale: 1.18; } }
 @keyframes boss-sanctum-ray { 50% { opacity: 0.45; } }
+.clicker-boss-scene.is-sanctum.is-phase-2 .boss-scene-weather::before {
+  filter: hue-rotate(18deg) saturate(1.5) brightness(1.2);
+  animation-duration: 1.8s;
+}
+.clicker-boss-scene.is-sanctum.is-phase-3 .boss-scene-weather::before {
+  filter: hue-rotate(-28deg) saturate(1.9) brightness(1.35);
+  animation-duration: 0.9s;
+}
 /* Lava: the chasm glow breathes. */
 .clicker-boss-scene.is-lava .boss-scene-weather::before {
   content: "";
@@ -390,6 +398,62 @@
   translate: -50% 0;
   pointer-events: none;
 }
+.boss-scene-phase {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 4%;
+  width: min(420px, 82%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  translate: -50% 0;
+  color: #e7f4ff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-shadow: 0 2px 8px #000;
+}
+.boss-scene-phase span { color: rgb(230 242 255 / 0.72); }
+.boss-scene-phase strong {
+  padding: 4px 9px;
+  border: 1px solid rgb(140 220 255 / 0.55);
+  border-radius: 999px;
+  background: rgb(4 14 28 / 0.76);
+  box-shadow: 0 0 18px rgb(90 205 255 / 0.25);
+}
+.clicker-boss-scene.is-phase-3 .boss-scene-phase strong {
+  color: #ffe7db;
+  border-color: rgb(255 112 86 / 0.7);
+  box-shadow: 0 0 22px rgb(255 66 50 / 0.4);
+}
+.boss-scene-phase-break {
+  position: absolute;
+  z-index: 8;
+  left: 50%;
+  top: 25%;
+  display: grid;
+  gap: 5px;
+  min-width: min(280px, 76%);
+  padding: 12px 18px;
+  border: 1px solid rgb(255 231 158 / 0.76);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgb(20 30 47 / 0.95), rgb(70 40 24 / 0.9));
+  box-shadow: 0 0 36px rgb(255 178 73 / 0.38), inset 0 1px rgb(255 255 255 / 0.16);
+  color: #fff4d4;
+  text-align: center;
+  pointer-events: none;
+  translate: -50% 0;
+  animation: boss-phase-break 1.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.boss-scene-phase-break strong { font-size: clamp(18px, 4vw, 28px); letter-spacing: 0.12em; }
+.boss-scene-phase-break span { font-size: 12px; font-weight: 700; color: #ffe4a6; }
+@keyframes boss-phase-break {
+  0% { opacity: 0; scale: 0.72; translate: -50% 18px; }
+  18%, 72% { opacity: 1; scale: 1; translate: -50% 0; }
+  100% { opacity: 0; scale: 1.04; translate: -50% -8px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .boss-scene-base,
@@ -400,7 +464,8 @@
   .boss-scene-weather::before,
   .boss-scene-weather::after,
   .boss-scene-box,
-  .boss-scene-pose {
+  .boss-scene-pose,
+  .boss-scene-phase-break {
     animation: none !important;
     transition: none !important;
   }

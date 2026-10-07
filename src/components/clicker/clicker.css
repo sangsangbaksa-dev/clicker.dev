@@ -288,14 +288,14 @@ button.clicker-metric-action.is-active {
   inset: 0;
   background: center / cover no-repeat;
   opacity: 1;
-  filter: brightness(1.02) saturate(1.02);
+  filter: brightness(1.04) saturate(1.07) contrast(1.03);
   pointer-events: none;
   transition: opacity 280ms ease, filter 280ms ease;
 }
 
 .clicker-stage-bg.is-event {
   opacity: 0.72;
-  filter: brightness(1.12) saturate(1.04);
+  filter: brightness(1.12) saturate(1.1) contrast(1.04);
 }
 
 .clicker-stage-region {
@@ -3739,7 +3739,7 @@ button.clicker-metric-action.is-fever-ready em {
 
 .clicker-shell.is-mine-surface .clicker-stage-bg {
   opacity: 1;
-  filter: brightness(1.02) saturate(1.04);
+  filter: brightness(1.04) saturate(1.08) contrast(1.03);
 }
 
 /* FEVER in the mine lights only the chamber's strip lights (clicker-mine.css), not the whole scene. */
