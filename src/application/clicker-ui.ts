@@ -41,7 +41,14 @@ export type {
   TranscendenceDef,
   UpgradeCategory,
 } from "@/domain/entities/clicker"
-export type { ParsedSaveCode } from "@/domain/services/clicker-save-transfer"
+export {
+  isMineHotkeyTypingTarget,
+  minePotionHotkeyLabel,
+  minePotionSlotFromKeyboard,
+  mineSkillSlotFromKeyboard,
+  MINE_POTION_HOTKEY_LABELS,
+  MINE_SKILL_HOTKEY_SLOTS,
+} from "@/domain/services/clicker-mine-hotkeys"
 export type { MineSessionStart, MineSessionSummary } from "@/domain/services/clicker-mine-session"
 export type { GearSlot, GearTier } from "@/domain/services/clicker-lair"
 export {

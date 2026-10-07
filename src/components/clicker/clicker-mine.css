@@ -713,6 +713,22 @@
   line-height: 1.4;
   text-align: center;
 }
+
+[data-clicker] .clicker-mine-potion-key {
+  position: absolute;
+  left: 3px;
+  top: 2px;
+  min-width: 14px;
+  padding: 0 3px;
+  border-radius: 5px;
+  background: color-mix(in srgb, #041018 85%, transparent);
+  color: #ffe39a;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  pointer-events: none;
+}
 @media (max-width: 720px) {
   [data-clicker] .clicker-mine-skills { top: 108px; gap: 6px; }
   [data-clicker] .clicker-mine-skill { width: 48px; height: 48px; }

@@ -34,9 +34,7 @@ import {
   clickerEnterMine,
   clickerMineEntryError,
   clickerExitMine,
-  clickerExportCode,
   clickerImportSave,
-  clickerParseSaveCode,
   clickerSaveJson,
   clickerFinishMineSession,
   clickerGameConfig,
@@ -982,14 +980,6 @@ export function useClicker() {
     flash("진행 상황 저장됨")
   }, [persistNow, flash])
 
-  /** Current save as a copy-pasteable code (settings → 저장 데이터). */
-  const exportSaveCode = useCallback((): string | null => {
-    const current = saveRef.current
-    if (!current) return null
-    persistNow()
-    return clickerExportCode(current)
-  }, [persistNow])
-
   /** Current save as stored JSON (for the cloud save). */
   const exportSaveJson = useCallback((): string | null => {
     const current = saveRef.current
@@ -997,8 +987,6 @@ export function useClicker() {
     persistNow()
     return clickerSaveJson(current)
   }, [persistNow])
-
-  const parseSaveCode = useCallback((code: string) => clickerParseSaveCode(code, now()), [])
 
   /** Replace this device's save with an imported one (the old save is backed up first). */
   const importSaveJson = useCallback(
@@ -1098,9 +1086,7 @@ export function useClicker() {
     otherTabActive,
     resumeHere,
     forceSave,
-    exportSaveCode,
     exportSaveJson,
-    parseSaveCode,
     importSaveJson,
     dismissToast,
     clickCore,

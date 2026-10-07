@@ -41,6 +41,10 @@ import {
   buildUpgradeNavTabs,
   stageStationFor,
   type UpgradeNavAction,
+  isMineHotkeyTypingTarget,
+  minePotionHotkeyLabel,
+  minePotionSlotFromKeyboard,
+  mineSkillSlotFromKeyboard,
 } from "@/application/clicker-ui"
 import { useClicker } from "@/hooks/use-clicker"
 import { useClickerBgm } from "@/hooks/use-clicker-bgm"
@@ -108,18 +112,36 @@ const SKILL_NOVA_COLOR: Record<string, string> = {
   grid_boost: "rgb(255 220 110 / 0.9)",
 }
 
-/** Number keys 1–9 cast owned skills in bar order (ignored while typing). */
-function ClickerSkillHotkeys({ onSlot }: { onSlot: (slot: number) => void }) {
+/** Mine session: 1–9 = active skills (bar order), Q/W/E… = potions (toolbar order). */
+function ClickerMineHotkeys({
+  enabled,
+  onSkillSlot,
+  onPotionSlot,
+}: {
+  enabled: boolean
+  onSkillSlot: (slot: number) => void
+  onPotionSlot: (slot: number) => void
+}) {
   useEffect(() => {
+    if (!enabled) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || !/^Digit[1-9]$/.test(e.code)) return
-      const t = e.target
-      if (t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return
-      onSlot(Number(e.code.slice(5)) - 1)
+      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return
+      if (isMineHotkeyTypingTarget(e.target)) return
+      const skillSlot = mineSkillSlotFromKeyboard(e.code)
+      if (skillSlot !== null) {
+        e.preventDefault()
+        onSkillSlot(skillSlot)
+        return
+      }
+      const potionSlot = minePotionSlotFromKeyboard(e.code)
+      if (potionSlot !== null) {
+        e.preventDefault()
+        onPotionSlot(potionSlot)
+      }
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [onSlot])
+  }, [enabled, onSkillSlot, onPotionSlot])
   return null
 }
 
@@ -586,6 +608,29 @@ export function ClickerApp() {
     game.useSkill(id)
     setSkillNova((prev) => ({ key: (prev?.key ?? 0) + 1, color: SKILL_NOVA_COLOR[id] ?? "rgb(150 230 255 / 0.85)" }))
   }
+
+  const drinkPotionAtSlot = useCallback(
+    (slot: number) => {
+      const save = game.save
+      const hudNow = game.hud
+      if (!save || !hudNow || save.settings.playSurface !== "mine") return
+      const runNow = save.runState
+      const potion = game.config.potions[slot]
+      if (!potion) return
+      const count = runNow.potions[potion.id] ?? 0
+      const feverBusy = hudNow.fever.active || runNow.fever.phase === "COOL_DOWN"
+      if (count <= 0 || hudNow.crisisActive || feverBusy) return
+      if (potion.id === "overdrive" && confirmPotion !== potion.id) {
+        setConfirmPotion(potion.id)
+        return
+      }
+      setConfirmPotion(null)
+      bumpIcon(potion.id)
+      flashStage()
+      game.drinkPotion(potion.id)
+    },
+    [confirmPotion, game],
+  )
 
   useEffect(() => {
     const next = game.hud?.coreVisual
@@ -1373,7 +1418,7 @@ export function ClickerApp() {
               {game.config.potions.length ? (
                 <div className="clicker-mine-potions" role="toolbar" aria-label="보유 포션">
                   {game.config.potions
-                    .map((potion) => {
+                    .map((potion, potionSlot) => {
                       const count = run.potions[potion.id] ?? 0
                       const feverBusy = hud.fever.active || run.fever.phase === "COOL_DOWN"
                       const isActivePotion = hud.fever.active && run.fever.potionId === potion.id
@@ -1414,6 +1459,9 @@ export function ClickerApp() {
                           }}
                         >
                           <img key={`${potion.id}-${popIcons[potion.id] ?? 0}`} src={potion.assetId} alt="" />
+                          {minePotionHotkeyLabel(potionSlot) ? (
+                            <kbd className="clicker-mine-potion-key">{minePotionHotkeyLabel(potionSlot)}</kbd>
+                          ) : null}
                           <span className="clicker-mine-potion-count">{count}</span>
                         </button>
                       )
@@ -1657,12 +1705,14 @@ export function ClickerApp() {
         ) : null}
       </div>
 
-      <ClickerSkillHotkeys
-        onSlot={(n) => {
+      <ClickerMineHotkeys
+        enabled={inMine && !settingsOpen && !skillMapOpen && !enteringMine && !endingMode}
+        onSkillSlot={(n) => {
           const skill = ownedSkills[n]
-          if (!inMine || !skill || (run.skillItems[skill.id] ?? 0) <= 0 || (run.skillCooldowns[skill.id] ?? 0) > 0 || game.hud?.crisisActive) return
+          if (!skill || (run.skillItems[skill.id] ?? 0) <= 0 || (run.skillCooldowns[skill.id] ?? 0) > 0 || hud.crisisActive) return
           castSkill(skill.id)
         }}
+        onPotionSlot={drinkPotionAtSlot}
       />
       <div className="clicker-actions">
         {ownedSkills.map((skill, slot) => {
@@ -1839,9 +1889,6 @@ export function ClickerApp() {
             setSettingsOpen(false)
             game.adminReset()
           }}
-          onExportCode={game.exportSaveCode}
-          onParseCode={game.parseSaveCode}
-          onImportJson={game.importSaveJson}
           account={account}
           onSecretAdmin={() => {
             try {
