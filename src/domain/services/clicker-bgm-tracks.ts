@@ -105,6 +105,7 @@ export const BGM_BEDS: Partial<Record<BgmScene, BgmBedDef>> = {
     intro: "rebirthIntro",
     loop: "rebirthHq",
     advance: { kind: "ended" },
+    handoverMs: 900,
     rewindOnEnter: ["rebirthIntro", "rebirthHq"],
     rewindOnLeave: ["rebirthIntro", "rebirthHq"],
   },

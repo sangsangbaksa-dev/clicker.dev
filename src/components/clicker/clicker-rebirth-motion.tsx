@@ -15,7 +15,7 @@ import {
   type WorldlineMotionVariant,
 } from "@/data/clicker/rebirth-motion"
 import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
-import { playRebirthCue, playRebirthDrone } from "@/lib/clicker-sfx"
+import { playRebirthCue } from "@/lib/clicker-sfx"
 import "./clicker-rebirth-motion.css"
 
 type Props = {
@@ -278,12 +278,6 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
   const rootRef = useRef<HTMLDivElement | null>(null)
   useClickerEscape(true, finishEarly)
   useClickerDialogFocus(rootRef)
-
-  // Low drone under the whole sequence; fades out on finish or skip.
-  useEffect(() => {
-    if (reducedMotion || mutedRef.current) return
-    return playRebirthDrone(duration / 1000 + 0.4)
-  }, [duration, reducedMotion])
 
   // Hold to skip (like a cutscene): a tap does nothing, ~0.7 s of holding skips. Esc / Enter skip at once.
   const [holding, setHolding] = useState(false)

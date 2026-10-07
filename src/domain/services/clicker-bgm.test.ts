@@ -74,7 +74,8 @@ test("resolveBgmScene picks mine, chamber, silent, and world themes", () => {
   }
   assert.equal(resolveBgmScene(base), "storm")
   assert.equal(resolveBgmScene({ ...base, playSurface: "mine" }), "mine")
-  assert.equal(resolveBgmScene({ ...base, pendingRebirth: true }), "chamber")
+  assert.equal(resolveBgmScene({ ...base, pendingRebirth: true }), "rebirth")
+  assert.equal(resolveBgmScene({ ...base, rebirthBgmTail: true }), "rebirth")
   assert.equal(resolveBgmScene({ ...base, endingOpen: true }), "chamber")
   // the mine door-walk plays the entrance track now (it hands over to the mine loop); see clicker-bgm-tracks.test.ts
   assert.equal(resolveBgmScene({ ...base, enteringMine: true }), "mineEnter")

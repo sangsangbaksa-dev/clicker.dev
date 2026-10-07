@@ -48,7 +48,7 @@ import {
 } from "@/application/clicker-ui"
 import { useClicker } from "@/hooks/use-clicker"
 import { useClickerBgm } from "@/hooks/use-clicker-bgm"
-import { clickerBgmControls, clickerBgmScene, mineEntryVideoMuted } from "@/application/clicker-audio"
+import { clickerBgmControls, clickerBgmScene, mineEntryVideoMuted, REBIRTH_BGM_TAIL_MS } from "@/application/clicker-audio"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEndingFlow } from "@/components/clicker/clicker-ending-flow"
 import { ClickerMine, type MineFxTier } from "@/components/clicker/clicker-mine"
@@ -303,6 +303,8 @@ export function ClickerApp() {
   const [popIcons, setPopIcons] = useState<Record<string, number>>({})
   const [confirmPotion, setConfirmPotion] = useState<string | null>(null)
   const [pendingRebirth, setPendingRebirth] = useState<{ id: string; label: string } | null>(null)
+  /** Keeps `BgmScene` `rebirth` after the overlay closes so the HQ loop can fade out. */
+  const [rebirthBgmTail, setRebirthBgmTail] = useState(false)
   /** Title card shown over the fresh worldline right after the rebirth sequence. */
   const [arrival, setArrival] = useState<{ key: number; line: number; label: string; mult: number } | null>(null)
   const [storyBeat, setStoryBeat] = useState<string | null>(null)
@@ -352,6 +354,7 @@ export function ClickerApp() {
       // The whole ending (videos, cards, replay) silences the world score; the ending media bring their own audio.
       endingPhase: endingMode,
       pendingRebirth: Boolean(pendingRebirth),
+      rebirthBgmTail,
       endingOpen: false,
       playSurface: game.save?.settings.playSurface ?? "hub",
       currentRegionId: game.save?.runState.currentRegionId,
@@ -2041,6 +2044,8 @@ export function ClickerApp() {
             const rebirths = (game.save?.metaState.rebirthCount ?? 0) + 1
             game.rebirth(chosen.id)
             setPendingRebirth((cur) => (cur?.id === chosen.id ? null : cur))
+            setRebirthBgmTail(true)
+            window.setTimeout(() => setRebirthBgmTail(false), REBIRTH_BGM_TAIL_MS)
             setTab("producers")
             const key = Date.now()
             setArrival({ key, line: rebirths + 1, label: chosen.label, mult: (1 + clickerConfig.worldlineBonus) ** rebirths })
