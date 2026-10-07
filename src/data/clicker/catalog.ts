@@ -39,10 +39,9 @@ const baseConfig: GameConfig = {
   feverCritChanceAdd: 0.2,
   feverComboCap: 10,
   feverCoolDown: 2,
-  // Final unit ÷1000: goals 1B → 120B → 14T … Prices ×5 per worldline keep pace with the ×5
-  // worldline bonus, so a new worldline replays the catalog instead of buying it out in seconds;
-  // goals ×120 then give ~4h to the Core Heart with no worldline over ~45 min
-  // (scripts/playtime-sim.ts). ×2 prices let wl2+ buy the whole tree at once: income ×10⁸ a minute.
+  // Final unit ÷1000: goals 1B → 120B → 14T … Prices ×2 per worldline match worldlineBonus ×2 so each
+  // rebirth replays the catalog instead of buying it out in seconds. rebirthGoalScale + Stretch are
+  // tuned with scripts/playtime-sim.ts for ~7h active play (6 clicks/s, mine duty cycle) to Core Heart.
   rebirthEnergy: 1e12,
   rebirthGrowth: 120,
   // ×2 per worldline (was ×5): with rebirth circuits from 200M, later runs must still speed up.
@@ -50,9 +49,9 @@ const baseConfig: GameConfig = {
   // Per-worldline goal correction: worlds open at a share of this goal; the 9th entry anchors the
   // Core Heart threshold.
   rebirthGoalScale: [85000, 720, 6.151, 0.08943, 0.002621, 0.0000229, 0.0008351, 0.004, 0.000035],
-  // Rebirth-only stretch on top (scripts/playtime-sim.ts CALIBRATE=120,50,30,20,15,10,30,90): each
-  // worldline ends near its target minutes while its worlds still open on the same schedule.
-  rebirthGoalStretch: [80.88, 0.8189, 0.9683, 5.0, 1.9, 2.371, 3.8, 12],
+  // Rebirth-only stretch on top (scripts/playtime-sim.ts; CALIBRATE retunes per-worldline minutes).
+  // ~7h total at 6 clicks/s: wl ≈120+51+33+23+17+13+37+96 min + ~15 min Core Heart climb.
+  rebirthGoalStretch: [87.5, 0.89, 1.05, 5.4, 2.06, 2.56, 4.1, 13],
   // Bought multipliers (upgrades + circuits) past ×100 count as (excess)^0.35, so purchases keep
   // paying off all worldline long instead of snowballing into a buy-everything burst.
   stackSoftCap: 100,
