@@ -36,6 +36,11 @@
 }
 
 /* MW-01 crumple + MW-03 rebuild: geometric HUD ghost (no new PNG). */
+.clicker-rebirth-ui-crumple,
+.clicker-rebirth-motif {
+  display: none !important;
+}
+
 .clicker-rebirth-ui-crumple {
   position: absolute;
   left: 50%;
@@ -152,24 +157,14 @@
     radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--stamp-primary, #e8f4ff) 12%, transparent), transparent 55%);
 }
 
-.clicker-rebirth-particles-plate-placeholder--pulse {
-  background-image:
-    radial-gradient(circle at 50% 45%, transparent 18%, #05070d 70%),
-    repeating-linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--stamp-primary) 18%, transparent) 0,
-      color-mix(in srgb, var(--stamp-primary) 18%, transparent) 2px,
-      transparent 2px,
-      transparent 24px
-    );
-}
-
-.clicker-rebirth-particles-plate-placeholder--grid {
-  background-image:
-    radial-gradient(circle at 50% 45%, transparent 18%, #05070d 70%),
-    linear-gradient(color-mix(in srgb, var(--stamp-primary) 20%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--stamp-primary) 20%, transparent) 1px, transparent 1px);
-  background-size: auto, 18px 18px, 18px 18px;
+.clicker-rebirth-particles-plate-placeholder--pulse,
+.clicker-rebirth-particles-plate-placeholder--grid,
+.clicker-rebirth-particles-plate-placeholder--rings,
+.clicker-rebirth-particles-plate-placeholder--core,
+.clicker-rebirth-particles-plate-placeholder--hybrid {
+  background:
+    radial-gradient(circle at 50% 45%, transparent 18%, color-mix(in srgb, #05070d 75%, transparent) 68%),
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--stamp-primary, #e8f4ff) 12%, transparent), transparent 55%);
 }
 
 .clicker-rebirth-stamp-still {

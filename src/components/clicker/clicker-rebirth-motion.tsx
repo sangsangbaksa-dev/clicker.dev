@@ -232,97 +232,11 @@ function StampGlyph({
     )
   }
 
-  if (variant.motif === "pulse") {
-    return (
-      <div className="clicker-rebirth-stamp-glyph clicker-rebirth-stamp-glyph--pulse" style={style} aria-hidden>
-        <span className="clicker-rebirth-stamp-ring" />
-        <span className="clicker-rebirth-stamp-bars">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <i key={i} style={{ height: `${28 + i * 12}%` }} />
-          ))}
-        </span>
-        <span className="clicker-rebirth-stamp-chevrons">▲▲▲</span>
-      </div>
-    )
-  }
-  if (variant.motif === "grid") {
-    return (
-      <div className="clicker-rebirth-stamp-glyph clicker-rebirth-stamp-glyph--grid" style={style} aria-hidden>
-        <span className="clicker-rebirth-stamp-square clicker-rebirth-stamp-square--outer" />
-        <span className="clicker-rebirth-stamp-square clicker-rebirth-stamp-square--mid" />
-        <span className="clicker-rebirth-stamp-square clicker-rebirth-stamp-square--inner" />
-        <span className="clicker-rebirth-stamp-crosshair" />
-      </div>
-    )
-  }
-  if (variant.motif === "rings") {
-    return (
-      <div className="clicker-rebirth-stamp-glyph clicker-rebirth-stamp-glyph--rings" style={style} aria-hidden>
-        {[1, 0.78, 0.56, 0.34].map((s, i) => (
-          <span key={i} className="clicker-rebirth-stamp-ring-arc" style={{ transform: `scale(${s})` }} />
-        ))}
-        <span className="clicker-rebirth-stamp-node" />
-      </div>
-    )
-  }
-  if (variant.motif === "core") {
-    return (
-      <div className="clicker-rebirth-stamp-glyph clicker-rebirth-stamp-glyph--core" style={style} aria-hidden>
-        <span className="clicker-rebirth-stamp-core-orb" />
-        <span className="clicker-rebirth-stamp-crack clicker-rebirth-stamp-crack--a" />
-        <span className="clicker-rebirth-stamp-crack clicker-rebirth-stamp-crack--b" />
-        <span className="clicker-rebirth-stamp-crack clicker-rebirth-stamp-crack--c" />
-      </div>
-    )
-  }
   return (
-    <div className="clicker-rebirth-stamp-glyph clicker-rebirth-stamp-glyph--hybrid" style={style} aria-hidden>
-      <span className="clicker-rebirth-stamp-diamond" />
-      <span className="clicker-rebirth-stamp-axis clicker-rebirth-stamp-axis--h" />
-      <span className="clicker-rebirth-stamp-axis clicker-rebirth-stamp-axis--v" />
+    <div className="clicker-rebirth-stamp-glyph clicker-rebirth-stamp-glyph--core" style={style} aria-hidden>
+      <span className="clicker-rebirth-stamp-core-orb" />
     </div>
   )
-}
-
-function MotifFx({ variant, phase, phaseT }: { variant: WorldlineMotionVariant; phase: RebirthPhaseId; phaseT: number }) {
-  if (phase !== "stamp" && phase !== "rebuild") return null
-  const style = {
-    "--stamp-primary": variant.primary,
-    "--stamp-accent": variant.accent,
-    "--motif-t": phaseT,
-  } as CSSProperties
-
-  if (variant.motif === "pulse") {
-    return (
-      <div className="clicker-rebirth-motif clicker-rebirth-motif--pulse" style={style} aria-hidden>
-        {Array.from({ length: 8 }).map((_, i) => (
-          <span key={i} className="clicker-rebirth-motif-bar" style={{ left: `${12 + i * 10}%` }} />
-        ))}
-      </div>
-    )
-  }
-  if (variant.motif === "grid") {
-    return <div className="clicker-rebirth-motif clicker-rebirth-motif--grid" style={style} aria-hidden />
-  }
-  if (variant.motif === "rings") {
-    return (
-      <div className="clicker-rebirth-motif clicker-rebirth-motif--rings" style={style} aria-hidden>
-        {[1, 1.25, 1.5].map((s, i) => (
-          <span key={i} className="clicker-rebirth-motif-ring" style={{ transform: `scale(${s * phaseT})` }} />
-        ))}
-      </div>
-    )
-  }
-  if (variant.motif === "core") {
-    return (
-      <div className="clicker-rebirth-motif clicker-rebirth-motif--core" style={style} aria-hidden>
-        {Array.from({ length: 6 }).map((_, i) => (
-          <span key={i} className="clicker-rebirth-motif-flare" style={{ transform: `rotate(${i * 60}deg)` }} />
-        ))}
-      </div>
-    )
-  }
-  return <div className="clicker-rebirth-motif clicker-rebirth-motif--hybrid" style={style} aria-hidden />
 }
 
 export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = false, onComplete }: Props) {
@@ -608,11 +522,9 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
         <span>{reducedMotion ? "계속 · Esc" : "길게 눌러 건너뛰기 · Esc"}</span>
       </button>
       <div className="clicker-rebirth-overlay" />
-      {!stillOnly ? <div className="clicker-rebirth-ui-crumple" aria-hidden /> : null}
       {!stillOnly ? <PlateStack variant={variant} phase={frame.phase} /> : null}
       {!reducedMotion ? <canvas ref={canvasRef} className="clicker-rebirth-particles" aria-hidden /> : null}
       {!stillOnly && tearVisible ? <div className="clicker-rebirth-tear" aria-hidden /> : null}
-      {!stillOnly ? <MotifFx variant={variant} phase={frame.phase} phaseT={frame.phaseT} /> : null}
       {!stillOnly ? (
         <>
           <span key={`cut-${frame.phase}`} className={`clicker-rebirth-cut is-${frame.phase}`} aria-hidden />
