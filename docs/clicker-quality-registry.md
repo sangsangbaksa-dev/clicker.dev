@@ -2,18 +2,16 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-06
+Last reviewed: 2026-10-07
 
 ## Now (actionable)
 
 | Area | Item | Source / notes |
 |------|------|----------------|
-| Audio | `sfx_rebirth_collapse_whoosh` — no dedicated mp3; motion still uses synth whoosh | `public/clicker/audio/README-sfx-v2.txt` |
-| Audio | `sfx_boss_phase_change_v1` — mapped, no boss HP phases in engine | README-sfx |
-| Art | `mine_interior_hitech_mineral_1080p_v1.png` registered, not wired as chamber BG | `public/clicker/mine/README.md`, `mine-assets.ts` |
-| Motion | Rebirth particle tint overlays (Resonance / Volatile Core) — optional polish | `media/docs/PRIORITY.md` bonus |
+| Audio | `sfx_boss_phase_change_v1` — asset on disk; engine has single-phase guardian HP (no mid-fight phase cue yet) | README-sfx |
+| Art | `mine_interior_hitech_mineral_1080p_v1.png` registered, not wired as chamber BG (layout ≠ ore plate / door-walk seam) | `public/clicker/mine/README.md` |
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | `scripts/pacing-sim.ts` |
-| Code | 71 ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
+| Code | ~68 ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 
 ## Watch (needs asset or design call)
 
@@ -22,6 +20,15 @@ Last reviewed: 2026-10-06
 | Design | Rebirth stamp PNGs vs geometric placeholders until final art lands |
 | BGM | Older `bgm_hub_v2` / `bgm_mine_v2` kept for rollback; catalog prefers v2 loops + mine v3 |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` |
+| Motion | Rebirth particle tint overlays (Resonance / Volatile Core) — wired; tune opacity/timing if art feels flat |
+
+## Done (2026-10-07)
+
+| Area | Item |
+|------|------|
+| Audio | `sfx_rebirth_collapse_whoosh_v3.mp3` generated + mapped in `playRebirthCue` |
+| Code | `backfillClassN` runs on `findUserById` when `classN` missing (fixes unused helper lint) |
+| Balance | Pacing sim baseline recorded (clicks/s=6, REBIRTH 10M ~95m) — no economy edits this run |
 
 ## Done (2026-10-06)
 

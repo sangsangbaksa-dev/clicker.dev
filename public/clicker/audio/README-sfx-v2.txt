@@ -63,4 +63,5 @@ sfx_rebirth_stamp_volatile_core_hq | Wired: stamp phase, Volatile Core | —
 sfx_rebirth_stamp_directive_pulse_hq | Wired: stamp phase, Directive Pulse (+ adaptive_architect fallback key) | —
 sfx_rebirth_stamp_resonance_protocol_hq | Wired: stamp phase, Resonance Protocol | —
 (HQ mp3 preferred; v3/v2 stamp samples and synth cues remain as fallback. Ending overlay still uses `bgm_rebirth_loop_v2` via `chamber` scene.)
-(Wired 2026-10-06: rebirth motion `playRebirthCue` prefers HQ/v3 mp3 for confirm, void tear, rebuild, settle, and stamp phases; synth fallback remains. Still no dedicated mp3: `sfx_rebirth_collapse_whoosh` — collapse phase only.)
+(Wired 2026-10-07: rebirth motion `playRebirthCue` prefers HQ/v3 mp3 for confirm, collapse whoosh, void tear, rebuild, settle, and stamp phases; synth fallback remains.)
+sfx_rebirth_collapse_whoosh_v3 | Rebirth motion collapse phase (procedural v3; generator: media/audio/generate_audio.py) | 1.5s

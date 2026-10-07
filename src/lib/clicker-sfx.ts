@@ -734,6 +734,7 @@ const STAMP_ROOT: Record<string, number> = {
 
 const REBIRTH_CUE_SAMPLE: Record<string, string> = {
   sfx_rebirth_confirm_click: "/clicker/audio/sfx_rebirth_trigger_hq.mp3",
+  sfx_rebirth_collapse_whoosh: "/clicker/audio/sfx_rebirth_collapse_whoosh_v3.mp3",
   sfx_rebirth_void_tear: "/clicker/audio/sfx_rebirth_void_tear_v3.mp3",
   sfx_rebirth_rebuild_rise: "/clicker/audio/sfx_rebirth_rebuild_hq.mp3",
   sfx_rebirth_settle_chime: "/clicker/audio/sfx_rebirth_complete_hq.mp3",
