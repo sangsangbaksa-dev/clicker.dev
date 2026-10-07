@@ -27,6 +27,7 @@
   height: 100%;
   object-fit: cover;
   object-position: center calc(var(--byn, 0.42) * 100%);
+  filter: contrast(1.055) saturate(1.04) brightness(1.015);
   user-select: none;
   -webkit-user-drag: none;
 }
@@ -106,6 +107,12 @@
 /* Player hits: a soft red flare and a small give (scale is separate from the pose transform). */
 .boss-scene-box.hit-0 .boss-scene-flesh { animation: boss-flinch-a 380ms cubic-bezier(0.22, 1, 0.36, 1); }
 .boss-scene-box.hit-1 .boss-scene-flesh { animation: boss-flinch-b 380ms cubic-bezier(0.22, 1, 0.36, 1); }
+.boss-scene-box.hit-0 .boss-scene-base,
+.boss-scene-box.hit-1 .boss-scene-base { animation: boss-art-impact 380ms ease-out; }
+@keyframes boss-art-impact {
+  18% { filter: contrast(1.2) saturate(1.2) brightness(1.22); }
+  100% { filter: contrast(1.055) saturate(1.04) brightness(1.015); }
+}
 @keyframes boss-flinch-a {
   0% { transform: translate3d(0, 0, 0); }
   18% { transform: translate3d(-1.2%, 0.7%, 0) rotate(-0.6deg); }
@@ -385,6 +392,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .boss-scene-base,
   .boss-scene-rig,
   .boss-scene-flesh,
   .boss-scene-eye,

@@ -166,7 +166,14 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
         <div className="boss-scene-rig">
           <div className="boss-scene-pose">
             <div className="boss-scene-flesh">
-              <img className="boss-scene-base" src={scene.src} alt="" draggable={false} decoding="async" />
+              <img
+                className="boss-scene-base"
+                src={scene.src}
+                alt=""
+                draggable={false}
+                decoding="async"
+                fetchPriority="high"
+              />
               {scene.eyes.map((p, i) => (
                 <span key={i} className="boss-scene-eye" style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-hidden />
               ))}
