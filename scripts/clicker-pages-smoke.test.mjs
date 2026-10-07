@@ -4,7 +4,9 @@
  *
  * Run after: prepare-pages.sh + GITHUB_PAGES=1 next build (see .github/workflows/pages.yml).
  */
+import { access } from "node:fs/promises"
 import { test } from "node:test"
+import { fileURLToPath } from "node:url"
 import { createGitHubPagesStaticServer } from "./clicker-pages-server.mjs"
 import {
   assertClickerShellReady,
@@ -15,8 +17,16 @@ import {
 const HOST = "127.0.0.1"
 const PORT = Number(process.env.CLICKER_PAGES_SMOKE_PORT || "3098")
 const BASE_PATH = process.env.PAGES_BASE_PATH || "/clicker.dev"
+const OUT_INDEX = fileURLToPath(new URL("../out/index.html", import.meta.url))
 
 test("exported clicker loads under Pages base path", { timeout: 120_000 }, async () => {
+  try {
+    await access(OUT_INDEX)
+  } catch {
+    throw new Error(
+      "Missing out/index.html. Run the GitHub Pages export first (prepare-pages.sh + GITHUB_PAGES=1 next build); see .github/workflows/pages.yml.",
+    )
+  }
   const { listen, close, origin } = createGitHubPagesStaticServer({
     host: HOST,
     port: PORT,
