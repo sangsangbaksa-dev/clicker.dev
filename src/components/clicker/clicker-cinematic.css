@@ -5,13 +5,12 @@
   z-index: 60;
   display: grid;
   place-items: center;
-  /* Poster matches door-centered mine entrance still (seamless with door-walk f000). */
-  background: #000 center / cover no-repeat;
-  animation: clicker-cinematic-in 180ms ease-out;
+  /* Stage still shows through until the first painted frame (no duplicate poster layer). */
+  background: transparent;
 }
 
-@keyframes clicker-cinematic-in {
-  from { opacity: 0; }
+.clicker-cinematic.is-ready {
+  background: #000;
 }
 
 .clicker-cinematic-video {
@@ -19,11 +18,12 @@
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 160ms ease-out;
+  visibility: hidden;
 }
 
-.clicker-cinematic-video.is-ready {
+.clicker-cinematic.is-ready .clicker-cinematic-video {
   opacity: 1;
+  visibility: visible;
 }
 
 .clicker-cinematic-caption {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { warmImage } from "@/components/clicker/clicker-preload"
 import "./clicker-cinematic.css"
 
 /** Warm cache: one detached <video preload="auto"> per src, so the real player starts at once. */
@@ -40,8 +41,13 @@ export function ClickerCinematic({ src, poster, label, caption, muted, volume = 
   const doneRef = useRef(false)
   const mutedAtStart = useRef(muted)
   const onDoneRef = useRef(onDone)
-  /** The poster stays up until the first frame is ready, so there's no black flash. */
+  /** True once decoded frames are painting — keeps the stage visible until motion starts (no poster flash). */
   const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    setReady(false)
+    void warmImage(poster)
+  }, [src, poster])
 
   useEffect(() => {
     onDoneRef.current = onDone
@@ -87,14 +93,26 @@ export function ClickerCinematic({ src, poster, label, caption, muted, volume = 
 
   const finish = () => finishRef.current()
 
+  const markReady = () => {
+    const video = videoRef.current
+    if (!video) {
+      setReady(true)
+      return
+    }
+    if (typeof video.requestVideoFrameCallback === "function") {
+      video.requestVideoFrameCallback(() => setReady(true))
+      return
+    }
+    setReady(true)
+  }
+
   return (
-    <div className="clicker-cinematic" role="dialog" aria-label={label} style={{ backgroundImage: `url(${poster})` }}>
+    <div className={`clicker-cinematic${ready ? " is-ready" : ""}`} role="dialog" aria-label={label}>
       <video
         ref={videoRef}
-        className={`clicker-cinematic-video${ready ? " is-ready" : ""}`}
-        onPlaying={() => setReady(true)}
+        className="clicker-cinematic-video"
+        onPlaying={markReady}
         src={src}
-        poster={poster}
         playsInline
         preload="auto"
         onEnded={finish}
