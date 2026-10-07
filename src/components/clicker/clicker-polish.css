@@ -3007,32 +3007,65 @@
    runs the very same animation on the very same box, so the rig stays pinned to the floor. */
 [data-clicker] .clicker-stage-bg.is-drift:not(.is-region-transition),
 [data-clicker] .clicker-stage:has(.clicker-stage-bg.is-drift:not(.is-region-transition)) .clicker-drill-scene {
-  animation: clicker-bg-drift 26s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+  animation: clicker-bg-drift 34s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
   transform-origin: 50% 55%;
 }
 @keyframes clicker-bg-drift {
-  0% { transform: scale(1.035) translate(-0.7%, 0.3%); }
-  50% { transform: scale(1.05) translate(0.2%, -0.5%); }
-  100% { transform: scale(1.04) translate(0.8%, 0.2%); }
+  0% { transform: scale(1.035) translate(-0.45%, 0.2%); }
+  50% { transform: scale(1.047) translate(0.1%, -0.35%); }
+  100% { transform: scale(1.04) translate(0.45%, 0.15%); }
 }
 [data-clicker] .clicker-stage-bg.is-drift::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(ellipse 60% 55% at 50% 55%, rgb(255 255 255 / 0.07), transparent 70%);
-  mix-blend-mode: soft-light;
-  animation: clicker-bg-light 7.5s ease-in-out infinite;
+  background:
+    radial-gradient(ellipse 48% 44% at 50% 52%, rgb(134 220 255 / 0.09), transparent 72%),
+    linear-gradient(180deg, rgb(5 10 18 / 0.02) 35%, rgb(5 10 18 / 0.16));
+  mix-blend-mode: screen;
+  animation: clicker-bg-light 11s ease-in-out infinite;
 }
 @keyframes clicker-bg-light {
-  0%, 100% { opacity: 0.2; }
-  45% { opacity: 1; }
-  60% { opacity: 0.7; }
+  0%, 100% { opacity: 0.25; }
+  48% { opacity: 0.9; }
+  62% { opacity: 0.58; }
+}
+/* A restrained depth layer adds life to world art without covering the mine or entrance hitboxes. */
+[data-clicker] .clicker-stage:has(> .clicker-stage-bg.is-drift:not(.is-region-transition)) > .clicker-vignette::before,
+[data-clicker] .clicker-stage:has(> .clicker-stage-bg.is-drift:not(.is-region-transition)) > .clicker-vignette::after {
+  content: "";
+  position: absolute;
+  inset: -8%;
+  pointer-events: none;
+}
+[data-clicker] .clicker-stage:has(> .clicker-stage-bg.is-drift:not(.is-region-transition)) > .clicker-vignette::before {
+  opacity: 0.26;
+  background:
+    radial-gradient(1px 1px at 8% 22%, rgb(195 237 255 / 0.8) 0 55%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 18% 77%, rgb(126 218 255 / 0.68) 0 55%, transparent 100%),
+    radial-gradient(1px 1px at 31% 42%, rgb(226 246 255 / 0.72) 0 55%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 43% 15%, rgb(126 218 255 / 0.62) 0 55%, transparent 100%),
+    radial-gradient(1px 1px at 57% 68%, rgb(226 246 255 / 0.76) 0 55%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 69% 31%, rgb(126 218 255 / 0.66) 0 55%, transparent 100%),
+    radial-gradient(1px 1px at 82% 84%, rgb(226 246 255 / 0.7) 0 55%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 93% 51%, rgb(126 218 255 / 0.64) 0 55%, transparent 100%);
+  animation: clicker-bg-motes 24s ease-in-out infinite alternate;
+}
+[data-clicker] .clicker-stage:has(> .clicker-stage-bg.is-drift:not(.is-region-transition)) > .clicker-vignette::after {
+  inset: 0;
+  opacity: 0.52;
+  background: radial-gradient(ellipse 74% 72% at 50% 46%, transparent 46%, rgb(2 7 14 / 0.3) 100%);
+}
+@keyframes clicker-bg-motes {
+  from { opacity: 0.12; transform: translate3d(-0.25%, 0.15%, 0); }
+  to { opacity: 0.34; transform: translate3d(0.3%, -0.2%, 0); }
 }
 @media (prefers-reduced-motion: reduce) {
   [data-clicker] .clicker-stage-bg.is-drift,
   [data-clicker] .clicker-stage .clicker-drill-scene,
-  [data-clicker] .clicker-stage-bg.is-drift::after { animation: none; }
+  [data-clicker] .clicker-stage-bg.is-drift::after,
+  [data-clicker] .clicker-stage:has(> .clicker-stage-bg.is-drift) > .clicker-vignette::before { animation: none; }
 }
 /* The four cables carry on above the sprite to the top of the stage, so the rig never ends mid-air
    on tall screens (overlapping the sprite a little so a strike's drop never opens a gap). */
