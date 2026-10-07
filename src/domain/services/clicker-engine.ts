@@ -1035,8 +1035,10 @@ const ACTIVE_SKILL_REFERENCE_COST = 20
 
 /** Price of one active skill charge: it keeps pace with the run instead of going trivial. */
 export function activeSkillCost(run: RunState, skill: ActiveSkillDef): number {
-  const share = ACTIVE_SKILL_LIFETIME_SHARE * Math.sqrt(skill.shopCost / ACTIVE_SKILL_REFERENCE_COST)
-  return Math.ceil(Math.max(scaledCost(run, skill.shopCost * ACTIVE_SKILL_PRICE_MULT), run.lifetimeCoreEnergy * share))
+  const tier = Math.max(1, skill.shopCost / ACTIVE_SKILL_REFERENCE_COST)
+  const priceMult = ACTIVE_SKILL_PRICE_MULT * tier ** 0.5
+  const share = ACTIVE_SKILL_LIFETIME_SHARE * tier ** 0.65
+  return Math.ceil(Math.max(scaledCost(run, skill.shopCost * priceMult), run.lifetimeCoreEnergy * share))
 }
 export function buyActiveSkillItem(
   run: RunState,

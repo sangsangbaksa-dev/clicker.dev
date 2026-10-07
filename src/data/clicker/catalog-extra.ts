@@ -184,13 +184,30 @@ export const EXTRA_POTIONS: PotionDef[] = [
 
 export const EXTRA_ACTIVE_SKILLS: ActiveSkillDef[] = [
   { id: "laser_focus", name: "LASER FOCUS", description: "10초 채굴 ×4", cooldown: 40, duration: 10, shopCost: 40_000, clickMultiplier: 4, assetId: "/clicker/skill/skill_laser_focus.webp" },
-  { id: "time_warp", name: "TIME WARP", description: "채굴 800회분 CORE를 즉시 획득", cooldown: 60, duration: 0, shopCost: 300_000, clickBurst: 800, assetId: "/clicker/skill/skill_time_warp.webp" },
-  { id: "grid_boost", name: "GRID BOOST", description: "20초 채굴 ×2", cooldown: 60, duration: 20, shopCost: 150_000, clickMultiplier: 2, assetId: "/clicker/skill/skill_grid_boost.webp" },
-  { id: "crit_surge", name: "CRIT SURGE", description: "8초 치명타 확률 +60%", cooldown: 50, duration: 8, shopCost: 120_000, criticalChanceAdd: 0.6, assetId: "/clicker/skill/skill_crit_surge.webp" },
-  { id: "thunder_call", name: "THUNDER CALL", description: "10초 동안 모든 타격에 번개", cooldown: 70, duration: 10, shopCost: 220_000, lightningStorm: true, assetId: "/clicker/skill/skill_thunder_call.webp" },
-  { id: "fever_ignite", name: "FEVER IGNITE", description: "FEVER를 즉시 점화", cooldown: 90, duration: 0, shopCost: 260_000, feverIgnite: true, assetId: "/clicker/skill/skill_fever_ignite.webp" },
-  { id: "cryo_purge", name: "CRYO PURGE", description: "다른 스킬 쿨다운 초기화 · 6초 채굴 ×1.5", cooldown: 120, duration: 6, shopCost: 400_000, clickMultiplier: 1.5, cooldownReset: true, assetId: "/clicker/skill/skill_cryo_purge.webp" },
+  { id: "time_warp", name: "TIME WARP", description: "채굴 520회분 CORE를 즉시 획득", cooldown: 75, duration: 0, shopCost: 300_000, clickBurst: 520, assetId: "/clicker/skill/skill_time_warp.webp" },
+  { id: "grid_boost", name: "GRID BOOST", description: "20초 채굴 ×1.85", cooldown: 60, duration: 20, shopCost: 150_000, clickMultiplier: 1.85, assetId: "/clicker/skill/skill_grid_boost.webp" },
+  { id: "crit_surge", name: "CRIT SURGE", description: "8초 치명타 확률 +55%", cooldown: 50, duration: 8, shopCost: 120_000, criticalChanceAdd: 0.55, assetId: "/clicker/skill/skill_crit_surge.webp" },
+  { id: "thunder_call", name: "THUNDER CALL", description: "8초 동안 모든 타격에 번개", cooldown: 75, duration: 8, shopCost: 220_000, lightningStorm: true, assetId: "/clicker/skill/skill_thunder_call.webp" },
+  { id: "fever_ignite", name: "FEVER IGNITE", description: "FEVER를 즉시 점화", cooldown: 95, duration: 0, shopCost: 260_000, feverIgnite: true, assetId: "/clicker/skill/skill_fever_ignite.webp" },
+  { id: "cryo_purge", name: "CRYO PURGE", description: "다른 스킬 쿨다운 초기화 · 6초 채굴 ×1.35", cooldown: 130, duration: 6, shopCost: 400_000, clickMultiplier: 1.35, cooldownReset: true, assetId: "/clicker/skill/skill_cryo_purge.webp" },
 ]
+
+/**
+ * Late active skills are premium sinks: catalog `shopCost` is multiplied before CORE_UNIT,
+ * while power bumps stay modest (see EXTRA_ACTIVE_SKILLS nerfs above).
+ */
+const ACTIVE_SKILL_PRICE_SCALE: Record<string, number> = {
+  laser_focus: 1,
+  core_pulse: 1,
+  stabilizer: 1,
+  overclock: 1,
+  crit_surge: 1.35,
+  grid_boost: 2,
+  thunder_call: 9,
+  fever_ignite: 20,
+  time_warp: 50,
+  cryo_purge: 160,
+}
 
 /**
  * AUTOMATION circuits hit harder than their raw numbers: the production bonus part of every
@@ -287,6 +304,7 @@ export function finalizeCatalog(base: GameConfig): GameConfig {
     ),
     potions: [...base.potions, ...EXTRA_POTIONS].map((p) => ({ ...p, shopCost: p.shopCost * c })).sort((a, b) => a.shopCost - b.shopCost),
     activeSkills: [...base.activeSkills, ...EXTRA_ACTIVE_SKILLS]
+      .map((s) => ({ ...s, shopCost: s.shopCost * (ACTIVE_SKILL_PRICE_SCALE[s.id] ?? 1) }))
       .map((s) => ({ ...s, shopCost: s.shopCost * c }))
       .sort((a, b) => a.shopCost - b.shopCost),
     objectives: base.objectives.map((o) => (o.kind === "ENERGY" ? { ...o, target: o.target * u } : o)),
