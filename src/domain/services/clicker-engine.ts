@@ -2006,6 +2006,13 @@ export function drillStrike(
 
 /* ---------- Core guardian ---------- */
 
+export function coreGuardianPhase(hp: number, maxHp: number): 1 | 2 | 3 {
+  const healthRatio = maxHp > 0 ? hp / maxHp : 0
+  if (healthRatio > 2 / 3) return 1
+  if (healthRatio > 1 / 3) return 2
+  return 3
+}
+
 export function startBossFight(run: RunState, config: GameConfig, now: number): { run: RunState; error?: string } {
   const region = currentRegionDef(run, config)
   const boss = region?.boss
@@ -2044,8 +2051,23 @@ export function strikeBoss(
   const damage = hit.result.energyGained * ownedSkills(run, config).reduce((m, n) => m * (n.bossDamageMultiplier ?? 1), 1)
   const hp = Math.max(0, fight.hp - damage)
   const defeated = hp <= 0
+  const phaseBreaks = defeated ? 0 : Math.max(0, coreGuardianPhase(hp, fight.maxHp) - coreGuardianPhase(fight.hp, fight.maxHp))
+  const playerHp = Math.min(fight.playerMaxHp, fight.playerHp + fight.playerMaxHp * 0.2 * phaseBreaks)
   return {
-    run: { ...hit.run, boss: defeated ? null : { ...fight, hp } },
+    run: {
+      ...hit.run,
+      boss: defeated
+        ? null
+        : {
+            ...fight,
+            hp,
+            playerHp,
+            endsAt: fight.endsAt + 4_000 * phaseBreaks,
+            nextAttackAt: phaseBreaks
+              ? Math.max(fight.nextAttackAt, now) + 2_000 * phaseBreaks
+              : fight.nextAttackAt,
+          },
+    },
     meta: defeated ? { ...hit.meta, bossDefeated: true } : hit.meta,
     damage,
     critical: hit.result.isCritical,
@@ -2059,9 +2081,11 @@ export function tickBoss(run: RunState, config: GameConfig, now: number): RunSta
   if (!fight) return run
   const def = config.regions.find((r) => r.id === fight.regionId)?.boss
   if (!def || now >= fight.endsAt || run.currentRegionId !== fight.regionId) return { ...run, boss: null }
+  const phase = coreGuardianPhase(fight.hp, fight.maxHp)
+  const attackDamage = Math.ceil(def.attackDamage * [1, 1.25, 1.65][phase - 1])
   let { playerHp, nextAttackAt } = fight
   while (now >= nextAttackAt && playerHp > 0) {
-    playerHp -= def.attackDamage
+    playerHp -= attackDamage
     nextAttackAt += def.attackEverySec * 1000
   }
   if (playerHp <= 0) return { ...run, boss: null }

@@ -49,6 +49,7 @@ export type { MineSessionStart, MineSessionSummary } from "@/domain/services/cli
 export type { GearSlot, GearTier } from "@/domain/services/clicker-lair"
 export {
   INSTABILITY_WARNING,
+  coreGuardianPhase,
   drillCooldownMs,
   isRegionUnlocked,
   monsterAlive,

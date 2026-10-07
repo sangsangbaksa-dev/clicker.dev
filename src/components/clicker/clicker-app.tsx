@@ -1229,6 +1229,7 @@ export function ClickerApp() {
             kind={regionDef.boss.kind}
             name={regionDef.boss.name}
             alive
+            phased
             showHp={false}
             battle={
               run.boss

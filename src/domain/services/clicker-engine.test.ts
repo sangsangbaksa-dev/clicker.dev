@@ -19,6 +19,7 @@ import {
   travelToRegion,
   canTriggerTrueEnding,
   createInitialSave,
+  coreGuardianPhase,
   buyProducer,
   buySkillNode,
   buyUpgrade,
@@ -611,6 +612,43 @@ test("true ending unlocks once the Core Heart guardian falls", () => {
   assert.equal(completed.save.metaState.gameCompleted, true)
   const again = applyTrueEnding(completed.save, config, now + 100)
   assert.equal(again.error, "이미 완료된 기록입니다.")
+})
+
+test("Core guardian phase breaks refill health and time, then attacks harder", () => {
+  const now = 11_000_000
+  const save = createInitialSave(now, config)
+  const heart = config.regions.find((region) => region.boss)!
+  assert.equal(coreGuardianPhase(100, 100), 1)
+  assert.equal(coreGuardianPhase((2 / 3) * 100, 100), 2)
+  assert.equal(coreGuardianPhase((1 / 3) * 100, 100), 3)
+
+  const run = {
+    ...save.runState,
+    currentRegionId: heart.id,
+    boss: {
+      regionId: heart.id,
+      hp: (2 / 3) * 100 + 0.01,
+      maxHp: 100,
+      playerHp: 40,
+      playerMaxHp: 100,
+      endsAt: now + 60_000,
+      nextAttackAt: now + 4_000,
+    },
+  }
+  const breakPhase = strikeBoss(run, save.metaState, config, now, () => 0.5)
+  assert.equal(coreGuardianPhase(breakPhase.run.boss!.hp, 100), 2)
+  assert.equal(breakPhase.run.boss!.playerHp, 60)
+  assert.equal(breakPhase.run.boss!.endsAt, now + 64_000)
+  assert.equal(breakPhase.run.boss!.nextAttackAt, now + 6_000)
+
+  const secondPhase = { ...breakPhase.run, boss: { ...breakPhase.run.boss!, hp: 50, playerHp: 100, nextAttackAt: now } }
+  assert.equal(tickBoss(secondPhase, config, now).boss!.playerHp, 85)
+  const finalPhase = { ...secondPhase, boss: { ...secondPhase.boss!, hp: 30 } }
+  assert.equal(tickBoss(finalPhase, config, now).boss!.playerHp, 80)
+
+  const defeat = strikeBoss({ ...run, boss: { ...run.boss!, hp: 0.01 } }, save.metaState, config, now, () => 0.5)
+  assert.equal(defeat.defeated, true)
+  assert.equal(defeat.meta.bossDefeated, true)
 })
 
 test("region monsters die on tap, pay CORE and respawn after 30s", () => {

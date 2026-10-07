@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type RefObject } from "react"
 import { clickerFramedBossScene, sceneCameraY, weatherMotes } from "@/application/clicker-stage"
 import { playSfx } from "@/lib/clicker-sfx"
-import { formatNumber } from "@/application/clicker-ui"
+import { coreGuardianPhase, formatNumber } from "@/application/clicker-ui"
 import { ClickerHpBar } from "@/components/clicker/clicker-hpbar"
 import "./clicker-boss-scene.css"
 
@@ -30,6 +30,8 @@ type Props = {
   tauntKey?: number
   /** The guardian fight draws its own bars, so the scene can stay a painting. */
   showHp?: boolean
+  /** Enables Core Heart's three-phase guardian mechanics. */
+  phased?: boolean
   onEnter: () => void
   onStrike: (clientX: number, clientY: number) => boolean
 }
@@ -49,7 +51,7 @@ function useWideStage(ref: RefObject<HTMLDivElement | null>): boolean {
   return wide
 }
 
-export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, tauntKey = 0, showHp = true, onEnter, onStrike }: Props) {
+export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, tauntKey = 0, showHp = true, phased = false, onEnter, onStrike }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null)
   const wide = useWideStage(rootRef)
   const scene = clickerFramedBossScene(kind, wide)
@@ -57,6 +59,7 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
   const [hitKey, setHitKey] = useState(0)
   const [dying, setDying] = useState(false)
   const [taunting, setTaunting] = useState(false)
+  const [phaseBreakPhase, setPhaseBreakPhase] = useState<1 | 2 | 3 | null>(null)
   /** Spark bursts at the exact tap points (removed after their animation). */
   const [sparks, setSparks] = useState<Array<{ id: number; x: number; y: number }>>([])
   const sparkId = useRef(0)
@@ -87,6 +90,24 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
     return () => window.clearTimeout(id)
   }, [nextAttackAt])
   const inBattle = Boolean(battle)
+  const battlePhase = phased && battle ? coreGuardianPhase(battle.bossHp, battle.bossMaxHp) : 1
+  const previousBattlePhase = useRef(battlePhase)
+  useEffect(() => {
+    if (!phased || !inBattle) {
+      previousBattlePhase.current = battlePhase
+      setPhaseBreakPhase(null)
+      return
+    }
+    if (phased && battlePhase > previousBattlePhase.current) {
+      setPhaseBreakPhase(battlePhase)
+      playSfx("bossPhase")
+      previousBattlePhase.current = battlePhase
+      const timeout = window.setTimeout(() => setPhaseBreakPhase(null), 1800)
+      return () => window.clearTimeout(timeout)
+    }
+    previousBattlePhase.current = battlePhase
+  }, [battlePhase, inBattle, phased])
+
   useEffect(() => {
     if (!alive || inBattle) return
     const id = window.setInterval(() => swing.current(), ATTACK_EVERY_MS * 2)
@@ -101,12 +122,7 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
     return () => window.clearTimeout(id)
   }, [tauntKey])
 
-  const enraged = Boolean(battle && battle.bossHp > 0 && battle.bossHp / Math.max(1, battle.bossMaxHp) < 0.3)
-  const wasEnraged = useRef(false)
-  useEffect(() => {
-    if (enraged && !wasEnraged.current) playSfx("bossPhase")
-    wasEnraged.current = enraged
-  }, [enraged])
+  const enraged = Boolean(phased && battle && battlePhase === 3)
 
   if (!scene) return <div ref={rootRef} className="clicker-boss-scene" />
   const tap = (e: ReactPointerEvent<HTMLButtonElement>) => {
@@ -153,7 +169,7 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
     shielded ? "is-shielded" : "",
     taunting ? "is-taunting" : "",
     battle ? "is-battle" : "",
-    // Under 30% HP the guardian enrages: red pulse, so the last stretch feels like a finish.
+    phased && battle ? `is-phase-${battlePhase}` : "",
     enraged ? "is-enraged" : "",
   ]
     .filter(Boolean)
@@ -221,6 +237,12 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
           onPointerDown={tap}
         />
       </div>
+      {phased && battle ? (
+        <div className="boss-scene-phase" aria-live="polite">
+          <span>수호자 페이즈</span>
+          <strong>PHASE {["I", "II", "III"][battlePhase - 1]}</strong>
+        </div>
+      ) : null}
       {showHp && battle ? (
         <div className="boss-scene-hp">
           <ClickerHpBar
@@ -231,6 +253,12 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
             valueText={`${formatNumber(Math.max(0, battle.bossHp))} / ${formatNumber(battle.bossMaxHp)}`}
             ariaLabel={`${name} 체력 ${battle.bossHp}/${battle.bossMaxHp}`}
           />
+        </div>
+      ) : null}
+      {phased && battle && phaseBreakPhase !== null ? (
+        <div className="boss-scene-phase-break" role="status">
+          <strong>PHASE {["I", "II", "III"][phaseBreakPhase - 1]} 돌파</strong>
+          <span>돌파 보상 · 체력 회복 + 전투 시간 연장</span>
         </div>
       ) : null}
     </div>
