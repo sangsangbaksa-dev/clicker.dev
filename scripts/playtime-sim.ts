@@ -439,4 +439,12 @@ while (elapsed() < MAX_HOURS * 3600) {
 
 if (TARGETS) console.log(`rebirthGoalStretch: [${config.rebirthGoalStretch!.slice(0, TARGETS.length).map((v) => Number(v.toPrecision(4))).join(", ")}]`)
 console.log(`clicks/s ${CLICKS_PER_SEC} · mine sessions ${mineCycles}`)
-console.log(`total ${fmt(elapsed())}${heartReached ? " · Core Heart open" : " · NOT FINISHED"}`)
+const totalMinutes = elapsed() / 60
+console.log(`total ${fmt(elapsed())} (${totalMinutes.toFixed(1)} min)${heartReached ? " · Core Heart open" : " · NOT FINISHED"}`)
+if (process.env.ASSERT_MINUTES) {
+  const [lo, hi] = process.env.ASSERT_MINUTES.split(",").map(Number)
+  if (!heartReached || totalMinutes < lo || totalMinutes > hi) {
+    console.error(`ASSERT_MINUTES failed: need ${lo}–${hi} min with Core Heart, got ${totalMinutes.toFixed(1)} min${heartReached ? "" : " (incomplete)"}`)
+    process.exit(1)
+  }
+}
