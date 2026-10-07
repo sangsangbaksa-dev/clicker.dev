@@ -927,6 +927,7 @@ export function useClicker() {
       const result = clickerStrikeBoss(saveRef.current, now())
       if (result.damage <= 0) return false
       commit(result.save)
+      playSfx("bossHit")
       pushFloat({ text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }, 700)
       if (result.defeated) persistNow(result.save)
       return result.defeated

@@ -2,16 +2,16 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-07
+Last reviewed: 2026-10-07 (cron pass 2)
 
 ## Now (actionable)
 
 | Area | Item | Source / notes |
 |------|------|----------------|
-| Audio | `sfx_boss_phase_change_v1` mp3 on disk but unused; synth `bossPhase` plays at the enrage threshold — swap in the sample if it sounds better | README-sfx |
 | Art | `mine_interior_hitech_mineral_1080p_v1.png` registered, not wired as chamber BG (layout ≠ ore plate / door-walk seam) | `public/clicker/mine/README.md` |
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | `scripts/pacing-sim.ts` |
-| Code | ~68 ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
+| Code | ~69 ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
+| Motion | Rebirth particle plates — A/B opacity on Resonance / Volatile if still flat in play | `clicker-rebirth-motion.css` |
 
 ## Watch (needs asset or design call)
 
@@ -26,6 +26,7 @@ Last reviewed: 2026-10-07
 
 | Area | Item |
 |------|------|
+| Audio | Boss fight one-shots: appear (`bossRoar`), hit (`bossHit` on strike), phase change, defeat — mp3 preferred via `SFX_SAMPLE`, synth fallback |
 | Audio | `bossPhase` synth cue fires once when a guardian drops under 30% HP (enrage) |
 | Audio | `sfx_rebirth_collapse_whoosh_v3.mp3` generated + mapped in `playRebirthCue` |
 | Code | `backfillClassN` runs on `findUserById` when `classN` missing (fixes unused helper lint) |

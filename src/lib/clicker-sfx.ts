@@ -666,6 +666,14 @@ const CUES = {
 
 export type SfxName = keyof typeof CUES
 
+/** HQ one-shots for cues that also have a synth fallback in `CUES`. */
+const SFX_SAMPLE: Partial<Record<SfxName, string>> = {
+  bossRoar: "/clicker/audio/sfx_boss_appear_v1.mp3",
+  bossHit: "/clicker/audio/sfx_boss_hit_v1.mp3",
+  bossPhase: "/clicker/audio/sfx_boss_phase_change_v1.mp3",
+  bossDown: "/clicker/audio/sfx_boss_defeat_v1.mp3",
+}
+
 /** Play a named UI/game cue. Respects the global mute and per-cue rate limits. */
 export function playSfx(name: SfxName) {
   if (muted) return
@@ -673,13 +681,18 @@ export function playSfx(name: SfxName) {
   const gap = MIN_GAP_MS[name] ?? 30
   if (now - (lastPlayed.get(name) ?? -Infinity) < gap) return
   lastPlayed.set(name, now)
-  const c = audio()
-  if (!c) return
-  try {
-    CUES[name](c, c.currentTime + 0.005)
-  } catch {
-    /* audio graph refused (context closed) — never break gameplay for SFX */
+  const playSynth = () => {
+    const c = audio()
+    if (!c) return
+    try {
+      CUES[name](c, c.currentTime + 0.005)
+    } catch {
+      /* audio graph refused (context closed) — never break gameplay for SFX */
+    }
   }
+  const sampleUrl = SFX_SAMPLE[name]
+  if (sampleUrl && playOneShotSample(sampleUrl, playSynth)) return
+  playSynth()
 }
 
 /**
@@ -755,20 +768,20 @@ function rebirthCueSampleUrl(name: string): string | null {
   return null
 }
 
-type RebirthSampleRec = { audio: HTMLAudioElement; wired: boolean }
-const rebirthSamples = new Map<string, RebirthSampleRec>()
+type OneShotSampleRec = { audio: HTMLAudioElement; wired: boolean }
+const oneShotSamples = new Map<string, OneShotSampleRec>()
 
-/** One-shot rebirth ceremony samples (HQ mp3) routed through the same master bus as synth SFX. */
-function playRebirthSample(url: string, onFail: () => void): boolean {
+/** One-shot mp3 samples routed through the same master bus as synth SFX. */
+function playOneShotSample(url: string, onFail: () => void): boolean {
   if (typeof window === "undefined") return false
   const c = audio()
   if (!c) return false
-  let rec = rebirthSamples.get(url)
+  let rec = oneShotSamples.get(url)
   if (!rec) {
     const audioEl = new Audio(url)
     audioEl.preload = "auto"
     rec = { audio: audioEl, wired: false }
-    rebirthSamples.set(url, rec)
+    oneShotSamples.set(url, rec)
   }
   if (!rec.wired) {
     try {
@@ -822,7 +835,7 @@ export function playRebirthCue(name: string) {
     }
   }
   const sampleUrl = rebirthCueSampleUrl(name)
-  if (sampleUrl && playRebirthSample(sampleUrl, synth)) return
+  if (sampleUrl && playOneShotSample(sampleUrl, synth)) return
   synth()
 }
 
