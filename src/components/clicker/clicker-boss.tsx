@@ -103,6 +103,7 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike,
         <div className="clicker-boss-bars">
           <ClickerHpBar
             tone="boss"
+            rim={def.imageSrc ? "flat" : "framed"}
             value={fight.hp}
             max={fight.maxHp}
             label={name}
@@ -111,6 +112,7 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike,
           />
           <ClickerHpBar
             tone="player"
+            rim={def.imageSrc ? "flat" : "framed"}
             value={fight.playerHp}
             max={fight.playerMaxHp}
             label="내 체력"
@@ -160,7 +162,13 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike,
           ) : null}
         </>
       ) : null}
-      {attack && fight ? <div className="clicker-boss-hurt" key={`hurt-${attack}`} aria-hidden /> : null}
+      {attack && fight ? (
+        def.imageSrc ? (
+          <div className="clicker-boss-guardian-hurt" key={`hurt-${attack}`} aria-hidden />
+        ) : (
+          <div className="clicker-boss-hurt" key={`hurt-${attack}`} aria-hidden />
+        )
+      ) : null}
     </div>
   )
 }

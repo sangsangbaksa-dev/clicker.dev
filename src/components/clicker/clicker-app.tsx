@@ -1567,7 +1567,6 @@ export function ClickerApp() {
               onStart={game.startBoss}
               awakened={game.awakenedGuardian ? { ...game.awakenedGuardian, onStart: game.startAwakenedGuardian } : null}
               onStrike={(x, y) => {
-                playLaser(game.save!.settings.muted, false)
                 game.strikeBoss(x, y)
               }}
             />

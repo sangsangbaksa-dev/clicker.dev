@@ -959,13 +959,12 @@ export function useClicker() {
 
   /** Strike the guardian. Returns true on the killing blow. */
   const strikeBoss = useCallback(
-    (clientX: number, clientY: number) => {
+    (_clientX: number, _clientY: number) => {
       if (!saveRef.current) return false
       const result = clickerStrikeBoss(saveRef.current, now())
       if (result.damage <= 0) return false
       playSfx("bossHit")
       commit(result.save)
-      pushFloat({ text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }, 700)
       if (result.defeated) persistNow(result.save)
       if (result.shards > 0) flash(`각성 수호자 격파 · 새벽 조각 +${result.shards}`)
       return result.defeated
