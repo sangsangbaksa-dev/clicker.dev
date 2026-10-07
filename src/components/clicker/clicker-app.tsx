@@ -1867,7 +1867,7 @@ export function ClickerApp() {
       {enteringMine ? (
         <ClickerCinematic
           src={MineArt.enterCinematic}
-          poster={MineArt.entranceGate}
+          poster={MineArt.enterPoster}
           label="광산 입장 중"
           // The BGM engine plays the same 10 s entrance track (bgm_mine_enter_10s) and hands over to the mine loop.
           muted={mineEntryVideoMuted(game.save.settings.musicMuted)}

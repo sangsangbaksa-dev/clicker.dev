@@ -8,7 +8,7 @@ import "./clicker-cinematic.css"
 const warmed = new Map<string, HTMLVideoElement>()
 export function preloadCinematic(requested: string) {
   if (typeof window === "undefined") return
-  // Warm the render this device will actually play (720p on phones / data-saver).
+  // Warm the resolved file (mine entry is a single 1080p render on all devices).
   const src = resolveCinematic(requested, "").src
   if (warmed.has(src)) return
   const v = document.createElement("video")

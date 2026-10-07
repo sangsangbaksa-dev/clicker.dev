@@ -3485,21 +3485,11 @@ button.clicker-metric-action.is-fever-ready em {
   display: none !important;
 }
 
+/* The mine draws its own full-bleed plate; a second chamber still underneath caused bright diagonal moiré. */
 .clicker-shell.is-mine-surface .clicker-stage-bg {
-  opacity: 1;
-  filter: brightness(1.02) saturate(1.04);
-}
-
-/* FEVER in mine: brighten chamber — no background rotation. */
-.clicker-shell.is-mine-surface .clicker-stage-bg.is-fever {
-  filter: brightness(1.18) saturate(1.22);
-  transition: filter 0.45s ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .clicker-shell.is-mine-surface .clicker-stage-bg.is-fever {
-    transition: none;
-  }
+  opacity: 0;
+  visibility: hidden;
+  filter: none;
 }
 
 .clicker-mine-dig {
