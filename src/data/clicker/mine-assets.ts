@@ -59,9 +59,27 @@ export const MINE_ENTER_VIDEO = {
 } as const
 
 /**
- * Frame 0 of the polish render — hub, title, and cinematic poster (one closed-door still for every device).
+ * Frame 0 of the polish render — default cinematic poster; worldlines may override via `MINE_ENTER_POSTERS`.
  */
 export const MINE_ENTER_POSTER = "/clicker/mine/mine_enter_polish_v1_poster.webp"
+
+/** Hub closed-door still (door seam x=640 @ 720p). Worldlines tint this in CSS until bespoke art ships. */
+export const MINE_ENTRANCE_GATE_DEFAULT = "/clicker/mine/mine_entrance_hub_closed_door_v2.webp"
+/** Title screen crop with the door centred. */
+export const MINE_TITLE_GATE = "/clicker/mine/title_door_centered.webp"
+
+/** Optional per-worldline gate stills (1280×720 webp). */
+export const MINE_ENTRANCE_GATES: Partial<Record<string, string>> = {}
+/** Optional per-worldline cinematic posters (1920×1080 webp). */
+export const MINE_ENTER_POSTERS: Partial<Record<string, string>> = {}
+
+export function mineEntranceGate(themeId: string): string {
+  return MINE_ENTRANCE_GATES[themeId] ?? MINE_ENTRANCE_GATE_DEFAULT
+}
+
+export function mineEnterPoster(themeId: string): string {
+  return MINE_ENTER_POSTERS[themeId] ?? MINE_ENTER_POSTER
+}
 
 /** Cross-fade from the held last frame into the mine (ms): the video ends on hitech interior + a small ore, the live plate has the big crystal. */
 export const MINE_ENTER_HANDOFF_MS = 600
@@ -71,9 +89,11 @@ export function mineEnterVideo() {
 }
 
 export const MineArt = {
-  /** Closed-door hub / title / cinematic poster (polish v1 frame 0). */
+  /** Hub pre-enter exterior gate (worldline CSS tint on top). */
+  entranceGate: MINE_ENTRANCE_GATE_DEFAULT,
+  titleGate: MINE_TITLE_GATE,
   enterPoster: MINE_ENTER_POSTER,
-  /** Entry cinematic — polish v1 only (no per-device or legacy twins). */
+  /** Steady dolly polish v1 — shared file; worldline identity is gate/poster tint + mine interior CSS. */
   enterCinematic: MINE_ENTER_VIDEO.src,
   /** Full-bleed mine background (the clean plate: no crystal baked in). */
   orePlate: MINE_ORE_PLATE.clean,

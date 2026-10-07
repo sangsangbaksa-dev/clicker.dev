@@ -160,5 +160,6 @@ export { awakenedGuardianLabel } from "@/domain/services/clicker-guardian-rematc
 
 /** Worldline rule shown for a worldline (data + pure text; null = no rule). */
 export { worldlineRuleText } from "@/domain/services/clicker-worldline-rules"
+export { clickerMineEntranceMedia, type ClickerMineEntranceMedia } from "@/application/clicker-mine-theme"
 export type { WorldlineRuleDef } from "@/domain/services/clicker-worldline-rules"
 export const WORLDLINE_RULE_ICON_DIR = "/clicker/worldline-rule/"

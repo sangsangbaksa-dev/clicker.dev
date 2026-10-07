@@ -10,9 +10,9 @@ import { CLICKER_WORLD_TREES, REGION_CURRENCY_RATE } from "./world-trees.ts"
 export const CLICKER_ASSETS = {
   bgLoading: "/clicker/bg/loading_core_awakening.webp",
   bgChamber: "/clicker/bg/region_core_chamber.webp",
-  /** Hub pre-enter — polish v1 closed door (same still as title / cinematic poster). */
-  bgMineEntrance: MineArt.enterPoster,
-  bgTitleGate: MineArt.enterPoster,
+  /** Hub pre-enter — exterior gate (worldline tint applied in the shell). */
+  bgMineEntrance: MineArt.entranceGate,
+  bgTitleGate: MineArt.titleGate,
   /** Timed mine session — same clean interior plate as the live mine view. */
   bgMine: MineArt.orePlate,
   mineCoreOre: MineArt.coreOre,

@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { CLICKER_ASSETS, clickerConfig } from "@/data/clicker/catalog"
@@ -45,6 +46,7 @@ import {
   minePotionHotkeyLabel,
   minePotionSlotFromKeyboard,
   mineSkillSlotFromKeyboard,
+  clickerMineEntranceMedia,
 } from "@/application/clicker-ui"
 import { useClicker } from "@/hooks/use-clicker"
 import { useClickerBgm } from "@/hooks/use-clicker-bgm"
@@ -90,6 +92,7 @@ import { ClickerTranscendencePanel } from "@/components/clicker/panels/transcend
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 import "./clicker.css"
 import "./clicker-polish.css"
+import "./clicker-mine-worldline.css"
 
 /** Next inlines NODE_ENV — production builds dead-code-eliminate admin JSX. */
 const CLICKER_ADMIN_UI =
@@ -266,6 +269,8 @@ export function ClickerApp() {
   const [challengeRegionId, setChallengeRegionId] = useState<string | null>(null)
   const [drillHits, setDrillHits] = useState(0)
   const drillCue = useDrillCues(game.save?.runState.currentRegionId)
+  const mineMedia = useMemo(() => clickerMineEntranceMedia(game.save?.metaState), [game.save?.metaState])
+  const mineShellStyle = useMemo(() => mineMedia.cssVars as CSSProperties, [mineMedia])
 
   // Prime Web Audio on first gesture so click/laser SFX are not stuck suspended.
   useEffect(() => {
@@ -758,7 +763,7 @@ export function ClickerApp() {
   const unlockedKey = game.regions.filter((r) => r.unlocked).map((r) => r.id).join(",")
   useEffect(() => {
     const idle = window.setTimeout(() => {
-      if (atHomeNow) preloadCinematic(MineArt.enterCinematic)
+      if (atHomeNow) preloadCinematic(mineMedia.enterCinematic)
       if (engageClip) preloadCinematic(engageClip)
       for (const id of unlockedKey.split(",")) {
         const intro = game.config.regions.find((r) => r.id === id)?.intro
@@ -766,7 +771,7 @@ export function ClickerApp() {
       }
     }, 1500)
     return () => window.clearTimeout(idle)
-  }, [atHomeNow, engageClip, unlockedKey, visited, game.config.regions])
+  }, [atHomeNow, engageClip, unlockedKey, visited, game.config.regions, mineMedia.enterCinematic])
 
   const bossDefeated = Boolean(game.save?.metaState.bossDefeated)
   const gameCompleted = Boolean(game.save?.metaState.gameCompleted)
@@ -972,7 +977,7 @@ export function ClickerApp() {
   const stageBg = inMine
     ? CLICKER_ASSETS.bgMine
     : game.currentRegion?.isHome
-      ? CLICKER_ASSETS.bgMineEntrance
+      ? mineMedia.entranceGate
       : worldStill && !worldEngaged
         ? worldStill
         : (game.currentRegion?.bgAssetId ?? CLICKER_ASSETS.bgChamber)
@@ -1067,6 +1072,9 @@ export function ClickerApp() {
     <div
       data-clicker
       data-visual={hud.coreVisual}
+      data-mine-theme={mineMedia.themeId}
+      data-mine-decor={mineMedia.theme.decor}
+      style={mineShellStyle}
       className={`clicker-shell${pendingRebirth ? " is-rebirth-active" : ""}${inMine ? " is-mine-surface" : ""}${atHomeHub ? " is-entrance-hub" : ""}${!inMine && !atHomeHub ? " is-region-hub" : ""}${inMine ? "" : ` is-view-${hubView}`}`}
     >
       <header className="clicker-top">
@@ -1915,8 +1923,8 @@ export function ClickerApp() {
 
       {enteringMine ? (
         <ClickerCinematic
-          src={MineArt.enterCinematic}
-          poster={MineArt.enterPoster}
+          src={mineMedia.enterCinematic}
+          poster={mineMedia.enterPoster}
           label="광산 입장 중"
           // The BGM engine plays the same 10 s entrance track (bgm_mine_enter_10s) and hands over to the mine loop.
           muted={mineEntryVideoMuted(game.save.settings.musicMuted)}
