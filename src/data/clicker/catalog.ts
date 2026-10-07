@@ -70,7 +70,7 @@ const baseConfig: GameConfig = {
       productionPerSecond: 1.5,
       costGrowth: 1.16,
       tags: ["EARLY", "STABLE"],
-      assetId: "/clicker/producer/producer_solar_node.webp",
+      assetId: "/clicker/producer/producer_solar_node.jpg",
     },
     {
       id: "pulse_relay",
@@ -81,7 +81,7 @@ const baseConfig: GameConfig = {
       productionPerSecond: 3,
       costGrowth: 1.165,
       tags: ["EARLY", "LINK"],
-      assetId: "/clicker/producer/producer_pulse_relay.webp",
+      assetId: "/clicker/producer/producer_pulse_relay.jpg",
     },
     {
       id: "core_extractor",
@@ -92,7 +92,7 @@ const baseConfig: GameConfig = {
       productionPerSecond: 9,
       costGrowth: 1.17,
       tags: ["CLICK", "CORE"],
-      assetId: "/clicker/producer/producer_core_extractor.webp",
+      assetId: "/clicker/producer/producer_core_extractor.jpg",
     },
     {
       id: "coil_harvester",
@@ -103,7 +103,7 @@ const baseConfig: GameConfig = {
       productionPerSecond: 27,
       costGrowth: 1.175,
       tags: ["AUTOMATION", "STABLE"],
-      assetId: "/clicker/producer/producer_coil_harvester.webp",
+      assetId: "/clicker/producer/producer_coil_harvester.jpg",
     },
     {
       id: "flux_generator",
@@ -114,7 +114,7 @@ const baseConfig: GameConfig = {
       productionPerSecond: 62,
       costGrowth: 1.195,
       tags: ["AUTOMATION"],
-      assetId: "/clicker/producer/producer_flux_generator.webp",
+      assetId: "/clicker/producer/producer_flux_generator.jpg",
     },
     {
       id: "phase_regulator",
@@ -125,7 +125,7 @@ const baseConfig: GameConfig = {
       productionPerSecond: 193,
       costGrowth: 1.2,
       tags: ["CONTROL", "MID"],
-      assetId: "/clicker/producer/producer_phase_regulator.webp",
+      assetId: "/clicker/producer/producer_phase_regulator.jpg",
     },
     {
       id: "quantum_foundry",
@@ -136,7 +136,7 @@ const baseConfig: GameConfig = {
       productionPerSecond: 696,
       costGrowth: 1.205,
       tags: ["BURST", "FEVER"],
-      assetId: "/clicker/producer/producer_quantum_foundry.webp",
+      assetId: "/clicker/producer/producer_quantum_foundry.jpg",
     },
     {
       id: "echo_lattice",
@@ -158,7 +158,7 @@ const baseConfig: GameConfig = {
       productionPerSecond: 4440,
       costGrowth: 1.218,
       tags: ["RESONANCE", "EVENT"],
-      assetId: "/clicker/producer/producer_resonance_array.webp",
+      assetId: "/clicker/producer/producer_resonance_array.jpg",
     },
     {
       id: "void_condenser",
@@ -169,7 +169,7 @@ const baseConfig: GameConfig = {
       productionPerSecond: 12400,
       costGrowth: 1.223,
       tags: ["RISK", "LATE"],
-      assetId: "/clicker/producer/producer_void_condenser.webp",
+      assetId: "/clicker/producer/producer_void_condenser.jpg",
     },
     {
       id: "singularity_plant",
@@ -180,7 +180,7 @@ const baseConfig: GameConfig = {
       productionPerSecond: 33200,
       costGrowth: 1.23,
       tags: ["RISK", "LATE"],
-      assetId: "/clicker/producer/producer_singularity_plant.webp",
+      assetId: "/clicker/producer/producer_singularity_plant.jpg",
     },
     {
       id: "horizon_engine",
@@ -191,7 +191,7 @@ const baseConfig: GameConfig = {
       productionPerSecond: 89000,
       costGrowth: 1.235,
       tags: ["END", "RISK"],
-      assetId: "/clicker/producer/producer_horizon_engine.webp",
+      assetId: "/clicker/producer/producer_horizon_engine.jpg",
     },
   ],
   upgrades: [
@@ -408,7 +408,7 @@ const baseConfig: GameConfig = {
       criticalChanceAdd: 0.04,
       instabilityPerSecond: 0,
       shopCost: 300_000,
-      assetId: "/clicker/potion/potion_timebreak.webp",
+      assetId: "/clicker/potion/potion_timebreak.jpg",
     },
     {
       id: "blue",
@@ -420,7 +420,7 @@ const baseConfig: GameConfig = {
       criticalChanceAdd: 0.06,
       instabilityPerSecond: 0,
       shopCost: 1_500_000,
-      assetId: "/clicker/potion/potion_blue.webp",
+      assetId: "/clicker/potion/potion_blue.jpg",
     },
     {
       id: "resonance",
@@ -432,7 +432,7 @@ const baseConfig: GameConfig = {
       criticalChanceAdd: 0.09,
       instabilityPerSecond: 0,
       shopCost: 7_500_000,
-      assetId: "/clicker/potion/potion_resonance.webp",
+      assetId: "/clicker/potion/potion_resonance.jpg",
     },
     {
       id: "industrial",
@@ -444,7 +444,7 @@ const baseConfig: GameConfig = {
       criticalChanceAdd: 0.05,
       instabilityPerSecond: 0,
       shopCost: 37_500_000,
-      assetId: "/clicker/potion/potion_industrial.webp",
+      assetId: "/clicker/potion/potion_industrial.jpg",
     },
     {
       id: "overdrive",
@@ -456,7 +456,7 @@ const baseConfig: GameConfig = {
       criticalChanceAdd: 0.2,
       instabilityPerSecond: 0,
       shopCost: 300_000_000,
-      assetId: "/clicker/potion/potion_overdrive.webp",
+      assetId: "/clicker/potion/potion_overdrive.jpg",
     },
   ],
   skillNodes: [
@@ -1504,7 +1504,7 @@ const baseConfig: GameConfig = {
       duration: 10,
       shopCost: 105_000,
       clickMultiplier: 3,
-      assetId: "/clicker/skill/skill_overclock.webp",
+      assetId: "/clicker/skill/skill_overclock.jpg",
     },
     {
       id: "core_pulse",
@@ -1514,7 +1514,7 @@ const baseConfig: GameConfig = {
       duration: 0,
       shopCost: 54_000,
       clickBurst: 150,
-      assetId: "/clicker/skill/skill_core_pulse.webp",
+      assetId: "/clicker/skill/skill_core_pulse.jpg",
     },
     {
       id: "stabilizer",
@@ -1525,7 +1525,7 @@ const baseConfig: GameConfig = {
       shopCost: 72_000,
       clickMultiplier: 1.6,
       criticalChanceAdd: 0.15,
-      assetId: "/clicker/skill/skill_stabilizer.webp",
+      assetId: "/clicker/skill/skill_stabilizer.jpg",
     },
   ],
   objectives: [
@@ -1550,7 +1550,7 @@ const baseConfig: GameConfig = {
       clickMultiplier: 3,
       comboWindowAdd: 0.5,
       lightningChanceAdd: 0.05,
-      assetId: "/clicker/buff/buff_focus.webp",
+      assetId: "/clicker/buff/buff_focus.jpg",
     },
     {
       id: "auto_line",
@@ -1560,7 +1560,7 @@ const baseConfig: GameConfig = {
       productionMultiplier: 3,
       droneStrikesPerSecond: 2,
       startingEnergy: 2_000,
-      assetId: "/clicker/buff/buff_automation.webp",
+      assetId: "/clicker/buff/buff_automation.jpg",
     },
     {
       id: "reso_line",
@@ -1572,7 +1572,7 @@ const baseConfig: GameConfig = {
       clickMultiplier: 1.8,
       productionMultiplier: 1.8,
       echoChanceAdd: 0.08,
-      assetId: "/clicker/buff/buff_resonance.webp",
+      assetId: "/clicker/buff/buff_resonance.jpg",
     },
     {
       id: "risk_line",
@@ -1582,7 +1582,7 @@ const baseConfig: GameConfig = {
       flatProductionBonus: 0.6,
       productionMultiplier: 2.5,
       criticalMultiplier: 2,
-      assetId: "/clicker/buff/buff_risk.webp",
+      assetId: "/clicker/buff/buff_risk.jpg",
     },
     {
       id: "hybrid_line",
@@ -1592,7 +1592,7 @@ const baseConfig: GameConfig = {
       clickMultiplier: 2,
       productionMultiplier: 2,
       startingEnergy: 20_000,
-      assetId: "/clicker/buff/buff_utility.webp",
+      assetId: "/clicker/buff/buff_utility.jpg",
     },
     // Late worldlines 6–8: walked after the first five, before the Core Heart opens.
     {
