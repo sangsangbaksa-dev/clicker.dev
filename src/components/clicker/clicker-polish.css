@@ -520,13 +520,13 @@
   background: rgb(0 0 0 / 0.35);
 }
 
-/* Dev-only admin launcher: keep it out of the HUD. */
+/* Dev-only admin launcher: tuck under the header so it never covers the dock or buy buttons. */
 [data-clicker] .clicker-admin-launch {
-  top: auto;
-  /* Above the bottom status bar, which is ~36px tall. */
-  bottom: calc(48px + env(safe-area-inset-bottom, 0px));
-  left: 12px;
-  right: auto;
+  top: calc(52px + env(safe-area-inset-top, 0px));
+  bottom: auto;
+  left: auto;
+  right: 52px;
+  z-index: 6;
   min-height: 30px;
   padding: 4px 10px;
   font-size: 11px;
@@ -2582,4 +2582,94 @@
   filter: none;
   transform: none;
   vertical-align: -3px;
+}
+
+/* ---------- Late game: transcendence · ending cards ---------- */
+[data-clicker] .clicker-transcendence-head {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--core) 22%, transparent);
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgb(120 200 255 / 0.12), transparent 55%),
+    linear-gradient(180deg, rgb(8 14 24 / 0.92), rgb(4 8 14 / 0.88));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+[data-clicker] .clicker-transcendence-meter .clicker-bar i {
+  background: linear-gradient(90deg, #3ec8ff, #ffe08a);
+  box-shadow: 0 0 12px rgb(120 220 255 / 0.45);
+}
+[data-clicker] .clicker-ending {
+  border: 1px solid color-mix(in srgb, var(--core) 28%, transparent);
+  box-shadow:
+    0 24px 64px rgb(0 0 0 / 0.55),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  background: linear-gradient(180deg, rgb(10 18 28 / 0.96), rgb(6 10 18 / 0.98));
+}
+[data-clicker] .clicker-ending-summary dd {
+  color: var(--core-bright);
+  text-shadow: 0 0 18px rgb(120 220 255 / 0.25);
+}
+
+/* ---------- Short landscape (e.g. 844×390): keep gates, login, mine rail, and records on-screen ---------- */
+@media (max-height: 520px) and (min-width: 480px) {
+  [data-clicker] .clicker-login {
+    overflow-y: auto;
+    align-items: start;
+    padding: max(12px, env(safe-area-inset-top, 0px)) 16px 16px;
+  }
+  [data-clicker] .clicker-login-panel {
+    margin-top: 0;
+    width: min(100%, 380px);
+    padding: 14px 16px;
+    gap: 10px;
+  }
+  [data-clicker] .clicker-login-brand { font-size: 1.65rem; }
+  [data-clicker] .clicker-login-lead { font-size: 13px; line-height: 1.45; }
+
+  [data-clicker].is-region-hub .clicker-region-station,
+  [data-clicker].is-region-hub .clicker-world-gate {
+    bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+    z-index: 11;
+    max-width: min(86vw, 18rem);
+  }
+  [data-clicker] .clicker-world-gate-go {
+    min-height: 44px;
+    padding: 0 16px;
+    font-size: 14px;
+  }
+  [data-clicker] .clicker-hub-dock {
+    z-index: 9;
+    padding: 6px;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  [data-clicker] .clicker-complete {
+    align-items: start;
+    padding: 12px 16px;
+  }
+  [data-clicker] .clicker-complete-card {
+    margin: auto;
+    padding: 18px 16px;
+  }
+  [data-clicker] .clicker-complete-card h1 { font-size: 22px; margin: 8px 0 10px; }
+  [data-clicker] .clicker-complete-epilogue { font-size: 13px; line-height: 1.55; }
+  [data-clicker] .clicker-complete-stats { gap: 8px; margin-top: 14px; }
+  [data-clicker] .clicker-complete-stats dd { font-size: 16px; }
+
+  [data-clicker] .clicker-ending-backdrop { padding: 12px 16px; }
+  [data-clicker] .clicker-ending {
+    padding: 14px 16px;
+    max-height: none;
+  }
+  [data-clicker] .clicker-ending-body { font-size: 13px; line-height: 1.55; }
+
+  [data-clicker] .clicker-skillmap-detail {
+    width: min(420px, calc(100% - 24px));
+    padding: 10px 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  [data-clicker] .clicker-tabs button[data-tab="transcendence"] {
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
 }

@@ -76,7 +76,7 @@ export function ClickerComplete({ meta, worldlineTotal, onReset, onReplayEnding 
           </div>
           <div>
             <dt>누적 CORE</dt>
-            <dd>{formatNumber(meta.totalCoreEnergy)}</dd>
+            <dd>{formatNumber(meta.totalCoreEnergy)} CORE</dd>
           </div>
           <div>
             <dt>채굴</dt>

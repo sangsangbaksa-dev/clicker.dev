@@ -2745,6 +2745,9 @@ button.clicker-metric-action.is-fever-ready em {
   display: grid;
   place-items: center;
   padding: 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  align-content: safe center;
   background: color-mix(in srgb, var(--void) 72%, transparent);
 }
 
@@ -2940,6 +2943,9 @@ button.clicker-metric-action.is-fever-ready em {
   display: grid;
   place-items: center;
   padding: 24px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  align-content: safe center;
 }
 
 .clicker-complete-bg {
@@ -4927,9 +4933,10 @@ button.clicker-metric-action.is-fever-ready em {
   }
 
   .clicker-admin-launch {
-    top: auto;
-    bottom: calc(112px + env(safe-area-inset-bottom, 0px));
-    right: 8px;
+    top: calc(52px + env(safe-area-inset-top, 0px));
+    bottom: auto;
+    right: 52px;
+    left: auto;
     min-height: 36px;
     padding: 6px 10px;
     font-size: 11px;

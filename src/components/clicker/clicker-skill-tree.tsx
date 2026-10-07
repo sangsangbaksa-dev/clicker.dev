@@ -8,6 +8,7 @@ import {
   connectorPath,
   type SkillCell,
 } from "@/data/clicker/skill-tree-layout"
+import { clampSkillmapPan, fitSkillmapView } from "@/application/clicker-skillmap-fit"
 import { formatNumber, skillStatusLabel, type SkillNodeView } from "@/application/clicker-ui"
 import { useClickerEscape } from "@/components/clicker/clicker-a11y"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
@@ -50,7 +51,9 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
 
   const viewRef = useRef<HTMLDivElement>(null)
   const [pan, setPan] = useState<{ x: number; y: number } | null>(null)
+  const [viewScale, setViewScale] = useState(1)
   const panRef = useRef({ x: 0, y: 0 })
+  const scaleRef = useRef(1)
   const drag = useRef<{ x: number; y: number; px: number; py: number; moved: boolean } | null>(null)
   const edge = useRef({ dx: 0, dy: 0 })
 
@@ -61,11 +64,16 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
     const el = viewRef.current
     const w = el?.clientWidth ?? 800
     const h = el?.clientHeight ?? 600
-    const pad = 160
-    return {
-      x: Math.min(pad, Math.max(w - boardW - pad, x)),
-      y: Math.min(pad, Math.max(h - boardH - pad, y)),
-    }
+    const next = clampSkillmapPan({
+      panX: x,
+      panY: y,
+      scale: scaleRef.current,
+      boardW,
+      boardH,
+      viewW: w,
+      viewH: h,
+    })
+    return { x: next.panX, y: next.panY }
   }
   const applyPan = (x: number, y: number) => {
     const next = clampPan(x, y)
@@ -73,13 +81,30 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
     setPan(next)
   }
 
-  // Start centred on the hub.
-  useEffect(() => {
+  const fitToView = () => {
     const el = viewRef.current
-    if (!el) return
-    applyPan(el.clientWidth / 2 - (layout.hub.col + 0.5) * CELL, el.clientHeight / 2 - (layout.hub.row + 0.5) * CELL)
+    if (!el || !treeNodes.length) return
+    const fit = fitSkillmapView({
+      nodes: treeNodes.map((n) => ({ col: n.col, row: n.row, tier: n.tier })),
+      cell: CELL,
+      viewW: el.clientWidth,
+      viewH: el.clientHeight,
+    })
+    scaleRef.current = fit.scale
+    setViewScale(fit.scale)
+    applyPan(fit.panX, fit.panY)
+  }
+
+  // Fit all visible nodes in view on open and when the viewport changes.
+  useEffect(() => {
+    fitToView()
+    const el = viewRef.current
+    if (!el || typeof ResizeObserver === "undefined") return
+    const ro = new ResizeObserver(() => fitToView())
+    ro.observe(el)
+    return () => ro.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [treeNodes.length, layout.cols, layout.rows])
 
   // Edge panning loop (desktop pointers only).
   useEffect(() => {
@@ -170,7 +195,8 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
           style={{
             width: boardW,
             height: boardH,
-            transform: `translate3d(${pan?.x ?? 0}px, ${pan?.y ?? 0}px, 0)`,
+            transform: `translate3d(${pan?.x ?? 0}px, ${pan?.y ?? 0}px, 0) scale(${viewScale})`,
+            transformOrigin: "0 0",
             visibility: pan ? "visible" : "hidden",
           }}
         >

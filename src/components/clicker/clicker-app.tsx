@@ -841,7 +841,7 @@ export function ClickerApp() {
         worldlinesOwned: new Set(game.save.metaState.transcendenceIds).size,
         worldlinesTotal: game.config.transcendence.length,
         rebirthCount: game.save.metaState.rebirthCount,
-        lifetimeCoreText: formatNumber(game.save.metaState.totalCoreEnergy),
+        lifetimeCoreText: `${formatNumber(game.save.metaState.totalCoreEnergy)} CORE`,
       }}
       onComplete={() => {
         if (endingMode === "replay") setEndingMode(null)
@@ -1765,12 +1765,13 @@ export function ClickerApp() {
             <button
               key={id}
               type="button"
+              data-tab={id}
               data-active={tab === id}
               aria-label={ko}
               aria-current={tab === id ? "page" : undefined}
               onClick={() => selectTab(id)}
             >
-              {label}
+              {id === "transcendence" ? ko : label}
             </button>
           ))}
         </nav>
