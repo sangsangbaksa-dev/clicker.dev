@@ -4,6 +4,7 @@ import { MineArt } from "./mine-assets.ts"
 import { CLICKER_ACHIEVEMENTS } from "./achievements.ts"
 import { finalizeCatalog } from "./catalog-extra.ts"
 import { CLICKER_RELICS } from "./relics.ts"
+import { CLICKER_WORLDLINE_RULES } from "./worldline-rules.ts"
 import { CLICKER_WORLD_TREES, REGION_CURRENCY_RATE } from "./world-trees.ts"
 
 export const CLICKER_ASSETS = {
@@ -1623,6 +1624,7 @@ const baseConfig: GameConfig = {
     },
   ],
   relics: CLICKER_RELICS,
+  worldlineRules: CLICKER_WORLDLINE_RULES,
   worldTrees: CLICKER_WORLD_TREES,
   regionCurrencyRate: REGION_CURRENCY_RATE,
   regions: CLICKER_REGIONS,

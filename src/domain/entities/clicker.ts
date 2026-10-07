@@ -186,6 +186,44 @@ export type MetaState = {
   gachaLog?: GachaLogEntry[]
   /** Dawn Mine after the true ending; absent until the player presses 계속하기. */
   postgame?: PostgameState
+  /** 세계선 교환소: trades made this week (weekly limit). */
+  exchange?: ExchangeState
+  /** 기록실: one entry per finished worldline (rebirth or true ending), oldest first. */
+  chronicle?: ChronicleEntry[]
+}
+
+/** 세계선 교환소 weekly counter. */
+export type ExchangeState = {
+  /** Start (ms) of the week these counts belong to. */
+  weekStart: number
+  /** Offer id → trades made in that week. */
+  bought: Record<string, number>
+}
+
+export type ExchangeReward = { kind: "POTION"; potionId: string } | { kind: "FREE_CAPSULE" }
+
+/** One trade at 세계선 교환소: region currency in, an item out. */
+export type ExchangeOfferDef = {
+  id: string
+  name: string
+  description: string
+  /** Paid with payRegionCurrency: this world's wallet first, newer worlds cover the rest. */
+  regionId: string
+  cost: number
+  weeklyLimit: number
+  reward: ExchangeReward
+}
+
+/** 기록실: how one worldline went. */
+export type ChronicleEntry = {
+  worldLine: number
+  /** Transcendence picked to leave this worldline; null for the final (ending) one. */
+  transcendenceId: string | null
+  startedAt: number
+  endedAt: number
+  /** Highest combo reached so far (lifetime statistic at the time this worldline ended). */
+  maxCombo: number
+  lifetimeCore: number
 }
 
 /** Post-ending dawn mine progress (permanent, meta-level). */
@@ -631,6 +669,8 @@ export type GameConfig = {
   regions: RegionDef[]
   transcendence: TranscendenceDef[]
   relics: RelicDef[]
+  /** One offsetting rule per worldline 1-8 (missing = neutral). */
+  worldlineRules?: readonly WorldlineRuleDef[]
   /** Per-world skill trees, in purchase order within each world. */
   worldTrees?: WorldTreeNodeDef[]
   /** Share of the CORE earned in a world that mints its currency before any tree bonus. */
@@ -646,3 +686,43 @@ export type GameConfig = {
     instabilityRewardBonus?: number
   }>
 }
+
+/* ---------- Worldline rules ---------- */
+
+export type WorldlineRuleEffects = {
+  /** Strike CORE ×. */
+  clickMultiplier: number
+  /** Automatic production ×. */
+  productionMultiplier: number
+  feverDurationMultiplier: number
+  feverCooldownMultiplier: number
+  /** Guardian health ×. */
+  bossHpMultiplier: number
+  /** Monster / guardian-side hunt reward ×. */
+  bossRewardMultiplier: number
+  comboMaxMultiplier: number
+  /** Combo window × (below 1 = combo decays faster). */
+  comboWindowMultiplier: number
+  /** Active-skill buff strength × (applied to the buff's bonus part). */
+  skillEffectMultiplier: number
+  skillCostMultiplier: number
+  regionCurrencyMultiplier: number
+  /** All CORE income × (click and production). */
+  coreMultiplier: number
+  /** Game time × per tick (fever, timers, production seconds). */
+  timeScale: number
+}
+
+export type WorldlineRuleDef = {
+  id: string
+  /** 1-based worldline this rule belongs to. */
+  worldline: number
+  name: string
+  /** Icon file stem under /clicker/worldline-rule/. */
+  icon: string
+  /** Player-facing "+" line and "−" line (sign included in the text, never colour only). */
+  plus: string
+  minus: string
+  effects: Partial<WorldlineRuleEffects>
+}
+

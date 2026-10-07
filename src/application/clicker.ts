@@ -47,6 +47,7 @@ import {
   pullGacha,
 } from "@/domain/services/clicker-engine"
 import { AWAKENED_ROAR_TEXT, awakenFight, awakenedGuardianAvailable, awakenedGuardianLabel, awakenedReward, claimAwakenedVictory, isAwakenedFight } from "@/domain/services/clicker-guardian-rematch"
+import { worldlineRuleFor, worldlineRuleReveal, worldlineRuleText } from "@/domain/services/clicker-worldline-rules"
 import { advancePostgame, canPlayAfterCompletion, continueAfterEnding, dawnDepthNotice, getDawnDepth, showsCompletionScreen } from "@/domain/services/clicker-postgame"
 import {
   awardAchievements,
@@ -71,6 +72,9 @@ import {
   grantSecretCode,
   type AdminModes,
 } from "@/domain/services/clicker-admin-tools"
+import { CLICKER_EXCHANGE_OFFERS } from "@/data/clicker/exchange"
+import { buyExchangeOffer, exchangeOffers, type ExchangeOfferView } from "@/domain/services/clicker-exchange"
+import { chronicleEntries, chronicleSummary, recordWorldline } from "@/domain/services/clicker-chronicle"
 import { allowStrike } from "@/domain/services/clicker-strike-limiter"
 import { decodeClickerSave, encodeClickerSave } from "@/domain/services/clicker-save-codec"
 import { enterLair, forgeGear, leaveLair, strikeLair, tickLair, type GearSlot } from "@/domain/services/clicker-lair"
@@ -333,7 +337,8 @@ export function clickerReturnHome(save: SaveData): UseCaseResult<SaveData> {
 export function clickerRebirth(save: SaveData, buffId: string, now: number): UseCaseResult<SaveData> {
   const next = applyRebirth(save.runState, save.metaState, config, buffId, now)
   if (next.error) return { ok: false, status: 400, error: next.error }
-  return ok({ ...save, runState: next.run, metaState: next.meta })
+  const metaState = recordWorldline(next.meta, save.runState, buffId, now)
+  return ok({ ...save, runState: next.run, metaState })
 }
 
 export function clickerCanCompleteEnding(save: SaveData): boolean {
@@ -343,7 +348,7 @@ export function clickerCanCompleteEnding(save: SaveData): boolean {
 export function clickerCompleteEnding(save: SaveData, now: number): UseCaseResult<SaveData> {
   const next = applyTrueEnding(save, config, now)
   if (next.error) return { ok: false, status: 400, error: next.error }
-  return ok(next.save)
+  return ok({ ...next.save, metaState: recordWorldline(next.save.metaState, save.runState, null, now) })
 }
 
 /** Current depth of 새벽의 광산 (0 until it opens). */
@@ -552,3 +557,30 @@ export function clickerApplyAdminModes(prev: SaveData, next: SaveData, modes: Ad
 }
 
 export { config as clickerGameConfig, createInitialSave }
+
+/** This worldline's rule (균형, 과열, …), or null on worldlines without one. */
+export function clickerWorldlineRule(save: SaveData) {
+  return worldlineRuleFor(config.worldlineRules ?? [], save.runState.currentWorldLine)
+}
+
+/** Announcement for a worldline change (cue + aria-live text), or null. */
+export function clickerWorldlineRuleReveal(prevWorldline: number | null, save: SaveData): { text: string } | null {
+  const rule = worldlineRuleReveal(config.worldlineRules ?? [], prevWorldline, save.runState.currentWorldLine)
+  return rule ? { text: `새 세계선 규칙 · ${worldlineRuleText(rule)}` } : null
+}
+
+/* ---------- 세계선 교환소 · 기록실 ---------- */
+
+export function clickerExchangeOffers(save: SaveData, now: number): ExchangeOfferView[] {
+  return exchangeOffers(save.runState, save.metaState, config, CLICKER_EXCHANGE_OFFERS, now)
+}
+
+export function clickerBuyExchange(save: SaveData, offerId: string, now: number): UseCaseResult<SaveData> {
+  const next = buyExchangeOffer(save.runState, save.metaState, config, CLICKER_EXCHANGE_OFFERS, offerId, now)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ ...save, runState: next.run, metaState: next.meta })
+}
+
+export function clickerChronicle(save: SaveData) {
+  return { entries: chronicleEntries(save.metaState), summary: chronicleSummary(save.metaState) }
+}

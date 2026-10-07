@@ -21,6 +21,8 @@ import {
   clickerCanPlay,
   clickerCompleteEnding,
   clickerContinueAfterEnding,
+  clickerWorldlineRule,
+  clickerWorldlineRuleReveal,
   clickerAwakenedGuardianView,
   clickerStartAwakenedGuardian,
   CLICKER_AWAKENED_ROAR_TEXT,
@@ -61,6 +63,9 @@ import {
   clickerStrikeLair,
   clickerForge,
   clickerBuyRelic,
+  clickerBuyExchange,
+  clickerExchangeOffers,
+  clickerChronicle,
   clickerBuyWorldTreeNode,
   clickerPullGacha,
   allowMineStrike,
@@ -311,6 +316,19 @@ export function useClicker() {
     playSfx("achievement")
     flash(`업적 달성 · ${names} (생산 +${fresh.length}%)`)
   }, [achievementIds, flash])
+
+  // Worldline rule: on entering a new worldline with a rule, one cue plus the rule as aria-live text.
+  const currentWorldLine = save?.runState.currentWorldLine ?? null
+  const knownWorldLine = useRef<number | null>(null)
+  useEffect(() => {
+    if (!save || currentWorldLine == null) return
+    const prev = knownWorldLine.current
+    knownWorldLine.current = currentWorldLine
+    const reveal = clickerWorldlineRuleReveal(prev, save)
+    if (!reveal) return
+    clickerCues().play("worldlineRuleReveal")
+    flash(reveal.text)
+  }, [currentWorldLine, flash, save])
 
   // 새벽의 광산: announce each new depth as text (aria-live toast), not by sound alone.
   const dawnDepth = save ? clickerDawnDepth(save) : 0
@@ -851,6 +869,18 @@ export function useClicker() {
     [refuse, flash, commitAndSave],
   )
 
+  const buyExchange = useCallback(
+    (offerId: string) => {
+      if (!saveRef.current) return
+      const result = clickerBuyExchange(saveRef.current, offerId, Date.now())
+      if (!result.ok) return refuse(result.error)
+      commitAndSave(result.value)
+      playSfx("upgrade")
+      flash("교환을 마쳤어요.")
+    },
+    [refuse, flash, commitAndSave],
+  )
+
   const buyRelic = useCallback(
     (relicId: string) => {
       if (!saveRef.current) return
@@ -1044,6 +1074,7 @@ export function useClicker() {
   const canCompleteEnding = save ? clickerCanCompleteEnding(save) : false
   const isCompleted = save ? clickerShowsCompletion(save) : false
   const awakenedGuardian = save ? clickerAwakenedGuardianView(save) : null
+  const worldlineRule = save ? clickerWorldlineRule(save) : null
 
   return {
     save,
@@ -1089,6 +1120,7 @@ export function useClicker() {
     completeEnding,
     continueAfterEnding,
     awakenedGuardian,
+    worldlineRule,
     startAwakenedGuardian,
     adminReset,
     adminGrant,
@@ -1132,6 +1164,9 @@ export function useClicker() {
     strikeLair,
     forge,
     buyRelic,
+    buyExchange,
+    exchangeOffers: (now: number) => (save ? clickerExchangeOffers(save, now) : []),
+    chronicle: save ? clickerChronicle(save) : null,
     buyWorldTreeNode,
     redeemSecretCode,
     pullGacha,

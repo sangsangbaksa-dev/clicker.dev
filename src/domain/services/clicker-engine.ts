@@ -28,6 +28,9 @@ import {
 import { gachaBatchFactor, gachaPriceFactor } from "./clicker-gacha-cost.ts"
 import { clearMinePause, resumeMine } from "./clicker-mine-pause.ts"
 import { sanitizePostgame } from "./clicker-postgame.ts"
+import { sanitizeExchange } from "./clicker-exchange-week.ts"
+import { sanitizeChronicle } from "./clicker-chronicle.ts"
+import { scaleBuffBonus, worldlineRuleEffects } from "./clicker-worldline-rules.ts"
 import { worldlineGoalValue, worldlinePowerMultiplier, worldlinePriceScale } from "./clicker-worldline-economy.ts"
 
 /** Base timed-mine length before skill-tree extensions. Balance PROVISIONAL. */
@@ -632,7 +635,13 @@ export function softStack(multiplier: number, config: GameConfig): number {
   return cap * (multiplier / cap) ** (config.stackSoftExponent ?? 1)
 }
 
+/** This worldline's rule effects (neutral when the catalog has none). */
+export function ruleEffects(run: RunState, config: GameConfig) {
+  return worldlineRuleEffects(config.worldlineRules ?? [], run.currentWorldLine)
+}
+
 export function derivedClick(run: RunState, meta: MetaState, config: GameConfig) {
+  const rule = ruleEffects(run, config)
   const upgrades = ownedUpgrades(run, config)
   const skills = ownedSkills(run, config)
   const trans = ownedTranscendence(meta, config)
@@ -675,7 +684,14 @@ export function derivedClick(run: RunState, meta: MetaState, config: GameConfig)
     config.comboWindow +
     skills.reduce((s, n) => s + (n.comboWindowAdd ?? 0), 0) +
     trans.reduce((s, t) => s + (t.comboWindowAdd ?? 0), 0)
-  return { click, critChance, critMult, comboMax, comboWindow }
+  click *= rule.clickMultiplier * rule.coreMultiplier
+  return {
+    click,
+    critChance,
+    critMult,
+    comboMax: Math.max(1, Math.round(comboMax * rule.comboMaxMultiplier)),
+    comboWindow: comboWindow * rule.comboWindowMultiplier,
+  }
 }
 
 function feverMultipliers(run: RunState, meta: MetaState, config: GameConfig) {
@@ -720,7 +736,7 @@ function feverDurationSeconds(run: RunState, meta: MetaState, config: GameConfig
       duration *= 1 + syn.feverDurationBonus
     }
   }
-  return duration
+  return duration * ruleEffects(run, config).feverDurationMultiplier
 }
 
 export function producerCost(config: GameConfig, producerId: string, level: number, scale = 1): number {
@@ -781,7 +797,7 @@ export function buffMultiplier(run: RunState, now: number, field: "productionMul
   let m = 1
   for (const b of run.activeBuffs) {
     if (b.expiresAt <= now) continue
-    m *= config.activeSkills.find((s) => s.id === b.id)?.[field] ?? 1
+    m *= scaleBuffBonus(config.activeSkills.find((s) => s.id === b.id)?.[field] ?? 1, ruleEffects(run, config).skillEffectMultiplier)
   }
   return m
 }
@@ -810,6 +826,8 @@ export function productionSnapshot(
   const boughtGlobal =
     product(upgrades.filter((u) => !u.producerId && !u.producerTag).map((u) => u.productionMultiplier ?? 1)) *
     product(skills.filter((s) => !s.producerTag).map((s) => s.productionMultiplier ?? 1))
+  const ruleNow = ruleEffects(run, config)
+  const ruleProd = ruleNow.productionMultiplier * ruleNow.coreMultiplier
   const globalProd =
     product(trans.map((t) => t.productionMultiplier ?? 1)) *
     fever.production *
@@ -853,7 +871,7 @@ export function productionSnapshot(
         rate *= 1 + syn.productionBonus
       }
     }
-    rate *= globalProd
+    rate *= globalProd * ruleProd
     byProducer[producer.id] = rate
     perSecond += rate
   }
@@ -993,9 +1011,10 @@ export const ACTIVE_SKILL_LIFETIME_SHARE = 0.012
 const ACTIVE_SKILL_REFERENCE_COST = 20
 
 /** Price of one active skill charge: it keeps pace with the run instead of going trivial. */
-export function activeSkillCost(run: RunState, skill: ActiveSkillDef): number {
+export function activeSkillCost(run: RunState, skill: ActiveSkillDef, config?: GameConfig): number {
+  const rule = config ? ruleEffects(run, config).skillCostMultiplier : 1
   const share = ACTIVE_SKILL_LIFETIME_SHARE * Math.sqrt(skill.shopCost / ACTIVE_SKILL_REFERENCE_COST)
-  return Math.ceil(Math.max(scaledCost(run, skill.shopCost * ACTIVE_SKILL_PRICE_MULT), run.lifetimeCoreEnergy * share))
+  return Math.ceil(Math.max(scaledCost(run, skill.shopCost * ACTIVE_SKILL_PRICE_MULT), run.lifetimeCoreEnergy * share) * rule)
 }
 export function buyActiveSkillItem(
   run: RunState,
@@ -1004,7 +1023,7 @@ export function buyActiveSkillItem(
 ): { run: RunState; error?: string } {
   const skill = config.activeSkills.find((s) => s.id === skillId)
   if (!skill) return { run, error: "스킬을 찾을 수 없습니다." }
-  const cost = activeSkillCost(run, skill)
+  const cost = activeSkillCost(run, skill, config)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, skill.shopCost))
   if (short) return { run, error: `${short.name} 부족` }
@@ -1100,7 +1119,8 @@ export function processTick(
   config: GameConfig,
   now: number
 ): { run: RunState; meta: MetaState } {
-  const dt = Math.max(0, Math.min((now - run.lastTickAt) / 1000, 1))
+  // 가속 rule: game seconds per real second (the per-tick production cut sits in the rule's production ×).
+  const dt = Math.max(0, Math.min((now - run.lastTickAt) / 1000, 1)) * ruleEffects(run, config).timeScale
   if (dt <= 0) return { run: { ...run, lastTickAt: now }, meta }
 
   let next = pruneEventBoosts({ ...run, lastTickAt: now }, now)
@@ -1141,7 +1161,7 @@ export function processTick(
       next.fever = {
         ...createInitialFever(),
         phase: "COOL_DOWN",
-        remainingTime: config.feverCoolDown,
+        remainingTime: config.feverCoolDown * ruleEffects(next, config).feverCooldownMultiplier,
         gauge: next.fever.gauge,
       }
     }
@@ -1324,7 +1344,7 @@ export function accrueRegionCurrency(prev: RunState, next: RunState, config: Gam
 }
 
 export function regionCurrencyRate(run: RunState, config: GameConfig, regionId: string): number {
-  return (config.regionCurrencyRate ?? 1) * worldTreeMultiplier(run, config, regionId, "currencyMultiplier")
+  return (config.regionCurrencyRate ?? 1) * worldTreeMultiplier(run, config, regionId, "currencyMultiplier") * ruleEffects(run, config).regionCurrencyMultiplier
 }
 
 /**
@@ -1771,6 +1791,8 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         gachaCounts: sanitizeGachaCounts(meta.gachaCounts),
         postgame: meta.gameCompleted && meta.postgame ? sanitizePostgame(meta.postgame) : undefined,
         gachaLog: sanitizeGachaLog(meta.gachaLog),
+        exchange: sanitizeExchange(meta.exchange),
+        chronicle: sanitizeChronicle(meta.chronicle),
       },
       runState: {
         ...createInitialRun(now, createInitialMeta(), config),
@@ -1871,7 +1893,7 @@ export function slayMonster(
   const respawnSec = Math.max(5, monster.respawnSec - skills.reduce((s, n) => s + (n.monsterRespawnReduce ?? 0), 0))
   // Hunting grounds are the region's main income, so their kills pay a much bigger click floor.
   const clickFloor = region.huntMode ? 150 : 25
-  const reward = (perSecond * monster.rewardSeconds + derivedClick(run, meta, config).click * clickFloor) * rewardMul
+  const reward = (perSecond * monster.rewardSeconds + derivedClick(run, meta, config).click * clickFloor) * rewardMul * ruleEffects(run, config).bossRewardMultiplier
   return {
     run: {
       ...run,
@@ -1977,8 +1999,9 @@ export function baseBossStrike(run: RunState, meta: MetaState, config: GameConfi
 
 /** Guardian health for this player: `strikesToDefeat` base strikes when the catalog sets it, else the fixed `hp`. */
 export function bossFightHp(boss: BossDef, run: RunState, meta: MetaState, config: GameConfig): number {
-  if (!boss.strikesToDefeat) return boss.hp
-  return baseBossStrike(run, meta, config) * boss.strikesToDefeat
+  const rule = ruleEffects(run, config).bossHpMultiplier
+  if (!boss.strikesToDefeat) return boss.hp * rule
+  return baseBossStrike(run, meta, config) * boss.strikesToDefeat * rule
 }
 
 export function startBossFight(run: RunState, meta: MetaState, config: GameConfig, now: number): { run: RunState; error?: string } {

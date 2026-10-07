@@ -31,6 +31,7 @@ export type CueId =
   | "dawnDepth"
   | "dawnDepthBig"
   | "awakenedRoar"
+  | "worldlineRuleReveal"
 
 export type CueDef = {
   /** File name inside CUE_PUBLIC_DIR. */
@@ -60,6 +61,8 @@ export const CUE_REGISTRY: Readonly<Record<CueId, CueDef>> = {
   dawnDepth: { file: "sfx_dawn_depth_milestone_v1.mp3", gainDb: -4, loop: false, minGapMs: 400 },
   dawnDepthBig: { file: "sfx_dawn_depth_milestone_big_v1.mp3", gainDb: -2, loop: false, minGapMs: 400 },
   // 각성 수호자 roar: LUFS -7.9, 2.7 dB hotter than the final-boss roar (played at -2.4) -> -5.1 to match.
+  // Worldline rule reveal (Waldusic 2026-10-07): -6 dB, once per new worldline that has a rule.
+  worldlineRuleReveal: { file: "sfx_worldline_rule_reveal_v1.mp3", gainDb: -6, loop: false, minGapMs: 1000 },
   awakenedRoar: { file: "sfx_guardian_awakened_roar_v1.mp3", gainDb: -5.1, loop: false },
 }
 

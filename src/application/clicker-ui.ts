@@ -22,7 +22,10 @@ export {
   type CurrencyCostView,
   type SkillNodeView,
 } from "@/domain/services/clicker-view"
+export { worldlineDurationMs, type ChronicleSummary } from "@/domain/services/clicker-chronicle"
+export type { ExchangeOfferView } from "@/domain/services/clicker-exchange"
 export type {
+  ChronicleEntry,
   GachaLogEntry,
   BossDef,
   BossFight,
@@ -147,3 +150,8 @@ export {
 } from "@/domain/services/clicker-rebirth-choice"
 export { rebirthKeyframePreloadOrder } from "@/domain/services/clicker-rebirth-keyframes"
 export { awakenedGuardianLabel } from "@/domain/services/clicker-guardian-rematch"
+
+/** Worldline rule shown for a worldline (data + pure text; null = no rule). */
+export { worldlineRuleText } from "@/domain/services/clicker-worldline-rules"
+export type { WorldlineRuleDef } from "@/domain/services/clicker-worldline-rules"
+export const WORLDLINE_RULE_ICON_DIR = "/clicker/worldline-rule/"

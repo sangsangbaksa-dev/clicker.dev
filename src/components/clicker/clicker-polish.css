@@ -2673,3 +2673,38 @@
     letter-spacing: 0.02em;
   }
 }
+
+/* Landscape phones (≈844×390): keep the boss gate above the dock, let the completion card
+   scroll inside the viewport, and fit the login card's guest button on the first screen. */
+@media (max-height: 520px) and (min-width: 480px) {
+  /* The station is anchored to .clicker-core-wrap, which runs past the bottom of a short
+     viewport; pin the gate to the viewport just above the dock (dock ≈ 73px + 8px inset). */
+  [data-clicker].is-region-hub .clicker-world-gate {
+    position: fixed;
+    left: 50%;
+    right: auto;
+    top: auto;
+    bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+  }
+  [data-clicker] .clicker-world-gate-desc { margin: 2px 0 6px; }
+
+  /* data-clicker sits on the completion shell itself, so match it as a compound selector. */
+  [data-clicker].clicker-complete {
+    height: 100dvh;
+    min-height: 0;
+    box-sizing: border-box;
+    overflow-y: auto;
+    align-content: start;
+  }
+  [data-clicker] .clicker-complete-card { margin: 0 auto; }
+
+  [data-clicker] .clicker-login { padding-top: 10px; padding-bottom: 10px; }
+  [data-clicker] .clicker-login-panel { gap: 4px; padding: 10px 16px; }
+  [data-clicker] .clicker-login-kicker { display: none; }
+  [data-clicker] .clicker-login-brand { font-size: 22px; margin: 0; }
+  [data-clicker] .clicker-login-lead { font-size: 12px; line-height: 1.4; margin: 0; }
+  [data-clicker] .clicker-login .clicker-account-form { gap: 6px; }
+  [data-clicker] .clicker-login .clicker-account-form input { height: 38px; min-height: 0; padding-block: 0; }
+  [data-clicker] .clicker-login .clicker-login-panel button { min-height: 38px; padding-block: 6px; }
+}
