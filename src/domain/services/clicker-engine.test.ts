@@ -819,6 +819,33 @@ test("drill upgrades: fewer taps per bore and a shorter cooldown", async () => {
   assert.ok(eng.drillCooldownMs(maxed, clickerConfig) >= 5000)
 })
 
+test("drill session: multiple bores in one timed window, then cooldown", async () => {
+  const eng = await import("./clicker-engine.ts")
+  const NOW = 50_000
+  let run = eng.createInitialRun(NOW, eng.createInitialMeta(), clickerConfig)
+  let meta = eng.createInitialMeta()
+  const taps = eng.drillTaps(run, clickerConfig)
+  let reward = 0
+  for (let i = 0; i < taps; i++) {
+    const hit = eng.drillStrike(run, meta, clickerConfig, NOW + i)
+    assert.equal(hit.error, undefined)
+    run = hit.run
+    meta = hit.meta
+    reward = hit.reward
+  }
+  assert.ok(reward > 0)
+  assert.equal(run.drillGauge, 0)
+  assert.ok(eng.drillSessionActive(run, NOW + taps))
+  assert.equal(run.drillCooldownUntil, 0)
+  const again = eng.drillStrike(run, meta, clickerConfig, NOW + taps)
+  assert.equal(again.reward, 0)
+  assert.ok(eng.drillSessionActive(again.run, NOW + taps))
+  const sessionEnd = run.drillSessionEndsAt + 1
+  run = eng.finalizeDrillSession(run, clickerConfig, sessionEnd)
+  assert.ok(run.drillCooldownUntil > sessionEnd)
+  assert.equal(run.drillSessionEndsAt, 0)
+})
+
 test("instability: hoarding CORE and world currency pushes it up", async () => {
   const eng = await import("./clicker-engine.ts")
   const run0 = eng.createInitialRun(0, eng.createInitialMeta(), clickerConfig)

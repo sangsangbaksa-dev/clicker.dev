@@ -59,6 +59,7 @@ test("drillTapPlan: first tap starts the hum, middle taps keep it, the bore comp
   assert.deepEqual(drillTapPlan(false, 0), { play: ["drillStart"], loop: "start" })
   assert.deepEqual(drillTapPlan(true, 0), { play: [], loop: "keep" })
   assert.deepEqual(drillTapPlan(true, 123), { play: ["drillComplete"], loop: "stop" })
+  assert.deepEqual(drillTapPlan(true, 123, true), { play: ["drillComplete"], loop: "keep" })
   assert.deepEqual(drillTapPlan(false, 5), { play: ["drillComplete"], loop: "stop" })
 })
 

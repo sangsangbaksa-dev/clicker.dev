@@ -100,8 +100,10 @@ export type DrillTapPlan = { readonly play: readonly CueId[]; readonly loop: "st
  * One accepted tap on the drill rig. `active`: the hum is running (a cycle is in progress).
  * `reward > 0` means this tap bored through the vein.
  */
-export function drillTapPlan(active: boolean, reward: number): DrillTapPlan {
-  if (reward > 0) return { play: ["drillComplete"], loop: "stop" }
+export function drillTapPlan(active: boolean, reward: number, sessionContinues = false): DrillTapPlan {
+  if (reward > 0) {
+    return sessionContinues ? { play: ["drillComplete"], loop: "keep" } : { play: ["drillComplete"], loop: "stop" }
+  }
   if (!active) return { play: ["drillStart"], loop: "start" }
   return { play: [], loop: "keep" }
 }

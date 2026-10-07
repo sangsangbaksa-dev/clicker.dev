@@ -122,8 +122,12 @@ export type RunState = {
   costScale: number
   /** Region id → absolute ms when its monster respawns (absent/past = alive). */
   monsterRespawnAt: Record<string, number>
-  /** Region core drilling: taps fill the gauge (0–1); a full gauge pays out and starts the cooldown. */
+  /** Region core drilling: taps fill the gauge (0–1); full gauge pays out and resets during an active session. */
   drillGauge: number
+  /** Absolute ms when the timed drill session ends (0 = none). */
+  drillSessionEndsAt: number
+  drillSessionDurationMs: number
+  /** After a session ends, no new session until this time. */
   drillCooldownUntil: number
   /** Active boss fight, or null. */
   boss: BossFight | null

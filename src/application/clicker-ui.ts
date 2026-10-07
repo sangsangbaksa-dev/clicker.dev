@@ -54,6 +54,8 @@ export type { GearSlot, GearTier } from "@/domain/services/clicker-lair"
 export {
   INSTABILITY_WARNING,
   drillCooldownMs,
+  drillSessionActive,
+  drillSessionDurationMs,
   isRegionUnlocked,
   monsterAlive,
   relicVaultOpen,

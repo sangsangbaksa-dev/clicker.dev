@@ -112,6 +112,8 @@ export function createInitialRun(now: number, meta: MetaState, config: GameConfi
     costScale: scale,
     monsterRespawnAt: {},
     drillGauge: 0,
+    drillSessionEndsAt: 0,
+    drillSessionDurationMs: 0,
     drillCooldownUntil: 0,
     boss: null,
   }
@@ -1123,7 +1125,7 @@ export function processTick(
   const dt = Math.max(0, Math.min((now - run.lastTickAt) / 1000, 1)) * ruleEffects(run, config).timeScale
   if (dt <= 0) return { run: { ...run, lastTickAt: now }, meta }
 
-  let next = pruneEventBoosts({ ...run, lastTickAt: now }, now)
+  let next = finalizeDrillSession(pruneEventBoosts({ ...run, lastTickAt: now }, now), config, now)
   if (now > next.combo.expiresAt && next.combo.count > 0) {
     next.combo = { ...next.combo, count: 0, multiplier: 1 }
   }
@@ -1823,6 +1825,8 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         monsterRespawnAt:
           run.monsterRespawnAt && typeof run.monsterRespawnAt === "object" ? { ...run.monsterRespawnAt } : {},
         drillGauge: typeof run.drillGauge === "number" ? Math.min(1, Math.max(0, run.drillGauge)) : 0,
+        drillSessionEndsAt: typeof run.drillSessionEndsAt === "number" ? run.drillSessionEndsAt : 0,
+        drillSessionDurationMs: typeof run.drillSessionDurationMs === "number" ? run.drillSessionDurationMs : 0,
         drillCooldownUntil: typeof run.drillCooldownUntil === "number" ? run.drillCooldownUntil : 0,
         boss: null,
         costScale:
@@ -1922,15 +1926,46 @@ export function drillTaps(run: RunState, config: GameConfig): number {
   return Math.max(DRILL_MIN_TAPS, DRILL_TAPS - ownedUpgradeSum(run, config, "drillTapsReduce"))
 }
 
-/** Cooldown after a bore: the shared re-entry cooldown minus drill coolant upgrades. */
+/** Timed drill window and post-session wait share the same tuned duration (coolant upgrades apply to both). */
 export function drillCooldownMs(run: RunState, config: GameConfig): number {
   const cut = ownedUpgradeSum(run, config, "drillCooldownReduceSec") * 1000
   return Math.max(DRILL_MIN_COOLDOWN_MS, referenceCooldownMs(run, config) - cut)
 }
 
+export function drillSessionDurationMs(run: RunState, config: GameConfig): number {
+  return drillCooldownMs(run, config)
+}
+
+export function drillSessionActive(run: RunState, now: number): boolean {
+  return run.drillSessionEndsAt > now
+}
+
+/** Ends an expired drill session and starts the between-session cooldown. */
+export function finalizeDrillSession(run: RunState, config: GameConfig, now: number): RunState {
+  if (run.drillSessionEndsAt <= 0 || run.drillSessionEndsAt > now) return run
+  const wait = drillCooldownMs(run, config)
+  return {
+    ...run,
+    drillSessionEndsAt: 0,
+    drillSessionDurationMs: 0,
+    drillGauge: 0,
+    drillCooldownUntil: now + wait,
+  }
+}
+
+function beginDrillSession(run: RunState, config: GameConfig, now: number): RunState {
+  const durationMs = drillSessionDurationMs(run, config)
+  return {
+    ...run,
+    drillSessionEndsAt: now + durationMs,
+    drillSessionDurationMs: durationMs,
+    drillGauge: 0,
+  }
+}
+
 /**
- * One tap on the region drill rig. Fills the gauge; the tap that fills it bores the vein:
- * pays 90s of production plus a click-based floor, empties the gauge and starts the cooldown.
+ * One tap on the region drill rig. During a timed session, filling the gauge pays out and resets the gauge;
+ * the session keeps running until its timer ends, then the rig cools down before the next session.
  */
 export function drillStrike(
   run: RunState,
@@ -1938,20 +1973,27 @@ export function drillStrike(
   config: GameConfig,
   now: number,
 ): { run: RunState; meta: MetaState; reward: number; error?: string } {
-  if (run.drillCooldownUntil > now) {
-    return { run, meta, reward: 0, error: `시추 장비 냉각 중 · ${Math.ceil((run.drillCooldownUntil - now) / 1000)}초` }
+  let next = finalizeDrillSession(run, config, now)
+  if (next.drillCooldownUntil > now) {
+    return { run: next, meta, reward: 0, error: `시추 장비 냉각 중 · ${Math.ceil((next.drillCooldownUntil - now) / 1000)}초` }
   }
-  const gauge = Math.min(1, run.drillGauge + 1 / drillTaps(run, config))
-  if (gauge < 1 - 1e-9) return { run: { ...run, drillGauge: gauge }, meta, reward: 0 }
-  const perSecond = productionSnapshot(run, meta, config, now).perSecond
-  const reward = perSecond * 90 + derivedClick(run, meta, config).click * 60
+  if (!drillSessionActive(next, now)) {
+    next = beginDrillSession(next, config, now)
+  }
+  if (now >= next.drillSessionEndsAt) {
+    next = finalizeDrillSession(next, config, now)
+    return { run: next, meta, reward: 0, error: "시추 시간 종료" }
+  }
+  const gauge = Math.min(1, next.drillGauge + 1 / drillTaps(next, config))
+  if (gauge < 1 - 1e-9) return { run: { ...next, drillGauge: gauge }, meta, reward: 0 }
+  const perSecond = productionSnapshot(next, meta, config, now).perSecond
+  const reward = perSecond * 90 + derivedClick(next, meta, config).click * 60
   return {
     run: {
-      ...run,
+      ...next,
       drillGauge: 0,
-      drillCooldownUntil: now + drillCooldownMs(run, config),
-      coreEnergy: run.coreEnergy + reward,
-      lifetimeCoreEnergy: run.lifetimeCoreEnergy + reward,
+      coreEnergy: next.coreEnergy + reward,
+      lifetimeCoreEnergy: next.lifetimeCoreEnergy + reward,
     },
     meta: { ...meta, totalCoreEnergy: meta.totalCoreEnergy + reward },
     reward,

@@ -17,6 +17,7 @@ import {
   LAIR_BOSSES,
   WEAPONS,
   drillCooldownMs,
+  drillSessionActive,
   formatNumber,
   formatRate,
   gearOf,
@@ -79,6 +80,8 @@ import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
 import { useDrillCues } from "@/hooks/use-drill-cues"
+import { useClickerDrillEngage } from "@/hooks/use-clicker-drill-engage"
+import { clickerRegionEngageMedia } from "@/application/clicker-drill-media"
 import { ENDING_MEDIA, endingVideoSrc, preloadEndingAudio, readEndingVideoQuality } from "@/lib/clicker-ending-media"
 import { ENDING_VIDEO_ORDER, shouldStartEnding } from "@/application/clicker-ending"
 import { ClickerFloats } from "./clicker-floats"
@@ -265,12 +268,16 @@ export function ClickerApp() {
   useImagePreload(PRELOAD_IMAGES)
   // Door-walk entry cinematic between Enter Mine and the timed session (carries its own SFX).
   const [enteringMine, setEnteringMine] = useState(false)
+  /** Drill-entry cinematic (region still → rig), same slot as mine `enteringMine`. */
+  const [enteringDrill, setEnteringDrill] = useState(false)
   /** Region whose field challenge is open (mini-game overlay), or null. */
   const [challengeRegionId, setChallengeRegionId] = useState<string | null>(null)
   const [drillHits, setDrillHits] = useState(0)
   const drillCue = useDrillCues(game.save?.runState.currentRegionId)
   const mineMedia = useMemo(() => clickerMineEntranceMedia(game.save?.metaState), [game.save?.metaState])
   const mineShellStyle = useMemo(() => mineMedia.cssVars as CSSProperties, [mineMedia])
+  const regionDefForEngage = game.config.regions.find((r) => r.id === game.save?.runState.currentRegionId)
+  const drillEngageMedia = useClickerDrillEngage(regionDefForEngage)
 
   // Prime Web Audio on first gesture so click/laser SFX are not stuck suspended.
   useEffect(() => {
@@ -758,7 +765,7 @@ export function ClickerApp() {
 
   // Warm the videos the player is about to see: mine entry at home, intros of unlocked unvisited regions.
   const atHomeNow = Boolean(game.currentRegion?.isHome)
-  const engageClip = game.config.regions.find((r) => r.id === game.save?.runState.currentRegionId)?.intro?.engageVideo
+  const engageClip = clickerRegionEngageMedia(regionDefForEngage)?.video
   const visited = game.save?.metaState.visitedRegionIds
   const unlockedKey = game.regions.filter((r) => r.unlocked).map((r) => r.id).join(",")
   useEffect(() => {
@@ -771,7 +778,7 @@ export function ClickerApp() {
       }
     }, 1500)
     return () => window.clearTimeout(idle)
-  }, [atHomeNow, engageClip, unlockedKey, visited, game.config.regions, mineMedia.enterCinematic])
+  }, [atHomeNow, engageClip, unlockedKey, visited, game.config.regions, mineMedia.enterCinematic, regionDefForEngage])
 
   const bossDefeated = Boolean(game.save?.metaState.bossDefeated)
   const gameCompleted = Boolean(game.save?.metaState.gameCompleted)
@@ -965,6 +972,7 @@ export function ClickerApp() {
     setArrivedRegion(run.currentRegionId)
     setEngagedRegion(null)
     setEngagingRegion(null)
+    setEnteringDrill(false)
   }
   const hereDef = game.config.regions.find((r) => r.id === run.currentRegionId)
   const worldStill = !inMine && !hereDef?.isHome ? hereDef?.intro?.still : undefined
@@ -1003,7 +1011,10 @@ export function ClickerApp() {
   const lair = run.lair && run.lair.regionId === run.currentRegionId ? run.lair : null
   const shieldMs = shieldRemainingMs(run, run.currentRegionId, tickNow)
   const gear = gearOf(run)
-  const drillCoolSec = Math.max(0, Math.ceil((run.drillCooldownUntil - tickNow) / 1000))
+  const drillSessionOn = drillSessionActive(run, tickNow)
+  const drillSessionRemainSec = drillSessionOn ? Math.max(0, Math.ceil((run.drillSessionEndsAt - tickNow) / 1000)) : 0
+  const drillSessionTotalSec = Math.max(1, (run.drillSessionDurationMs || drillCooldownMs(run, game.config)) / 1000)
+  const drillCoolSec = drillSessionOn ? 0 : Math.max(0, Math.ceil((run.drillCooldownUntil - tickNow) / 1000))
   const drillCoolTotalSec = drillCooldownMs(run, game.config) / 1000
   const drawerTabs = (
     [
@@ -1554,12 +1565,14 @@ export function ClickerApp() {
               <button
                 type="button"
                 className="clicker-primary clicker-world-gate-go"
-                disabled={regionIntroPlaying || engagingRegion !== null}
+                disabled={regionIntroPlaying || engagingRegion !== null || enteringDrill}
                 onClick={() => {
-                  const clip = regionDef.intro?.engageVideo
+                  const engage = clickerRegionEngageMedia(regionDef)
                   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-                  if (clip && !reduced) setEngagingRegion(run.currentRegionId)
-                  else setEngagedRegion(run.currentRegionId)
+                  if (engage?.video && !reduced) {
+                    if (regionDef.huntMode) setEngagingRegion(run.currentRegionId)
+                    else setEnteringDrill(true)
+                  } else setEngagedRegion(run.currentRegionId)
                 }}
               >
                 {regionDef.boss
@@ -1648,15 +1661,21 @@ export function ClickerApp() {
                 data-sfx="off"
                 key={drillHits}
                 className={`clicker-drill${drillHits ? " is-hit" : ""}${drillCoolSec > 0 ? " is-cooling" : ""}`}
-                disabled={regionIntroPlaying || drillCoolSec > 0}
-                aria-label={drillCoolSec > 0 ? `시추 장비 냉각 중 ${drillCoolSec}초` : `코어 에너지 시추 · 게이지 ${Math.round(run.drillGauge * 100)}%`}
+                disabled={regionIntroPlaying || enteringDrill || drillCoolSec > 0}
+                aria-label={
+                  drillCoolSec > 0
+                    ? `시추 장비 냉각 중 ${drillCoolSec}초`
+                    : drillSessionOn
+                      ? `코어 에너지 시추 · 남은 ${drillSessionRemainSec}초 · 게이지 ${Math.round(run.drillGauge * 100)}%`
+                      : `코어 에너지 시추 · 게이지 ${Math.round(run.drillGauge * 100)}%`
+                }
                 onPointerDown={(e) => {
                   if (e.button !== 0) return
                   e.preventDefault()
                   const paid = game.drillVein(e.clientX, e.clientY)
                   if (paid === null) return
                   playLaser(game.save?.settings.muted ?? false, paid > 0)
-                  drillCue(paid)
+                  drillCue(paid, paid > 0 && drillSessionOn)
                   if (paid > 0) flashStage()
                   setDrillHits((n) => n + 1)
                 }}
@@ -1677,11 +1696,28 @@ export function ClickerApp() {
                   </>
                 ) : null}
               </button>
-              <div className={`clicker-drill-gauge${drillCoolSec > 0 ? " is-cooling" : ""}`} aria-hidden>
-                <i style={{ width: `${drillCoolSec > 0 ? (drillCoolSec / drillCoolTotalSec) * 100 : run.drillGauge * 100}%` }} />
+              <div
+                className={`clicker-drill-gauge${drillCoolSec > 0 ? " is-cooling" : drillSessionOn ? " is-session" : ""}`}
+                aria-hidden
+              >
+                <i
+                  style={{
+                    width: `${
+                      drillCoolSec > 0
+                        ? (drillCoolSec / drillCoolTotalSec) * 100
+                        : drillSessionOn
+                          ? ((drillSessionTotalSec - drillSessionRemainSec) / drillSessionTotalSec) * 100
+                          : run.drillGauge * 100
+                    }%`,
+                  }}
+                />
               </div>
               <p className="clicker-drill-hint">
-                {drillCoolSec > 0 ? `냉각 중 · ${drillCoolSec}초 후 다시 시추` : `연속으로 탭해 게이지를 채우면 시추 · ${Math.round(run.drillGauge * 100)}%`}
+                {drillCoolSec > 0
+                  ? `냉각 중 · ${drillCoolSec}초 후 다시 시추`
+                  : drillSessionOn
+                    ? `남은 ${drillSessionRemainSec}초 · 게이지 채우면 시추 · ${Math.round(run.drillGauge * 100)}%`
+                    : `연속으로 탭해 게이지를 채우면 시추 · ${Math.round(run.drillGauge * 100)}%`}
               </p>
             </div>
           ) : null}
@@ -1940,17 +1976,32 @@ export function ClickerApp() {
         />
       ) : null}
 
-      {engagingRegion && engagingRegion === run.currentRegionId && regionDef?.intro?.engageVideo ? (
+      {engagingRegion && engagingRegion === run.currentRegionId && regionDef?.huntMode && regionDef.intro?.engageVideo ? (
         <ClickerCinematic
           key={engagingRegion}
           src={regionDef.intro.engageVideo}
           poster={regionDef.intro.still}
-          label={regionDef.huntMode ? "보스의 둥지로 들어가는 중" : "시추 갱으로 내려가는 중"}
+          label="보스의 둥지로 들어가는 중"
           muted={game.save.settings.musicMuted}
           volume={game.save.settings.musicVolume}
           onDone={() => {
             setEngagingRegion(null)
             setEngagedRegion(engagingRegion)
+          }}
+        />
+      ) : null}
+
+      {enteringDrill && drillEngageMedia ? (
+        <ClickerCinematic
+          key={`drill-${run.currentRegionId}`}
+          src={drillEngageMedia.video}
+          poster={drillEngageMedia.poster}
+          label={drillEngageMedia.label}
+          muted={game.save.settings.musicMuted}
+          volume={game.save.settings.musicVolume}
+          onDone={() => {
+            setEnteringDrill(false)
+            setEngagedRegion(run.currentRegionId)
           }}
         />
       ) : null}
