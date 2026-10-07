@@ -41,7 +41,11 @@ export const BOSS_SCENES: Record<string, BossSceneDef> = {
     hurtSfx: "bossHurt",
     sway: "heave",
   },
-  /** Core Heart. The arrival still already paints the guardian into the sanctum. */
+  /**
+   * Core Heart. The fight plate is the same still as the tutorial story beat:
+   * guardian and sanctum are one picture. Breath, lunge, and flinch move that picture.
+   * The cyan diamond is the strike.
+   */
   warden: {
     src: "/clicker/region/core_heart_still.webp",
     wide: { src: "/clicker/region/core_heart_still.webp", scale: 1 },
