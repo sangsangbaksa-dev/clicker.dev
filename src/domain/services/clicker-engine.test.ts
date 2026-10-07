@@ -317,7 +317,8 @@ test("active skill prices keep pace with the run", () => {
   const meta = createInitialMeta()
   const run = createInitialRun(1, meta, config)
   const skill = config.activeSkills[0]
-  assert.equal(activeSkillCost(run, skill), Math.ceil(skill.shopCost * ACTIVE_SKILL_PRICE_MULT))
+  const tier = Math.max(1, skill.shopCost / 20)
+  assert.equal(activeSkillCost(run, skill), Math.ceil(skill.shopCost * ACTIVE_SKILL_PRICE_MULT * tier ** 0.5))
   const rich = { ...run, lifetimeCoreEnergy: 1e12 }
   assert.ok(activeSkillCost(rich, skill) >= 1e12 * 0.01, "a share of this run's CORE")
   const pricier = config.activeSkills[config.activeSkills.length - 1]
@@ -880,7 +881,7 @@ test("new active skills: crit surge, thunder call, fever ignite, cryo purge", ()
   // Thunder call: a lightning storm for its duration.
   const thunder = activateSkill(run, meta, config, "thunder_call", now)
   assert.equal(thunder.error, undefined)
-  assert.equal(thunder.run.lightningStormUntil, now + 10_000)
+  assert.equal(thunder.run.lightningStormUntil, now + 8_000)
   // Fever ignite needs FEVER unlocked; a refusal keeps the charge.
   const refused = activateSkill(run, meta, config, "fever_ignite", now)
   assert.ok(refused.error)
@@ -893,7 +894,7 @@ test("new active skills: crit surge, thunder call, fever ignite, cryo purge", ()
   assert.ok(purged.run.activeBuffs.some((b) => b.id === "cryo_purge"))
   // Crit surge adds crit chance while it runs.
   const surged = activateSkill(run, meta, config, "crit_surge", now)
-  assert.equal(buffCritChance(surged.run, now + 1000, config), 0.6)
+  assert.equal(buffCritChance(surged.run, now + 1000, config), 0.55)
   assert.equal(buffCritChance(surged.run, now + 9000, config), 0)
 })
 
