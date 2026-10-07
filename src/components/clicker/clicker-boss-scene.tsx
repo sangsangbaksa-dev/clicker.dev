@@ -140,6 +140,8 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
     "--byn": sceneCameraY(b.y, scene.eyes.map((eye) => eye.y), scene.strike.y, FRAME_BELOW_EYES),
     "--bw": `${b.w}%`,
     "--bh": `${b.h}%`,
+    "--sx": `${scene.strike.x}%`,
+    "--sy": `${scene.strike.y}%`,
     "--tint": scene.tint,
   } as CSSProperties
   const state = [
@@ -160,10 +162,7 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
     <div ref={rootRef} className={`clicker-boss-scene ${wide ? "is-wide" : "is-tall"} ${state}`} style={vars}>
       {/* Hits alternate between two identical animations so each tap restarts it without remounting the art. */}
       <div className={`boss-scene-box${hitKey ? ` hit-${hitKey % 2}` : ""}`}>
-        {/* The whole painting moves as one picture — no masked second copy sliding over a still
-            backdrop, which doubled and smeared the outline. Three nested layers so nothing
-            snaps: the rig loops a slow breath forever, the pose eases between rest / wind-up /
-            strike / collapse, the flesh shakes under hits. The eyes ride inside. */}
+        {/* The whole painting moves as one picture. Rig breathes, pose lunges, flesh flinches. */}
         <div className="boss-scene-rig">
           <div className="boss-scene-pose">
             <div className="boss-scene-flesh">

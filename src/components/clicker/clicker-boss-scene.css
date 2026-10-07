@@ -71,20 +71,26 @@
 
 /* Attack: a slow rear back (anticipation), then a heavy lunge, then a long settle. */
 .clicker-boss-scene.is-windup .boss-scene-pose {
-  transform: scale(1.025) translate3d(0, -0.8%, 0);
+  transform: scale(1.03) translate3d(0, -1.4%, 0);
   transition: transform 1100ms cubic-bezier(0.45, 0, 0.55, 1), filter 1100ms ease-in-out;
-  filter: brightness(1.1);
+  filter: brightness(1.12);
+}
+.clicker-boss-scene.sway-wings.is-windup .boss-scene-pose {
+  transform: scale(1.04) translate3d(0, -1.6%, 0) rotate(-0.4deg);
 }
 .clicker-boss-scene.is-strike .boss-scene-pose {
-  transform: scale(1.065) translate3d(0, 0.8%, 0);
+  transform: scale(1.08) translate3d(0, 1.6%, 0);
   transition: transform 420ms cubic-bezier(0.2, 0.9, 0.2, 1), filter 420ms ease-out;
-  filter: brightness(1.2) saturate(1.1);
+  filter: brightness(1.28) saturate(1.15);
+}
+.clicker-boss-scene.sway-wings.is-strike .boss-scene-pose {
+  transform: scale(1.07) translate3d(0, 1.1%, 0) rotate(0.35deg);
 }
 .clicker-boss-scene.is-strike .boss-scene-box { animation: boss-quake 520ms cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes boss-quake {
-  22% { transform: translate3d(-2px, 1px, 0); }
-  48% { transform: translate3d(2px, -1px, 0); }
-  72% { transform: translate3d(-1px, 0, 0); }
+  22% { transform: translate3d(-5px, 2px, 0); }
+  48% { transform: translate3d(5px, -2px, 0); }
+  72% { transform: translate3d(-2px, 1px, 0); }
   100% { transform: translate3d(0, 0, 0); }
 }
 .clicker-boss-scene.is-strike::after {
@@ -92,7 +98,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 60%, rgb(var(--tint) / 0.35), transparent 65%);
+  background: radial-gradient(circle at var(--sx, 50%) var(--sy, 60%), rgb(var(--tint) / 0.5), transparent 58%);
   animation: boss-flash 900ms ease-out forwards;
 }
 @keyframes boss-flash { from { opacity: 1; } to { opacity: 0; } }
@@ -102,14 +108,14 @@
 .boss-scene-box.hit-1 .boss-scene-flesh { animation: boss-flinch-b 380ms cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes boss-flinch-a {
   0% { transform: translate3d(0, 0, 0); }
-  18% { transform: translate3d(-0.6%, 0.35%, 0) rotate(-0.25deg); }
-  45% { transform: translate3d(0.35%, -0.15%, 0) rotate(0.12deg); }
+  18% { transform: translate3d(-1.2%, 0.7%, 0) rotate(-0.6deg); }
+  45% { transform: translate3d(0.55%, -0.25%, 0) rotate(0.25deg); }
   100% { transform: translate3d(0, 0, 0); }
 }
 @keyframes boss-flinch-b {
   0% { transform: translate3d(0, 0, 0); }
-  18% { transform: translate3d(0.6%, 0.35%, 0) rotate(0.25deg); }
-  45% { transform: translate3d(-0.35%, -0.15%, 0) rotate(-0.12deg); }
+  18% { transform: translate3d(1.2%, 0.7%, 0) rotate(0.6deg); }
+  45% { transform: translate3d(-0.55%, -0.25%, 0) rotate(-0.25deg); }
   100% { transform: translate3d(0, 0, 0); }
 }
 
@@ -212,14 +218,21 @@
 .clicker-boss-scene.is-sanctum .boss-scene-weather::before {
   content: "";
   position: absolute;
-  left: 45%;
-  top: 26%;
+  left: var(--sx, 45%);
+  top: var(--sy, 26%);
   width: 22%;
   height: 18%;
   translate: -50% -50%;
   background: radial-gradient(circle, rgb(180 250 255 / 0.55), transparent 68%);
   mix-blend-mode: screen;
   animation: boss-sanctum-core 3.4s ease-in-out infinite;
+}
+.clicker-boss-scene.is-sanctum.is-windup .boss-scene-weather::before,
+.clicker-boss-scene.is-sanctum.is-strike .boss-scene-weather::before {
+  animation-duration: 0.42s;
+}
+.clicker-boss-scene.is-sanctum.is-enraged .boss-scene-weather::before {
+  filter: hue-rotate(-18deg) saturate(1.5) brightness(1.15);
 }
 .clicker-boss-scene.is-sanctum .boss-scene-weather::after {
   content: "";
@@ -385,6 +398,24 @@
   height: var(--boss-h);
 }
 .clicker-boss-scene.is-wide .boss-scene-base { object-fit: fill; }
+
+/* Core Guardian: the tutorial still is the whole fight. Cover it like the story slide
+   (centred, no camera crop) and breathe from the middle so the zoom never shows an edge. */
+.clicker-boss-scene.is-sanctum .boss-scene-base {
+  object-fit: cover;
+  object-position: center center;
+}
+.clicker-boss-scene.is-sanctum.is-wide .boss-scene-box {
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+.clicker-boss-scene.is-sanctum .boss-scene-rig,
+.clicker-boss-scene.is-sanctum .boss-scene-pose,
+.clicker-boss-scene.is-sanctum .boss-scene-flesh {
+  transform-origin: 50% 50%;
+}
 
 /* Tap sparks: a ring of shards flying out from the exact hit point. */
 .boss-scene-spark {
