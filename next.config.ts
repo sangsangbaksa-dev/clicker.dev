@@ -23,6 +23,10 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react"],
   },
   allowedDevOrigins: ["127.0.0.1", "localhost", "0.0.0.0"],
+  // Clicker art is static. Keep it out of the server function bundle (Hobby size limit).
+  outputFileTracingExcludes: {
+    "*": ["./public/**/*", "./media/**/*"],
+  },
   async headers() {
     return [
       {
@@ -41,6 +45,7 @@ const nextConfig: NextConfig = {
 const pagesConfig: NextConfig = {
   ...nextConfig,
   headers: undefined,
+  outputFileTracingExcludes: undefined,
   output: "export",
   basePath: pagesBasePath,
   trailingSlash: true,

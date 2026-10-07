@@ -8,7 +8,7 @@ function rootDir(): string {
 }
 
 export function dataPath(...segments: string[]): string {
-  return path.join(rootDir(), ...segments)
+  return path.join(/*turbopackIgnore: true*/ rootDir(), ...segments)
 }
 
 export function isReadonlyFsError(error: unknown): boolean {
