@@ -860,10 +860,14 @@ export function useClicker() {
       if (!saveRef.current) return
       const result = clickerForge(saveRef.current, slot)
       if (!result.ok) return refuse(result.error)
-      commitAndSave(result.value)
-      playSfx("upgrade")
-      const tier = GEAR[slot][gearOf(result.value.runState)[slot]]
-      flash(`제작 완료 · ${tier.name}`)
+      commitAndSave(result.value.save)
+      const tier = GEAR[slot][gearOf(result.value.save.runState)[slot]]
+      if (result.value.success) {
+        playSfx("upgrade")
+        flash(`강화 성공 · ${tier.name}`)
+      } else {
+        flash(`강화 실패 · ${tier.name} 유지`)
+      }
     },
     [refuse, flash, commitAndSave],
   )
@@ -990,7 +994,7 @@ export function useClicker() {
 
   /** Replace this device's save with an imported one (the old save is backed up first). */
   const importSaveJson = useCallback(
-    (json: string, message = "저장 코드를 불러왔습니다"): boolean => {
+    (json: string, message = "클라우드 진행을 불러왔습니다"): boolean => {
       if (!clickerImportSave(json, now())) return false
       loadAsOwner()
       setMineSummary(null)

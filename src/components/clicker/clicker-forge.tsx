@@ -7,6 +7,7 @@ import {
   GEAR_SLOTS,
   HELMETS,
   WEAPONS,
+  FORGE_SUCCESS_RATES,
   forgeError,
   formatNumber,
   gearImage,
@@ -47,6 +48,31 @@ export function ClickerForge({ game, run }: { game: ClickerGame; run: RunState }
         대장간 · 피해 <b>{WEAPONS[gear.weapon].damage}</b> · 체력 <b>{playerMaxHp(run)}</b> · 보스 공격 간격{" "}
         <b>{(lairAttackEveryMs(run) / 1000).toFixed(1)}초</b>
       </p>
+      <details className="clicker-forge-odds">
+        <summary>강화 확률표</summary>
+        <p>
+          상위 등급으로 갈수록 성공 확률이 크게 낮아집니다. 강화할 때마다 비용이 들고, 실패하면 등급은 그대로입니다.
+          실패할 때마다 다음 확률이 기본 확률의 10%씩 올라가고(최대 2배), 장인의 기운이 쌓여 100%가 되면 다음 강화는 반드시 성공합니다.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>등급</th>
+              {FORGE_SUCCESS_RATES.slice(1).map((_, i) => (
+                <th key={i}>{i + 2}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>성공</td>
+              {FORGE_SUCCESS_RATES.slice(1).map((rate, i) => (
+                <td key={i}>{`${(rate * 100).toLocaleString("ko-KR", { maximumFractionDigits: 2 })}%`}</td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </details>
       <div className="clicker-forge-slots">
         {GEAR_SLOTS.map((slot) => (
           <ForgeSlot

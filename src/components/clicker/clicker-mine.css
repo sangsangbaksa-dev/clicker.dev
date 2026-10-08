@@ -1,4 +1,4 @@
-/* Single center-ore mine: full-bleed plate + crystal hit zone + rig laser. */
+/* Single center-ore mine: full-bleed plate and crystal hit zone. */
 
 [data-clicker] .clicker-mine.clicker-mine-single {
   position: absolute;
@@ -20,66 +20,10 @@
   pointer-events: none;
 }
 
-/* Soft ground shadow under the shrunk crystal (the clean plate has no baked contact shadow); drawn in the plate so
-   FEVER brightness / shake apply to it too. Position, size and colour come from the layout (data), not from here. */
 .clicker-mine-single .clicker-mine-plate-shadow {
   position: absolute;
   pointer-events: none;
 }
-
-/* Brightness pulse only — no rotation (PRIORITY #2). A warm light layer fades in and out:
-   pulsing filter() on the full-screen plate repainted it every frame during FEVER. */
-.clicker-mine-single[data-visual="fever"] .clicker-mine-plate {
-  filter: brightness(1.08) saturate(1.15);
-}
-
-.clicker-mine-single[data-visual="fever"] .clicker-mine-plate::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 50% 50%, rgb(255 236 200 / 0.2), rgb(255 200 140 / 0.1) 70%);
-  opacity: 0;
-  will-change: opacity;
-  animation: clicker-mine-fever-glow 1.2s ease-in-out infinite;
-}
-
-@keyframes clicker-mine-fever-glow {
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes clicker-mine-fever-pulse {
-  0%,
-  100% {
-    filter: brightness(1.08) saturate(1.15);
-  }
-  50% {
-    filter: brightness(1.28) saturate(1.3);
-  }
-}
-
-.clicker-mine-single[data-visual="crisis"] .clicker-mine-plate {
-  filter: saturate(0.8) sepia(0.25) hue-rotate(-30deg);
-}
-
-.clicker-mine-single.is-shake .clicker-mine-plate,
-.clicker-mine-single.is-shake .clicker-mine-crystal {
-  animation: clicker-mine-shake 120ms linear;
-}
-
-@keyframes clicker-mine-shake {
-  25% {
-    translate: 3px -2px;
-  }
-  50% {
-    translate: -3px 2px;
-  }
-  75% {
-    translate: 2px 1px;
-  }
-}
-
 /* ---------- Crystal ---------- */
 .clicker-mine-crystal {
   position: absolute;
@@ -104,93 +48,10 @@
   height: 100%;
   object-fit: contain;
   background-repeat: no-repeat;
-  /* Feather the crop so pulses never show a rectangle. */
   mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%);
   transform-origin: 50% 85%;
-  filter: brightness(calc(1 + var(--ore-crack, 0) * 0.35)) saturate(calc(1 + var(--ore-crack, 0) * 0.5));
   pointer-events: none;
-}
-
-/* Hits only flash the crystal; it never scales or warps, so the ore stays rock-solid. */
-.clicker-mine-crystal-flash {
-  position: absolute;
-  inset: 8% 6% 14%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgb(255 255 255 / 0.6), rgb(170 250 255 / 0.28) 55%, transparent);
-  opacity: 0;
-  pointer-events: none;
-  will-change: opacity;
-  animation: clicker-mine-crystal-hit 160ms ease-out;
-}
-
-@keyframes clicker-mine-crystal-hit {
-  35% {
-    opacity: 1;
-  }
-}
-
-.clicker-mine-crystal-glow {
-  position: absolute;
-  inset: 12% 8% 18%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgb(140 250 255 / 0.28), transparent);
-  mix-blend-mode: screen;
-  pointer-events: none;
-  animation: clicker-mine-crystal-breathe 2.6s ease-in-out infinite;
-}
-
-.clicker-mine-crystal.is-weak .clicker-mine-crystal-glow {
-  background: radial-gradient(closest-side, rgb(255 255 255 / 0.4), transparent);
-  animation-duration: 0.7s;
-}
-
-@keyframes clicker-mine-crystal-breathe {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-.clicker-mine-crystal.is-broken {
-  pointer-events: none;
-}
-
-.clicker-mine-crystal.is-broken .clicker-mine-crystal-art {
-  animation: clicker-mine-crystal-regrow 650ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
-}
-
-@keyframes clicker-mine-crystal-regrow {
-  0% {
-    transform: scale(0.2);
-    opacity: 0;
-    filter: brightness(3);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.clicker-mine-shatter {
-  position: absolute;
-  inset: 0;
-  z-index: 7;
-  pointer-events: none;
-  background: radial-gradient(circle at 50% 52%, rgb(255 255 255 / 0.9), rgb(120 240 255 / 0.35) 25%, transparent 60%);
-  animation: clicker-mine-shatter 520ms ease-out forwards;
-}
-
-@keyframes clicker-mine-shatter {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
 }
 
 /* ---------- Integrity bar ---------- */
@@ -213,104 +74,6 @@
   transition: width 120ms ease;
 }
 
-/* ---------- Laser ---------- */
-.clicker-mine-single .clicker-mine-lasers {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 6;
-  pointer-events: none;
-  overflow: visible;
-}
-
-.clicker-mine-beam {
-  animation: clicker-mine-beam-fade 220ms ease-out forwards;
-}
-
-.clicker-mine-beam-glow {
-  /* A wide translucent stroke instead of blur(): per-beam SVG blur was the main click-time paint cost. */
-  stroke: rgb(0 229 255 / 0.3);
-  stroke-width: 14;
-  stroke-linecap: round;
-}
-
-.clicker-mine-beam-core {
-  stroke: #eaffff;
-  stroke-width: 3;
-  stroke-linecap: round;
-}
-
-.clicker-mine-beam.is-crit .clicker-mine-beam-glow {
-  stroke: rgb(255 190 80 / 0.55);
-  stroke-width: 16;
-}
-
-.clicker-mine-beam.is-crit .clicker-mine-beam-core {
-  stroke: #fff4d0;
-  stroke-width: 4;
-}
-
-@keyframes clicker-mine-beam-fade {
-  0% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-.clicker-mine-impacts {
-  position: absolute;
-  inset: 0;
-  z-index: 6;
-  pointer-events: none;
-}
-
-.clicker-mine-impact {
-  position: absolute;
-  width: 46px;
-  height: 46px;
-  margin: -23px 0 0 -23px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #fff 0 18%, rgb(120 245 255 / 0.8) 30%, transparent 70%);
-  animation: clicker-mine-impact 220ms ease-out forwards;
-}
-
-.clicker-mine-impact.is-crit {
-  width: 70px;
-  height: 70px;
-  margin: -35px 0 0 -35px;
-  background: radial-gradient(circle, #fff 0 18%, rgb(255 200 110 / 0.85) 32%, transparent 70%);
-}
-
-@keyframes clicker-mine-impact {
-  from {
-    transform: scale(0.4);
-    opacity: 1;
-  }
-  to {
-    transform: scale(1.4);
-    opacity: 0;
-  }
-}
-
-.clicker-mine-single .clicker-mine-sparks {
-  position: absolute;
-  inset: 0;
-  z-index: 7;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .clicker-mine-single[data-visual="fever"] .clicker-mine-plate::after,
-  .clicker-mine-crystal-glow,
-  .clicker-mine-crystal-flash,
-  .clicker-mine-crystal.is-broken .clicker-mine-crystal-art {
-    animation: none;
-  }
-}
-
 /* ---------- Golden vein ---------- */
 .clicker-mine-vein-gold {
   position: absolute;
@@ -322,34 +85,8 @@
   border: 0;
   border-radius: 50%;
   cursor: pointer;
-  background:
-    radial-gradient(circle at 40% 35%, #fffbe6 0 12%, #ffd35c 30%, #c98a12 58%, transparent 72%);
-  box-shadow: 0 0 24px 8px rgb(255 205 90 / 0.65);
+  background: #d7a63c;
   clip-path: polygon(50% 0, 64% 34%, 100% 50%, 64% 66%, 50% 100%, 36% 66%, 0 50%, 36% 34%);
-  animation:
-    clicker-mine-vein-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.4),
-    clicker-mine-vein-twinkle 0.9s ease-in-out infinite 260ms;
-}
-
-@keyframes clicker-mine-vein-in {
-  from {
-    transform: scale(0) rotate(-40deg);
-  }
-  to {
-    transform: scale(1) rotate(0deg);
-  }
-}
-
-@keyframes clicker-mine-vein-twinkle {
-  0%,
-  100% {
-    filter: brightness(1);
-    transform: scale(1);
-  }
-  50% {
-    filter: brightness(1.5);
-    transform: scale(1.12);
-  }
 }
 
 .clicker-mine-vein-label {
@@ -368,25 +105,7 @@
   font-weight: 800;
   letter-spacing: 0.04em;
   white-space: nowrap;
-  text-shadow: 0 0 10px rgb(255 190 80 / 0.8);
   pointer-events: none;
-  animation: clicker-mine-vein-label 1.8s ease-out forwards;
-}
-
-@keyframes clicker-mine-vein-label {
-  0% {
-    opacity: 0;
-    translate: 0 8px;
-  }
-  12%,
-  75% {
-    opacity: 1;
-    translate: 0 0;
-  }
-  100% {
-    opacity: 0;
-    translate: 0 -10px;
-  }
 }
 
 /* ---------- Assist drill ---------- */
@@ -439,19 +158,11 @@
 
 .clicker-mine-overdrive.is-active {
   border-color: #ffd36b;
-  box-shadow: 0 0 14px rgb(255 190 80 / 0.55);
 }
 
 .clicker-mine-overdrive:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .clicker-mine-vein-gold,
-  .clicker-mine-vein-label {
-    animation: none;
-  }
 }
 
 /* FEVER gauge inside the mine HUD (the top bar is hidden in the mine). */
@@ -478,12 +189,9 @@
 [data-clicker] .clicker-mine-fever strong { color: #ffc27a; }
 [data-clicker] .clicker-mine-fever.is-ready {
   cursor: pointer;
-  animation: clicker-mine-fever-pulse 1.2s ease-in-out infinite;
-  box-shadow: 0 0 14px rgb(255 157 60 / 0.6);
 }
 [data-clicker] .clicker-mine-fever.is-active {
   border-color: #ff6a3a;
-  box-shadow: 0 0 18px rgb(255 90 50 / 0.7);
 }
 [data-clicker] .clicker-mine-potion.is-empty {
   opacity: 0.38;
@@ -518,125 +226,6 @@
     height: 42px;
     padding: 3px;
   }
-}
-
-/* ---------- Strike spectacle: grows with progress (tier 0–4), lightning on procs and skills ---------- */
-.clicker-mine-single { --bolt: 150 230 255; }
-.clicker-mine-single.is-tier-2 { --bolt: 170 200 255; }
-.clicker-mine-single.is-tier-3 { --bolt: 200 160 255; }
-.clicker-mine-single.is-tier-4 { --bolt: 255 215 120; }
-
-/* Beams thicken and take the tier's colour. */
-.clicker-mine-single.is-tier-2 .clicker-mine-beam-glow { stroke-width: 15; stroke: rgb(var(--bolt) / 0.5); }
-.clicker-mine-single.is-tier-3 .clicker-mine-beam-glow { stroke-width: 18; stroke: rgb(var(--bolt) / 0.55); }
-.clicker-mine-single.is-tier-4 .clicker-mine-beam-glow {
-  stroke-width: 22;
-  stroke: rgb(var(--bolt) / 0.6);
-  animation: clicker-mine-prism 1.2s linear infinite;
-}
-.clicker-mine-single.is-tier-3 .clicker-mine-impact,
-.clicker-mine-single.is-tier-4 .clicker-mine-impact { width: 64px; height: 64px; margin: -32px 0 0 -32px; }
-
-.clicker-mine-single .clicker-mine-bolts {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 7;
-  pointer-events: none;
-  overflow: visible;
-}
-.clicker-mine-bolt { animation: clicker-mine-bolt 240ms steps(1, end) forwards, clicker-mine-beam-fade 240ms ease-out forwards; }
-.clicker-mine-bolt path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
-.clicker-mine-bolt-glow { stroke: rgb(var(--bolt) / 0.4); stroke-width: 10; }
-.clicker-mine-bolt-core { stroke: #fbfeff; stroke-width: 2; }
-.clicker-mine-bolt.is-big .clicker-mine-bolt-glow { stroke-width: 18; stroke: rgb(var(--bolt) / 0.5); }
-.clicker-mine-bolt.is-big .clicker-mine-bolt-core { stroke-width: 3.5; }
-@keyframes clicker-mine-bolt {
-  0%, 40%, 70% { visibility: visible; }
-  25%, 55% { visibility: hidden; }
-}
-
-.clicker-mine-rings { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
-.clicker-mine-ring {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  margin: -20px 0 0 -20px;
-  border-radius: 50%;
-  border: 3px solid rgb(var(--bolt) / 0.9);
-  box-shadow: 0 0 14px rgb(var(--bolt) / 0.8), inset 0 0 10px rgb(var(--bolt) / 0.6);
-  animation: clicker-mine-ring 500ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
-}
-.clicker-mine-ring.is-big { border-width: 5px; animation-duration: 700ms; --ring-scale: 7; }
-@keyframes clicker-mine-ring {
-  from { transform: scale(0.3); opacity: 1; }
-  to { transform: scale(var(--ring-scale, 4)); opacity: 0; }
-}
-
-.clicker-mine-flash {
-  position: absolute;
-  inset: 0;
-  z-index: 8;
-  pointer-events: none;
-  background: radial-gradient(circle at 50% 40%, rgb(255 255 255 / 0.55), rgb(var(--bolt) / 0.25) 45%, transparent 75%);
-  mix-blend-mode: screen;
-  animation: clicker-mine-flash 260ms ease-out forwards;
-}
-@keyframes clicker-mine-flash {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-/* Skill cast: a colour nova sweeps out from the crystal. */
-.clicker-mine-nova {
-  position: absolute;
-  left: 50%;
-  top: 45%;
-  width: 60vmax;
-  height: 60vmax;
-  margin: -30vmax 0 0 -30vmax;
-  z-index: 8;
-  border-radius: 50%;
-  pointer-events: none;
-  background: radial-gradient(circle, transparent 35%, var(--nova) 52%, transparent 62%);
-  mix-blend-mode: screen;
-  animation: clicker-mine-nova 900ms cubic-bezier(0.15, 0.7, 0.3, 1) forwards;
-}
-@keyframes clicker-mine-nova {
-  from { transform: scale(0.1); opacity: 1; }
-  to { transform: scale(2.2); opacity: 0; }
-}
-
-/* A running skill charges the air: slow violet-blue flicker at the edges. */
-.clicker-mine-single.is-storm::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  pointer-events: none;
-  box-shadow: inset 0 0 90px rgb(var(--bolt) / 0.45);
-  animation: clicker-mine-storm 1.4s ease-in-out infinite;
-}
-@keyframes clicker-mine-storm {
-  0%, 100% { opacity: 0.55; }
-  12% { opacity: 1; }
-  18% { opacity: 0.4; }
-  24% { opacity: 0.9; }
-}
-
-.clicker-mine-single .clicker-spark.is-prism {
-  background: hsl(var(--spark-hue) 100% 70%);
-  box-shadow: 0 0 10px hsl(var(--spark-hue) 100% 65%);
-}
-@keyframes clicker-mine-prism {
-  to { filter: blur(4px) hue-rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .clicker-mine-single.is-storm::after,
-  .clicker-mine-nova,
-  .clicker-mine-flash { animation: none; opacity: 0; }
 }
 
 /* Owned active skills — right rail inside the mine, mirroring the potions. */

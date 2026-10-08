@@ -121,7 +121,7 @@ export function ClickerAccountPanel({ state }: { state: ClickerAccountState }) {
     return (
       <section className="clicker-account" aria-labelledby="clicker-account-title">
         <h3 id="clicker-account-title">계정</h3>
-        <p className="clicker-account-note">로그인·회원가입은 준비 중입니다. 지금은 아래 저장 코드로 진행을 옮길 수 있습니다.</p>
+        <p className="clicker-account-note">로그인·회원가입은 아직 준비 중입니다.</p>
       </section>
     )
   }

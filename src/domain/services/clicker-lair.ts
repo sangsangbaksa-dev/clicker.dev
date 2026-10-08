@@ -1,5 +1,12 @@
 import type { GameConfig, LairFight, MetaState, RunState } from "../entities/clicker"
-import { lairDamageMultiplier, regionCurrencyBalance, scaledCost, slayMonster } from "./clicker-engine.ts"
+import {
+  lairDamageMultiplier,
+  lairSkills,
+  regionCurrencyBalance,
+  scaledCost,
+  slayMonster,
+  type Rng,
+} from "./clicker-engine.ts"
 
 /*
  * Lair battles: instead of tapping a roaming boss to death, the player walks into its lair
@@ -115,21 +122,77 @@ export function forgeError(run: RunState, config: GameConfig, slot: GearSlot): s
   return undefined
 }
 
-export function forgeGear(run: RunState, config: GameConfig, slot: GearSlot): { run: RunState; error?: string } {
+/*
+ * Forging is an enhancement roll, modelled on MMO honing tables (Lost Ark's honing rates and
+ * artisan's energy, MapleStory's falling star-force odds): early tiers always land, deep tiers
+ * are a gamble. Every attempt costs the full price. A failure keeps the current tier, raises
+ * the next attempt's odds by 10% of the base rate (up to double), and fills artisan's energy
+ * by 4.65 times the odds just rolled — at 100% energy the next attempt cannot fail.
+ */
+
+/** Base success rate for forging INTO tier i (index 0 is the starter gear, never forged). */
+export const FORGE_SUCCESS_RATES = [1, 1, 0.1, 0.05, 0.025, 0.012, 0.006, 0.003, 0.0015, 0.0008] as const
+export const FORGE_FAIL_BONUS = 0.1
+export const FORGE_ENERGY_PER_FAIL = 4.65
+
+export type ForgeOdds = {
+  /** Base rate from the table. */
+  base: number
+  /** This attempt's rate after failure bonuses (1 when energy is full). */
+  rate: number
+  /** Artisan's energy, 0..1. */
+  energy: number
+  fails: number
+  guaranteed: boolean
+}
+
+function forgeFails(run: RunState, slot: GearSlot): number {
+  const n = run.forgeFails?.[slot] ?? 0
+  return Number.isInteger(n) && n > 0 ? n : 0
+}
+
+/** Odds for forging the next tier of a slot; undefined at the top tier. */
+export function forgeOdds(run: RunState, slot: GearSlot): ForgeOdds | undefined {
+  const target = gearOf(run)[slot] + 1
+  if (!GEAR[slot][target]) return undefined
+  const base = FORGE_SUCCESS_RATES[Math.min(target, FORGE_SUCCESS_RATES.length - 1)]
+  const rateAfter = (k: number) => Math.min(1, base * 2, base * (1 + FORGE_FAIL_BONUS * k))
+  const fails = forgeFails(run, slot)
+  let energy = 0
+  for (let k = 0; k < fails && energy < 1; k++) energy += rateAfter(k) * FORGE_ENERGY_PER_FAIL
+  energy = Math.min(1, energy)
+  const guaranteed = energy >= 1 - 1e-9
+  return { base, rate: guaranteed ? 1 : rateAfter(fails), energy, fails, guaranteed }
+}
+
+export function forgeGear(
+  run: RunState,
+  config: GameConfig,
+  slot: GearSlot,
+  rng: Rng = Math.random,
+): { run: RunState; error?: string; success?: boolean } {
   if (run.lair) return { run, error: "전투 중에는 제작할 수 없습니다." }
   const error = forgeError(run, config, slot)
   if (error) return { run, error }
   const gear = gearOf(run)
-  const next = GEAR[slot][gear[slot] + 1]
+  const nextGear = GEAR[slot][gear[slot] + 1]
   const regionCurrency = { ...run.regionCurrency }
-  for (const c of next.cost.currencies) regionCurrency[c.regionId] = regionCurrencyBalance(run, c.regionId) - c.amount
+  for (const c of nextGear.cost.currencies) regionCurrency[c.regionId] = regionCurrencyBalance(run, c.regionId) - c.amount
+  const odds = forgeOdds(run, slot)!
+  const paid = {
+    ...run,
+    coreEnergy: run.coreEnergy - scaledCost(run, nextGear.cost.core),
+    regionCurrency,
+  }
+  const success = odds.guaranteed || rng() < odds.rate
+  const forgeFails = { ...run.forgeFails, [slot]: success ? 0 : odds.fails + 1 }
   return {
     run: {
-      ...run,
-      coreEnergy: run.coreEnergy - scaledCost(run, next.cost.core),
-      regionCurrency,
-      gear: { ...gear, [slot]: gear[slot] + 1 },
+      ...paid,
+      forgeFails,
+      ...(success ? { gear: { ...gear, [slot]: gear[slot] + 1 } } : {}),
     },
+    success,
   }
 }
 
@@ -165,15 +228,64 @@ export function strikeLair(
   meta: MetaState,
   config: GameConfig,
   now: number,
-): { run: RunState; meta: MetaState; damage: number; reward: number; defeated: boolean } {
+  rng: Rng = Math.random,
+): {
+  run: RunState
+  meta: MetaState
+  damage: number
+  reward: number
+  defeated: boolean
+  procs: { quake: boolean; weakSpot: boolean; healed: number; stun: boolean }
+} {
   const fight = run.lair
-  if (!fight || fight.playerHp <= 0 || fight.bossHp <= 0) return { run, meta, damage: 0, reward: 0, defeated: false }
-  // Forged weapon × the HUNT tree's creature-damage circuits, whole numbers so the HP bar reads cleanly.
-  const damage = Math.max(1, Math.round(WEAPONS[gearOf(run).weapon].damage * lairDamageMultiplier(run, config)))
+  const noProcs = { quake: false, weakSpot: false, healed: 0, stun: false }
+  if (!fight || fight.playerHp <= 0 || fight.bossHp <= 0) {
+    return { run, meta, damage: 0, reward: 0, defeated: false, procs: noProcs }
+  }
+
+  const skills = lairSkills(run, config)
+  const strikeCount = (fight.strikeCount ?? 0) + 1
+  const quake = strikeCount % skills.quakeInterval === 0
+  const weakSpot = rng() < skills.critChance
+  const baseDamage = Math.max(1, Math.round(WEAPONS[gearOf(run).weapon].damage * lairDamageMultiplier(run, config)))
+  const damage = Math.max(
+    1,
+    baseDamage * (weakSpot ? skills.critMultiplier : 1) * (quake ? 1 + skills.quakeMultiplier : 1),
+  )
+  const healed = Math.min(
+    Math.max(0, fight.playerMaxHp - fight.playerHp),
+    skills.lifesteal > 0 ? Math.max(1, Math.floor(damage * skills.lifesteal)) : 0,
+  )
+  const stun = strikeCount % 12 === 0 && skills.stunMs > 0
   const bossHp = Math.max(0, fight.bossHp - damage)
-  if (bossHp > 0) return { run: { ...run, lair: { ...fight, bossHp } }, meta, damage, reward: 0, defeated: false }
+  if (bossHp > 0) {
+    return {
+      run: {
+        ...run,
+        lair: {
+          ...fight,
+          bossHp,
+          playerHp: fight.playerHp + healed,
+          nextAttackAt: fight.nextAttackAt + (stun ? skills.stunMs : 0),
+          strikeCount,
+        },
+      },
+      meta,
+      damage,
+      reward: 0,
+      defeated: false,
+      procs: { quake, weakSpot, healed, stun },
+    }
+  }
   const kill = slayMonster({ ...run, lair: null }, meta, config, fight.regionId, now)
-  return { run: kill.run, meta: kill.meta, damage, reward: kill.reward, defeated: true }
+  return {
+    run: kill.run,
+    meta: kill.meta,
+    damage,
+    reward: kill.reward,
+    defeated: true,
+    procs: { quake, weakSpot, healed, stun },
+  }
 }
 
 /**

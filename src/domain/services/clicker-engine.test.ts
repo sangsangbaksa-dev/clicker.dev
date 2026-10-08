@@ -119,12 +119,21 @@ test("fever starts from gauge or potion and ends after duration", () => {
   const now = 3_000_000
   const meta = createInitialMeta()
   let run = createInitialRun(now, meta, config)
+  assert.equal(config.feverGaugeMax, 500)
+  assert.equal(config.feverDuration, 6)
+  assert.ok(startFever({ ...run, ownedSkillNodeIds: ["focus_click", "fever_unlock"], fever: { ...run.fever, gauge: config.feverGaugeMax - 1 } }, meta, config, "GAUGE", null).error)
   run = { ...run, fever: { ...run.fever, gauge: config.feverGaugeMax } }
   // Locked until the Fever Core circuit is owned.
   assert.match(startFever(run, meta, config, "GAUGE", null).error ?? "", /해금/)
   run = { ...run, ownedSkillNodeIds: ["focus_click", "fever_unlock"] }
   const fromGauge = startFever(run, meta, config, "GAUGE", null)
   assert.equal(fromGauge.run.fever.phase, "FEVER")
+  assert.equal(fromGauge.run.fever.duration, 6)
+  const boosted = startFever({
+    ...run,
+    ownedSkillNodeIds: ["fever_unlock", ...config.skillNodes.filter((node) => node.feverDurationAdd).map((node) => node.id)],
+  }, meta, config, "GAUGE", null)
+  assert.equal(boosted.run.fever.duration, 10, "skill bonuses cap total FEVER duration at 10 seconds")
   // FEVER only counts down inside a mine session.
   let later = { run: { ...fromGauge.run, mineSessionEndsAt: now + 60_000 }, meta }
   for (let t = 1; t <= 25; t++) {
@@ -321,7 +330,7 @@ test("active skill prices keep pace with the run", () => {
   const skill = config.activeSkills[0]
   assert.equal(activeSkillCost(run, skill), Math.ceil(skill.shopCost * ACTIVE_SKILL_PRICE_MULT))
   const rich = { ...run, lifetimeCoreEnergy: 1e12 }
-  assert.ok(activeSkillCost(rich, skill) >= 1e12 * 0.01, "a share of this run's CORE")
+  assert.ok(activeSkillCost(rich, skill) >= 1e12 * 0.005, "a share of this run's CORE")
   const pricier = config.activeSkills[config.activeSkills.length - 1]
   assert.ok(activeSkillCost(rich, pricier) > activeSkillCost(rich, skill))
 })

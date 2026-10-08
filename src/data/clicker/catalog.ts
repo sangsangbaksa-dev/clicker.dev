@@ -33,8 +33,8 @@ const baseConfig: GameConfig = {
   comboPerStack: 0.02,
   comboMultiplierCap: 2,
   // FEVER is unlocked by the Fever Core circuit; rarer and shorter than before, but much stronger.
-  feverGaugeMax: 250,
-  feverDuration: 10,
+  feverGaugeMax: 500,
+  feverDuration: 6,
   feverClickMultiplier: 5,
   feverProductionMultiplier: 2,
   feverCritChanceAdd: 0.2,

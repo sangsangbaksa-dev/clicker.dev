@@ -15,6 +15,7 @@ const PUBLIC_ROUTES: Record<string, string> = {
   "clicker/auth/signup.ts": "게임 계정 회원가입",
   "clicker/auth/logout.ts": "게임 세션 쿠키 삭제만 함",
   "clicker/auth/me.ts": "게임 세션이 없으면 null만 돌려줌",
+  "clicker/feedback.ts": "익명 피드백 제출과 지정 아이디를 통한 조회",
 }
 
 const HANDLER = /export\s+async\s+function\s+(GET|POST|PUT|PATCH|DELETE)\b/g

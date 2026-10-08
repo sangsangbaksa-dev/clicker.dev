@@ -8,6 +8,11 @@ export { loadAlphaMask } from "@/infrastructure/image/alpha-mask-loader"
 export { oreHitBox, oreStrikePoint, type OreNode } from "@/domain/services/ore-node"
 export { formatNumber, formatRate } from "@/domain/services/clicker-format"
 export {
+  CLICKER_FEEDBACK_CATEGORIES,
+  type ClickerFeedback,
+  type ClickerFeedbackCategory,
+} from "@/domain/services/clicker-feedback"
+export {
   bulkAffordable,
   bulkCostText,
   buildActiveSkillShopViews,
@@ -155,6 +160,7 @@ export {
   GEAR_SLOTS,
   HELMETS,
   LAIR_BOSSES,
+  FORGE_SUCCESS_RATES,
   WEAPONS,
   forgeError,
   gearImage,

@@ -293,11 +293,6 @@ button.clicker-metric-action.is-active {
   transition: opacity 280ms ease, filter 280ms ease;
 }
 
-.clicker-stage-bg.is-event {
-  opacity: 0.72;
-  filter: brightness(1.12) saturate(1.04);
-}
-
 .clicker-stage-region {
   position: absolute;
   top: 12px;
@@ -3232,8 +3227,6 @@ button.clicker-metric-action.is-fever-ready em {
   .clicker-core-art,
   .clicker-core-hit.is-pop img,
   .clicker-core-hit.is-shake,
-  .clicker-mine.is-pop .clicker-mine-vein img,
-  .clicker-mine.is-shake,
   .clicker-float,
   .clicker-card.is-live img,
   .clicker-card.is-dense img,
@@ -3242,17 +3235,6 @@ button.clicker-metric-action.is-fever-ready em {
   .clicker-title-brand,
   .clicker-title-start,
   .clicker-title-bg,
-  .clicker-mine-vein-glow,
-  .clicker-mine-dust,
-  .clicker-mine-puff {
-    animation: none !important;
-  }
-
-  .clicker-mine-dust,
-  .clicker-mine-hit-dust {
-    display: none !important;
-  }
-
   .clicker-stage-bg {
     transition: none;
   }
@@ -3602,131 +3584,6 @@ button.clicker-metric-action.is-fever-ready em {
 .clicker-mine-potion:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-.clicker-mine.is-laser-dig {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 0;
-  box-shadow: none;
-  background: transparent;
-  overflow: hidden;
-}
-
-.clicker-mine.is-laser-dig .clicker-mine-board {
-  position: absolute;
-  inset: 0;
-}
-
-.clicker-mine-emitter {
-  position: absolute;
-  top: 8%;
-  right: 6%;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #dff9ff 0%, #00e5ff 45%, transparent 70%);
-  box-shadow: 0 0 18px color-mix(in srgb, #00e5ff 70%, transparent);
-  z-index: 4;
-  pointer-events: none;
-}
-
-.clicker-mine-ore {
-  position: absolute;
-  width: min(42vw, 220px);
-  height: min(42vw, 220px);
-  transform: translate(-50%, -50%);
-  appearance: none;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  cursor: crosshair;
-  z-index: 5;
-  animation: clicker-mine-ore-in 280ms ease-out;
-}
-
-.clicker-mine-ore img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  pointer-events: none;
-  filter: drop-shadow(0 0 18px color-mix(in srgb, #00e5ff 35%, transparent));
-  opacity: calc(1 - var(--vein-crack, 0) * 0.18);
-  transform: scale(calc(1 - var(--vein-crack, 0) * 0.06));
-  transition: transform 120ms ease, opacity 120ms ease;
-}
-
-.clicker-mine-ore.is-cracked img {
-  filter:
-    drop-shadow(0 0 18px color-mix(in srgb, #00e5ff 35%, transparent))
-    saturate(1.1);
-}
-
-.clicker-mine-ore.is-breaking img {
-  filter:
-    drop-shadow(0 0 22px color-mix(in srgb, #ff6a3d 45%, transparent))
-    brightness(1.15);
-}
-
-.clicker-mine.is-hit .clicker-mine-ore img {
-  transform: scale(0.94);
-}
-
-.clicker-mine-lasers {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 6;
-}
-
-.clicker-mine-laser-beam {
-  stroke: #7ef9ff;
-  stroke-width: 3.5;
-  stroke-linecap: round;
-  filter: drop-shadow(0 0 6px #00e5ff);
-  animation: clicker-mine-laser-flash 220ms ease-out forwards;
-}
-
-.clicker-mine-laser-beam.is-crit {
-  stroke: #ffe08a;
-  stroke-width: 4.5;
-  filter: drop-shadow(0 0 8px #ffb347);
-}
-
-@keyframes clicker-mine-laser-flash {
-  0% {
-    opacity: 1;
-    stroke-dasharray: 0 1200;
-  }
-  35% {
-    opacity: 1;
-    stroke-dasharray: 1200 0;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes clicker-mine-ore-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.72);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .clicker-mine-ore,
-  .clicker-mine-laser-beam {
-    animation: none;
-  }
 }
 
 .clicker-mine-tycoon {
@@ -4100,61 +3957,6 @@ button.clicker-metric-action.is-fever-ready em {
   writing-mode: vertical-rl;
 }
 
-.clicker-mine-hit-dust {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 6;
-}
-
-.clicker-mine-puff {
-  position: absolute;
-  width: 96px;
-  height: 96px;
-  margin: -48px 0 0 -48px;
-  border-radius: 50%;
-  overflow: hidden;
-  animation: clicker-mine-puff 460ms ease-out forwards;
-  pointer-events: none;
-}
-
-.clicker-mine-puff img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  mix-blend-mode: screen;
-  filter: brightness(1.35) saturate(1.1);
-}
-
-.clicker-mine-puff.is-crit {
-  width: 128px;
-  height: 128px;
-  margin: -64px 0 0 -64px;
-}
-
-.clicker-mine-puff.is-crit img {
-  filter: brightness(1.55) saturate(1.25) hue-rotate(-12deg);
-}
-
-@keyframes clicker-mine-puff {
-  0% {
-    opacity: 0.9;
-    transform: scale(0.4);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.8) translateY(-8px);
-  }
-}
-
-.clicker-mine[data-visual="fever"] .clicker-mine-vein img {
-  filter: saturate(1.25) hue-rotate(-8deg) brightness(1.08);
-}
-
-.clicker-mine[data-visual="crisis"] .clicker-mine-vein img {
-  filter: saturate(1.15) hue-rotate(-40deg) brightness(1.05);
-}
-
 .clicker-mine-chrome {
   position: absolute;
   top: 0;
@@ -4221,7 +4023,6 @@ button.clicker-metric-action.is-fever-ready em {
   cursor: pointer;
   background: transparent;
   border-radius: 50%;
-  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--mine-glow) calc(var(--vein-crack, 0) * 40%), transparent));
   z-index: 3;
 }
 
@@ -4230,31 +4031,10 @@ button.clicker-metric-action.is-fever-ready em {
   height: 100%;
   object-fit: contain;
   pointer-events: none;
-  opacity: calc(1 - var(--vein-crack, 0) * 0.35);
-  transform: scale(calc(1 - var(--vein-crack, 0) * 0.08));
-  transition: opacity 120ms ease, transform 120ms ease, filter 120ms ease;
-}
-
-.clicker-mine-vein.is-mining {
-  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--mine-glow) 60%, transparent));
-}
-
-.clicker-mine-vein.is-mining img {
-  filter: brightness(1.18) saturate(1.2);
-  transform: scale(0.94);
 }
 
 .clicker-mine-vein.is-hero {
   z-index: 3;
-}
-
-.clicker-mine-vein-glow {
-  position: absolute;
-  inset: 8%;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--mine-glow) 35%, transparent), transparent 70%);
-  animation: clicker-mine-glow 2.4s ease-in-out infinite;
-  pointer-events: none;
 }
 
 .clicker-mine-vein-hp {
@@ -4269,45 +4049,8 @@ button.clicker-metric-action.is-fever-ready em {
   pointer-events: none;
 }
 
-.clicker-mine-dust {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 4;
-  opacity: 0.2;
-  animation: clicker-mine-dust 5.5s ease-in-out infinite;
-  mix-blend-mode: screen;
-  overflow: hidden;
-}
-
-.clicker-mine-dust img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 1;
-}
-
 .clicker-mine.has-chrome-art .clicker-mine-chrome {
   background: color-mix(in srgb, var(--mine-ink) 55%, transparent);
-}
-
-@keyframes clicker-mine-dust {
-  0%,
-  100% {
-    opacity: 0.16;
-    transform: translateY(0);
-  }
-  50% {
-    opacity: 0.24;
-    transform: translateY(-3px);
-  }
-}
-
-.clicker-mine-sparks {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 6;
 }
 
 .clicker-mine-watermark {
@@ -4450,24 +4193,6 @@ button.clicker-metric-action.is-fever-ready em {
 .clicker-metric-mine-timer strong {
   color: var(--core-bright);
   font-variant-numeric: tabular-nums;
-}
-
-.clicker-mine.is-pop .clicker-mine-vein:active img {
-  transform: scale(0.92);
-}
-
-.clicker-mine.is-shake {
-  animation: core-shake 0.2s linear;
-}
-
-@keyframes clicker-mine-glow {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
-    opacity: 1;
-  }
 }
 
 @media (max-width: 720px) {

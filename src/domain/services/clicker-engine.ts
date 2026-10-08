@@ -90,6 +90,7 @@ export function createInitialRun(now: number, meta: MetaState, config: GameConfi
     lastTickAt: now,
     regionCurrency: {},
     worldTreeIds: [],
+    forgeFails: {},
     currentWorldLine: meta.rebirthCount + 1,
     currentRegionId: config.regions.find((r) => r.isHome)?.id ?? config.regions[0]?.id ?? "core_chamber",
     clickCount: 0,
@@ -335,6 +336,20 @@ export function lairDamageMultiplier(run: RunState, config: GameConfig): number 
 function ownedSkills(run: RunState, config: GameConfig): SkillNodeDef[] {
   const set = new Set(run.ownedSkillNodeIds)
   return config.skillNodes.filter((n) => set.has(n.id))
+}
+
+export const LAIR_QUAKE_BASE_INTERVAL = 10
+
+export function lairSkills(run: RunState, config: GameConfig) {
+  const skills = ownedSkills(run, config)
+  return {
+    quakeInterval: LAIR_QUAKE_BASE_INTERVAL,
+    quakeMultiplier: skills.reduce((sum, n) => sum + (n.lairQuakeMultiplier ?? 0), 0),
+    critChance: Math.min(1, skills.reduce((sum, n) => sum + (n.lairCritChanceAdd ?? 0), 0)),
+    critMultiplier: skills.reduce((multiplier, n) => multiplier * (n.lairCritMultiplier ?? 1), 1),
+    lifesteal: Math.min(1, skills.reduce((sum, n) => sum + (n.lairLifesteal ?? 0), 0)),
+    stunMs: skills.reduce((sum, n) => sum + (n.lairStunMs ?? 0), 0),
+  }
 }
 
 /** Lightning starts at ×3, shockwave every 30 clicks (floor 5), drones at 50% click power. */
@@ -735,9 +750,10 @@ function feverDurationSeconds(run: RunState, meta: MetaState, config: GameConfig
   const skills = ownedSkills(run, config)
   const trans = ownedTranscendence(meta, config)
   let duration = potion?.duration ?? config.feverDuration
-  duration += upgrades.reduce((s, u) => s + (u.feverDurationAdd ?? 0), 0)
-  duration += skills.reduce((s, n) => s + (n.feverDurationAdd ?? 0), 0)
-  duration += trans.reduce((s, t) => s + (t.feverDurationAdd ?? 0), 0)
+  const bonus = upgrades.reduce((s, u) => s + (u.feverDurationAdd ?? 0), 0)
+    + skills.reduce((s, n) => s + (n.feverDurationAdd ?? 0), 0)
+    + trans.reduce((s, t) => s + (t.feverDurationAdd ?? 0), 0)
+  duration += Math.min(4, bonus)
   for (const syn of config.synergies) {
     if ((run.producerLevels[syn.producerId] ?? 0) >= syn.minLevel && syn.feverDurationBonus) {
       duration *= 1 + syn.feverDurationBonus
@@ -1010,9 +1026,9 @@ export function buyPotion(run: RunState, config: GameConfig, potionId: string): 
 }
 
 /** Active skill charges cost this many times their catalog price… */
-export const ACTIVE_SKILL_PRICE_MULT = 12
+export const ACTIVE_SKILL_PRICE_MULT = 6
 /** …or this share of the CORE mined this run (scaled up for pricier skills), whichever is more. */
-export const ACTIVE_SKILL_LIFETIME_SHARE = 0.012
+export const ACTIVE_SKILL_LIFETIME_SHARE = 0.006
 
 /** The cheapest skill's catalog price (LASER FOCUS); the lifetime share scales from it. */
 const ACTIVE_SKILL_REFERENCE_COST = 20
@@ -1852,6 +1868,12 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
           helmet: Number.isInteger(run.gear?.helmet) ? Math.max(0, run.gear!.helmet!) : 0,
           amulet: Number.isInteger(run.gear?.amulet) ? Math.max(0, run.gear!.amulet!) : 0,
         },
+        forgeFails: Object.fromEntries(
+          (["weapon", "armor", "helmet", "amulet"] as const).map((slot) => [
+            slot,
+            Number.isInteger(run.forgeFails?.[slot]) ? Math.max(0, run.forgeFails![slot]!) : 0,
+          ]),
+        ),
         // A reload walks you back out of any lair fight; shields keep running.
         lair: null,
         monsterShieldUntil: Object.fromEntries(

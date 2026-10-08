@@ -54,7 +54,7 @@ import { useClickerBgm } from "@/hooks/use-clicker-bgm"
 import { clickerBgmControls, clickerBgmScene, mineEntryVideoMuted, REBIRTH_BGM_TAIL_MS } from "@/application/clicker-audio"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEndingFlow } from "@/components/clicker/clicker-ending-flow"
-import { ClickerMine, type MineFxTier } from "@/components/clicker/clicker-mine"
+import { ClickerMine } from "@/components/clicker/clicker-mine"
 import { ClickerCinematic, preloadCinematic } from "@/components/clicker/clicker-cinematic"
 import { ClickerRegionChallenge } from "@/components/clicker/clicker-region-challenge"
 import { MineArt } from "@/data/clicker/mine-assets"
@@ -101,22 +101,10 @@ import "./clicker-mine-worldline.css"
 const CLICKER_ADMIN_UI =
   process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_CLICKER_ADMIN === "1" || CLICKER_PRELAUNCH
 
-/** Nova colour each active skill paints across the mine when cast. */
-/** Spark Strike unlocks lightning; before it the mine shows no bolts. */
-const LIGHTNING_SKILL_ID = "storm_spark"
 /** How long a finished boss fight stays on screen (death / knockout) before returning to the world still. */
 const BOSS_EXIT_DELAY_MS = 2200
 /** Long enough to see the payout burst before the world's still returns. */
 const DRILL_EXIT_DELAY_MS = 1600
-
-const SKILL_NOVA_COLOR: Record<string, string> = {
-  overclock: "rgb(255 120 60 / 0.9)",
-  core_pulse: "rgb(120 240 255 / 0.9)",
-  stabilizer: "rgb(120 255 190 / 0.85)",
-  laser_focus: "rgb(255 90 140 / 0.9)",
-  time_warp: "rgb(190 140 255 / 0.9)",
-  grid_boost: "rgb(255 220 110 / 0.9)",
-}
 
 /** Mine session: 1–9 = active skills (bar order), Q/W/E… = potions (toolbar order). */
 function ClickerMineHotkeys({
@@ -150,9 +138,6 @@ function ClickerMineHotkeys({
   }, [enabled, onSkillSlot, onPotionSlot])
   return null
 }
-
-/** Strike spectacle by worlds opened (0–5); FEVER adds one more step. */
-const FX_TIER_BY_WORLDS: MineFxTier[] = [0, 1, 2, 2, 3, 3]
 
 type TabId = "producers" | "upgrades" | "skills" | "shop" | "forge" | "relics" | "world" | "achievements" | "transcendence"
 
@@ -310,9 +295,6 @@ export function ClickerApp() {
   const [adminOpen, setAdminOpen] = useState(false)
 
   const [adminAllowed, setAdminAllowed] = useState(false)
-  const [pop, setPop] = useState(false)
-  const [shake, setShake] = useState(false)
-  const [stageEvent, setStageEvent] = useState(false)
   const [popIcons, setPopIcons] = useState<Record<string, number>>({})
   const [confirmPotion, setConfirmPotion] = useState<string | null>(null)
   const [pendingRebirth, setPendingRebirth] = useState<{ id: string; label: string } | null>(null)
@@ -322,7 +304,6 @@ export function ClickerApp() {
   const [arrival, setArrival] = useState<{ key: number; line: number; label: string; mult: number } | null>(null)
   const [storyBeat, setStoryBeat] = useState<string | null>(null)
   const [adminResetArmed, setAdminResetArmed] = useState(false)
-  const prevVisual = useRef<string | null>(null)
   const prevObjectiveId = useRef<string | null>(null)
 
   // Secret code: typing it anywhere (any screen, even inside a field) grants the code reward.
@@ -598,34 +579,19 @@ export function ClickerApp() {
     game.save?.settings.playSurface,
   ])
 
-  const flashStage = () => {
-    setStageEvent(true)
-    window.setTimeout(() => setStageEvent(false), 300)
-  }
-
   const bumpIcon = (id: string) => {
     setPopIcons((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }))
   }
 
-  const triggerShake = () => {
-    setShake(true)
-    window.setTimeout(() => setShake(false), 200)
-  }
-
   const coreVisual = game.hud?.coreVisual ?? "idle"
-  const mineVisual = coreVisual === "fever" || coreVisual === "crisis" ? coreVisual : "idle"
-  const [skillNova, setSkillNova] = useState<{ key: number; color: string } | null>(null)
   /** Away from home a world opens on its intro still; picking its action reveals the live scene. */
   const [engagedRegion, setEngagedRegion] = useState<string | null>(null)
   /** Region whose entry clip (still → hunt / drill) is playing. */
   const [engagingRegion, setEngagingRegion] = useState<string | null>(null)
   const [arrivedRegion, setArrivedRegion] = useState<string | null>(null)
-  /** Cast a skill with its full-screen nova (button or number-key hotkey). */
   const castSkill = (id: string) => {
     bumpIcon(id)
-    flashStage()
     game.useSkill(id)
-    setSkillNova((prev) => ({ key: (prev?.key ?? 0) + 1, color: SKILL_NOVA_COLOR[id] ?? "rgb(150 230 255 / 0.85)" }))
   }
 
   const drinkPotionAtSlot = useCallback(
@@ -645,22 +611,10 @@ export function ClickerApp() {
       }
       setConfirmPotion(null)
       bumpIcon(potion.id)
-      flashStage()
       game.drinkPotion(potion.id)
     },
     [confirmPotion, game],
   )
-
-  useEffect(() => {
-    const next = game.hud?.coreVisual
-    if (!next) return
-    const prev = prevVisual.current
-    if (prev && prev !== next && (next === "fever" || next === "crisis" || prev === "fever" || prev === "crisis")) {
-      flashStage()
-    }
-    if (next === "crisis" && prev !== "crisis") triggerShake()
-    prevVisual.current = next
-  }, [game.hud?.coreVisual])
 
   useEffect(() => {
     if (!game.hud?.canRebirth && tab === "transcendence") {
@@ -684,12 +638,6 @@ export function ClickerApp() {
     }
     prevCanRebirth.current = unlocked
   }, [game.hud?.canRebirth])
-
-  useEffect(() => {
-    if (game.hud?.coreVisual !== "crisis") return
-    const id = window.setInterval(() => triggerShake(), 2800)
-    return () => window.clearInterval(id)
-  }, [game.hud?.coreVisual])
 
   useEffect(() => {
     const regionId = game.currentRegion?.id
@@ -1001,9 +949,6 @@ export function ClickerApp() {
   const visibleSkillNodes = game.skillNodes
   const regionDef = game.config.regions.find((r) => r.id === run.currentRegionId)
   const monsterDef = regionDef?.monster
-  const worldsOpen = game.config.regions.filter((r) => !r.isHome && isRegionUnlocked(run, game.config, r.id)).length
-  const fxTier = Math.min(4, FX_TIER_BY_WORLDS[Math.min(worldsOpen, 5)] + (coreVisual === "fever" ? 1 : 0)) as MineFxTier
-  const skillStorm = inMine && run.activeBuffs.some((b) => b.expiresAt > tickNow)
   const ownedSkills = game.config.activeSkills.filter(
     (skill) =>
       (run.skillItems[skill.id] ?? 0) > 0 ||
@@ -1135,7 +1080,6 @@ export function ClickerApp() {
             aria-label="게이지 FEVER 준비됨 — 탭하여 시작"
             title="게이지 FEVER · 탭하여 시작"
             onClick={() => {
-              flashStage()
               game.startFever()
             }}
           >
@@ -1246,7 +1190,7 @@ export function ClickerApp() {
 
       <div className="clicker-stage">
         <StageBg
-          className={`clicker-stage-bg ${stageEvent ? "is-event" : ""}${regionTransition ? " is-region-transition" : ""}${inMine && hud.fever.active ? " is-fever" : ""}`}
+          className={`clicker-stage-bg ${regionTransition ? "is-region-transition" : ""}${!inMine && !atHomeHub ? " is-drift" : ""}`}
           src={stageBg}
         />
         <div className="clicker-vignette" />
@@ -1390,7 +1334,6 @@ export function ClickerApp() {
                           : `FEVER 게이지 ${Math.round(hud.fever.progress * 100)}%`
                   }
                   onClick={() => {
-                    flashStage()
                     game.startFever()
                   }}
                 >
@@ -1479,7 +1422,6 @@ export function ClickerApp() {
                             }
                             setConfirmPotion(null)
                             bumpIcon(potion.id)
-                            flashStage()
                             game.drinkPotion(potion.id)
                           }}
                         >
@@ -1526,22 +1468,10 @@ export function ClickerApp() {
                 </div>
               ) : null}
               <ClickerMine
-                visual={mineVisual}
                 muted={game.save.settings.muted}
-                pop={pop}
-                shake={shake}
                 onMine={(clientX, clientY, auto) => game.clickCore(clientX, clientY, auto)}
-                onPop={() => {
-                  setPop(true)
-                  window.setTimeout(() => setPop(false), 100)
-                }}
                 playLaser={playLaser}
                 autoRate={game.drill?.rate ?? 0}
-                onOreBroken={game.oreBroken}
-                fxTier={fxTier}
-                storm={skillStorm}
-                lightning={run.ownedSkillNodeIds.includes(LIGHTNING_SKILL_ID)}
-                nova={skillNova}
               />
             </div>
           ) : atHomeHub ? (
@@ -1679,7 +1609,6 @@ export function ClickerApp() {
                   if (paid === null) return
                   playLaser(game.save?.settings.muted ?? false, paid > 0)
                   drillCue(paid, paid > 0 && drillSessionOn)
-                  if (paid > 0) flashStage()
                   setDrillHits((n) => n + 1)
                 }}
               >

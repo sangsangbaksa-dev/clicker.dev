@@ -53,6 +53,7 @@ export type LairFight = {
   playerHp: number
   playerMaxHp: number
   nextAttackAt: number
+  strikeCount?: number
 }
 
 export type RunState = {
@@ -84,6 +85,8 @@ export type RunState = {
   lastCollapse?: { at: number; loss: number }
   /** Forged gear tiers (index into WEAPONS / ARMORS / HELMETS / AMULETS). */
   gear?: { weapon: number; armor: number; helmet?: number; amulet?: number }
+  /** Failed enhancement attempts since the last successful forge (gear slot → count). */
+  forgeFails?: Partial<Record<"weapon" | "armor" | "helmet" | "amulet", number>>
   /** Active lair battle against the current region's boss. */
   lair?: LairFight | null
   /** After beating the player, a boss is shielded until this time (region id → ms). */
@@ -404,6 +407,11 @@ export type SkillNodeDef = {
   bossDamageMultiplier?: number
   /** Strike damage against lair creatures (multiplies the forged weapon). */
   lairDamageMultiplier?: number
+  lairQuakeMultiplier?: number
+  lairCritChanceAdd?: number
+  lairCritMultiplier?: number
+  lairLifesteal?: number
+  lairStunMs?: number
 }
 
 export type AchievementKind =
@@ -731,4 +739,3 @@ export type WorldlineRuleDef = {
   minus: string
   effects: Partial<WorldlineRuleEffects>
 }
-

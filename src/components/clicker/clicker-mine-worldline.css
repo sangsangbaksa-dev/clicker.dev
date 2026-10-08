@@ -117,14 +117,6 @@
   color: color-mix(in srgb, var(--mine-accent) 70%, #bcd3ea);
 }
 
-[data-clicker] .clicker-mine-beam-core {
-  stroke: var(--mine-accent);
-}
-
-[data-clicker] .clicker-mine-beam-glow {
-  stroke: color-mix(in srgb, var(--mine-accent) 40%, transparent);
-}
-
 @media (prefers-reduced-motion: reduce) {
   [data-clicker][data-mine-decor="pulse"] .clicker-stage-bg::before {
     animation: none;

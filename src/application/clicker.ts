@@ -78,7 +78,6 @@ import { chronicleEntries, chronicleSummary, recordWorldline } from "@/domain/se
 import { allowStrike } from "@/domain/services/clicker-strike-limiter"
 import { decodeClickerSave, encodeClickerSave } from "@/domain/services/clicker-save-codec"
 import { enterLair, forgeGear, leaveLair, strikeLair, tickLair, type GearSlot } from "@/domain/services/clicker-lair"
-import { encodeSaveCode, parseSaveCode, type ParsedSaveCode } from "@/domain/services/clicker-save-transfer"
 import { clickerCompletionRecords, clickerPersistence } from "@/application/clicker-client-bind"
 import { createClickerCompletionRecord } from "@/domain/services/clicker-completion-records"
 import { pauseMine, resumeMine } from "@/domain/services/clicker-mine-pause"
@@ -165,18 +164,9 @@ export function clickerSelectScreenTab(
   return selectScreenTab(save, from, to, now)
 }
 
-/** Save code for the settings sheet: the current save as the loader would store it. */
-export function clickerExportCode(save: SaveData): string {
-  return encodeSaveCode(encodeClickerSave({ ...save, savedAt: Date.now() }).json)
-}
-
 /** The save exactly as the loader stores it — what a cloud save holds. */
 export function clickerSaveJson(save: SaveData): string {
   return encodeClickerSave({ ...save, savedAt: Date.now() }).json
-}
-
-export function clickerParseSaveCode(code: string, now: number): ParsedSaveCode {
-  return parseSaveCode(code, config, now)
 }
 
 /**
@@ -486,10 +476,13 @@ export function clickerStrikeLair(save: SaveData, now: number) {
   return { save: next.defeated ? withAchievements(out) : out, damage: next.damage, reward: next.reward, defeated: next.defeated }
 }
 
-export function clickerForge(save: SaveData, slot: GearSlot): UseCaseResult<SaveData> {
+export function clickerForge(
+  save: SaveData,
+  slot: GearSlot,
+): UseCaseResult<{ save: SaveData; success: boolean }> {
   const next = forgeGear(save.runState, config, slot)
   if (next.error) return { ok: false, status: 400, error: next.error }
-  return ok({ ...save, runState: next.run })
+  return ok({ save: { ...save, runState: next.run }, success: next.success ?? false })
 }
 
 /* ---------- Relic Vault ---------- */

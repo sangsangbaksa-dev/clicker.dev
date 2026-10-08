@@ -4,11 +4,13 @@ import * as clickerLogout from "@/infrastructure/http/routes/clicker/auth/logout
 import * as clickerMe from "@/infrastructure/http/routes/clicker/auth/me"
 import * as clickerSignup from "@/infrastructure/http/routes/clicker/auth/signup"
 import * as clickerLeaderboard from "@/infrastructure/http/routes/clicker/leaderboard"
+import * as clickerFeedback from "@/infrastructure/http/routes/clicker/feedback"
 import * as clickerSave from "@/infrastructure/http/routes/clicker/save"
 
 const routes: Record<string, Partial<Record<string, (request: Request) => Promise<Response>>>> = {
   leaderboard: { GET: clickerLeaderboard.GET },
   save: { GET: clickerSave.GET, PUT: clickerSave.PUT },
+  feedback: { POST: clickerFeedback.POST },
   "auth/login": { POST: clickerLogin.POST },
   "auth/logout": { POST: clickerLogout.POST },
   "auth/me": { GET: clickerMe.GET },

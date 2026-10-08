@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
 import { MINE_POTION_HOTKEY_LABELS, MINE_SKILL_HOTKEY_SLOTS, registerSecretTap, type SecretTapState } from "@/application/clicker-ui"
+import { CLICKER_FEEDBACK_CATEGORIES, type ClickerFeedback, type ClickerFeedbackCategory } from "@/application/clicker-ui"
 import { ClickerAccountPanel } from "@/components/clicker/clicker-account"
 import type { ClickerAccountState } from "@/hooks/use-clicker-account"
 
@@ -182,7 +183,178 @@ export function ClickerSettings({
           </li>
         </ul>
         <p className="clicker-settings-autosave-note">진행은 이 브라우저에 자동 저장됩니다.</p>
+        <ClickerFeedbackPanel />
       </aside>
     </div>
+  )
+}
+
+const FEEDBACK_CATEGORY_LABEL: Record<ClickerFeedbackCategory, string> = {
+  bug: "오류 제보",
+  idea: "개선 제안",
+  other: "기타 의견",
+}
+
+type FeedbackResponse = {
+  error?: string
+  entry?: ClickerFeedback
+  entries?: ClickerFeedback[]
+}
+
+function ClickerFeedbackPanel() {
+  const [category, setCategory] = useState<ClickerFeedbackCategory>("idea")
+  const [message, setMessage] = useState("")
+  const [author, setAuthor] = useState("")
+  const [handle, setHandle] = useState("")
+  const [entries, setEntries] = useState<ClickerFeedback[] | null>(null)
+  const [status, setStatus] = useState<{ tone: "ok" | "error"; text: string } | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const sendRequest = async (body: Record<string, string>): Promise<FeedbackResponse> => {
+    const response = await fetch("/api/clicker/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+    const result = (await response.json()) as FeedbackResponse
+    if (!response.ok) throw new Error(result.error ?? "요청을 처리하지 못했습니다.")
+    return result
+  }
+
+  const submitFeedback = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setBusy(true)
+    setStatus(null)
+    try {
+      await sendRequest({ action: "submit", category, message, author })
+      setMessage("")
+      setAuthor("")
+      setStatus({ tone: "ok", text: "피드백을 보냈습니다. 소중한 의견 감사합니다." })
+    } catch (error) {
+      setStatus({
+        tone: "error",
+        text: error instanceof Error ? error.message : "피드백을 보내지 못했습니다. 잠시 후 다시 시도해 주세요.",
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const showFeedback = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setBusy(true)
+    setEntries(null)
+    setStatus(null)
+    try {
+      const result = await sendRequest({ action: "list", handle })
+      setEntries(result.entries ?? [])
+      setStatus({ tone: "ok", text: `피드백 ${result.entries?.length ?? 0}건을 불러왔습니다.` })
+    } catch (error) {
+      setStatus({
+        tone: "error",
+        text: error instanceof Error ? error.message : "피드백을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="clicker-feedback" aria-labelledby="clicker-feedback-title">
+      <div className="clicker-feedback-head">
+        <strong id="clicker-feedback-title">개발 피드백</strong>
+        <p>오류 제보와 개선 아이디어를 보내주세요.</p>
+      </div>
+      <form className="clicker-feedback-form" onSubmit={submitFeedback}>
+        <label htmlFor="clicker-feedback-category">종류</label>
+        <select
+          id="clicker-feedback-category"
+          className="clicker-feedback-input"
+          value={category}
+          onChange={(event) => setCategory(event.target.value as ClickerFeedbackCategory)}
+        >
+          {CLICKER_FEEDBACK_CATEGORIES.map((item) => (
+            <option key={item} value={item}>{FEEDBACK_CATEGORY_LABEL[item]}</option>
+          ))}
+        </select>
+        <label htmlFor="clicker-feedback-message">내용</label>
+        <textarea
+          id="clicker-feedback-message"
+          className="clicker-feedback-input"
+          rows={4}
+          minLength={3}
+          maxLength={2000}
+          required
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          placeholder="게임을 하며 느낀 점이나 불편한 점을 적어 주세요."
+        />
+        <label htmlFor="clicker-feedback-author">이름 (선택)</label>
+        <input
+          id="clicker-feedback-author"
+          className="clicker-feedback-input"
+          maxLength={40}
+          value={author}
+          onChange={(event) => setAuthor(event.target.value)}
+          placeholder="익명으로 보낼 수 있어요."
+        />
+        <button type="submit" className="clicker-settings-toggle is-on" disabled={busy || message.trim().length < 3}>
+          {busy ? "전송 중…" : "피드백 보내기"}
+        </button>
+      </form>
+
+      <form className="clicker-feedback-access" onSubmit={showFeedback}>
+        <label htmlFor="clicker-feedback-handle">개발 피드백 보기</label>
+        <p>개발자 아이디를 입력하면 접수된 피드백을 확인할 수 있습니다.</p>
+        <div className="clicker-feedback-access-row">
+          <input
+            id="clicker-feedback-handle"
+            className="clicker-feedback-input"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+            value={handle}
+            onChange={(event) => {
+              setHandle(event.target.value)
+              setEntries(null)
+              setStatus(null)
+            }}
+            placeholder="@아이디"
+          />
+          <button type="submit" className="clicker-settings-toggle" disabled={busy || !handle.trim()}>
+            보기
+          </button>
+        </div>
+      </form>
+
+      {entries ? (
+        entries.length ? (
+          <ol className="clicker-feedback-list">
+            {entries.map((entry) => (
+              <li key={entry.id} className="clicker-feedback-entry">
+                <div className="clicker-feedback-entry-meta">
+                  <strong>{FEEDBACK_CATEGORY_LABEL[entry.category]}</strong>
+                  <time dateTime={entry.createdAt}>
+                    {new Date(entry.createdAt).toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" })}
+                  </time>
+                </div>
+                <p>{entry.message}</p>
+                <span>{entry.author || "익명"}</span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="clicker-feedback-empty">아직 접수된 피드백이 없습니다.</p>
+        )
+      ) : null}
+
+      <p
+        className={`clicker-feedback-status${status?.tone === "error" ? " is-error" : ""}`}
+        role="status"
+        aria-live="polite"
+      >
+        {status?.text ?? ""}
+      </p>
+    </section>
   )
 }
