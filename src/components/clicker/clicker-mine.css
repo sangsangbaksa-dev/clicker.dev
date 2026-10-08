@@ -20,22 +20,30 @@
   pointer-events: none;
 }
 
-/* FEVER: only the chamber's blue strip lights flare orange and pulse; the rest of the
-   scene (and the ore) keeps its look. The layer is the plate's lights pre-recoloured. */
-.clicker-mine-single .clicker-mine-fever-lights {
+/* Soft ground shadow under the shrunk crystal (the clean plate has no baked contact shadow); drawn in the plate so
+   FEVER brightness / shake apply to it too. Position, size and colour come from the layout (data), not from here. */
+.clicker-mine-single .clicker-mine-plate-shadow {
   position: absolute;
-  inset: 0;
-  background: center / cover no-repeat;
   pointer-events: none;
-  will-change: opacity;
-  animation: clicker-mine-fever-lights 1.2s ease-in-out infinite;
 }
 
-@keyframes clicker-mine-fever-lights {
-  0%,
-  100% {
-    opacity: 0.7;
-  }
+/* Brightness pulse only — no rotation (PRIORITY #2). A warm light layer fades in and out:
+   pulsing filter() on the full-screen plate repainted it every frame during FEVER. */
+.clicker-mine-single[data-visual="fever"] .clicker-mine-plate {
+  filter: brightness(1.08) saturate(1.15);
+}
+
+.clicker-mine-single[data-visual="fever"] .clicker-mine-plate::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, rgb(255 236 200 / 0.2), rgb(255 200 140 / 0.1) 70%);
+  opacity: 0;
+  will-change: opacity;
+  animation: clicker-mine-fever-glow 1.2s ease-in-out infinite;
+}
+
+@keyframes clicker-mine-fever-glow {
   50% {
     opacity: 1;
   }
@@ -114,28 +122,6 @@
   pointer-events: none;
   will-change: opacity;
   animation: clicker-mine-crystal-hit 160ms ease-out;
-}
-
-.clicker-mine-crystal-flash::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(
-    108deg,
-    transparent 43%,
-    rgb(150 245 255 / 0.22) 48%,
-    #fff 50%,
-    rgb(150 245 255 / 0.18) 52%,
-    transparent 57%
-  );
-  mix-blend-mode: screen;
-  transform: translateX(-110%);
-  animation: clicker-mine-crystal-glint 340ms cubic-bezier(0.2, 0.7, 0.3, 1) 20ms both;
-}
-
-@keyframes clicker-mine-crystal-glint {
-  to { transform: translateX(110%); }
 }
 
 @keyframes clicker-mine-crystal-hit {
@@ -317,13 +303,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .clicker-mine-single .clicker-mine-fever-lights,
+  .clicker-mine-single[data-visual="fever"] .clicker-mine-plate::after,
   .clicker-mine-crystal-glow,
   .clicker-mine-crystal-flash,
   .clicker-mine-crystal.is-broken .clicker-mine-crystal-art {
-    animation: none;
-  }
-  .clicker-mine-crystal-flash::after {
     animation: none;
   }
 }
@@ -518,6 +501,25 @@
   [data-clicker] .clicker-mine-potion { width: 46px; height: 46px; }
 }
 
+/* Landscape phones: potion rail in a row so the last slot stays above the fold. */
+@media (max-height: 520px) and (min-width: 480px) {
+  [data-clicker] .clicker-mine-potions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    top: auto;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+    right: 12px;
+    max-width: none;
+    gap: 6px;
+  }
+  [data-clicker] .clicker-mine-potion {
+    width: 42px;
+    height: 42px;
+    padding: 3px;
+  }
+}
+
 /* ---------- Strike spectacle: grows with progress (tier 0–4), lightning on procs and skills ---------- */
 .clicker-mine-single { --bolt: 150 230 255; }
 .clicker-mine-single.is-tier-2 { --bolt: 170 200 255; }
@@ -710,6 +712,22 @@
   font-weight: 600;
   line-height: 1.4;
   text-align: center;
+}
+
+[data-clicker] .clicker-mine-potion-key {
+  position: absolute;
+  left: 3px;
+  top: 2px;
+  min-width: 14px;
+  padding: 0 3px;
+  border-radius: 5px;
+  background: color-mix(in srgb, #041018 85%, transparent);
+  color: #ffe39a;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  pointer-events: none;
 }
 @media (max-width: 720px) {
   [data-clicker] .clicker-mine-skills { top: 108px; gap: 6px; }

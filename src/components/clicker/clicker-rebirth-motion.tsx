@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { REBIRTH_CHAMBER_REMINDER } from "@/data/clicker/onboarding"
-import { RebirthPhaseArt, rebirthArtFor } from "@/data/clicker/rebirth-assets"
+import { RebirthPhaseArt } from "@/data/clicker/rebirth-assets"
 import { RebirthMwParams, type MwEaseSample } from "@/data/clicker/rebirth-mw-params"
 import {
   REBIRTH_AUDIO_CUES,
@@ -15,7 +15,7 @@ import {
   type WorldlineMotionVariant,
 } from "@/data/clicker/rebirth-motion"
 import { useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
-import { playRebirthCue, playRebirthDrone } from "@/lib/clicker-sfx"
+import { playRebirthCue } from "@/lib/clicker-sfx"
 import "./clicker-rebirth-motion.css"
 
 type Props = {
@@ -159,22 +159,6 @@ function spawnParticles(
   return out
 }
 
-/** Decoded images stay alive here so a phase cut never waits on a fetch or a decode. */
-const decoded = new Map<string, HTMLImageElement>()
-
-/** Fetch and decode a worldline's plates ahead of time (safe to call repeatedly). */
-export function preloadRebirthArt(transcendenceId: string): void {
-  if (typeof window === "undefined") return
-  for (const src of rebirthArtFor(transcendenceId)) {
-    if (decoded.has(src)) continue
-    const img = new Image()
-    img.decoding = "async"
-    img.src = src
-    decoded.set(src, img)
-    img.decode?.().catch(() => decoded.delete(src))
-  }
-}
-
 function RebirthAssetImage({
   src,
   className,
@@ -188,15 +172,10 @@ function RebirthAssetImage({
 }) {
   const [failed, setFailed] = useState(false)
   if (!src || failed) return <div className={placeholderClassName} aria-hidden />
-  return <img src={src} alt={alt} className={className} decoding="sync" onError={() => setFailed(true)} />
+  return <img src={src} alt={alt} className={className} onError={() => setFailed(true)} />
 }
 
-function platePhaseFor(phase: RebirthPhaseId): Exclude<RebirthPhaseId, "select_confirm"> {
-  // The confirm beat already shows the collapse painting, so there is never an empty frame.
-  return phase === "select_confirm" ? "collapse" : phase
-}
-
-function PlateLayer({ variant, phase, incoming }: { variant: WorldlineMotionVariant; phase: Exclude<RebirthPhaseId, "select_confirm">; incoming: boolean }) {
+function PlateLayer({ variant, phase, incoming }: { variant: WorldlineMotionVariant; phase: RebirthPhaseId; incoming: boolean }) {
   const keyBackdrop = RebirthPhaseArt.keyVisualBackdropFor(phase)
   const src = keyBackdrop ?? RebirthPhaseArt.plateForPhase(phase, variant.transcendenceId)
   return (
@@ -213,31 +192,9 @@ function PlateLayer({ variant, phase, incoming }: { variant: WorldlineMotionVari
   )
 }
 
-type PlatePhase = ReturnType<typeof platePhaseFor>
-
-/** One painted plate per beat; outgoing plate fades while incoming fades in (cut flash masks the seam). */
+/** One painted plate per beat, swapped with a clean cut (the cut flash covers the change). */
 function PlateStack({ variant, phase }: { variant: WorldlineMotionVariant; phase: RebirthPhaseId }) {
-  const current = platePhaseFor(phase)
-  const prevPhaseRef = useRef<PlatePhase>(current)
-  const [outgoing, setOutgoing] = useState<PlatePhase | null>(null)
-
-  useEffect(() => {
-    const prev = prevPhaseRef.current
-    if (prev === current) return
-    setOutgoing(prev)
-    prevPhaseRef.current = current
-    const id = window.setTimeout(() => setOutgoing(null), 450)
-    return () => window.clearTimeout(id)
-  }, [current])
-
-  return (
-    <>
-      {outgoing ? (
-        <PlateLayer key={`plate-out-${outgoing}`} variant={variant} phase={outgoing} incoming={false} />
-      ) : null}
-      <PlateLayer key={`plate-in-${current}`} variant={variant} phase={current} incoming />
-    </>
-  )
+  return <PlateLayer key={`plate-${phase}`} variant={variant} phase={phase} incoming />
 }
 
 function StampGlyph({
@@ -275,97 +232,11 @@ function StampGlyph({
     )
   }
 
-  if (variant.motif === "pulse") {
-    return (
-      <div className="clicker-rebirth-stamp-glyph clicker-rebirth-stamp-glyph--pulse" style={style} aria-hidden>
-        <span className="clicker-rebirth-stamp-ring" />
-        <span className="clicker-rebirth-stamp-bars">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <i key={i} style={{ height: `${28 + i * 12}%` }} />
-          ))}
-        </span>
-        <span className="clicker-rebirth-stamp-chevrons">▲▲▲</span>
-      </div>
-    )
-  }
-  if (variant.motif === "grid") {
-    return (
-      <div className="clicker-rebirth-stamp-glyph clicker-rebirth-stamp-glyph--grid" style={style} aria-hidden>
-        <span className="clicker-rebirth-stamp-square clicker-rebirth-stamp-square--outer" />
-        <span className="clicker-rebirth-stamp-square clicker-rebirth-stamp-square--mid" />
-        <span className="clicker-rebirth-stamp-square clicker-rebirth-stamp-square--inner" />
-        <span className="clicker-rebirth-stamp-crosshair" />
-      </div>
-    )
-  }
-  if (variant.motif === "rings") {
-    return (
-      <div className="clicker-rebirth-stamp-glyph clicker-rebirth-stamp-glyph--rings" style={style} aria-hidden>
-        {[1, 0.78, 0.56, 0.34].map((s, i) => (
-          <span key={i} className="clicker-rebirth-stamp-ring-arc" style={{ transform: `scale(${s})` }} />
-        ))}
-        <span className="clicker-rebirth-stamp-node" />
-      </div>
-    )
-  }
-  if (variant.motif === "core") {
-    return (
-      <div className="clicker-rebirth-stamp-glyph clicker-rebirth-stamp-glyph--core" style={style} aria-hidden>
-        <span className="clicker-rebirth-stamp-core-orb" />
-        <span className="clicker-rebirth-stamp-crack clicker-rebirth-stamp-crack--a" />
-        <span className="clicker-rebirth-stamp-crack clicker-rebirth-stamp-crack--b" />
-        <span className="clicker-rebirth-stamp-crack clicker-rebirth-stamp-crack--c" />
-      </div>
-    )
-  }
   return (
-    <div className="clicker-rebirth-stamp-glyph clicker-rebirth-stamp-glyph--hybrid" style={style} aria-hidden>
-      <span className="clicker-rebirth-stamp-diamond" />
-      <span className="clicker-rebirth-stamp-axis clicker-rebirth-stamp-axis--h" />
-      <span className="clicker-rebirth-stamp-axis clicker-rebirth-stamp-axis--v" />
+    <div className="clicker-rebirth-stamp-glyph clicker-rebirth-stamp-glyph--core" style={style} aria-hidden>
+      <span className="clicker-rebirth-stamp-core-orb" />
     </div>
   )
-}
-
-function MotifFx({ variant, phase, phaseT }: { variant: WorldlineMotionVariant; phase: RebirthPhaseId; phaseT: number }) {
-  if (phase !== "stamp" && phase !== "rebuild") return null
-  const style = {
-    "--stamp-primary": variant.primary,
-    "--stamp-accent": variant.accent,
-    "--motif-t": phaseT,
-  } as CSSProperties
-
-  if (variant.motif === "pulse") {
-    return (
-      <div className="clicker-rebirth-motif clicker-rebirth-motif--pulse" style={style} aria-hidden>
-        {Array.from({ length: 8 }).map((_, i) => (
-          <span key={i} className="clicker-rebirth-motif-bar" style={{ left: `${12 + i * 10}%` }} />
-        ))}
-      </div>
-    )
-  }
-  if (variant.motif === "grid") {
-    return <div className="clicker-rebirth-motif clicker-rebirth-motif--grid" style={style} aria-hidden />
-  }
-  if (variant.motif === "rings") {
-    return (
-      <div className="clicker-rebirth-motif clicker-rebirth-motif--rings" style={style} aria-hidden>
-        {[1, 1.25, 1.5].map((s, i) => (
-          <span key={i} className="clicker-rebirth-motif-ring" style={{ transform: `scale(${s * phaseT})` }} />
-        ))}
-      </div>
-    )
-  }
-  if (variant.motif === "core") {
-    return (
-      <div className="clicker-rebirth-motif clicker-rebirth-motif--core" style={style} aria-hidden>
-        {Array.from({ length: 6 }).map((_, i) => (
-          <span key={i} className="clicker-rebirth-motif-flare" style={{ transform: `rotate(${i * 60}deg)` }} />
-        ))}
-      </div>
-    )
-  }
-  return <div className="clicker-rebirth-motif clicker-rebirth-motif--hybrid" style={style} aria-hidden />
 }
 
 export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = false, onComplete }: Props) {
@@ -375,8 +246,6 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
     [],
   )
   const duration = reducedMotion ? REBIRTH_DURATION_REDUCED_MS : REBIRTH_DURATION_FULL_MS
-  // Usually already warm from the worldline picker; covers a direct start too.
-  useEffect(() => preloadRebirthArt(transcendenceId), [transcendenceId])
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const particlesRef = useRef<Particle[]>([])
@@ -409,12 +278,6 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
   const rootRef = useRef<HTMLDivElement | null>(null)
   useClickerEscape(true, finishEarly)
   useClickerDialogFocus(rootRef)
-
-  // Low drone under the whole sequence; fades out on finish or skip.
-  useEffect(() => {
-    if (reducedMotion || mutedRef.current) return
-    return playRebirthDrone(duration / 1000 + 0.4)
-  }, [duration, reducedMotion])
 
   // Hold to skip (like a cutscene): a tap does nothing, ~0.7 s of holding skips. Esc / Enter skip at once.
   const [holding, setHolding] = useState(false)
@@ -473,12 +336,8 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
         ? RebirthMwParams.PHONE_PARTICLE_SOFT_MAX
         : RebirthMwParams.DESKTOP_PARTICLE_SOFT_MAX
 
-    let lastNow = startRef.current
     const tick = (now: number) => {
       const elapsed = now - startRef.current
-      // Particles step in 60 fps units scaled by real frame time, so a slow frame never slows the swirl.
-      const step = Math.min(3, Math.max(0.25, (now - lastNow) / (1000 / 60)))
-      lastNow = now
       const { phase, phaseT, totalT } = rebirthPhaseAt(elapsed, reducedMotion)
       const mw = RebirthMwParams.sample(phase, phaseT, reducedMotion)
 
@@ -532,12 +391,12 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
           ctx.clearRect(0, 0, w, h)
           for (const p of particlesRef.current) {
             if (mw.particleBias === "suck") {
-              p.vx += (cx - p.x) * 0.003 * step
-              p.vy += (cy - p.y) * 0.003 * step
+              p.vx += (cx - p.x) * 0.003
+              p.vy += (cy - p.y) * 0.003
             }
-            p.x += p.vx * step
-            p.y += p.vy * step
-            p.life += step
+            p.x += p.vx
+            p.y += p.vy
+            p.life += 1
             if (mw.particleBias === "suck") {
               const dx = p.x - cx
               const dy = p.y - cy
@@ -579,7 +438,7 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
           completeTimerRef.current = window.setTimeout(() => {
             completeTimerRef.current = 0
             onCompleteRef.current()
-          }, 0)
+          }, 180)
         }
         return
       }
@@ -618,7 +477,6 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
       role="dialog"
       aria-modal="true"
       aria-label={`${worldlineLabel} 세계선 환생`}
-      data-transcendence-id={transcendenceId}
       data-phase={stillOnly ? "settle" : frame.phase}
       style={
         {
@@ -658,11 +516,9 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
         <span>{reducedMotion ? "계속 · Esc" : "길게 눌러 건너뛰기 · Esc"}</span>
       </button>
       <div className="clicker-rebirth-overlay" />
-      {!stillOnly ? <div className="clicker-rebirth-ui-crumple" aria-hidden /> : null}
       {!stillOnly ? <PlateStack variant={variant} phase={frame.phase} /> : null}
       {!reducedMotion ? <canvas ref={canvasRef} className="clicker-rebirth-particles" aria-hidden /> : null}
       {!stillOnly && tearVisible ? <div className="clicker-rebirth-tear" aria-hidden /> : null}
-      {!stillOnly ? <MotifFx variant={variant} phase={frame.phase} phaseT={frame.phaseT} /> : null}
       {!stillOnly ? (
         <>
           <span key={`cut-${frame.phase}`} className={`clicker-rebirth-cut is-${frame.phase}`} aria-hidden />

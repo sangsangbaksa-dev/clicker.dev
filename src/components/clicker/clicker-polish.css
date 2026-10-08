@@ -520,13 +520,13 @@
   background: rgb(0 0 0 / 0.35);
 }
 
-/* Dev-only admin launcher: keep it out of the HUD. */
+/* Dev-only admin launcher: tuck under the header so it never covers the dock or buy buttons. */
 [data-clicker] .clicker-admin-launch {
-  top: auto;
-  /* Above the bottom status bar, which is ~36px tall. */
-  bottom: calc(48px + env(safe-area-inset-bottom, 0px));
-  left: 12px;
-  right: auto;
+  top: calc(52px + env(safe-area-inset-top, 0px));
+  bottom: auto;
+  left: auto;
+  right: 52px;
+  z-index: 6;
   min-height: 30px;
   padding: 4px 10px;
   font-size: 11px;
@@ -851,11 +851,97 @@
 
 [data-clicker] .clicker-settings {
   width: min(100%, 420px);
+  max-height: min(92dvh, 640px);
+  overflow: auto;
+  overscroll-behavior: contain;
   padding: 20px;
   border: 1px solid var(--edge-hi);
   border-radius: 18px;
   background: linear-gradient(180deg, #13243a, #0b1422);
   box-shadow: 0 30px 60px -20px rgb(0 0 0 / 0.9), var(--glow-soft);
+}
+
+[data-clicker] .clicker-settings-hotkeys {
+  margin: 14px 0 0;
+  padding: 12px;
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  background: rgb(255 255 255 / 0.03);
+}
+
+[data-clicker] .clicker-settings-hotkeys h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--core-bright);
+}
+
+[data-clicker] .clicker-settings-hotkeys-lead {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+[data-clicker] .clicker-settings-hotkeys-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+[data-clicker] .clicker-settings-hotkeys-list li {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+[data-clicker] .clicker-settings-hotkeys-keys {
+  flex: none;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--core) 35%, transparent);
+  background: rgb(0 0 0 / 0.35);
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  color: #b8ecff;
+  word-break: break-word;
+}
+
+[data-clicker] .clicker-settings-hotkeys-desc {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+[data-clicker] .clicker-settings-hotkeys-desc strong {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+[data-clicker] .clicker-settings-autosave-note {
+  margin: 12px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+@media (max-width: 430px) {
+  [data-clicker] .clicker-settings-hotkeys-list li {
+    grid-template-columns: 1fr;
+  }
+
+  [data-clicker] .clicker-settings-hotkeys-keys {
+    width: fit-content;
+    max-width: 100%;
+  }
 }
 
 [data-clicker] .clicker-settings-head {
@@ -1271,14 +1357,51 @@
 }
 [data-clicker] .clicker-skillmap-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
   padding: 10px 16px;
   border-bottom: 1px solid rgb(120 200 230 / 0.18);
   color: #dff6ff;
 }
+[data-clicker] .clicker-skillmap-head-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
 [data-clicker] .clicker-skillmap-head strong { font-size: 16px; letter-spacing: 0.06em; }
-[data-clicker] .clicker-skillmap-head span { font-size: 12px; color: #9fc3cf; }
+[data-clicker] .clicker-skillmap-head-main > span { font-size: 12px; color: #9fc3cf; }
+[data-clicker] .clicker-skillmap-tabs {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  justify-content: center;
+}
+[data-clicker] .clicker-skillmap-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--branch-color) 45%, transparent);
+  background: color-mix(in srgb, var(--branch-color) 12%, #0a1218);
+  font-size: 10px;
+  color: color-mix(in srgb, var(--branch-color) 85%, #dff6ff);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+[data-clicker] .clicker-skillmap-tab.is-active {
+  border-color: color-mix(in srgb, var(--branch-color) 85%, white);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--branch-color) 55%, transparent);
+  background: color-mix(in srgb, var(--branch-color) 22%, #0a1218);
+}
+[data-clicker] .clicker-skillmap-tab-glyph { font-size: 11px; line-height: 1; }
+[data-clicker] .clicker-skillmap-tab-label { max-width: 5.5rem; overflow: hidden; text-overflow: ellipsis; }
 [data-clicker] .clicker-skillmap-close { margin-left: auto; }
 [data-clicker] .clicker-skillmap-view {
   position: relative;
@@ -1343,8 +1466,8 @@
   box-shadow: 0 0 14px color-mix(in srgb, var(--branch-color) 70%, transparent);
 }
 [data-clicker] .clicker-skillmap-node.is-owned {
-  border-color: #ffe08a;
-  box-shadow: 0 0 10px rgb(255 224 138 / 0.5);
+  border-color: color-mix(in srgb, var(--branch-color) 80%, white);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--branch-color) 55%, transparent);
 }
 [data-clicker] .clicker-skillmap-node.is-apex { width: 74px; height: 74px; }
 [data-clicker] .clicker-skillmap-node.is-selected,
@@ -1364,12 +1487,23 @@
   align-items: center;
   padding: 12px 14px;
   border-radius: 14px;
-  border: 1px solid rgb(120 200 230 / 0.3);
+  border: 1px solid color-mix(in srgb, var(--branch-color) 50%, rgb(120 200 230 / 0.25));
   background: rgb(6 12 18 / 0.94);
   color: #e6f7ff;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--branch-color) 18%, transparent);
 }
-[data-clicker] .clicker-skillmap-detail img { width: 56px; height: 56px; }
-[data-clicker] .clicker-skillmap-detail small { font-size: 11px; color: #8fb5c2; }
+[data-clicker] .clicker-skillmap-detail-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  border: 2px solid color-mix(in srgb, var(--branch-color) 65%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--branch-color) 35%, transparent);
+  object-fit: contain;
+}
+[data-clicker] .clicker-skillmap-detail-branch {
+  font-size: 11px;
+  color: color-mix(in srgb, var(--branch-color) 75%, #8fb5c2);
+}
 [data-clicker] .clicker-skillmap-detail strong { display: block; font-size: 15px; }
 [data-clicker] .clicker-skillmap-detail p { margin: 2px 0 0; font-size: 13px; color: #bfe3ef; word-break: keep-all; overflow-wrap: anywhere; }
 
@@ -1416,7 +1550,7 @@
 [data-clicker].is-entrance-hub.is-view-entrance .clicker-stage-bg {
   bottom: var(--dock-clear);
   height: auto;
-  /* Seam at frame center after reframe (MINE_ENTRANCE_DOOR_SEAM_X); see scripts/reframe-mine-entrance-door.py */
+  /* Polish poster: door seam at frame center (MINE_ENTRANCE_DOOR_SEAM_X). */
   background-position: 50% 50%;
   -webkit-mask-image: linear-gradient(180deg, #000 88%, transparent);
   mask-image: linear-gradient(180deg, #000 88%, transparent);
@@ -1716,26 +1850,6 @@
 [data-clicker] .clicker-forge-cost span { padding: 1px 6px; border-radius: 6px; background: rgb(255 255 255 / 0.06); }
 [data-clicker] .clicker-forge-cost span.is-short { color: #ff7a6b; }
 [data-clicker] .clicker-forge-slot button { width: 100%; margin-top: 4px; }
-[data-clicker] .clicker-forge-chance { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; }
-[data-clicker] .clicker-forge-chance b { color: #ffe08a; font-size: 13px; }
-[data-clicker] .clicker-forge-chance small { opacity: 0.7; }
-[data-clicker] .clicker-forge-energy {
-  position: relative; overflow: hidden; min-width: 120px; padding: 1px 8px; border-radius: 6px;
-  font-size: 11px; color: #ffe9c7; background: rgb(255 255 255 / 0.06); border: 1px solid rgb(255 180 110 / 0.35);
-}
-[data-clicker] .clicker-forge-energy i {
-  position: absolute; inset: 0 auto 0 0; z-index: -1;
-  background: linear-gradient(90deg, rgb(255 140 60 / 0.45), rgb(255 220 120 / 0.55));
-  transition: width 320ms ease-out;
-}
-[data-clicker] .clicker-forge-energy { isolation: isolate; }
-[data-clicker] .clicker-forge-odds { margin-top: 6px; font-size: 12px; }
-[data-clicker] .clicker-forge-odds summary { cursor: pointer; color: #ffcf8a; font-weight: 700; }
-[data-clicker] .clicker-forge-odds p { margin: 6px 0; line-height: 1.5; opacity: 0.85; }
-[data-clicker] .clicker-forge-odds table { width: 100%; border-collapse: collapse; text-align: center; font-variant-numeric: tabular-nums; }
-[data-clicker] .clicker-forge-odds th,
-[data-clicker] .clicker-forge-odds td { padding: 3px 2px; border: 1px solid rgb(255 255 255 / 0.1); }
-[data-clicker] .clicker-forge-odds th { color: #ffcf8a; font-weight: 700; }
 
 /* ---------- World currencies ---------- */
 [data-clicker] .clicker-region-wallet { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
@@ -1766,19 +1880,6 @@
   border: 1px solid rgb(255 120 110 / 0.35);
   backdrop-filter: blur(4px);
 }
-/* Before the fight too: the forecast and the entry button sit on the same dark card instead
-   of floating over the boss art, where the red warning was hard to read. */
-[data-clicker] .clicker-hunt-station:not(.is-battle) {
-  padding: 10px 14px 12px;
-  border-radius: 14px;
-  background: rgb(6 10 16 / 0.74);
-  border: 1px solid rgb(120 200 255 / 0.28);
-  backdrop-filter: blur(4px);
-}
-[data-clicker] .clicker-lair-forecast {
-  text-shadow: none;
-}
-
 /* Forge opens as a bottom sheet instead of shoving the arena around. */
 [data-clicker] .clicker-forge.is-open .clicker-forge-slots {
   position: fixed;
@@ -1829,12 +1930,12 @@
 }
 [data-clicker] .clicker-drill-station .clicker-drill-gauge { position: relative; z-index: 4; }
 
-/* Keep dock labels intact, the goal bar under its title, and the drill gauge clear of the rig. */
+/* Nothing gets cut: the dock wraps instead of scrolling off the edge, the goal bar stays under
+   its title, and the drill gauge sits clear of the rig with room to show its full width. */
 @media (min-width: 521px) {
-  /* Preserve each destination's label width; the dock scrolls when the full set is wider. */
-  [data-clicker] .clicker-hub-dock { overflow-x: auto; }
-  [data-clicker] .clicker-hub-dock-btn { flex: 0 0 auto; min-width: 84px; }
-  [data-clicker] .clicker-hub-dock-btn.is-transcendence { min-width: max-content; }
+  /* One row that always fits: buttons share the width instead of scrolling off the edge. */
+  [data-clicker] .clicker-hub-dock { overflow: visible; }
+  [data-clicker] .clicker-hub-dock-btn { flex: 1 1 0; min-width: 0; padding-inline: 4px; }
   [data-clicker] .clicker-hub-dock-btn span { font-size: 8px; letter-spacing: 0.02em; white-space: nowrap; }
 }
 /* Short screens: the drill title would run into the goal card — drop it (the station is labelled). */
@@ -1947,14 +2048,6 @@
   [data-clicker] .clicker-hub-dock:has(.clicker-hub-dock-btn:nth-child(9)) .clicker-hub-dock-btn { padding: 8px 2px; }
   [data-clicker] .clicker-hub-dock:has(.clicker-hub-dock-btn:nth-child(9)) .clicker-hub-dock-btn strong { font-size: 12px; letter-spacing: -0.02em; }
 }
-@media (min-width: 481px) and (max-width: 520px) {
-  [data-clicker] .clicker-hub-dock:has(.clicker-hub-dock-btn:nth-child(9)) {
-    display: grid;
-  }
-  [data-clicker] .clicker-hub-dock:has(.clicker-hub-dock-btn:nth-child(9)) .clicker-hub-dock-btn.is-transcendence {
-    grid-column: span 2;
-  }
-}
 
 /* Desktop: CORE figures on the left, world wallet pills in their own column (they overlapped). */
 @media (min-width: 521px) {
@@ -2056,42 +2149,9 @@
   50% { box-shadow: 0 0 34px rgb(160 235 255 / 0.75); }
 }
 
-/* Locked dock entries stay visible while their lock state remains clear. */
-[data-clicker] .clicker-hub-dock-btn.is-locked {
-  opacity: 0.82;
-  cursor: not-allowed;
-  border-color: rgb(120 160 200 / 0.12);
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.03), rgb(0 0 0 / 0.12));
-}
-[data-clicker] .clicker-hub-dock-btn.is-locked span {
-  opacity: 0.5;
-  filter: grayscale(0.35);
-}
-[data-clicker] .clicker-hub-dock-title-locked {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: color-mix(in srgb, var(--text) 58%, rgb(140 170 200));
-}
-[data-clicker] .clicker-lock-mark {
-  flex: none;
-  margin-top: 1px;
-  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.75)) drop-shadow(0 0 5px rgb(80 200 255 / 0.35));
-  animation: clicker-lock-mark-pulse 2.6s ease-in-out infinite;
-}
-@keyframes clicker-lock-mark-pulse {
-  50% {
-    filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.75)) drop-shadow(0 0 9px rgb(120 230 255 / 0.55));
-  }
-}
-[data-clicker] .clicker-hub-dock-btn.is-locked:hover,
-[data-clicker] .clicker-hub-dock-btn.is-locked:focus-visible {
-  transform: none;
-  box-shadow: none;
-  border-color: rgb(120 160 200 / 0.14);
-}
-[data-clicker] .clicker-tabs button[data-locked="true"] { opacity: 0.45; filter: grayscale(0.7); }
-[data-clicker] .clicker-tabs button[data-locked="true"]::after { content: " 🔒"; font-size: 0.8em; }
+/* Locked dock entries (the forge before the third world) read as dimmed with a lock. */
+[data-clicker] .clicker-hub-dock-btn.is-locked { opacity: 0.5; filter: grayscale(0.7); }
+[data-clicker] .clicker-hub-dock-btn.is-locked strong::after { content: " · 잠김"; font-size: 0.75em; font-weight: 600; }
 [data-clicker] .clicker-forge-summary { margin: 0 0 10px; font-size: 13px; color: #dff4ff; }
 [data-clicker] .clicker-forge-summary b { color: #ffe08a; }
 [data-clicker] .clicker-forge-panel { width: 100%; margin: 0; }
@@ -2099,7 +2159,8 @@
 /* Drill rig: larger than before but kept clear of the header, with no blue haze — no glow
    disc behind it, no cyan halo, no gush jet on taps. */
 [data-clicker] .clicker-drill-station .clicker-drill {
-  width: clamp(260px, 42vh, 360px);
+  /* Waldomage drill-bg: the darker backdrop lets the rig be a little larger (was clamp(260px, 42vh, 360px)). */
+  width: clamp(280px, 46vh, 420px);
   background: none;
 }
 [data-clicker] .clicker-drill-station .clicker-drill img { filter: drop-shadow(0 10px 22px rgb(0 0 0 / 0.6)); }
@@ -2201,104 +2262,6 @@
 /* Relic Vault: forge-style cards with a line of lore. */
 [data-clicker] .clicker-relic-lore { margin: 6px 0 0; font-size: 12px; color: #8fb3c2; font-style: italic; word-break: keep-all; }
 [data-clicker] .clicker-relic.is-maxed { border-color: rgba(255, 200, 90, 0.55); box-shadow: 0 0 18px rgba(255, 190, 70, 0.18); }
-[data-clicker] .clicker-relic.is-ascended {
-  border-color: rgb(157 225 255 / 0.72);
-  box-shadow: 0 0 24px rgb(84 194 255 / 0.24), inset 0 0 24px rgb(84 194 255 / 0.06);
-  animation: clicker-relic-awaken 800ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-[data-clicker] .clicker-relic.is-ascended .clicker-forge-label small {
-  color: #bcecff;
-  text-shadow: 0 0 10px rgb(84 194 255 / 0.55);
-}
-[data-clicker] .clicker-relic-art {
-  position: relative;
-  display: grid;
-  flex: none;
-  width: 52px;
-  height: 52px;
-  place-items: center;
-  isolation: isolate;
-}
-[data-clicker] .clicker-relic-art.is-ascended::before {
-  position: absolute;
-  z-index: -1;
-  inset: -8px;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, transparent, rgb(106 220 255 / 0.42), transparent 34%, rgb(207 246 255 / 0.28), transparent 70%);
-  content: "";
-  filter: blur(5px);
-  animation: clicker-relic-halo-turn 8s linear infinite;
-}
-[data-clicker] .clicker-relic-art.is-ascended::after {
-  position: absolute;
-  z-index: 0;
-  inset: -2px;
-  border: 1px solid rgb(199 241 255 / 0.38);
-  border-radius: 50%;
-  box-shadow: inset 0 0 12px rgb(84 194 255 / 0.16), 0 0 11px rgb(84 194 255 / 0.18);
-  content: "";
-  pointer-events: none;
-  animation: clicker-relic-core-pulse 3.2s ease-in-out infinite alternate;
-}
-[data-clicker] .clicker-relic-art img {
-  position: relative;
-  z-index: 1;
-}
-[data-clicker] .clicker-relic-art.is-ascended img {
-  filter: saturate(1.28) brightness(1.18) drop-shadow(0 0 8px rgb(95 210 255 / 0.65));
-  animation: clicker-relic-art-awaken 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-[data-clicker] .clicker-relic-ascension-ring {
-  position: absolute;
-  z-index: 2;
-  inset: -8px;
-  width: 68px;
-  height: 68px;
-  overflow: visible;
-  fill: none;
-  stroke: rgb(191 239 255 / 0.84);
-  stroke-linecap: round;
-  stroke-width: 1.2;
-  filter: drop-shadow(0 0 4px rgb(74 199 255 / 0.72));
-  pointer-events: none;
-  animation: clicker-relic-ring-turn 18s linear infinite;
-}
-[data-clicker] .clicker-relic-ascension-ring path { stroke-dasharray: 3 4; }
-[data-clicker] .clicker-relic-ascension-ring .clicker-relic-ascension-inner {
-  stroke-dasharray: 1 3;
-  stroke-width: 0.65;
-  opacity: 0.64;
-}
-[data-clicker] .clicker-relic-ascension-ring .clicker-relic-ascension-glyphs {
-  fill: rgb(215 247 255 / 0.9);
-  stroke: none;
-  filter: drop-shadow(0 0 3px rgb(74 199 255 / 0.86));
-}
-@keyframes clicker-relic-awaken {
-  0% { transform: translateY(10px) scale(0.94); box-shadow: 0 0 0 rgb(84 194 255 / 0); }
-  55% { transform: translateY(-2px) scale(1.015); }
-  100% { transform: translateY(0) scale(1); }
-}
-@keyframes clicker-relic-art-awaken {
-  0% { transform: scale(0.66) rotate(-18deg); filter: brightness(2.5) drop-shadow(0 0 18px #a7efff); }
-  55% { transform: scale(1.16) rotate(5deg); }
-  100% { transform: scale(1) rotate(0); }
-}
-@keyframes clicker-relic-ring-turn { to { transform: rotate(360deg); } }
-@keyframes clicker-relic-halo-turn { to { transform: rotate(-360deg); } }
-@keyframes clicker-relic-core-pulse {
-  from { opacity: 0.45; transform: scale(0.94); }
-  to { opacity: 0.95; transform: scale(1.06); }
-}
-@media (prefers-reduced-motion: reduce) {
-  [data-clicker] .clicker-relic.is-ascended,
-  [data-clicker] .clicker-relic-art.is-ascended::before,
-  [data-clicker] .clicker-relic-art.is-ascended::after,
-  [data-clicker] .clicker-relic-art.is-ascended img,
-  [data-clicker] .clicker-relic-ascension-ring {
-    animation: none;
-  }
-}
 
 /* Laptop lair: the monster is shown whole in the centre, so the entry button / battle HUD
    move into the free space at the right instead of covering its legs. */
@@ -2507,24 +2470,16 @@
 
 /* ---------- Login gate: first screen (log in · sign up · guest) over the Canva sanctum art ---------- */
 [data-clicker] .clicker-login {
-  /* Exactly one screen tall, whatever the form's height: the art and veil size to this box,
-     so switching login ↔ signup (or showing a message) never re-crops or moves them. */
   position: relative;
-  height: 100dvh;
+  display: grid;
+  /* Top-anchored, not centred: switching login/signup or showing a message grows the panel
+     downward instead of shifting the whole screen. The offset centres the tallest state. */
+  align-items: start;
+  min-height: 100dvh;
+  padding: max(24px, calc(50dvh - 370px)) clamp(16px, 4vw, 56px) clamp(16px, 4vw, 56px);
   overflow: hidden;
   isolation: isolate;
   background: #05080f;
-}
-[data-clicker] .clicker-login-scroll {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  /* Top-anchored, not centred: a taller form grows downward instead of shifting the panel.
-     The offset centres the tallest state. */
-  align-items: start;
-  padding: max(24px, calc(50dvh - 370px)) clamp(16px, 4vw, 56px) clamp(16px, 4vw, 56px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
 }
 [data-clicker] .clicker-login-bg {
   position: absolute;
@@ -2600,7 +2555,7 @@
 
 /* Phones: art across the top, panel below it. */
 @media (max-width: 720px) {
-  [data-clicker] .clicker-login-scroll { padding: 16px; }
+  [data-clicker] .clicker-login { padding: 16px; }
   [data-clicker] .clicker-login-veil {
     background: linear-gradient(180deg, transparent 0%, rgb(4 7 14 / 0.25) 30%, rgb(4 7 14 / 0.9) 58%, rgb(4 7 14 / 0.96) 100%);
   }
@@ -2663,6 +2618,91 @@
 [data-clicker] .clicker-world-tree-done { font-size: 12px; opacity: 0.75; white-space: nowrap; font-variant-numeric: tabular-nums; }
 [data-clicker] .clicker-world-tree-done { color: var(--core-bright); opacity: 1; font-weight: 700; }
 
+/* ---------- Core capsule gacha (top of the shop) ---------- */
+[data-clicker] .clicker-gacha {
+  position: relative;
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, #ffc857 40%, var(--edge));
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgb(255 200 87 / 0.12), transparent 55%),
+    linear-gradient(180deg, rgb(14 20 34 / 0.9), rgb(8 12 22 / 0.95));
+  grid-column: 1 / -1;
+}
+[data-clicker] .clicker-gacha-machine { width: 132px; height: 132px; border-radius: 14px; object-fit: cover; }
+[data-clicker] .clicker-gacha-body { display: grid; gap: 6px; min-width: 0; }
+[data-clicker] .clicker-gacha-body .clicker-shop-section { margin: 0; }
+[data-clicker] .clicker-gacha-rates { margin: 0; font-size: 12px; opacity: 0.75; }
+[data-clicker] .clicker-gacha-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+[data-clicker] .clicker-gacha-legend li { display: flex; align-items: center; gap: 6px; min-width: 0; }
+[data-clicker] .clicker-gacha-legend img { width: 22px; height: 22px; border-radius: 50%; }
+[data-clicker] .clicker-gacha-stars { margin: 0; font-size: 12px; font-weight: 700; color: #ffd98a; }
+[data-clicker] .clicker-gacha-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 2px; }
+[data-clicker] .clicker-gacha-actions .clicker-primary { min-height: 40px; font-size: 13px; }
+[data-clicker] .clicker-gacha-result {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  padding-top: 6px;
+}
+[data-clicker] .clicker-gacha-capsule {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 8px 6px;
+  border-radius: 12px;
+  text-align: center;
+  background: rgb(255 255 255 / 0.04);
+  animation: clicker-gacha-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+[data-clicker] .clicker-gacha-prize { position: relative; display: block; width: 56px; height: 56px; margin: 0 10px 10px 0; }
+[data-clicker] .clicker-gacha-prize img { width: 56px; height: 56px; border-radius: 50%; }
+/* The item itself sits on its capsule, slightly larger, so it reads as "this is what you got". */
+[data-clicker] .clicker-gacha-prize img.clicker-gacha-prize-icon {
+  position: absolute;
+  right: -10px;
+  bottom: -8px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow: 0 0 0 2px rgb(10 18 30 / 0.9), 0 4px 10px rgb(0 0 0 / 0.5);
+}
+[data-clicker] .clicker-gacha-capsule figcaption { display: grid; gap: 2px; font-size: 11px; line-height: 1.25; }
+[data-clicker] .clicker-gacha-capsule small { opacity: 0.8; word-break: keep-all; }
+[data-clicker] .clicker-gacha-capsule.is-rare { box-shadow: inset 0 0 0 1px rgb(80 160 255 / 0.6); }
+[data-clicker] .clicker-gacha-capsule.is-epic { box-shadow: inset 0 0 0 1px rgb(190 110 255 / 0.7), 0 0 18px rgb(190 110 255 / 0.25); }
+[data-clicker] .clicker-gacha-capsule.is-legendary {
+  box-shadow: inset 0 0 0 1px rgb(255 205 100 / 0.9), 0 0 26px rgb(255 190 80 / 0.45);
+  background: rgb(255 200 90 / 0.1);
+}
+[data-clicker] .clicker-gacha-close { grid-column: 1 / -1; min-height: 36px; }
+@keyframes clicker-gacha-pop {
+  from { opacity: 0; transform: scale(0.6) translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@media (max-width: 520px) {
+  [data-clicker] .clicker-gacha { grid-template-columns: 1fr; }
+  [data-clicker] .clicker-gacha-machine { width: 100%; height: 160px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-clicker] .clicker-gacha-capsule { animation: none; }
+}
 /* The world card's backdrop <img> rule must not reach the tree's currency icons. */
 [data-clicker] .clicker-world-tree img.clicker-currency-icon {
   position: static;
@@ -2678,410 +2718,127 @@
   vertical-align: -3px;
 }
 
-/* Detail polish: an affordable card already says so with its glowing buy button, so its
-   "구매 가능" pill is kept for screen readers only. Pills that explain a block (CORE 부족,
-   잠김, 보유) stay visible. Names get the full row and stop wrapping early on phones. */
-[data-clicker] :is(.clicker-producer-status, .clicker-shop-status, .clicker-upgrade-status).is-affordable {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-/* Rebirth row armed by the first press: a warm, pulsing confirm state. */
-@keyframes clicker-wl-armed {
-  50% { box-shadow: 0 0 18px rgb(255 160 80 / 0.75); }
-}
-[data-clicker] .clicker-transcendence-locked strong { color: #ffe08a; }
-
-/* English UI chrome in a sleek display face (Rajdhani): menu, tab strip, HUD captions,
-   manage header, mine HUD. Korean body text keeps Noto Sans KR. */
-[data-clicker] {
-  --font-display: "Rajdhani", "Noto Sans KR", system-ui, sans-serif;
-}
-[data-clicker] :is(
-  .clicker-tabs button,
-  .clicker-hub-dock-btn strong,
-  .clicker-metric > span,
-  .clicker-metric > em,
-  .clicker-manage-title,
-  .clicker-manage-back,
-  .clicker-settings-launch,
-  .clicker-save-pulse,
-  .clicker-mine-hud-stat > span,
-  .clicker-lair-leave,
-  .clicker-hub-enter
-) {
-  font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-[data-clicker] .clicker-tabs button { font-size: 14px; }
-[data-clicker] .clicker-tabs button[data-active="true"] { font-weight: 700; letter-spacing: 0.14em; }
-[data-clicker] .clicker-hub-dock-btn strong { font-size: 15px; letter-spacing: 0.08em; }
-[data-clicker] .clicker-hub-dock-btn span { letter-spacing: 0; text-transform: none; opacity: 0.7; }
-[data-clicker] .clicker-manage-title { font-size: 18px; font-weight: 700; letter-spacing: 0.22em; }
-[data-clicker] .clicker-metric > span { font-size: 12px; letter-spacing: 0.16em; }
-@media (max-width: 720px) {
-  [data-clicker] .clicker-tabs button { font-size: 12px; letter-spacing: 0.06em; }
-  [data-clicker] .clicker-hub-dock-btn strong { font-size: 12px; letter-spacing: 0.01em; }
-}
-
-/* Hunting grounds: "상세" opens how lair damage works, with the player's current numbers. */
-[data-clicker] .clicker-lair-info-btn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 14;
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1px solid rgb(120 200 255 / 0.45);
-  background: rgb(6 10 16 / 0.72);
-  color: #dff4ff;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  backdrop-filter: blur(4px);
-  cursor: pointer;
-}
-[data-clicker] .clicker-lair-info-btn:hover { border-color: rgb(160 225 255 / 0.85); }
-[data-clicker] .clicker-lair-info {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  background: rgb(2 4 9 / 0.62);
-}
-[data-clicker] .clicker-lair-info > section {
-  width: min(520px, 100%);
-  max-height: min(86dvh, 720px);
-  overflow-y: auto;
-  padding: 18px 20px 20px;
-  border-radius: 16px;
-  border: 1px solid rgb(120 200 255 / 0.3);
-  background: linear-gradient(180deg, rgb(10 16 28 / 0.97), rgb(6 10 18 / 0.98));
-  box-shadow: 0 24px 60px rgb(0 0 0 / 0.55);
-  color: #d9e9f5;
-  font-size: 14px;
-  line-height: 1.55;
-}
-[data-clicker] .clicker-lair-info header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
-[data-clicker] .clicker-lair-info h3 { margin: 0; font-size: 18px; color: #f6efe0; }
-[data-clicker] .clicker-lair-info h4 { margin: 14px 0 6px; font-size: 13px; letter-spacing: 0.08em; color: #8fd8ff; }
-[data-clicker] .clicker-lair-info ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
-[data-clicker] .clicker-lair-info b { color: #ffe08a; }
-[data-clicker] .clicker-lair-info-formula {
-  margin: 0 0 6px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: rgb(120 200 255 / 0.08);
-  border: 1px solid rgb(120 200 255 / 0.18);
-}
-/* Desktop dock: English labels are wider than the old Korean ones, so each button sizes to
-   its label instead of an equal share of a fixed-width bar (PRODUCERS overflowed into UPGRADES). */
-@media (min-width: 721px) {
-  [data-clicker] .clicker-hub-dock { width: auto; }
-  [data-clicker] .clicker-hub-dock-btn { flex: 0 0 auto; min-width: 84px; padding: 10px 14px; }
-  [data-clicker] .clicker-hub-dock-btn strong { font-size: 15px; white-space: nowrap; }
-}
-/* The settings launcher reads in Korean again: no wide caps tracking on Hangul. */
-[data-clicker] .clicker-settings-launch { letter-spacing: 0.02em; }
-
-/* ---------- Online ranking ---------- */
-[data-clicker] .clicker-ranking {
-  margin: 12px 0 0;
+/* ---------- Late game: transcendence · ending cards ---------- */
+[data-clicker] .clicker-transcendence-head {
   padding: 12px 14px;
-  border-radius: 12px;
-  text-align: left;
-  border: 1px solid rgb(255 210 130 / 0.28);
-  background: linear-gradient(160deg, rgb(20 18 12 / 0.72), rgb(8 10 18 / 0.82));
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--core) 22%, transparent);
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgb(120 200 255 / 0.12), transparent 55%),
+    linear-gradient(180deg, rgb(8 14 24 / 0.92), rgb(4 8 14 / 0.88));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
 }
-[data-clicker] .clicker-ranking-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px; }
-[data-clicker] .clicker-ranking-kicker { margin: 0; font-size: 10px; letter-spacing: 0.16em; color: rgb(255 214 140 / 0.7); }
-[data-clicker] .clicker-ranking-head h2 { margin: 2px 0 0; font-size: 18px; color: #ffe3a6; }
-[data-clicker] .clicker-ranking-tabs { display: inline-flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgb(255 255 255 / 0.06); }
-[data-clicker] .clicker-ranking-tabs button {
-  padding: 4px 10px; border: 0; border-radius: 999px; font-size: 12px; font-weight: 700;
-  color: rgb(236 232 222 / 0.75); background: transparent; cursor: pointer;
+[data-clicker] .clicker-transcendence-meter .clicker-bar i {
+  background: linear-gradient(90deg, #3ec8ff, #ffe08a);
+  box-shadow: 0 0 12px rgb(120 220 255 / 0.45);
 }
-[data-clicker] .clicker-ranking-tabs button.is-on { color: #1a1206; background: linear-gradient(90deg, #ffd27a, #ffb347); }
-[data-clicker] .clicker-ranking-list { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
-[data-clicker] .clicker-ranking-list li {
-  display: grid; grid-template-columns: 30px minmax(0, 1fr) auto auto; align-items: center; gap: 8px;
-  padding: 6px 8px; border-radius: 8px; background: rgb(255 255 255 / 0.04);
+[data-clicker] .clicker-ending {
+  border: 1px solid color-mix(in srgb, var(--core) 28%, transparent);
+  box-shadow:
+    0 24px 64px rgb(0 0 0 / 0.55),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  background: linear-gradient(180deg, rgb(10 18 28 / 0.96), rgb(6 10 18 / 0.98));
 }
-[data-clicker] .clicker-ranking-list li.is-me { background: rgb(255 210 130 / 0.14); outline: 1px solid rgb(255 210 130 / 0.5); }
-[data-clicker] .clicker-ranking-list li.clicker-ranking-gap { display: block; text-align: center; background: none; padding: 0; opacity: 0.5; }
-[data-clicker] .clicker-ranking-rank {
-  display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
-  font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; background: rgb(255 255 255 / 0.08);
-}
-[data-clicker] li.is-gold .clicker-ranking-rank { color: #2a1a00; background: linear-gradient(135deg, #fff1a8, #e3a72f); box-shadow: 0 0 10px rgb(255 200 80 / 0.5); }
-[data-clicker] li.is-silver .clicker-ranking-rank { color: #1a1e24; background: linear-gradient(135deg, #f4f7fb, #9aa6b6); }
-[data-clicker] li.is-bronze .clicker-ranking-rank { color: #241204; background: linear-gradient(135deg, #f3c08d, #a8622b); }
-[data-clicker] .clicker-ranking-name { min-width: 0; display: grid; }
-[data-clicker] .clicker-ranking-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-[data-clicker] .clicker-ranking-name small { font-size: 10px; opacity: 0.65; }
-[data-clicker] .clicker-ranking-score { font-size: 13px; font-weight: 700; color: #ffd27a; font-variant-numeric: tabular-nums; white-space: nowrap; }
-[data-clicker] .clicker-ranking-me { font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 999px; color: #1a1206; background: #ffd27a; }
-[data-clicker] .clicker-ranking-empty,
-[data-clicker] .clicker-ranking-foot { margin: 10px 0 0; font-size: 12px; line-height: 1.5; opacity: 0.75; }
-[data-clicker] .clicker-settings-ranking { list-style: none; }
-[data-clicker] .clicker-settings-ranking .clicker-ranking { margin: 0; }
-
-/* ---------- Drill site: the rig hangs in the corridor ----------
-   The scene shares the stage background's box, and --s is that background's cover scale for the
-   1920×1080 still, so an art pixel (x, y) sits at calc(50% + (x - 960) * --s), calc(50% + (y - 540) * --s).
-   The rig sprite (739×1875, drawn at 0.55 art px per px) hangs so its bit tip lands at (960, 820),
-   on the corridor floor. */
-[data-clicker] .clicker-drill-scene {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  overflow: hidden;
-  pointer-events: none;
-  container-type: size;
-}
-[data-clicker] .clicker-drill-scene > * {
-  --s: max(100cqw / 1920, 100cqh / 1080);
-  position: absolute;
-}
-[data-clicker] .clicker-drill-scene .clicker-drill {
-  /* --k: art px per sprite px. Smaller on tall phones, where the cover scale blows the art up. */
-  --k: 0.55;
-  display: block;
-  left: calc(50% + (960 - 960 - 371 * var(--k)) * var(--s));
-  top: calc(50% + (820 - 540 - 1866 * var(--k)) * var(--s));
-  width: calc(739 * var(--k) * var(--s));
-  height: calc(1875 * var(--k) * var(--s));
-  aspect-ratio: auto;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: none !important;
-  /* Only the drill body takes taps, not the cables above it. */
-  pointer-events: none;
-  cursor: pointer;
-}
-[data-clicker] .clicker-drill-scene .clicker-drill::before {
-  content: "";
-  position: absolute;
-  inset: 22% 6% 0;
-  pointer-events: auto;
-}
-@media (max-aspect-ratio: 4 / 5) {
-  [data-clicker] .clicker-drill-scene .clicker-drill { --k: 0.4; }
-}
-[data-clicker] .clicker-drill-scene .clicker-drill-rig {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  object-fit: fill;
-  /* Cool the bronze so the lanterns and cyan coils sit in the corridor's teal light. */
-  filter: brightness(0.92) saturate(0.95) contrast(1.05) drop-shadow(0 0 calc(14 * var(--s)) rgb(70 220 255 / 0.35));
-  transform-origin: 50% 0;
-  animation: clicker-drill-sway 7s cubic-bezier(0.37, 0, 0.63, 1) infinite;
-}
-/* The cables swing, and the bit hums, so the rig reads as hanging and live. */
-@keyframes clicker-drill-sway {
-  0%, 100% { transform: rotate(0.6deg) translateY(0); }
-  50% { transform: rotate(-0.6deg) translateY(calc(8 * var(--s))); }
-}
-/* A tap drives the bit into the floor, then the cables pull it back up. */
-[data-clicker] .clicker-drill-scene .clicker-drill.is-hit .clicker-drill-rig {
-  animation: clicker-drill-drive 320ms cubic-bezier(0.2, 0.9, 0.3, 1), clicker-drill-sway 7s cubic-bezier(0.37, 0, 0.63, 1) 320ms infinite;
-}
-@keyframes clicker-drill-drive {
-  0% { transform: translateY(0) rotate(0); }
-  22% { transform: translateY(calc(48 * var(--s))) rotate(-0.4deg) scale(1.015, 0.99); filter: brightness(1.15) saturate(1.1) contrast(1.06) drop-shadow(0 0 calc(22 * var(--s)) rgb(120 245 255 / 0.75)); }
-  100% { transform: translateY(0) rotate(0); }
-}
-[data-clicker] .clicker-drill-scene .clicker-drill.is-cooling .clicker-drill-rig {
-  filter: brightness(0.6) saturate(0.5) contrast(1.06);
-  animation-play-state: paused;
-}
-/* Cyan pool on the floor under the bit, flaring on each strike. */
-[data-clicker] .clicker-drill-scene .clicker-drill-glow {
-  display: block !important;
-  left: 50%;
-  bottom: -6%;
-  width: 90%;
-  height: 22%;
-  opacity: 0.45;
-  mix-blend-mode: screen;
-  background: radial-gradient(closest-side, rgb(120 240 255 / 0.75), rgb(40 200 230 / 0.25) 60%, transparent);
-  animation: clicker-drill-hum 2.4s ease-in-out infinite;
-}
-@keyframes clicker-drill-hum { 50% { opacity: 0.7; } }
-[data-clicker] .clicker-drill-scene .clicker-drill.is-hit .clicker-drill-glow { animation: clicker-drill-flash 300ms ease-out; opacity: 0.45; }
-[data-clicker] .clicker-drill-scene .clicker-drill.is-cooling .clicker-drill-glow { opacity: 0.12; animation: none; }
-[data-clicker] .clicker-drill-scene .clicker-drill-debris { bottom: 2%; }
-[data-clicker] .clicker-drill-scene .clicker-drill-gush { display: block; }
-/* Spinning energy disc at the bit. */
-[data-clicker] .clicker-drill-scene .clicker-drill-ring {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 70%;
-  height: 14%;
-  translate: -50% 40%;
-  border-radius: 50%;
-  border: 2px solid rgb(140 245 255 / 0.7);
-  box-shadow: 0 0 16px rgb(80 230 255 / 0.55), inset 0 0 10px rgb(80 230 255 / 0.35);
-  mix-blend-mode: screen;
-  pointer-events: none;
-  animation: clicker-drill-ring 1.6s linear infinite;
-}
-@keyframes clicker-drill-ring {
-  from { transform: rotateX(68deg) rotate(0deg); }
-  to { transform: rotateX(68deg) rotate(360deg); }
-}
-[data-clicker] .clicker-drill-scene .clicker-drill.is-hit .clicker-drill-ring {
-  animation: clicker-drill-ring 0.45s linear infinite;
-  border-color: rgb(220 255 255 / 0.95);
-}
-/* Idle motes drifting up off the floor. */
-[data-clicker] .clicker-drill-scene .clicker-drill-motes {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-[data-clicker] .clicker-drill-scene .clicker-drill-motes i {
-  position: absolute;
-  left: 46%;
-  bottom: 4%;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: #d8fbff;
-  box-shadow: 0 0 8px #3ee0ff;
-  animation: clicker-drill-mote calc(2.4s + var(--i) * 0.28s) linear infinite;
-  animation-delay: calc(var(--i) * -0.35s);
-}
-@keyframes clicker-drill-mote {
-  0% { transform: translate(0, 0); opacity: 0; }
-  15% { opacity: 0.9; }
-  100% { transform: translate(calc((var(--i) - 4) * 6px), -70%); opacity: 0; }
-}
-/* Shock ring on a strike. */
-[data-clicker] .clicker-drill-scene .clicker-drill-shock {
-  position: absolute;
-  left: 50%;
-  bottom: 2%;
-  width: 30%;
-  aspect-ratio: 1;
-  translate: -50% 50%;
-  border-radius: 50%;
-  border: 2px solid rgb(180 250 255 / 0.8);
-  box-shadow: 0 0 18px rgb(80 230 255 / 0.7);
-  mix-blend-mode: screen;
-  pointer-events: none;
-  animation: clicker-drill-shock 420ms ease-out forwards;
-}
-@keyframes clicker-drill-shock {
-  from { transform: scale(0.3); opacity: 1; }
-  to { transform: scale(2.4); opacity: 0; }
-}
-[data-clicker] .clicker-drill-scene .clicker-drill.is-cooling .clicker-drill-ring,
-[data-clicker] .clicker-drill-scene .clicker-drill.is-cooling .clicker-drill-motes { opacity: 0.25; }
-@media (prefers-reduced-motion: reduce) {
-  [data-clicker] .clicker-drill-scene .clicker-drill-rig,
-  [data-clicker] .clicker-drill-scene .clicker-drill.is-hit .clicker-drill-rig,
-  [data-clicker] .clicker-drill-scene .clicker-drill-glow,
-  [data-clicker] .clicker-drill-scene .clicker-drill-ring,
-  [data-clicker] .clicker-drill-scene .clicker-drill-motes i { animation: none; }
-  [data-clicker] .clicker-drill-scene .clicker-drill-shock,
-  [data-clicker] .clicker-drill-scene .clicker-drill-motes { display: none; }
+[data-clicker] .clicker-ending-summary dd {
+  color: var(--core-bright);
+  text-shadow: 0 0 18px rgb(120 220 255 / 0.25);
 }
 
-/* ---------- World backgrounds breathe ----------
-   Away from home (never in the mine or at the gate, whose art lines up with hitboxes) the
-   backdrop drifts like a slow handheld camera and its light swells and settles. The drill scene
-   runs the very same animation on the very same box, so the rig stays pinned to the floor. */
-[data-clicker] .clicker-stage-bg.is-drift:not(.is-region-transition),
-[data-clicker] .clicker-stage:has(.clicker-stage-bg.is-drift:not(.is-region-transition)) .clicker-drill-scene {
-  animation: clicker-bg-drift 34s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
-  transform-origin: 50% 55%;
+/* ---------- Short landscape (e.g. 844×390): keep gates, login, mine rail, and records on-screen ---------- */
+@media (max-height: 520px) and (min-width: 480px) {
+  [data-clicker] .clicker-login {
+    overflow-y: auto;
+    align-items: start;
+    padding: max(12px, env(safe-area-inset-top, 0px)) 16px 16px;
+  }
+  [data-clicker] .clicker-login-panel {
+    margin-top: 0;
+    width: min(100%, 380px);
+    padding: 14px 16px;
+    gap: 10px;
+  }
+  [data-clicker] .clicker-login-brand { font-size: 1.65rem; }
+  [data-clicker] .clicker-login-lead { font-size: 13px; line-height: 1.45; }
+
+  [data-clicker].is-region-hub .clicker-region-station,
+  [data-clicker].is-region-hub .clicker-world-gate {
+    bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+    z-index: 11;
+    max-width: min(86vw, 18rem);
+  }
+  [data-clicker] .clicker-world-gate-go {
+    min-height: 44px;
+    padding: 0 16px;
+    font-size: 14px;
+  }
+  [data-clicker] .clicker-hub-dock {
+    z-index: 9;
+    padding: 6px;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  [data-clicker] .clicker-complete {
+    align-items: start;
+    padding: 12px 16px;
+  }
+  [data-clicker] .clicker-complete-card {
+    margin: auto;
+    padding: 18px 16px;
+  }
+  [data-clicker] .clicker-complete-card h1 { font-size: 22px; margin: 8px 0 10px; }
+  [data-clicker] .clicker-complete-epilogue { font-size: 13px; line-height: 1.55; }
+  [data-clicker] .clicker-complete-stats { gap: 8px; margin-top: 14px; }
+  [data-clicker] .clicker-complete-stats dd { font-size: 16px; }
+
+  [data-clicker] .clicker-ending-backdrop { padding: 12px 16px; }
+  [data-clicker] .clicker-ending {
+    padding: 14px 16px;
+    max-height: none;
+  }
+  [data-clicker] .clicker-ending-body { font-size: 13px; line-height: 1.55; }
+
+  [data-clicker] .clicker-skillmap-detail {
+    width: min(420px, calc(100% - 24px));
+    padding: 10px 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  [data-clicker] .clicker-tabs button[data-tab="transcendence"] {
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
 }
-@keyframes clicker-bg-drift {
-  0% { transform: scale(1.035) translate(-0.45%, 0.2%); }
-  50% { transform: scale(1.047) translate(0.1%, -0.35%); }
-  100% { transform: scale(1.04) translate(0.45%, 0.15%); }
-}
-[data-clicker] .clicker-stage-bg.is-drift::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 48% 44% at 50% 52%, rgb(134 220 255 / 0.09), transparent 72%),
-    linear-gradient(180deg, rgb(5 10 18 / 0.02) 35%, rgb(5 10 18 / 0.16));
-  mix-blend-mode: screen;
-  animation: clicker-bg-light 11s ease-in-out infinite;
-}
-@keyframes clicker-bg-light {
-  0%, 100% { opacity: 0.25; }
-  48% { opacity: 0.9; }
-  62% { opacity: 0.58; }
-}
-/* A restrained depth layer adds life to world art without covering the mine or entrance hitboxes. */
-[data-clicker] .clicker-stage:has(> .clicker-stage-bg.is-drift:not(.is-region-transition)) > .clicker-vignette::before,
-[data-clicker] .clicker-stage:has(> .clicker-stage-bg.is-drift:not(.is-region-transition)) > .clicker-vignette::after {
-  content: "";
-  position: absolute;
-  inset: -8%;
-  pointer-events: none;
-}
-[data-clicker] .clicker-stage:has(> .clicker-stage-bg.is-drift:not(.is-region-transition)) > .clicker-vignette::before {
-  opacity: 0.26;
-  background:
-    radial-gradient(1px 1px at 8% 22%, rgb(195 237 255 / 0.8) 0 55%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 18% 77%, rgb(126 218 255 / 0.68) 0 55%, transparent 100%),
-    radial-gradient(1px 1px at 31% 42%, rgb(226 246 255 / 0.72) 0 55%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 43% 15%, rgb(126 218 255 / 0.62) 0 55%, transparent 100%),
-    radial-gradient(1px 1px at 57% 68%, rgb(226 246 255 / 0.76) 0 55%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 69% 31%, rgb(126 218 255 / 0.66) 0 55%, transparent 100%),
-    radial-gradient(1px 1px at 82% 84%, rgb(226 246 255 / 0.7) 0 55%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 93% 51%, rgb(126 218 255 / 0.64) 0 55%, transparent 100%);
-  animation: clicker-bg-motes 24s ease-in-out infinite alternate;
-}
-[data-clicker] .clicker-stage:has(> .clicker-stage-bg.is-drift:not(.is-region-transition)) > .clicker-vignette::after {
-  inset: 0;
-  opacity: 0.52;
-  background: radial-gradient(ellipse 74% 72% at 50% 46%, transparent 46%, rgb(2 7 14 / 0.3) 100%);
-}
-@keyframes clicker-bg-motes {
-  from { opacity: 0.12; transform: translate3d(-0.25%, 0.15%, 0); }
-  to { opacity: 0.34; transform: translate3d(0.3%, -0.2%, 0); }
-}
-@media (prefers-reduced-motion: reduce) {
-  [data-clicker] .clicker-stage-bg.is-drift,
-  [data-clicker] .clicker-stage .clicker-drill-scene,
-  [data-clicker] .clicker-stage-bg.is-drift::after,
-  [data-clicker] .clicker-stage:has(> .clicker-stage-bg.is-drift) > .clicker-vignette::before { animation: none; }
-}
-/* The four cables carry on above the sprite to the top of the stage, so the rig never ends mid-air
-   on tall screens (overlapping the sprite a little so a strike's drop never opens a gap). */
-[data-clicker] .clicker-drill-scene .clicker-drill::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 95%;
-  height: 400%;
-  pointer-events: none;
-  --cable: linear-gradient(90deg, #161715, #44453f 45%, #232421);
-  background:
-    var(--cable) 28.71% 0 / 2.3% 100% no-repeat,
-    var(--cable) 41.4% 0 / 2.3% 100% no-repeat,
-    var(--cable) 58.6% 0 / 2.3% 100% no-repeat,
-    var(--cable) 71.29% 0 / 2.3% 100% no-repeat;
-  filter: brightness(0.82);
+
+/* Landscape phones (≈844×390): keep the boss gate above the dock, let the completion card
+   scroll inside the viewport, and fit the login card's guest button on the first screen. */
+@media (max-height: 520px) and (min-width: 480px) {
+  /* The station is anchored to .clicker-core-wrap, which runs past the bottom of a short
+     viewport; pin the gate to the viewport just above the dock (dock ≈ 73px + 8px inset). */
+  [data-clicker].is-region-hub .clicker-world-gate {
+    position: fixed;
+    left: 50%;
+    right: auto;
+    top: auto;
+    bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+  }
+  [data-clicker] .clicker-world-gate-desc { margin: 2px 0 6px; }
+
+  /* data-clicker sits on the completion shell itself, so match it as a compound selector. */
+  [data-clicker].clicker-complete {
+    height: 100dvh;
+    min-height: 0;
+    box-sizing: border-box;
+    overflow-y: auto;
+    align-content: start;
+  }
+  [data-clicker] .clicker-complete-card { margin: 0 auto; }
+
+  [data-clicker] .clicker-login { padding-top: 10px; padding-bottom: 10px; }
+  [data-clicker] .clicker-login-panel { gap: 4px; padding: 10px 16px; }
+  [data-clicker] .clicker-login-kicker { display: none; }
+  [data-clicker] .clicker-login-brand { font-size: 22px; margin: 0; }
+  [data-clicker] .clicker-login-lead { font-size: 12px; line-height: 1.4; margin: 0; }
+  [data-clicker] .clicker-login .clicker-account-form { gap: 6px; }
+  [data-clicker] .clicker-login .clicker-account-form input { height: 38px; min-height: 0; padding-block: 0; }
+  [data-clicker] .clicker-login .clicker-login-panel button { min-height: 38px; padding-block: 6px; }
 }

@@ -1,0 +1,86 @@
+/* Ending videos: full-screen, above gameplay, above the tutorial (110) and story cards (120), which never overlap with it. */
+.clicker-ending-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #000 center / cover no-repeat;
+}
+
+.clicker-ending-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 160ms ease-out;
+}
+
+.clicker-ending-video.is-ready {
+  opacity: 1;
+}
+
+/* Opacity is driven frame-by-frame from the video clock (pure timeline), not by CSS animation. */
+.clicker-ending-caption {
+  position: absolute;
+  left: 50%;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  width: min(600px, calc(100% - 32px));
+  padding: 14px 16px 16px;
+  transform: translateX(-50%);
+  text-align: center;
+  color: #e8fbff;
+  text-shadow: 0 2px 14px rgb(0 0 0 / 0.9);
+  background: radial-gradient(ellipse at center, rgb(0 0 0 / 0.55), transparent 75%);
+  pointer-events: none;
+  word-break: keep-all;
+}
+
+.clicker-ending-caption p {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  color: #9fe8ff;
+}
+
+.clicker-ending-caption h2 {
+  margin: 0 0 8px;
+  font-size: clamp(24px, 6vw, 40px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.clicker-ending-caption span {
+  display: block;
+  font-size: clamp(13px, 3.6vw, 15px);
+  line-height: 1.55;
+  color: #d6f1f8;
+}
+
+.clicker-ending-skip {
+  position: absolute;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgb(160 240 255 / 0.35);
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.5);
+  color: #dff8ff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.clicker-ending-skip:hover,
+.clicker-ending-skip:focus-visible {
+  border-color: rgb(160 240 255 / 0.8);
+}
+
+.clicker-ending-skip:focus-visible {
+  outline: 2px solid #bff3ff;
+  outline-offset: 2px;
+}

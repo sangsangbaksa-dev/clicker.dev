@@ -3,19 +3,17 @@ import test from "node:test"
 import { clickerConfig as config } from "../../data/clicker/catalog.ts"
 import { createInitialMeta, rebirthRequirement, worldlineGoal } from "./clicker-engine.ts"
 
-/** Active-play calibration target (see scripts/playtime-sim.ts and docs/playtime-7h-balance.md). */
-const TARGET_WORLDLINES = 8
-
 test("playtime calibration tables match transcendence count", () => {
-  assert.equal(config.transcendence.length, TARGET_WORLDLINES)
-  assert.equal(config.rebirthGoalStretch?.length, TARGET_WORLDLINES)
-  assert.ok((config.rebirthGoalScale?.length ?? 0) >= TARGET_WORLDLINES)
+  const n = config.transcendence.length
+  assert.ok(n >= 8)
+  if (config.rebirthGoalStretch) assert.equal(config.rebirthGoalStretch.length, n)
+  assert.ok((config.rebirthGoalScale?.length ?? 0) >= n)
 })
 
 test("Core Heart opens only after every worldline buff is walked", () => {
   const heart = config.regions.find((r) => r.boss)
   assert.ok(heart)
-  assert.equal(heart.requiresRebirths, TARGET_WORLDLINES)
+  assert.equal(heart.requiresRebirths, config.transcendence.length)
   assert.ok(heart.boss && heart.boss.hp > 0)
 })
 

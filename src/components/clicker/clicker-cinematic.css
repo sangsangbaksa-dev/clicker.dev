@@ -5,12 +5,24 @@
   z-index: 60;
   display: grid;
   place-items: center;
-  /* Stage still shows through until the first painted frame (no duplicate poster layer). */
-  background: transparent;
+  /* The poster is the video's own first frame, so the swap to the playing video is invisible. */
+  background: #000 center / cover no-repeat;
+  animation: clicker-cinematic-in 180ms ease-out;
 }
 
-.clicker-cinematic.is-ready {
-  background: #000;
+/* Closing cross-fade after a natural end: the last frame is held while the mine shows through. */
+.clicker-cinematic.is-leaving .clicker-cinematic-skip {
+  visibility: hidden;
+}
+
+.clicker-cinematic.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 600ms ease-in-out;
+}
+
+@keyframes clicker-cinematic-in {
+  from { opacity: 0; }
 }
 
 .clicker-cinematic-video {
@@ -18,12 +30,11 @@
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  visibility: hidden;
+  transition: opacity 160ms ease-out;
 }
 
-.clicker-cinematic.is-ready .clicker-cinematic-video {
+.clicker-cinematic-video.is-ready {
   opacity: 1;
-  visibility: visible;
 }
 
 .clicker-cinematic-caption {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { purchaseFxAccent } from "@/application/clicker-ui"
 import "./clicker-purchase-fx.css"
 
 type Fx = { key: number; kind: string; assetId?: string }
@@ -34,11 +35,15 @@ export function ClickerPurchaseFx({ fx }: { fx: Fx | null }) {
   }, [fx])
   if (!shown) return null
   const kind = shown.kind.toLowerCase()
+  const accent = purchaseFxAccent(shown.kind)
   return (
     <div
       key={shown.key}
       className={`clicker-pfx is-${kind}`}
-      style={shown.x !== undefined ? { left: shown.x, top: shown.y } : undefined}
+      style={{
+        ["--c" as string]: accent,
+        ...(shown.x !== undefined ? { left: shown.x, top: shown.y } : {}),
+      }}
       aria-hidden
     >
       <span className="clicker-pfx-ring" />

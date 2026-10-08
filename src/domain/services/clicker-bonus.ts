@@ -7,6 +7,7 @@ import type {
   MetaState,
   RunState,
 } from "../entities/clicker"
+import { isLateGameKind, lateGameProgress } from "./clicker-achievements-lategame.ts"
 
 /**
  * Meta systems layered on the core loop: golden veins, achievements,
@@ -97,11 +98,14 @@ export function recordOreBroken(meta: MetaState): MetaState {
 /** Each unlocked achievement adds this much production (additive, then applied once). */
 export const ACHIEVEMENT_PRODUCTION_BONUS = 0.01
 
-export function achievementProductionMultiplier(meta: MetaState): number {
-  return 1 + meta.achievementIds.length * ACHIEVEMENT_PRODUCTION_BONUS
+export function achievementProductionMultiplier(meta: MetaState, defs?: AchievementDef[]): number {
+  const noBonus = new Set((defs ?? []).filter((d) => d.grantsProductionBonus === false).map((d) => d.id))
+  const counted = meta.achievementIds.filter((id) => !noBonus.has(id)).length
+  return 1 + counted * ACHIEVEMENT_PRODUCTION_BONUS
 }
 
 export function achievementProgress(kind: AchievementKind, run: RunState, meta: MetaState): number {
+  if (isLateGameKind(kind)) return lateGameProgress(kind, meta)
   const s = meta.statistics
   switch (kind) {
     case "CLICKS":

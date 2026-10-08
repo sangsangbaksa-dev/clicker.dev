@@ -27,7 +27,7 @@ export function formatNumber(value: number): string {
     if (abs < v) continue
     const scaled = trimZeros((abs / v).toFixed(2))
     // 999.999K rounds to "1000K": promote to the next suffix instead.
-    if (scaled === "1000") return i > 0 ? `${sign}1${SUFFIXES[i - 1].s}` : `${sign}1e36`
+    if (scaled === "1000" && i > 0) return `${sign}1${SUFFIXES[i - 1].s}`
     return `${sign}${scaled}${s}`
   }
   return `${sign}1K` // 999.995 … 999.999 rounds up to 1K
@@ -37,28 +37,13 @@ function trimZeros(text: string): string {
   return text.includes(".") ? text.replace(/\.?0+$/, "") : text
 }
 
-/** Final consonant of the word's last sound: "none", "rieul" (ㄹ) or "other". Latin endings are guessed by letter. */
-function finalSound(word: string): "none" | "rieul" | "other" {
-  const ch = word.trim().slice(-1)
-  const code = ch.charCodeAt(0)
-  if (code >= 0xac00 && code <= 0xd7a3) {
-    const jong = (code - 0xac00) % 28
-    return jong === 0 ? "none" : jong === 8 ? "rieul" : "other"
-  }
-  // Latin names are read the Korean way: -t/-k/-p end in a vowel (볼트, 크, 프), -l in ㄹ,
-  // -m/-n (and a silent e after them, as in Mine → 마인) in a consonant.
-  const w = word.trim().toLowerCase()
-  const c = w.slice(-1)
-  if (c === "l") return "rieul"
-  if (c === "m" || c === "n" || (c === "e" && /[mn]e$/.test(w))) return "other"
-  if (/[0-9]/.test(c)) return "178".includes(c) ? "rieul" : "036".includes(c) ? "other" : "none"
-  return "none"
-}
-
-/** Korean particle that fits the word: 이/가, 을/를, 은/는, (으)로. */
-export function withParticle(word: string, particle: "이가" | "을를" | "은는" | "으로"): string {
-  const end = finalSound(word)
-  if (particle === "으로") return word + (end === "other" ? "으로" : "로")
-  const [after, plain] = particle === "이가" ? ["이", "가"] : particle === "을를" ? ["을", "를"] : ["은", "는"]
-  return word + (end === "none" ? plain : after)
+/**
+ * CORE per second. Rates below 0.01 (a first Solar Node makes 0.003/s) keep significant digits
+ * instead of rounding to "0", so the first purchase visibly does something.
+ */
+export function formatRate(perSecond: number): string {
+  if (!Number.isFinite(perSecond) || perSecond <= 0) return formatNumber(perSecond)
+  if (perSecond >= 0.01) return formatNumber(perSecond)
+  if (perSecond >= 1e-4) return trimZeros(perSecond.toPrecision(2))
+  return perSecond.toExponential(1)
 }

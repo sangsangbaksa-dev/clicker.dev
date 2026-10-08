@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from "react"
 import type { BgmScene } from "@/application/clicker-audio"
-import { clickerBgmPorts, createClickerBgmEngine } from "@/application/clicker-bgm-engine"
+import { clickerBgmPorts } from "@/application/clicker-bgm-client-bind"
+import { createClickerBgmEngine } from "@/application/clicker-bgm-engine"
 import type { CoreVisual } from "@/application/clicker-ui"
 
 export type { BgmScene } from "@/application/clicker-audio"

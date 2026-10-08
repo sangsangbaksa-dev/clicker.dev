@@ -119,6 +119,17 @@
   animation: clicker-boss-hurt 360ms ease-out forwards;
 }
 @keyframes clicker-boss-hurt { to { opacity: 0; } }
+/* Core guardian: no full-screen box flash — a brief edge tint when the player is hit. */
+.clicker-boss-guardian-hurt {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+  background: radial-gradient(ellipse 120% 90% at 50% 45%, transparent 55%, rgb(40 8 8 / 0.42));
+  opacity: 1;
+  animation: clicker-boss-guardian-hurt 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes clicker-boss-guardian-hurt { to { opacity: 0; } }
 .clicker-boss-start { min-width: 220px; }
 .clicker-boss-note { margin: 0; font-size: 12px; color: #ffd9a8; }
 
@@ -739,113 +750,6 @@
 .clicker-monster-roam.is-walker[data-pose="step"] .clicker-monster-shadow { scale: 1.1 0.9; }
 .clicker-monster-roam.is-walker[data-pose="strike"] .clicker-monster-shadow { scale: 1.25 0.85; opacity: 1; }
 
-/* ---------- Canva final boss art: entrance / idle float+breathe / attack lunge / hit shake ---------- */
-.clicker-boss.has-art .clicker-boss-target {
-  width: min(100%, clamp(220px, 46vmin, 480px));
-  max-height: min(62vh, 540px);
-  animation: none;
-  filter: drop-shadow(0 14px 26px rgb(0 0 0 / 0.65)) drop-shadow(0 0 18px rgb(255 140 40 / 0.25));
-}
-.clicker-boss.has-art .clicker-boss-target:active { transform: scale(0.992); }
-.boss-art-enter,
-.boss-art-idle,
-.boss-art-hit { position: relative; display: block; width: 100%; }
-.boss-art-canvas {
-  display: block;
-  width: 100%;
-  /* The guardian painting's own shape, so nothing is cropped. */
-  aspect-ratio: 768 / 1011;
-  max-height: min(62vh, 540px);
-  overflow: hidden;
-  border-radius: 4px;
-}
-.boss-art-img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  user-select: none;
-  -webkit-user-drag: none;
-  transform: translateZ(0);
-}
-
-.boss-art-enter { animation: boss-art-enter 1100ms cubic-bezier(0.2, 0.9, 0.25, 1) both; transform-origin: 50% 100%; }
-@keyframes boss-art-enter {
-  0% { opacity: 0; transform: translateY(60px) scale(0.82); filter: brightness(2.4) blur(6px); }
-  55% { opacity: 1; transform: translateY(-8px) scale(1.04); filter: brightness(1.4) blur(0); }
-  100% { opacity: 1; transform: none; filter: none; }
-}
-
-.boss-art-idle { animation: boss-art-float 3.6s ease-in-out infinite; transform-origin: 50% 70%; }
-@keyframes boss-art-float {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-10px) scale(1.018); }
-}
-.boss-art-core {
-  position: absolute;
-  left: 49.6%;
-  top: 38.6%;
-  width: 16%;
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgb(255 230 160 / 0.85), rgb(255 140 30 / 0.35) 55%, transparent 72%);
-  mix-blend-mode: screen;
-  pointer-events: none;
-  animation: boss-art-core 1.6s ease-in-out infinite;
-}
-@keyframes boss-art-core { 0%, 100% { opacity: 0.35; scale: 0.85; } 50% { opacity: 0.95; scale: 1.15; } }
-
-.clicker-boss.is-fighting .boss-art-idle { animation-duration: 2.2s; }
-.clicker-boss.is-fighting .boss-art-core { animation-duration: 0.9s; }
-
-.boss-art-hit.hit-0 { animation: boss-art-hit-a 320ms cubic-bezier(0.22, 1, 0.36, 1); }
-.boss-art-hit.hit-1 { animation: boss-art-hit-b 320ms cubic-bezier(0.22, 1, 0.36, 1); }
-@keyframes boss-art-hit-a {
-  0% { transform: translate3d(0, 0, 0); }
-  20% { transform: translate3d(-4px, 2px, 0) scale(0.99); }
-  45% { transform: translate3d(3px, -1px, 0) scale(1.01); }
-  100% { transform: translate3d(0, 0, 0) scale(1); }
-}
-@keyframes boss-art-hit-b {
-  0% { transform: translate3d(0, 0, 0); }
-  20% { transform: translate3d(-4px, 2px, 0) scale(0.99); }
-  45% { transform: translate3d(3px, -1px, 0) scale(1.01); }
-  100% { transform: translate3d(0, 0, 0) scale(1); }
-}
-.boss-art-hit.hit-0 .boss-art-canvas::after,
-.boss-art-hit.hit-1 .boss-art-canvas::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(circle at 50% 42%, rgb(255 120 80 / 0.45), transparent 68%);
-  opacity: 0;
-  animation: boss-art-hit-flash 320ms ease-out forwards;
-}
-.boss-art-canvas { position: relative; }
-@keyframes boss-art-hit-flash {
-  0% { opacity: 0; }
-  20% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-.clicker-boss.has-art.is-attack .boss-art-enter { animation: boss-art-lunge 520ms cubic-bezier(0.3, 0.8, 0.3, 1); }
-@keyframes boss-art-lunge {
-  0% { transform: none; }
-  30% { transform: translateY(-8px) scale(0.94); }
-  60% { transform: translateY(26px) scale(1.16); filter: brightness(1.35); }
-  100% { transform: none; filter: none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .boss-art-enter, .boss-art-idle, .boss-art-core, .boss-art-hit.hit-0, .boss-art-hit.hit-1,
-  .clicker-boss.has-art.is-attack .boss-art-enter,
-  .boss-art-hit.hit-0 .boss-art-canvas::after,
-  .boss-art-hit.hit-1 .boss-art-canvas::after { animation: none; }
-}
-
 /* Laptop stages: scale roaming bosses to fill the scene without tiny letterboxed sprites. */
 @media (min-width: 720px) and (max-height: 980px) {
   .clicker-monster-roam.is-dragon .clicker-monster,
@@ -861,17 +765,6 @@
     object-fit: contain;
     object-position: center bottom;
   }
-  .clicker-boss.has-art .clicker-boss-target {
-    width: min(100%, clamp(260px, 48vmin, 520px));
-  }
-}
-
-/* Keep the guardian, its bars and the start button clear of the hub dock on short screens. */
-.clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-target {
-  width: min(100%, clamp(200px, 46vmin, 480px), calc((100dvh - 420px) * 0.76));
-}
-.clicker-shell.is-region-hub .clicker-boss.has-art .boss-art-canvas {
-  max-height: max(200px, calc(100dvh - 420px));
 }
 
 /* Lair: damage taken pops out of the middle of the screen with the red flash. */
@@ -949,194 +842,70 @@
   .clicker-lair-result { animation: none; }
 }
 
-/* Core Heart guardian: a towering final boss that fills the stage between the header and the dock.
-   Its name, the fight bars and the start button float over the painting instead of stacking under it. */
+/* Core Guardian: a feet-anchored sprite. The application layer gives the boss column the stage's
+   safe area (clear of the hub dock) and computes where the picture stands. The head row on top
+   holds the name + start button (or the two HP bars during the fight); the sprite's ground line
+   is the bottom of the column, just above the dock, so the art can neither cover them nor the dock. */
 .clicker-shell.is-region-hub .clicker-boss.has-art {
-  width: min(98vw, 1200px);
-  max-height: none;
-  top: 50%;
-  display: grid;
-  place-items: center;
-}
-.clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-target {
-  width: min(96vw, 900px, calc((100dvh - 215px) * 0.76));
-  max-height: none;
-}
-.clicker-shell.is-region-hub .clicker-boss.has-art .boss-art-canvas {
-  max-height: max(280px, calc(100dvh - 215px));
-}
-.clicker-shell.is-region-hub .clicker-boss.is-scene {
-  inset: 0;
-  left: 0;
-  top: 0;
-  width: auto;
-  max-height: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
   transform: none;
+  max-height: none;
+  /* Only the controls take taps; the sprite layer and the column itself are click-through. */
   pointer-events: none;
+  /* Fallback until the first measurement: same box as before. */
+  width: min(94vw, 720px);
 }
-.clicker-shell.is-region-hub .clicker-boss.is-scene > strong,
-.clicker-shell.is-region-hub .clicker-boss.is-scene .clicker-boss-bars,
-.clicker-shell.is-region-hub .clicker-boss.is-scene .clicker-boss-note {
+.clicker-boss.has-art.is-unframed .guardian-ground { opacity: 0; }
+.clicker-boss.has-art > strong,
+.clicker-boss.has-art .clicker-boss-bars,
+.clicker-boss.has-art .clicker-boss-start { position: relative; z-index: 2; pointer-events: auto; }
+.clicker-boss.has-art .clicker-boss-bars { width: min(100%, 880px); }
+.clicker-boss.has-art .clicker-boss-note { position: absolute; top: 78px; left: 0; right: 0; z-index: 2; }
+.clicker-boss.has-art .clicker-boss-target,
+.clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-target {
+  /* Transparent tap target over the body; left / top / size come from the layout. */
   position: absolute;
-  left: 50%;
-  translate: -50% 0;
-  pointer-events: none;
-}
-.clicker-shell.is-region-hub .clicker-boss.is-scene > strong {
-  top: 2%;
-  text-shadow: 0 2px 10px #000, 0 0 18px rgb(80 220 255 / 0.55);
-}
-.clicker-shell.is-region-hub .clicker-boss.is-scene .clicker-boss-bars {
-  top: 7%;
-  width: min(92vw, 560px);
-}
-.clicker-shell.is-region-hub .clicker-boss.is-scene .clicker-boss-start,
-.clicker-shell.is-region-hub .clicker-boss.is-scene .clicker-boss-note {
-  position: absolute;
-  left: 50%;
-  translate: -50% 0;
+  z-index: 1;
+  display: block;
+  min-height: 0;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
   pointer-events: auto;
+  cursor: crosshair;
+  filter: none;
+  animation: none;
 }
-.clicker-shell.is-region-hub .clicker-boss.is-scene .clicker-boss-start { bottom: 18%; }
-.clicker-shell.is-region-hub .clicker-boss.is-scene .clicker-boss-note {
-  bottom: calc(18% + 58px);
-  pointer-events: none;
-}
-.clicker-shell.is-region-hub .clicker-boss.has-art > strong {
+.clicker-boss.has-art .clicker-boss-target:active { transform: none; }
+.clicker-boss.has-art .clicker-boss-target:disabled { pointer-events: none; cursor: default; }
+
+.guardian-ground { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.guardian-shadow {
   position: absolute;
-  top: 2%;
-  z-index: 3;
-  font-size: clamp(18px, 2.6vw, 28px);
-  text-shadow: 0 2px 10px #000, 0 0 18px rgb(255 140 40 / 0.6);
-  pointer-events: none;
+  display: block;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  will-change: opacity, transform;
 }
-.clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-bars {
+.guardian-body {
   position: absolute;
-  top: 1%;
-  z-index: 3;
-  width: min(92%, 560px);
+  isolation: isolate;
+  will-change: transform, opacity;
 }
-.clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-start {
+/* Opacity crossfade only — plus-lighter left bright rectangular mattes on dark art. */
+.guardian-frame {
   position: absolute;
-  bottom: 13%;
-  z-index: 3;
-  min-height: 48px;
-  font-size: 16px;
-  box-shadow: 0 0 24px rgb(255 80 40 / 0.55);
-}
-.clicker-shell.is-region-hub .clicker-boss.has-art .clicker-boss-note {
-  position: absolute;
-  bottom: calc(13% + 58px);
-  z-index: 3;
-  padding: 4px 10px;
-  border-radius: 8px;
-  background: rgb(0 0 0 / 0.6);
-}
-
-/* ---------- Core Guardian: dread pass ----------
-   A heavy, breathing colossus instead of a floating sprite: it rises out of the dark with its eyes
-   igniting, breathes from the ground up, its chest eye beats like a heart, and a blow is a wind-up,
-   a lunge at the camera and a slam. A dark red pressure ring pulses behind it while it lives. */
-.clicker-boss.has-art { isolation: isolate; }
-.clicker-boss.has-art .clicker-boss-target { filter: drop-shadow(0 18px 30px rgb(0 0 0 / 0.8)) drop-shadow(0 0 26px rgb(255 60 20 / 0.32)); }
-.clicker-boss-dread {
-  position: absolute;
-  inset: -8% -20%;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 34% 40% at 50% 46%, rgb(255 70 20 / 0.24), transparent 70%),
-    radial-gradient(ellipse 60% 62% at 50% 50%, transparent 40%, rgb(20 0 0 / 0.55) 100%);
-  animation: boss-dread 2.2s ease-in-out infinite;
-}
-@keyframes boss-dread {
-  0%, 100% { opacity: 0.65; transform: scale(1); }
-  14% { opacity: 1; transform: scale(1.03); }
-  28% { opacity: 0.75; transform: scale(1); }
-  40% { opacity: 0.95; transform: scale(1.02); }
-}
-.clicker-boss.is-fighting .clicker-boss-dread { animation-duration: 1.3s; }
-
-/* Rise from the dark: silhouette first, then the furnace and eyes catch. */
-.clicker-boss.has-art .boss-art-enter { animation: boss-rise 1600ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-@keyframes boss-rise {
-  0% { opacity: 0; transform: translateY(70px) scale(0.9); filter: brightness(0) contrast(1.4); }
-  45% { opacity: 1; transform: translateY(8px) scale(0.98); filter: brightness(0.35) contrast(1.3); }
-  70% { transform: translateY(-6px) scale(1.02); filter: brightness(1.5) saturate(1.3); }
-  100% { opacity: 1; transform: none; filter: none; }
-}
-
-/* Breathing from the feet: chest swells, shoulders rise, a slow forward loom. */
-.clicker-boss.has-art .boss-art-idle {
-  animation: boss-breathe 4.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-  transform-origin: 50% 100%;
-}
-@keyframes boss-breathe {
-  0%, 100% { transform: scale(1, 1) translateY(0) rotate(0deg); }
-  38% { transform: scale(1.012, 1.022) translateY(-3px) rotate(-0.3deg); }
-  62% { transform: scale(1.016, 1.018) translateY(-2px) rotate(0.25deg); }
-}
-.clicker-boss.has-art.is-fighting .boss-art-idle { animation-duration: 2.6s; }
-
-/* The chest eye beats twice, like a heart, instead of a soft pulse. */
-.clicker-boss.has-art .boss-art-core {
-  left: 48.2%;
-  top: 37.8%;
-  width: 19%;
-  background: radial-gradient(circle, rgb(255 236 170 / 0.95), rgb(255 90 20 / 0.45) 50%, transparent 72%);
-  animation: boss-heart 1.6s ease-out infinite;
-}
-@keyframes boss-heart {
-  0%, 100% { opacity: 0.35; scale: 0.85; }
-  10% { opacity: 1; scale: 1.18; }
-  22% { opacity: 0.5; scale: 0.95; }
-  32% { opacity: 0.9; scale: 1.1; }
-  55% { opacity: 0.4; scale: 0.88; }
-}
-.clicker-boss.has-art.is-fighting .boss-art-core { animation-duration: 0.95s; }
-
-/* Burning eyes on the helm: a hot flicker, flaring before each blow. */
-.boss-art-eyes {
-  position: absolute;
-  left: 47.3%;
-  top: 18.5%;
-  width: 17%;
-  height: 7%;
-  translate: -50% -50%;
-  border-radius: 50%;
-  background:
-    radial-gradient(ellipse 22% 42% at 30% 55%, rgb(255 245 200 / 0.95), rgb(255 110 20 / 0.5) 55%, transparent 75%),
-    radial-gradient(ellipse 22% 42% at 70% 55%, rgb(255 245 200 / 0.95), rgb(255 110 20 / 0.5) 55%, transparent 75%),
-    radial-gradient(ellipse 14% 34% at 50% 0%, rgb(255 200 120 / 0.8), transparent 75%);
-  mix-blend-mode: screen;
-  pointer-events: none;
-  animation: boss-eyes 3.1s steps(1, end) infinite, boss-eyes-glow 1.2s ease-in-out infinite alternate;
-}
-@keyframes boss-eyes {
-  0%, 100% { opacity: 0.85; }
-  47% { opacity: 0.15; }
-  49% { opacity: 1; }
-  83% { opacity: 0.5; }
-  85% { opacity: 1; }
-}
-@keyframes boss-eyes-glow { to { filter: brightness(1.5) blur(0.5px); } }
-
-/* A blow: rear back, lunge at the camera, slam. */
-.clicker-boss.has-art.is-attack .boss-art-enter { animation: boss-art-maul 640ms cubic-bezier(0.3, 0.7, 0.2, 1); }
-@keyframes boss-art-maul {
-  0% { transform: none; }
-  30% { transform: translateY(-14px) scale(0.93) rotate(-1.2deg); filter: brightness(0.8); }
-  52% { transform: translateY(34px) scale(1.24) rotate(0.6deg); filter: brightness(1.45) saturate(1.4); }
-  64% { transform: translateY(28px) scale(1.2); }
-  100% { transform: none; filter: none; }
-}
-.clicker-boss.has-art.is-attack .boss-art-eyes { animation: none; opacity: 1; filter: brightness(2); }
-
-@media (prefers-reduced-motion: reduce) {
-  .clicker-boss-dread,
-  .clicker-boss.has-art .boss-art-enter,
-  .clicker-boss.has-art .boss-art-idle,
-  .clicker-boss.has-art .boss-art-core,
-  .boss-art-eyes,
-  .clicker-boss.has-art.is-attack .boss-art-enter { animation: none; }
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }

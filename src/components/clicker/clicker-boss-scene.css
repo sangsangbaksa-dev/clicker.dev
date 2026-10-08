@@ -27,7 +27,6 @@
   height: 100%;
   object-fit: cover;
   object-position: center calc(var(--byn, 0.42) * 100%);
-  filter: contrast(1.055) saturate(1.04) brightness(1.015);
   user-select: none;
   -webkit-user-drag: none;
 }
@@ -72,26 +71,20 @@
 
 /* Attack: a slow rear back (anticipation), then a heavy lunge, then a long settle. */
 .clicker-boss-scene.is-windup .boss-scene-pose {
-  transform: scale(1.03) translate3d(0, -1.4%, 0);
+  transform: scale(1.025) translate3d(0, -0.8%, 0);
   transition: transform 1100ms cubic-bezier(0.45, 0, 0.55, 1), filter 1100ms ease-in-out;
-  filter: brightness(1.12);
-}
-.clicker-boss-scene.sway-wings.is-windup .boss-scene-pose {
-  transform: scale(1.04) translate3d(0, -1.6%, 0) rotate(-0.4deg);
+  filter: brightness(1.1);
 }
 .clicker-boss-scene.is-strike .boss-scene-pose {
-  transform: scale(1.08) translate3d(0, 1.6%, 0);
+  transform: scale(1.065) translate3d(0, 0.8%, 0);
   transition: transform 420ms cubic-bezier(0.2, 0.9, 0.2, 1), filter 420ms ease-out;
-  filter: brightness(1.28) saturate(1.15);
-}
-.clicker-boss-scene.sway-wings.is-strike .boss-scene-pose {
-  transform: scale(1.07) translate3d(0, 1.1%, 0) rotate(0.35deg);
+  filter: brightness(1.2) saturate(1.1);
 }
 .clicker-boss-scene.is-strike .boss-scene-box { animation: boss-quake 520ms cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes boss-quake {
-  22% { transform: translate3d(-5px, 2px, 0); }
-  48% { transform: translate3d(5px, -2px, 0); }
-  72% { transform: translate3d(-2px, 1px, 0); }
+  22% { transform: translate3d(-2px, 1px, 0); }
+  48% { transform: translate3d(2px, -1px, 0); }
+  72% { transform: translate3d(-1px, 0, 0); }
   100% { transform: translate3d(0, 0, 0); }
 }
 .clicker-boss-scene.is-strike::after {
@@ -99,7 +92,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(circle at var(--sx, 50%) var(--sy, 60%), rgb(var(--tint) / 0.5), transparent 58%);
+  background: radial-gradient(circle at 50% 60%, rgb(var(--tint) / 0.35), transparent 65%);
   animation: boss-flash 900ms ease-out forwards;
 }
 @keyframes boss-flash { from { opacity: 1; } to { opacity: 0; } }
@@ -107,22 +100,16 @@
 /* Player hits: a soft red flare and a small give (scale is separate from the pose transform). */
 .boss-scene-box.hit-0 .boss-scene-flesh { animation: boss-flinch-a 380ms cubic-bezier(0.22, 1, 0.36, 1); }
 .boss-scene-box.hit-1 .boss-scene-flesh { animation: boss-flinch-b 380ms cubic-bezier(0.22, 1, 0.36, 1); }
-.boss-scene-box.hit-0 .boss-scene-base,
-.boss-scene-box.hit-1 .boss-scene-base { animation: boss-art-impact 380ms ease-out; }
-@keyframes boss-art-impact {
-  18% { filter: contrast(1.2) saturate(1.2) brightness(1.22); }
-  100% { filter: contrast(1.055) saturate(1.04) brightness(1.015); }
-}
 @keyframes boss-flinch-a {
   0% { transform: translate3d(0, 0, 0); }
-  18% { transform: translate3d(-1.2%, 0.7%, 0) rotate(-0.6deg); }
-  45% { transform: translate3d(0.55%, -0.25%, 0) rotate(0.25deg); }
+  18% { transform: translate3d(-0.6%, 0.35%, 0) rotate(-0.25deg); }
+  45% { transform: translate3d(0.35%, -0.15%, 0) rotate(0.12deg); }
   100% { transform: translate3d(0, 0, 0); }
 }
 @keyframes boss-flinch-b {
   0% { transform: translate3d(0, 0, 0); }
-  18% { transform: translate3d(1.2%, 0.7%, 0) rotate(0.6deg); }
-  45% { transform: translate3d(-0.55%, -0.25%, 0) rotate(-0.25deg); }
+  18% { transform: translate3d(0.6%, 0.35%, 0) rotate(0.25deg); }
+  45% { transform: translate3d(-0.35%, -0.15%, 0) rotate(-0.12deg); }
   100% { transform: translate3d(0, 0, 0); }
 }
 
@@ -195,70 +182,24 @@
   animation-delay: calc(var(--i) * 3.1s);
 }
 @keyframes boss-lightning { 0%, 91%, 93%, 95%, 100% { opacity: 0; } 92%, 94% { opacity: 1; } }
-/* Crystal, lava, and the sanctum share one mote. Pace and drift come from the domain as variables. */
+/* Crystal: slow luminous motes drifting up. Lava: embers rising fast. */
 .clicker-boss-scene.is-crystal .boss-scene-weather i,
-.clicker-boss-scene.is-lava .boss-scene-weather i,
-.clicker-boss-scene.is-sanctum .boss-scene-weather i {
+.clicker-boss-scene.is-lava .boss-scene-weather i {
+  left: calc(4% + var(--i) * 6%);
   bottom: -2%;
   width: 0.9%;
   aspect-ratio: 1;
   border-radius: 50%;
   background: rgb(var(--tint));
   box-shadow: 0 0 8px 2px rgb(var(--tint) / 0.8);
-  animation-name: boss-mote;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  animation-duration: var(--dur, 6s);
-  animation-delay: var(--delay, 0s);
+  animation: boss-mote calc(6s + (var(--i) * 7 % 5) * 1s) linear infinite;
+  animation-delay: calc(var(--i) * -0.9s);
 }
-.clicker-boss-scene.is-lava .boss-scene-weather i { width: 0.6%; }
-.clicker-boss-scene.is-sanctum .boss-scene-weather i {
-  width: 0.45%;
-  box-shadow: 0 0 12px 3px rgb(var(--tint) / 0.9);
-}
+.clicker-boss-scene.is-lava .boss-scene-weather i { width: 0.6%; animation-duration: calc(3s + (var(--i) * 7 % 4) * 0.6s); }
 @keyframes boss-mote {
   0% { transform: translate(0, 0); opacity: 0; }
   10% { opacity: 1; }
-  100% { transform: translate(var(--drift, 0px), -85cqh); opacity: 0; }
-}
-/* Sanctum: the guardian's diamond breathes, and a shaft of light hangs in the vault. */
-.clicker-boss-scene.is-sanctum .boss-scene-weather::before {
-  content: "";
-  position: absolute;
-  left: var(--sx, 45%);
-  top: var(--sy, 26%);
-  width: 22%;
-  height: 18%;
-  translate: -50% -50%;
-  background: radial-gradient(circle, rgb(180 250 255 / 0.55), transparent 68%);
-  mix-blend-mode: screen;
-  animation: boss-sanctum-core 3.4s ease-in-out infinite;
-}
-.clicker-boss-scene.is-sanctum.is-windup .boss-scene-weather::before,
-.clicker-boss-scene.is-sanctum.is-strike .boss-scene-weather::before {
-  animation-duration: 0.42s;
-}
-.clicker-boss-scene.is-sanctum.is-enraged .boss-scene-weather::before {
-  filter: hue-rotate(-18deg) saturate(1.5) brightness(1.15);
-}
-.clicker-boss-scene.is-sanctum .boss-scene-weather::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 48% 12%, rgb(120 220 255 / 0.2), transparent 46%);
-  mix-blend-mode: screen;
-  animation: boss-sanctum-ray 7s ease-in-out infinite;
-}
-@keyframes boss-sanctum-core { 50% { opacity: 0.4; scale: 1.18; } }
-@keyframes boss-sanctum-ray { 50% { opacity: 0.45; } }
-.clicker-boss-scene.is-sanctum.is-phase-2 .boss-scene-weather::before {
-  filter: hue-rotate(18deg) saturate(1.5) brightness(1.2);
-  animation-duration: 1.8s;
-}
-.clicker-boss-scene.is-sanctum.is-phase-3 .boss-scene-weather::before {
-  filter: hue-rotate(-28deg) saturate(1.9) brightness(1.35);
-  animation-duration: 0.9s;
+  100% { transform: translate(calc((var(--i) * 13 % 7 - 3) * 8px), -85cqh); opacity: 0; }
 }
 /* Lava: the chasm glow breathes. */
 .clicker-boss-scene.is-lava .boss-scene-weather::before {
@@ -273,26 +214,6 @@
 
 /* Strike particles erupting where the blow lands. */
 .boss-scene-impact { position: absolute; }
-.boss-scene-impact::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: clamp(84px, 15cqw, 280px);
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  border: 2px solid rgb(var(--tint) / 0.9);
-  border-radius: 50%;
-  box-shadow:
-    inset 0 0 16px rgb(var(--tint) / 0.45),
-    0 0 24px rgb(var(--tint) / 0.7);
-  pointer-events: none;
-  animation: boss-impact-ring 720ms cubic-bezier(0.12, 0.78, 0.24, 1) forwards;
-}
-@keyframes boss-impact-ring {
-  from { scale: 0.28; opacity: 0.95; }
-  to { scale: 2.3; opacity: 0; }
-}
 .boss-scene-impact i {
   position: absolute;
   width: 1.4%;
@@ -305,7 +226,7 @@
 }
 @keyframes boss-debris {
   from { transform: rotate(var(--a)) translateY(0) scale(1.6); opacity: 1; }
-  to { transform: rotate(var(--a)) translateY(calc(-36px - var(--i) * 7px)) scale(0.3); opacity: 0; }
+  to { transform: rotate(var(--a)) translateY(calc(-40px - (var(--i) * 37 % 70) * 1px)) scale(0.3); opacity: 0; }
 }
 
 /* Death: a white-hot flash, then the body slowly sags into the scene and goes dark — all
@@ -398,65 +319,8 @@
   translate: -50% 0;
   pointer-events: none;
 }
-.boss-scene-phase {
-  position: absolute;
-  z-index: 3;
-  left: 50%;
-  top: 4%;
-  width: min(420px, 82%);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  translate: -50% 0;
-  color: #e7f4ff;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-shadow: 0 2px 8px #000;
-}
-.boss-scene-phase span { color: rgb(230 242 255 / 0.72); }
-.boss-scene-phase strong {
-  padding: 4px 9px;
-  border: 1px solid rgb(140 220 255 / 0.55);
-  border-radius: 999px;
-  background: rgb(4 14 28 / 0.76);
-  box-shadow: 0 0 18px rgb(90 205 255 / 0.25);
-}
-.clicker-boss-scene.is-phase-3 .boss-scene-phase strong {
-  color: #ffe7db;
-  border-color: rgb(255 112 86 / 0.7);
-  box-shadow: 0 0 22px rgb(255 66 50 / 0.4);
-}
-.boss-scene-phase-break {
-  position: absolute;
-  z-index: 8;
-  left: 50%;
-  top: 25%;
-  display: grid;
-  gap: 5px;
-  min-width: min(280px, 76%);
-  padding: 12px 18px;
-  border: 1px solid rgb(255 231 158 / 0.76);
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgb(20 30 47 / 0.95), rgb(70 40 24 / 0.9));
-  box-shadow: 0 0 36px rgb(255 178 73 / 0.38), inset 0 1px rgb(255 255 255 / 0.16);
-  color: #fff4d4;
-  text-align: center;
-  pointer-events: none;
-  translate: -50% 0;
-  animation: boss-phase-break 1.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-.boss-scene-phase-break strong { font-size: clamp(18px, 4vw, 28px); letter-spacing: 0.12em; }
-.boss-scene-phase-break span { font-size: 12px; font-weight: 700; color: #ffe4a6; }
-@keyframes boss-phase-break {
-  0% { opacity: 0; scale: 0.72; translate: -50% 18px; }
-  18%, 72% { opacity: 1; scale: 1; translate: -50% 0; }
-  100% { opacity: 0; scale: 1.04; translate: -50% -8px; }
-}
 
 @media (prefers-reduced-motion: reduce) {
-  .boss-scene-base,
   .boss-scene-rig,
   .boss-scene-flesh,
   .boss-scene-eye,
@@ -464,15 +328,9 @@
   .boss-scene-weather::before,
   .boss-scene-weather::after,
   .boss-scene-box,
-  .boss-scene-pose,
-  .boss-scene-phase-break {
+  .boss-scene-pose {
     animation: none !important;
     transition: none !important;
-  }
-  .boss-scene-impact::before {
-    animation: none;
-    opacity: 0.62;
-    scale: 1.2;
   }
   .clicker-boss-scene.is-strike::after { animation: none; opacity: 0; }
 }
@@ -496,24 +354,6 @@
   height: var(--boss-h);
 }
 .clicker-boss-scene.is-wide .boss-scene-base { object-fit: fill; }
-
-/* Core Guardian: the tutorial still is the whole fight. Cover it like the story slide
-   (centred, no camera crop) and breathe from the middle so the zoom never shows an edge. */
-.clicker-boss-scene.is-sanctum .boss-scene-base {
-  object-fit: cover;
-  object-position: center center;
-}
-.clicker-boss-scene.is-sanctum.is-wide .boss-scene-box {
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-}
-.clicker-boss-scene.is-sanctum .boss-scene-rig,
-.clicker-boss-scene.is-sanctum .boss-scene-pose,
-.clicker-boss-scene.is-sanctum .boss-scene-flesh {
-  transform-origin: 50% 50%;
-}
 
 /* Tap sparks: a ring of shards flying out from the exact hit point. */
 .boss-scene-spark {

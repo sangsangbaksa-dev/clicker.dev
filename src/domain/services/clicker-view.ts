@@ -1,5 +1,4 @@
 import type {
-  ActiveSkillDef,
   GameConfig,
   InstabilityLevel,
   MetaState,
@@ -31,7 +30,7 @@ import {
   type CurrencyCost,
   activeSkillCost,
 } from "./clicker-engine.ts"
-import { formatNumber } from "./clicker-format.ts"
+import { formatNumber, formatRate } from "./clicker-format.ts"
 
 export type CoreVisual = "idle" | "fever" | "crisis"
 
@@ -95,7 +94,7 @@ export function buildHud(
   const coolDownMax = Math.max(0.001, config.feverCoolDown)
   return {
     coreEnergyText: formatNumber(run.coreEnergy),
-    productionPerSecondText: `+${formatNumber(prod.perSecond)}/s`,
+    productionPerSecondText: `+${formatRate(prod.perSecond)}/s`,
     comboText: run.combo.count > 1 ? `콤보 ×${run.combo.count}` : "",
     comboRemainText: run.combo.count > 1 ? `남음 ${comboRemain.toFixed(1)}초` : "",
     fever: {
@@ -114,17 +113,17 @@ export function buildHud(
       combo: run.fever.combo,
       finisherReady: run.fever.finisherReady,
       phaseLabel: !feverUnlocked(run, config)
-        ? "FEVER LOCKED"
+        ? "FEVER 잠김"
         : feverHeld
-        ? "FEVER PAUSED"
+        ? "FEVER 일시정지"
         : feverOn
         ? run.fever.finisherReady
-          ? "FINISHER READY"
+          ? "피니셔 준비"
           : `FEVER ×${Math.max(1, run.fever.combo)}`
         : feverCooling
-          ? "COOLDOWN"
+          ? "쿨다운"
           : run.fever.gauge >= config.feverGaugeMax
-            ? "FEVER READY"
+            ? "FEVER 준비"
             : "FEVER",
     },
     instability: {
@@ -195,7 +194,7 @@ export function buildProducerViews(
       description: p.description,
       assetId: p.assetId,
       level,
-      productionText: `+${formatNumber(snapshot.byProducer[p.id] ?? 0)} / sec`,
+      productionText: `+${formatRate(snapshot.byProducer[p.id] ?? 0)} / sec`,
       share: snapshot.perSecond > 0 ? (snapshot.byProducer[p.id] ?? 0) / snapshot.perSecond : 0,
       nextCostText: formatNumber(cost),
       unlocked,
@@ -343,6 +342,20 @@ export type SkillNodeView = {
   assetId: string
 }
 
+/** Map-node status as read aloud / shown on hover: a circuit behind an unowned prerequisite is "잠김", not unlockable. */
+export function skillStatusLabel(status: SkillNodeView["status"]): string {
+  switch (status) {
+    case "OWNED":
+      return "활성"
+    case "POOR":
+      return "CORE 부족"
+    case "LOCKED":
+      return "잠김"
+    default:
+      return "해금 가능"
+  }
+}
+
 export function buildSkillNodeViews(run: RunState, config: GameConfig): SkillNodeView[] {
   return config.skillNodes.map((node) => {
     const owned = run.ownedSkillNodeIds.includes(node.id)
@@ -395,9 +408,16 @@ function trimZerosLocal(text: string): string {
   return text.replace(/\.?0+$/, "")
 }
 
-function activeSkillEffectSummary(skill: ActiveSkillDef): string {
+function activeSkillEffectSummary(skill: {
+  duration: number
+  cooldown: number
+  productionMultiplier?: number
+  clickMultiplier?: number
+  energyBurstSeconds?: number
+  instabilityPerSecond?: number
+  instabilityDelta?: number
+}): string {
   const parts: string[] = []
-  if (skill.clickBurst) parts.push(`즉시 채굴 ${skill.clickBurst}회분`)
   if (skill.energyBurstSeconds) parts.push(`즉시 생산 ${skill.energyBurstSeconds}초분`)
   if (skill.productionMultiplier != null && skill.productionMultiplier !== 1) {
     parts.push(`생산 ×${trimMult(skill.productionMultiplier)}`)
@@ -405,10 +425,6 @@ function activeSkillEffectSummary(skill: ActiveSkillDef): string {
   if (skill.clickMultiplier != null && skill.clickMultiplier !== 1) {
     parts.push(`채굴 ×${trimMult(skill.clickMultiplier)}`)
   }
-  if (skill.criticalChanceAdd) parts.push(`치명타 +${Math.round(skill.criticalChanceAdd * 100)}%`)
-  if (skill.lightningStorm) parts.push("모든 타격에 번개")
-  if (skill.feverIgnite) parts.push("FEVER 즉시 점화")
-  if (skill.cooldownReset) parts.push("다른 스킬 쿨다운 초기화")
   if (skill.duration > 0) parts.push(`${skill.duration}초`)
   if (skill.cooldown > 0) parts.push(`쿨다운 ${skill.cooldown}초`)
   return parts.join(" · ") || "효과 없음"
@@ -568,8 +584,8 @@ export function buildActiveSkillShopViews(run: RunState, config: GameConfig): Ac
       name: skill.name,
       description: skill.description,
       assetId: skill.assetId,
-      shopCostText: formatNumber(activeSkillCost(run, skill)),
-      ...shopCurrency(run, config, skill.shopCost, activeSkillCost(run, skill)),
+      shopCostText: formatNumber(activeSkillCost(run, skill, config)),
+      ...shopCurrency(run, config, skill.shopCost, activeSkillCost(run, skill, config)),
       owned: run.skillItems[skill.id] ?? 0,
       effectSummary: activeSkillEffectSummary(skill),
       cooldownSeconds: skill.cooldown,
