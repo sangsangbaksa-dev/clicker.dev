@@ -1308,8 +1308,8 @@ export function ClickerApp() {
           {mountMineChamber ? (
             <div className="clicker-mine-dig">
               <div className="clicker-mine-hud" role="status" aria-live="polite">
-                <div className="clicker-mine-hud-stat" aria-label={`채굴량 ${formatNumber(mineHaul)}`}>
-                  <span>채굴량</span>
+                <div className="clicker-mine-hud-stat" aria-label={`CORE ${formatNumber(mineHaul)}`}>
+                  <span>CORE</span>
                   <strong>{formatNumber(mineHaul)}</strong>
                 </div>
                 <div
@@ -1818,7 +1818,7 @@ export function ClickerApp() {
         {tab === "upgrades" ? <ClickerUpgradesPanel game={game} run={run} navTabs={upgradeNavTabs} onNavRoute={onUpgradeNavRoute} /> : null}
 
         {tab === "shop" ? <ClickerShopPanel {...panelProps} /> : null}
-        {tab === "forge" && forgeUnlocked ? <ClickerForge game={game} run={run} /> : null}
+        {tab === "forge" && forgeUnlocked ? <ClickerForge game={game} run={run} meta={game.save.metaState} /> : null}
         {tab === "relics" && relicsOpen ? <ClickerRelicVault game={game} run={run} meta={game.save.metaState} /> : null}
 
 

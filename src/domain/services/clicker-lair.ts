@@ -131,9 +131,9 @@ export function forgeError(run: RunState, config: GameConfig, slot: GearSlot): s
  */
 
 /** Base success rate for forging INTO tier i (index 0 is the starter gear, never forged). */
-export const FORGE_SUCCESS_RATES = [1, 1, 0.1, 0.05, 0.025, 0.012, 0.006, 0.003, 0.0015, 0.0008] as const
+export const FORGE_SUCCESS_RATES = [1, 1, 0.02, 0.01, 0.005, 0.002, 0.001, 0.0005, 0.0001, 0.00005] as const
 export const FORGE_FAIL_BONUS = 0.1
-export const FORGE_ENERGY_PER_FAIL = 4.65
+export const FORGE_ENERGY_PER_FAIL = 46.5
 
 export type ForgeOdds = {
   /** Base rate from the table. */

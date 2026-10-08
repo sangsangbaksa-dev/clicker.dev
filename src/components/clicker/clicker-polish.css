@@ -2192,6 +2192,7 @@
 [data-clicker] .clicker-forge-summary { margin: 0 0 10px; font-size: 13px; color: #dff4ff; }
 [data-clicker] .clicker-forge-summary b { color: #ffe08a; }
 [data-clicker] .clicker-forge-panel { width: 100%; margin: 0; }
+[data-clicker] .clicker-forge-relic-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--edge); }
 
 /* Drill rig: larger than before but kept clear of the header, with no blue haze — no glow
    disc behind it, no cyan halo, no gush jet on taps. */

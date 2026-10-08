@@ -63,11 +63,11 @@ def ease_out(x: float, k: float = 3.0) -> float:
 
 
 def frames(still: np.ndarray):
-    """One plate: glide from a slight push-in to the exact still. No crossfade."""
+    """One steady, centered push-in on the same plate. No lateral drift or crossfade."""
     for f in range(int(LENGTH * FPS)):
         t = f / FPS
         u = ease_out(t / LENGTH, 2.4)
-        img = zoom(still, 1.12 - 0.12 * u, cx=0.02 * (1 - u), cy=-0.012 * (1 - u))
+        img = zoom(still, 1.12 - 0.12 * u)
         fade = smooth(min(1.0, t / 0.45))
         yield (np.clip(img * fade, 0, 1) * 255).astype(np.uint8)
 
@@ -75,6 +75,7 @@ def frames(still: np.ndarray):
 def render(world: str) -> None:
     _poster_rel, still_rel = WORLDS[world]
     out = PUBLIC / "region" / f"{world}_intro.mp4"
+    crf = 14 if world in {"signal_relay", "core_heart"} else 20
     ff = imageio_ffmpeg.get_ffmpeg_exe()
     with tempfile.TemporaryDirectory() as tmp:
         audio = Path(tmp) / "audio.m4a"
@@ -82,7 +83,7 @@ def render(world: str) -> None:
         video = Path(tmp) / "video.mp4"
         proc = subprocess.Popen(
             [ff, "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-             "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-crf", "20", "-preset", "slow", str(video)],
+             "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-crf", str(crf), "-preset", "slow", str(video)],
             stdin=subprocess.PIPE, stderr=subprocess.DEVNULL,
         )
         for frame in frames(load(PUBLIC / still_rel)):

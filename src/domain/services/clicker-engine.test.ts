@@ -15,7 +15,8 @@ import {
   applyTrueEnding,
   buyActiveSkillItem,
   activeSkillCost,
-  ACTIVE_SKILL_PRICE_MULT,
+  ACTIVE_SKILL_FIRST_COST,
+  ACTIVE_SKILL_LAST_COST,
   buyPotion,
   returnHomeRegion,
   travelToRegion,
@@ -312,7 +313,8 @@ test("active skill shop purchase adds charges and use consumes one", () => {
   const now = 6_500_000
   const meta = createInitialMeta()
   const skill = config.activeSkills[0]
-  const run = grantAdminEnergy(createInitialRun(now, meta, config), skill.shopCost * ACTIVE_SKILL_PRICE_MULT + 100)
+  const initial = createInitialRun(now, meta, config)
+  const run = grantAdminEnergy(initial, activeSkillCost(initial, skill, config) + 100)
   const bought = buyActiveSkillItem(run, config, skill.id)
   assert.equal(bought.error, undefined)
   assert.equal(bought.run.skillItems[skill.id], 1)
@@ -324,22 +326,24 @@ test("active skill shop purchase adds charges and use consumes one", () => {
   assert.equal(used.run.skillItems[skill.id], 0)
 })
 
-test("active skill prices keep pace with the run", () => {
+test("active skill prices rise exponentially from 1K to 1T", () => {
   const meta = createInitialMeta()
   const run = createInitialRun(1, meta, config)
-  const skill = config.activeSkills[0]
-  assert.equal(activeSkillCost(run, skill), Math.ceil(skill.shopCost * ACTIVE_SKILL_PRICE_MULT))
-  const rich = { ...run, lifetimeCoreEnergy: 1e12 }
-  assert.ok(activeSkillCost(rich, skill) >= 1e12 * 0.005, "a share of this run's CORE")
-  const pricier = config.activeSkills[config.activeSkills.length - 1]
-  assert.ok(activeSkillCost(rich, pricier) > activeSkillCost(rich, skill))
+  const skills = [...config.activeSkills].sort((a, b) => a.shopCost - b.shopCost)
+  assert.equal(activeSkillCost(run, skills[0], config), ACTIVE_SKILL_FIRST_COST)
+  assert.equal(activeSkillCost(run, skills[skills.length - 1], config), ACTIVE_SKILL_LAST_COST)
+  for (let i = 1; i < skills.length; i++) {
+    assert.ok(activeSkillCost(run, skills[i], config) > activeSkillCost(run, skills[i - 1], config))
+  }
+  assert.equal(activeSkillCost({ ...run, costScale: config.priceGrowth }, skills[0], config), ACTIVE_SKILL_FIRST_COST * config.priceGrowth)
 })
 
 test("active skill cooldowns and buffs only run inside the mine", () => {
   const now = 6_600_000
   const meta = createInitialMeta()
   const skill = config.activeSkills.find((s) => s.duration > 0 && s.clickMultiplier)!
-  let run = grantAdminEnergy(createInitialRun(now, meta, config), skill.shopCost * ACTIVE_SKILL_PRICE_MULT + 100)
+  const initial = createInitialRun(now, meta, config)
+  let run = grantAdminEnergy(initial, activeSkillCost(initial, skill, config) + 100)
   run = buyActiveSkillItem(run, config, skill.id).run
   run = activateSkill({ ...run, mineSessionEndsAt: now + 60_000 }, meta, config, skill.id, now).run
   const expiresAt = run.activeBuffs[0].expiresAt

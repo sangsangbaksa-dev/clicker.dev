@@ -124,10 +124,6 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike,
       {layout ? (
         <GuardianSprite
           layout={layout}
-          hits={hit}
-          attacks={attack}
-          defeats={fallen}
-          enrage={enrage}
           awakened={isAwakened}
         />
       ) : null}

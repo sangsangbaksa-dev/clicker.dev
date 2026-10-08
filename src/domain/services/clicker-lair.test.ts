@@ -93,16 +93,16 @@ test("forge: odds fall with tier, failures pay, raise the next roll and fill art
   for (let i = 2; i < lair.FORGE_SUCCESS_RATES.length; i++) assert.ok(lair.FORGE_SUCCESS_RATES[i] <= lair.FORGE_SUCCESS_RATES[i - 1])
   const atTier8 = { ...rich, gear: { weapon: 0, armor: 8, helmet: 0, amulet: 0 } }
   const odds = lair.forgeOdds(atTier8, "armor")!
-  assert.equal(odds.base, 0.0008)
-  assert.equal(odds.rate, 0.0008)
+  assert.equal(odds.base, 0.00005)
+  assert.equal(odds.rate, 0.00005)
   // A failed roll costs the full price and keeps the tier.
   const fail = lair.forgeGear(atTier8, clickerConfig, "armor", () => 0.99)
   assert.equal(fail.success, false)
   assert.equal(gearOf(fail.run).armor, 8)
   assert.ok(fail.run.coreEnergy < atTier8.coreEnergy)
   const after = lair.forgeOdds(fail.run, "armor")!
-  assert.ok(Math.abs(after.rate - 0.00088) < 1e-9, "next roll +10% of base")
-  assert.ok(Math.abs(after.energy - 0.0008 * lair.FORGE_ENERGY_PER_FAIL) < 1e-9)
+  assert.ok(Math.abs(after.rate - 0.000055) < 1e-9, "next roll +10% of base")
+  assert.ok(Math.abs(after.energy - 0.00005 * lair.FORGE_ENERGY_PER_FAIL) < 1e-9)
   // Keep failing: energy reaches 100% and the next attempt cannot miss.
   let run = fail.run
   let guard = 0

@@ -1025,19 +1025,17 @@ export function buyPotion(run: RunState, config: GameConfig, potionId: string): 
   }
 }
 
-/** Active skill charges cost this many times their catalog price… */
-export const ACTIVE_SKILL_PRICE_MULT = 6
-/** …or this share of the CORE mined this run (scaled up for pricier skills), whichever is more. */
-export const ACTIVE_SKILL_LIFETIME_SHARE = 0.006
+export const ACTIVE_SKILL_FIRST_COST = 1_000
+export const ACTIVE_SKILL_LAST_COST = 1_000_000_000_000
 
-/** The cheapest skill's catalog price (LASER FOCUS); the lifetime share scales from it. */
-const ACTIVE_SKILL_REFERENCE_COST = 20
-
-/** Price of one active skill charge: it keeps pace with the run instead of going trivial. */
-export function activeSkillCost(run: RunState, skill: ActiveSkillDef, config?: GameConfig): number {
-  const rule = config ? ruleEffects(run, config).skillCostMultiplier : 1
-  const share = ACTIVE_SKILL_LIFETIME_SHARE * Math.sqrt(skill.shopCost / ACTIVE_SKILL_REFERENCE_COST)
-  return Math.ceil(Math.max(scaledCost(run, skill.shopCost * ACTIVE_SKILL_PRICE_MULT), run.lifetimeCoreEnergy * share) * rule)
+/** Charge prices climb exponentially from 1K to 1T in catalog order, alongside potion prices. */
+export function activeSkillCost(run: RunState, skill: ActiveSkillDef, config: GameConfig): number {
+  const skills = [...config.activeSkills].sort((a, b) => a.shopCost - b.shopCost)
+  const index = skills.findIndex((item) => item.id === skill.id)
+  if (index < 0) throw new Error(`Active skill ${skill.id} is not in the game catalog.`)
+  const progress = skills.length > 1 ? index / (skills.length - 1) : 0
+  const baseCost = ACTIVE_SKILL_FIRST_COST * (ACTIVE_SKILL_LAST_COST / ACTIVE_SKILL_FIRST_COST) ** progress
+  return Math.ceil(scaledCost(run, baseCost) * ruleEffects(run, config).skillCostMultiplier)
 }
 export function buyActiveSkillItem(
   run: RunState,

@@ -15,12 +15,15 @@ import {
   lairAttackEveryMs,
   playerMaxHp,
   regionCurrencyBalance,
+  relicVaultOpen,
   scaledCost,
+  type MetaState,
   type GearSlot,
   type GearTier,
   type RunState,
 } from "@/application/clicker-ui"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
+import { ClickerRelicCards } from "@/components/clicker/clicker-relic-vault"
 import type { ClickerGame } from "./panels/types"
 
 const SLOT_LABEL: Record<GearSlot, string> = { weapon: "무기", armor: "방어구", helmet: "투구", amulet: "장신구" }
@@ -40,8 +43,9 @@ function tierStat(slot: GearSlot, index: number): string {
 }
 
 /** Forge panel: four gear slots, each crafted tier by tier from CORE + world currencies. */
-export function ClickerForge({ game, run }: { game: ClickerGame; run: RunState }) {
+export function ClickerForge({ game, run, meta }: { game: ClickerGame; run: RunState; meta: MetaState }) {
   const gear = gearOf(run)
+  const showRelics = relicVaultOpen(meta)
   return (
     <div className="clicker-forge clicker-forge-panel">
       <p className="clicker-forge-summary">
@@ -67,7 +71,7 @@ export function ClickerForge({ game, run }: { game: ClickerGame; run: RunState }
             <tr>
               <td>성공</td>
               {FORGE_SUCCESS_RATES.slice(1).map((rate, i) => (
-                <td key={i}>{`${(rate * 100).toLocaleString("ko-KR", { maximumFractionDigits: 2 })}%`}</td>
+                <td key={i}>{`${(rate * 100).toLocaleString("ko-KR", { maximumFractionDigits: 3 })}%`}</td>
               ))}
             </tr>
           </tbody>
@@ -86,6 +90,14 @@ export function ClickerForge({ game, run }: { game: ClickerGame; run: RunState }
           />
         ))}
       </div>
+      {showRelics ? (
+        <section className="clicker-forge-relic-section">
+          <p className="clicker-forge-summary">
+            유물 · 월드 화폐로 봉인을 해제하고 강화하세요. 효과는 환생 후에도 유지됩니다.
+          </p>
+          <ClickerRelicCards game={game} run={run} meta={meta} />
+        </section>
+      ) : null}
     </div>
   )
 }
