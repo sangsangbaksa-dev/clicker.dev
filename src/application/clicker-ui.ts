@@ -112,6 +112,18 @@ export {
 } from "@/domain/services/clicker-admin-tools"
 export { achievementProgress, autoDrillRate, baseDrillRate, VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/domain/services/clicker-bonus"
 export {
+  SKILL_BRANCH_COLOR,
+  SKILL_BRANCH_GLYPH,
+  SKILL_BRANCH_LABEL,
+  SKILL_BRANCH_ORDER,
+  SKILL_BRANCH_THEMES,
+  purchaseFxAccent,
+  skillBranchAccent,
+  skillBranchCssVars,
+  skillBranchTheme,
+  type SkillBranchTheme,
+} from "@/domain/services/clicker-skill-branch-theme"
+export {
   UPGRADE_NAV_TABS,
   buildUpgradeNavTabs,
   stageStationFor,
