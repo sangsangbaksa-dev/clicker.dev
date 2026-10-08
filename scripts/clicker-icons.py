@@ -6,9 +6,6 @@ cards, that black square reads as a pasted tile. This keys the black out
 (luminance matte, kept solid near the center so dark metal survives), feathers
 the edge, and writes 256px WebP next to the master.
 
-Echo Lattice still borrows Resonance Array's master, mirrored and hue-rotated
-so it reads as its own machine.
-
     python3 scripts/clicker-icons.py
 """
 from __future__ import annotations
@@ -31,7 +28,6 @@ VARIANTS = {
         ("producer_flux_generator", "producer_flux_generator", False, 0),
         ("producer_phase_regulator", "producer_phase_regulator", False, 0),
         ("producer_quantum_foundry", "producer_quantum_foundry", False, 0),
-        ("producer_echo_lattice", "producer_resonance_array", True, 55),
         ("producer_resonance_array", "producer_resonance_array", False, 0),
         ("producer_void_condenser", "producer_void_condenser", False, 0),
         ("producer_singularity_plant", "producer_singularity_plant", False, 0),

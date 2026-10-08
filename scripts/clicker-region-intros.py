@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Re-render the world arrival cinematics from each world's own art — no particles.
 
-10s at 1280x720/30fps: the world's poster fades up under a slow push-in, crossfades to its
-still and settles on the exact still framing the world screen shows next. The picture is new;
-the soundtrack is lifted from the existing video, so each world keeps its score.
+10s at 1920x1080/30fps: one continuous push-in on the world's still. No second plate
+and no mid-shot crossfade. The camera eases onto the exact framing the world screen
+shows next. The soundtrack is lifted from the existing video.
 
     pip install numpy pillow imageio-ffmpeg
     python3 scripts/clicker-region-intros.py [world_id ...]   (default: every world below)
@@ -20,7 +20,7 @@ import numpy as np
 from PIL import Image
 
 PUBLIC = Path(__file__).resolve().parent.parent / "public" / "clicker"
-W, H, FPS, LENGTH = 1280, 720, 30, 10.0
+W, H, FPS, LENGTH = 1920, 1080, 30, 10.0
 
 WORLDS = {
     "signal_relay": ("bg/region_signal_relay.webp", "region/signal_relay_still.webp"),
@@ -40,14 +40,16 @@ def load(path: Path) -> np.ndarray:
     return np.asarray(im.crop((left, top, left + W, top + H)), dtype=np.float32) / 255
 
 
-def zoom(img: np.ndarray, scale: float) -> np.ndarray:
-    """Crop-and-scale push-in about the centre."""
-    if scale <= 1.0001:
+def zoom(img: np.ndarray, scale: float, cx: float = 0.0, cy: float = 0.0) -> np.ndarray:
+    """Sub-pixel push-in: scale about the frame centre shifted by (cx, cy) frame-fractions, so slow
+    moves glide instead of stepping a whole pixel at a time."""
+    if abs(scale - 1) < 1e-6 and cx == 0 and cy == 0:
         return img
-    cw, ch = int(W / scale), int(H / scale)
-    x0, y0 = (W - cw) // 2, (H - ch) // 2
-    crop = Image.fromarray((img[y0 : y0 + ch, x0 : x0 + cw] * 255).astype(np.uint8))
-    return np.asarray(crop.resize((W, H), Image.BILINEAR), dtype=np.float32) / 255
+    src = Image.fromarray((img * 255).astype(np.uint8))
+    ox, oy = W / 2 + cx * W, H / 2 + cy * H
+    # output (x, y) → input ((x - W/2) / s + ox, (y - H/2) / s + oy)
+    m = (1 / scale, 0, ox - W / 2 / scale, 0, 1 / scale, oy - H / 2 / scale)
+    return np.asarray(src.transform((W, H), Image.AFFINE, m, resample=Image.BICUBIC), dtype=np.float32) / 255
 
 
 def smooth(x: float) -> float:
@@ -55,24 +57,23 @@ def smooth(x: float) -> float:
     return x * x * (3 - 2 * x)
 
 
-def frames(poster: np.ndarray, still: np.ndarray):
-    yy, xx = np.mgrid[0:H, 0:W]
-    vignette = (1 - 0.4 * (((xx - W / 2) / (W / 2)) ** 2 + ((yy - H / 2) / (H / 2)) ** 2)).clip(0.35, 1)[..., None]
+def ease_out(x: float, k: float = 3.0) -> float:
+    x = min(1.0, max(0.0, x))
+    return 1 - (1 - x) ** k
+
+
+def frames(still: np.ndarray):
+    """One plate: glide from a slight push-in to the exact still. No crossfade."""
     for f in range(int(LENGTH * FPS)):
         t = f / FPS
-        a = zoom(poster, 1.0 + 0.10 * t / LENGTH)
-        # The still ends at scale 1.0 — the exact framing of the world screen that follows.
-        b = zoom(still, 1.08 - 0.08 * smooth((t - 4.5) / 5.5))
-        mix = smooth((t - 4.5) / 2.5)
-        img = a * (1 - mix) + b * mix
-        # Vignette eases out as the still settles, so the last frame matches the screen.
-        v = vignette * (1 - mix) + mix
-        fade = smooth(t / 1.2)
-        yield (np.clip(img * v * fade, 0, 1) * 255).astype(np.uint8)
+        u = ease_out(t / LENGTH, 2.4)
+        img = zoom(still, 1.12 - 0.12 * u, cx=0.02 * (1 - u), cy=-0.012 * (1 - u))
+        fade = smooth(min(1.0, t / 0.45))
+        yield (np.clip(img * fade, 0, 1) * 255).astype(np.uint8)
 
 
 def render(world: str) -> None:
-    poster_rel, still_rel = WORLDS[world]
+    _poster_rel, still_rel = WORLDS[world]
     out = PUBLIC / "region" / f"{world}_intro.mp4"
     ff = imageio_ffmpeg.get_ffmpeg_exe()
     with tempfile.TemporaryDirectory() as tmp:
@@ -81,10 +82,10 @@ def render(world: str) -> None:
         video = Path(tmp) / "video.mp4"
         proc = subprocess.Popen(
             [ff, "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-             "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-crf", "22", "-preset", "slow", str(video)],
+             "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-crf", "20", "-preset", "slow", str(video)],
             stdin=subprocess.PIPE, stderr=subprocess.DEVNULL,
         )
-        for frame in frames(load(PUBLIC / poster_rel), load(PUBLIC / still_rel)):
+        for frame in frames(load(PUBLIC / still_rel)):
             proc.stdin.write(frame.tobytes())
         proc.stdin.close()
         proc.wait()

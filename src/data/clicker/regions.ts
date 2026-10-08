@@ -37,9 +37,9 @@ export const CLICKER_REGIONS: RegionDef[] = [
       rewardSeconds: 60,
       cooldownSec: 150,
     },
-    // The drill site (a teal grade of the old foundry painting) — distinct from the intro still you land on.
-    bgAssetId: "/clicker/bg/region_signal_relay_drill.webp",
-    intro: { video: "/clicker/region/signal_relay_intro.mp4", poster: "/clicker/bg/region_signal_relay.webp", still: "/clicker/region/signal_relay_still.webp", engageVideo: "/clicker/region/signal_relay_drill_enter.mp4" },
+    // Drill on the same corridor you arrive in — no second plate and no entrance clip.
+    bgAssetId: "/clicker/region/signal_relay_still.webp",
+    intro: { video: "/clicker/region/signal_relay_intro.mp4", poster: "/clicker/bg/region_signal_relay.webp", still: "/clicker/region/signal_relay_still.webp" },
     unlockAtLifetimeEnergy: 250_000_000_000,
     productionMultiplier: 1.12,
     activity: {
@@ -141,7 +141,8 @@ export const CLICKER_REGIONS: RegionDef[] = [
     id: "core_heart",
     name: "Core Heart",
     description: "코어의 심장부. 수호자가 코어를 틀어막고 있습니다.",
-    bgAssetId: "/clicker/bg/region_core_heart.jpg",
+    // Same sanctum you arrive in. The guardian is painted into that plate.
+    bgAssetId: "/clicker/region/core_heart_still.webp",
     intro: { video: "/clicker/region/core_heart_intro.mp4", poster: "/clicker/bg/region_core_heart.jpg", still: "/clicker/region/core_heart_still.webp" },
     // Three quarters of the final worldline's goal: the last run is a ~30-minute climb to the guardian.
     unlockAtLifetimeEnergy: 750_000_000_000,

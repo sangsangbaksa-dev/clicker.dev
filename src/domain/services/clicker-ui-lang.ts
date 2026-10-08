@@ -27,3 +27,15 @@ export function normalizeClickerUiLang(raw: string | null | undefined): ClickerU
   if (primary && ALLOWED.has(primary)) return primary as ClickerUiLang
   return CLICKER_UI_LANG_DEFAULT
 }
+
+export type UiLangSource = {
+  stored?: string | null
+  navigatorLanguage?: string | null
+}
+
+/** Prefer an explicit stored tag, then the browser language, then domain default. */
+export function resolveClickerUiLang(source: UiLangSource): ClickerUiLang {
+  if (source.stored) return normalizeClickerUiLang(source.stored)
+  if (source.navigatorLanguage) return normalizeClickerUiLang(source.navigatorLanguage)
+  return normalizeClickerUiLang(null)
+}

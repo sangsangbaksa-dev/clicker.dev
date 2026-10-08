@@ -29,6 +29,12 @@ export function ClickerAccountForm({
   const [passwordConfirm, setPasswordConfirm] = useState("")
   const { busy } = state
   const off = busy || disabled
+  const switchMode = (next: "login" | "signup") => {
+    if (next === mode) return
+    setMode(next)
+    // The last attempt's error belongs to the other form.
+    state.clearMessage()
+  }
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -45,10 +51,10 @@ export function ClickerAccountForm({
   return (
     <form className="clicker-account-form" onSubmit={(e) => void submit(e)}>
       <div className="clicker-account-tabs" role="tablist">
-        <button type="button" role="tab" aria-selected={mode === "login"} className={mode === "login" ? "is-on" : ""} onClick={() => setMode("login")}>
+        <button type="button" role="tab" aria-selected={mode === "login"} className={mode === "login" ? "is-on" : ""} onClick={() => switchMode("login")}>
           로그인
         </button>
-        <button type="button" role="tab" aria-selected={mode === "signup"} className={mode === "signup" ? "is-on" : ""} onClick={() => setMode("signup")}>
+        <button type="button" role="tab" aria-selected={mode === "signup"} className={mode === "signup" ? "is-on" : ""} onClick={() => switchMode("signup")}>
           회원가입
         </button>
       </div>

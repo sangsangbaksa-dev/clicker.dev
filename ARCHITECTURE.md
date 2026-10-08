@@ -9,10 +9,16 @@ components, app/  →  application/  →  domain/
 | 경로 | 역할 |
 |------|------|
 | `domain/` | 타입·권한·순수 규칙 (프레임워크 무관). 노트 범위는 `notes-scope.ts`, 조 문서는 `group-docs.ts`, 조 대화는 `group-chat.ts` |
-| `application/` | `auth.ts`, `rooms.ts`, `group-docs.ts`, `group-chat.ts`, `group-collab.ts`, `admin.ts`, `classes.ts`, `school-notes.ts`, `notes-board.ts`, `home.ts`, `result.ts` |
+| `application/` | `auth.ts`, `rooms.ts`, `group-docs.ts`, `group-chat.ts`, `group-collab.ts`, `admin.ts`, `classes.ts`, `school-notes.ts`, `notes-board.ts`, `home.ts`, `result.ts`, 클리커: `clicker.ts`, `clicker-account.ts`, `clicker-ui.ts`, `clicker-client-bind.ts` |
 | `infrastructure/` | JSON/Blobs, JWT, guard |
 | `shared/` | ids, classes, URL, sync 간격 |
 
 API: guard → application 함수 → `toJson()`. 새 기능은 `.cursor/skills/clean-architecture/SKILL.md` 순서(domain → application → infrastructure → route → UI)를 따른다.
+
+## PROJECT CLICKER
+
+- UI: `src/components/clicker/`, 루트 `app/page.tsx`. 게임 규칙은 `domain/services/clicker-*.ts`, 유스케이스는 `application/clicker.ts`.
+- 계정·클라우드 저장 API: `app/api/clicker/*` (Vercel 등). GitHub Pages 정적 export는 `prepare-pages.sh`로 API를 제거하고 `NEXT_PUBLIC_CLICKER_STATIC_HOST=1`로 클라이언트가 `/api/clicker`를 호출하지 않는다.
+- 스모크: `npm run test:smoke` (Next start), `npm run test:smoke:pages` (정적 `out/`).
 
 조 명단은 `Room.groups`에 두고 보드 GET/PUT으로 다룬다. 조 문서·대화 본문은 보드 JSON에서 빼고, `GET /api/rooms/[code]/groups/[groupId]/live`로 함께 폴링한다. 문서 저장은 `.../documents`, 대화는 `.../messages`. 조원(`memberIds`)과 사이트 관리자만 연다. 보드 PUT은 저장된 종이·대화를 지워서는 안 된다.

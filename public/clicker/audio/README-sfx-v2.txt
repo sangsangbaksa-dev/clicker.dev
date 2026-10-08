@@ -50,7 +50,8 @@ bgm_boss_loop_v1 | Boss fight BGM (crossfade via BgmScene `boss`, loop=true) | l
 sfx_boss_appear_v1 | Wired: `startBoss` (guardian fight begins) | —
 sfx_boss_hit_v1 | Wired: `strikeBoss` on damage | —
 sfx_boss_defeat_v1 | Wired: `bossDown` when `meta.bossDefeated` flips (ending cue) | —
-sfx_boss_phase_change_v1 | Mapped only — no boss HP phase in engine yet | —
+sfx_boss_phase_change_v1 | Wired: `playSfx("bossPhase")` at guardian enrage (<30% HP); synth fallback | —
+(Wired 2026-10-07: boss appear/hit/phase/defeat mp3 via `SFX_SAMPLE` in clicker-sfx.ts; synth fallback retained.)
 
 === Rebirth HQ audio (2026-10-01) — ceremony bed + motion SFX ===
 bgm_rebirth_hq_intro | BGM `BgmScene` `rebirth` (pendingRebirth): plays once, then hands off to loop | ~9s
@@ -63,4 +64,5 @@ sfx_rebirth_stamp_volatile_core_hq | Wired: stamp phase, Volatile Core | —
 sfx_rebirth_stamp_directive_pulse_hq | Wired: stamp phase, Directive Pulse (+ adaptive_architect fallback key) | —
 sfx_rebirth_stamp_resonance_protocol_hq | Wired: stamp phase, Resonance Protocol | —
 (HQ mp3 preferred; v3/v2 stamp samples and synth cues remain as fallback. Ending overlay still uses `bgm_rebirth_loop_v2` via `chamber` scene.)
-(Mapped only — no dedicated mp3 yet: `sfx_rebirth_collapse_whoosh`, `sfx_rebirth_void_tear` still use v3 void tear / synth.)
+(Wired 2026-10-07: rebirth motion `playRebirthCue` prefers HQ/v3 mp3 for confirm, collapse whoosh, void tear, rebuild, settle, and stamp phases; synth fallback remains.)
+sfx_rebirth_collapse_whoosh_v3 | Rebirth motion collapse phase (procedural v3; generator: media/audio/generate_audio.py) | 1.5s

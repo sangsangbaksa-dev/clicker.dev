@@ -4,9 +4,8 @@
 * One procedural badge per upgrade and per skill circuit (public/clicker/upgrade, skill-node):
   the symbol comes from the item's effect, colour from its category / branch, and a seeded
   layout (rotation, orbit dots, rays, tier pips) from its id — so no two items share an image.
-* New producers / potions / active skills: an existing master re-graded (hue, mirror, zoom)
-  with a stamped emblem so each reads as its own object.
-* Core Heart stage background: the chamber plate in a molten gold grade.
+* Producers, potions, active skills, deep gear tiers and the Core Heart background each have
+  their own painted art (Canva) — nothing here re-grades an existing image any more.
 
     node --experimental-strip-types /tmp/items.ts > items.json   # see README step
     python3 scripts/clicker-item-art.py items.json
@@ -21,9 +20,8 @@ import sys
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 ROOT = Path(__file__).resolve().parent.parent / "public" / "clicker"
 S = 512  # draw size; saved at 192
 OUT = 192
@@ -228,62 +226,6 @@ def badge(key: str, kind: str, group: str, tier: int, dst: Path):
     im.resize((OUT, OUT), Image.LANCZOS).save(dst, "WEBP", quality=84, method=6)
 
 
-def regrade(src: Path, dst: Path, hue: float, mirror: bool, zoom: float, emblem: str, size: int = 256):
-    from importlib import import_module
-
-    icons = import_module("clicker-icons")
-    im = Image.open(src).convert("RGB")
-    w, h = im.size
-    cw, ch = w / zoom, h / zoom
-    im = im.crop(((w - cw) / 2, (h - ch) / 2, (w + cw) / 2, (h + ch) / 2)).resize((size, size), Image.LANCZOS)
-    if mirror:
-        im = im.transpose(Image.FLIP_LEFT_RIGHT)
-    arr = icons.hue_rotate(np.asarray(im, float) / 255, hue)
-    alpha = icons.matte(arr)
-    out = Image.fromarray((np.dstack([arr, alpha]) * 255).round().astype(np.uint8), "RGBA")
-    stamp = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    symbol(ImageDraw.Draw(stamp), emblem, (255, 255, 255, 235), np.random.default_rng(seed_of(dst.name)))
-    stamp = stamp.resize((size // 3, size // 3), Image.LANCZOS)
-    ring = Image.new("RGBA", stamp.size, (0, 0, 0, 0))
-    ImageDraw.Draw(ring).ellipse([0, 0, stamp.size[0] - 1, stamp.size[1] - 1], fill=rgb(hue + 200, 0.7, 0.45, 230))
-    ring.alpha_composite(stamp)
-    out.alpha_composite(ring, (size - ring.size[0] - 6, size - ring.size[1] - 6))
-    out.save(dst, "WEBP", quality=86, method=6)
-
-
-DERIVED = [
-    ("producer/producer_spark_coil", "producer/producer_pulse_relay", 140, True, 1.15, "bolt"),
-    ("producer/producer_ion_pump", "producer/producer_core_extractor", 200, True, 1.1, "echo"),
-    ("producer/producer_prism_loom", "producer/producer_flux_generator", 280, False, 1.2, "target"),
-    ("producer/producer_gravity_well", "producer/producer_void_condenser", 100, True, 1.1, "quake"),
-    ("producer/producer_nova_forge", "producer/producer_quantum_foundry", 320, True, 1.15, "flame"),
-    ("producer/producer_aurora_reactor", "producer/producer_horizon_engine", 60, False, 1.1, "seed"),
-    ("potion/potion_spark", "potion/potion_timebreak", 150, True, 1.0, "bolt"),
-    ("potion/potion_keen", "potion/potion_blue", 250, False, 1.05, "target"),
-    ("potion/potion_golden", "potion/potion_industrial", 40, True, 1.0, "gear"),
-    ("skill/skill_laser_focus", "skill/skill_core_pulse", 120, True, 1.05, "target"),
-    ("skill/skill_time_warp", "skill/skill_stabilizer", 200, False, 1.1, "time"),
-    ("skill/skill_grid_boost", "skill/skill_overclock", 90, True, 1.0, "gear"),
-]
-
-
-def heart_background():
-    src = ROOT / "bg" / "region_core_chamber.png"
-    im = Image.open(src).convert("RGB")
-    arr = np.asarray(im, float) / 255
-    lum = arr.mean(axis=2, keepdims=True)
-    gold = np.array([1.25, 0.62, 0.22])
-    graded = np.clip(lum * gold * 1.25 + arr * 0.25, 0, 1)
-    h, w, _ = graded.shape
-    yy, xx = np.mgrid[0:h, 0:w]
-    r = np.hypot((xx - w / 2) / w, (yy - h * 0.45) / h)
-    graded *= np.clip(1.25 - r * 1.6, 0.25, 1)[..., None]
-    graded[..., 0] = np.clip(graded[..., 0] + np.clip(0.18 - r, 0, 1) * 1.5, 0, 1)
-    out = Image.fromarray((graded * 255).astype(np.uint8))
-    out = ImageEnhance.Contrast(out).enhance(1.15)
-    out.save(ROOT / "bg" / "region_core_heart.jpg", "JPEG", quality=84)
-
-
 def main():
     data = json.load(open(sys.argv[1]))
     for u in data["upgrades"]:
@@ -291,10 +233,7 @@ def main():
         badge("u:" + u["id"], u["kind"], u["cat"], tier, ROOT / "upgrade" / f"{u['id']}.webp")
     for n in data["nodes"]:
         badge("n:" + n["id"], n["kind"], n["branch"], n["tier"], ROOT / "skill-node" / f"{n['id']}.webp")
-    for dst, src, hue, mirror, zoom, emblem in DERIVED:
-        regrade(ROOT / f"{src}.png", ROOT / f"{dst}.webp", hue, mirror, zoom, emblem)
-    heart_background()
-    print(f"{len(data['upgrades'])} upgrades · {len(data['nodes'])} circuits · {len(DERIVED)} derived")
+    print(f"{len(data['upgrades'])} upgrades · {len(data['nodes'])} circuits")
 
 
 if __name__ == "__main__":

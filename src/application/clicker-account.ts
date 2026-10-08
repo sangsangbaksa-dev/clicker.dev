@@ -3,6 +3,31 @@
  * has no API, so every call reports `available: false` there and the UI hides accounts.
  */
 
+import { saveProgress } from "@/domain/services/clicker-account"
+import { isClickerStaticHost } from "@/application/clicker-static-host"
+
+/** Total CORE of a stored save (0 when unreadable): how far along a run is. */
+export const clickerSaveProgress = saveProgress
+
+/** localStorage key: the account the run on this device belongs to (absent for a guest run). */
+const SAVE_OWNER_KEY = "aurelia-clicker-save-owner"
+
+export function readClickerSaveOwner(): string | null {
+  try {
+    return window.localStorage.getItem(SAVE_OWNER_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function writeClickerSaveOwner(accountId: string): void {
+  try {
+    window.localStorage.setItem(SAVE_OWNER_KEY, accountId)
+  } catch {
+    /* storage blocked — ownership is only known for this visit */
+  }
+}
+
 export type ClickerAccountInfo = { id: string; loginId: string; nickname: string }
 /** `totalCore`: lifetime CORE across worldlines; `kept`: the upload lost to a more progressed cloud run. */
 export type ClickerCloudSave = { json: string; meta: { savedAt: number; size: number; totalCore?: number; kept?: boolean } }
@@ -10,6 +35,9 @@ export type ClickerCloudSave = { json: string; meta: { savedAt: number; size: nu
 type ApiResult<T> = { ok: true; value: T } | { ok: false; error: string; unavailable?: boolean }
 
 async function call<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
+  if (isClickerStaticHost()) {
+    return { ok: false, error: "계정 서버에 연결할 수 없습니다.", unavailable: true }
+  }
   try {
     const res = await fetch(path, {
       ...init,
@@ -52,4 +80,22 @@ export function fetchCloudSave() {
 /** `keepalive` lets the upload finish while the page is closing. */
 export function uploadCloudSave(json: string, keepalive = false) {
   return call<{ meta: ClickerCloudSave["meta"] }>("/api/clicker/save", { method: "PUT", body: JSON.stringify({ json }), keepalive })
+}
+
+export type ClickerLeaderboardKind = "clear" | "core"
+export type ClickerLeaderboardRow = {
+  rank: number
+  nickname: string
+  totalCore: number
+  rebirthCount: number
+  worldlinesOwned: number
+  clearMs: number | null
+  playTimeMs: number | null
+  isMe: boolean
+}
+export type ClickerLeaderboard = { kind: ClickerLeaderboardKind; top: ClickerLeaderboardRow[]; me: ClickerLeaderboardRow | null; total: number }
+
+/** Online ranking (fastest clear or lifetime CORE). Unavailable on the static host. */
+export function fetchClickerLeaderboard(kind: ClickerLeaderboardKind) {
+  return call<ClickerLeaderboard>(`/api/clicker/leaderboard?kind=${kind}`)
 }

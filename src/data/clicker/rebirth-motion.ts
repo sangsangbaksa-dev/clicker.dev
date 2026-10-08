@@ -78,7 +78,7 @@ const VARIANTS: Record<string, VariantBase> = {
     particleMode: "orbit",
   },
   risk_line: {
-    label: "Volatile Core",
+    label: "Critical Core",
     primary: "#FF6A3D",
     accent: "#FF2E63",
     motif: "core",
@@ -148,7 +148,7 @@ export function rebirthPhaseAt(
   return { phase: hit.id, phaseT, totalT }
 }
 
-/** Audio cue placeholder names — no assets in this pack */
+/** Rebirth ceremony SFX keys — HQ mp3 in `public/clicker/audio/` when available (see `playRebirthCue`). */
 export const REBIRTH_AUDIO_CUES = {
   confirm: "sfx_rebirth_confirm_click",
   collapse: "sfx_rebirth_collapse_whoosh",

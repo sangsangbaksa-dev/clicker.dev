@@ -11,12 +11,22 @@ import {
   type ClickerSignupInput,
   type CloudSaveMeta,
 } from "@/domain/services/clicker-account"
+import {
+  leaderboardEntryFromSave,
+  leaderboardView,
+  publicLeaderboardRow,
+  upsertLeaderboard,
+  type LeaderboardKind,
+  type PublicLeaderboardRow,
+} from "@/domain/services/clicker-leaderboard"
 import { hashPassword, verifyPassword } from "@/infrastructure/auth/password"
 import {
   createClickerAccount,
   findClickerAccount,
   readCloudSave,
+  readLeaderboard,
   writeCloudSave,
+  writeLeaderboard,
 } from "@/infrastructure/persistence/clicker-accounts"
 import { createId } from "@/shared/ids"
 
@@ -50,13 +60,42 @@ export async function loadCloudSave(accountId: string): Promise<{ json: string; 
 }
 
 /** Stores the upload unless the cloud already holds a run with more total CORE (then keeps that one). */
-export async function storeCloudSave(accountId: string, json: unknown): Promise<Result<CloudSaveMeta>> {
+export async function storeCloudSave(account: ClickerAccountPublic, json: unknown): Promise<Result<CloudSaveMeta>> {
   const problem = cloudSaveError(json)
   if (problem) return { ok: false, error: problem, status: 400 }
-  const current = await readCloudSave(accountId)
+  const current = await readCloudSave(account.id)
   if (current && !shouldReplaceCloudSave(current.json, json as string)) {
     return { ok: true, value: { savedAt: current.savedAt, size: current.json.length, totalCore: saveProgress(current.json), kept: true } }
   }
-  const meta = await writeCloudSave(accountId, json as string, Date.now())
+  const meta = await writeCloudSave(account.id, json as string, Date.now())
+  await recordLeaderboard(account, json as string)
   return { ok: true, value: { ...meta, totalCore: saveProgress(json as string) } }
+}
+
+/** Refresh the player's ranking row from the save just stored. Best effort: never fails the upload. */
+async function recordLeaderboard(account: ClickerAccountPublic, json: string): Promise<void> {
+  try {
+    const entry = leaderboardEntryFromSave(json, account, Date.now())
+    if (!entry) return
+    await writeLeaderboard(upsertLeaderboard(await readLeaderboard(), entry))
+  } catch {
+    // The ranking is a side table; a failed write only delays this player's row.
+  }
+}
+
+export type LeaderboardResponse = {
+  kind: LeaderboardKind
+  top: PublicLeaderboardRow[]
+  me: PublicLeaderboardRow | null
+  total: number
+}
+
+export async function loadLeaderboard(kind: LeaderboardKind, accountId: string | null): Promise<LeaderboardResponse> {
+  const view = leaderboardView(await readLeaderboard(), kind, accountId)
+  return {
+    kind,
+    top: view.top.map((e) => publicLeaderboardRow(e, accountId)),
+    me: view.me ? publicLeaderboardRow(view.me, accountId) : null,
+    total: view.total,
+  }
 }

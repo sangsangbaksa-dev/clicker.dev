@@ -52,7 +52,7 @@ export class RebirthMwParams {
     const t = clamp01(phaseT)
     return {
       uiFade: 1,
-      uiScale: 0.55,
+      uiScale: lerp(0.55, 0.5, t),
       voidAlpha: lerp(0.85, 0.95, t),
       stampScale: 0.05,
       chromatic: reduced ? 0 : lerp(0.35, 0.7, t),
@@ -65,7 +65,7 @@ export class RebirthMwParams {
 
   /**
    * MW-02 Stamp — structure shared across worldlines (motif/tint swap).
-   * Slam 0.2 → 1.18, hold peak flat (~287ms) so every worldline hits 1.18 reliably, then ease to 1.0.
+   * Slam 0.2 → 1.18, then one continuous ease back to 1.0 across the rest of the beat (no hold).
    */
   static stamp(phaseT: number, reduced: boolean): MwEaseSample {
     const t = clamp01(phaseT)
@@ -76,18 +76,15 @@ export class RebirthMwParams {
     } else if (t < 0.14) {
       // Slam in (~98ms of 700ms).
       stampScale = lerp(0.2, peak, easeOutBack(t / 0.14))
-    } else if (t < 0.55) {
-      // Flat peak hold (~287ms) — sample-friendly across all worldlines.
-      stampScale = peak
-    } else if (t < 0.78) {
-      stampScale = lerp(peak, 1.05, (t - 0.55) / 0.23)
     } else {
-      stampScale = lerp(1.05, 1, (t - 0.78) / 0.22)
+      // No frozen hold: after the slam the seal keeps easing down to rest for the whole beat.
+      stampScale = lerp(peak, 1, easeInOutSine((t - 0.14) / 0.86))
     }
     const impactWindow = t >= 0.05 && t <= 0.28
     return {
       uiFade: lerp(1, 0.45, t),
-      uiScale: 0.55,
+      // Carries on from the void tear's 0.5 to where the rebuild picks up, so nothing jumps.
+      uiScale: lerp(0.5, 0.85, t),
       voidAlpha: lerp(0.95, 0.65, t),
       stampScale,
       chromatic: reduced ? 0 : impactWindow ? 0.9 : lerp(0.4, 0.08, t),
@@ -182,6 +179,10 @@ function easeInCubic(t: number) {
 
 function easeOutCubic(t: number) {
   return 1 - Math.pow(1 - t, 3)
+}
+
+function easeInOutSine(t: number) {
+  return -(Math.cos(Math.PI * clamp01(t)) - 1) / 2
 }
 
 function easeOutBack(t: number) {

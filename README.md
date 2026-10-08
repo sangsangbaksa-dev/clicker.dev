@@ -114,6 +114,18 @@ npm run cf:dev
 
 [http://127.0.0.1:8788](http://127.0.0.1:8788) 이 Vercel 원본을 프록시합니다.
 
+## PROJECT CLICKER (AURELIA CORE)
+
+루트(`/`)는 클리커 게임입니다. 로컬: `npm run dev` → [http://127.0.0.1:8080](http://127.0.0.1:8080).
+
+| 명령 | 용도 |
+|------|------|
+| `npm test` | 도메인·클리커 유닛 테스트 |
+| `npm run build` && `npm run test:smoke` | 프로덕션 `next start` + Playwright |
+| `npm run test:smoke:pages` | GitHub Pages용 정적 `out/` (Pages 워크플로와 동일) |
+
+GitHub Pages는 `scripts/prepare-pages.sh`로 API 라우트를 제거한 뒤 정적 export합니다. 저장소 Settings → Pages → Source: **GitHub Actions**.
+
 ## 데이터
 
 로컬에서는 회원·방·노트를 `data/` 아래 JSON 파일로 저장합니다.
