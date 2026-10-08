@@ -613,7 +613,14 @@
 .clicker-rebirth-particles-plate { opacity: 1; }
 .clicker-rebirth-particles-plate.is-outgoing { z-index: 0; }
 .clicker-rebirth-particles-plate.is-incoming { z-index: 1; }
-@keyframes rb-plate-in { from { opacity: 0; } }
+.clicker-rebirth-particles-plate.is-incoming {
+  animation: rb-plate-in 420ms ease-out both;
+}
+.clicker-rebirth-particles-plate.is-outgoing {
+  animation: rb-plate-out 420ms ease-out both;
+}
+@keyframes rb-plate-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rb-plate-out { from { opacity: 1; } to { opacity: 0; } }
 
 .clicker-rebirth-plate--collapse .clicker-rebirth-particles-plate-img {
   animation: rb-collapse 3800ms cubic-bezier(0.4, 0, 0.7, 0.9) both;
@@ -955,3 +962,53 @@
 }
 /* Each beat shows one opaque painting: nothing from the game or the previous plate bleeds through. */
 .clicker-rebirth-motion .clicker-rebirth-particles-plate { mix-blend-mode: normal; background: #05070d; }
+
+/* Stamp/rebuild: runtime tint pulse so Resonance / Volatile v2 plates stay readable on small screens. */
+.clicker-rebirth-motion[data-transcendence-id="reso_line"] .clicker-rebirth-plate--stamp::after,
+.clicker-rebirth-motion[data-transcendence-id="reso_line"] .clicker-rebirth-plate--rebuild::after,
+.clicker-rebirth-motion[data-transcendence-id="risk_line"] .clicker-rebirth-plate--stamp::after,
+.clicker-rebirth-motion[data-transcendence-id="risk_line"] .clicker-rebirth-plate--rebuild::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.clicker-rebirth-motion[data-transcendence-id="reso_line"] .clicker-rebirth-plate--stamp::after,
+.clicker-rebirth-motion[data-transcendence-id="reso_line"] .clicker-rebirth-plate--rebuild::after {
+  background:
+    radial-gradient(ellipse 88% 76% at 50% 44%, color-mix(in srgb, var(--stamp-primary) 42%, transparent), transparent 70%),
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--stamp-accent) 22%, transparent), transparent 55%);
+  animation: rb-tint-reso 3200ms ease-in-out both;
+}
+.clicker-rebirth-motion[data-transcendence-id="risk_line"] .clicker-rebirth-plate--stamp::after,
+.clicker-rebirth-motion[data-transcendence-id="risk_line"] .clicker-rebirth-plate--rebuild::after {
+  background:
+    radial-gradient(ellipse 70% 62% at 48% 46%, color-mix(in srgb, var(--stamp-primary) 48%, transparent), transparent 65%),
+    conic-gradient(from 220deg at 50% 45%, transparent, color-mix(in srgb, var(--stamp-accent) 28%, transparent), transparent);
+  animation: rb-tint-volatile 2800ms ease-in-out both;
+}
+@keyframes rb-tint-reso {
+  0%, 100% { opacity: 0.38; }
+  35%, 65% { opacity: 0.72; }
+}
+@keyframes rb-tint-volatile {
+  0%, 100% { opacity: 0.32; }
+  20% { opacity: 0.68; }
+  45% { opacity: 0.44; }
+  70% { opacity: 0.62; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-rebirth-particles-plate.is-incoming,
+  .clicker-rebirth-particles-plate.is-outgoing {
+    animation: none;
+  }
+  .clicker-rebirth-motion[data-transcendence-id="reso_line"] .clicker-rebirth-plate--stamp::after,
+  .clicker-rebirth-motion[data-transcendence-id="reso_line"] .clicker-rebirth-plate--rebuild::after,
+  .clicker-rebirth-motion[data-transcendence-id="risk_line"] .clicker-rebirth-plate--stamp::after,
+  .clicker-rebirth-motion[data-transcendence-id="risk_line"] .clicker-rebirth-plate--rebuild::after {
+    animation: none;
+    opacity: 0.45;
+  }
+}
