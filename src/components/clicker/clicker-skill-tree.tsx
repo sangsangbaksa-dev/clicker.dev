@@ -1,14 +1,13 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
-import { layoutSkillTree, connectorPath, type SkillCell } from "@/data/clicker/skill-tree-layout"
 import {
   SKILL_BRANCH_COLOR,
-  SKILL_BRANCH_GLYPH,
   SKILL_BRANCH_LABEL,
-  SKILL_BRANCH_ORDER,
-  skillBranchCssVars,
-} from "@/application/clicker-ui"
+  layoutSkillTree,
+  connectorPath,
+  type SkillCell,
+} from "@/data/clicker/skill-tree-layout"
 import { clampSkillmapPan, fitSkillmapView } from "@/application/clicker-skillmap-fit"
 import { formatNumber, skillStatusLabel, type SkillNodeView } from "@/application/clicker-ui"
 import { useClickerEscape } from "@/components/clicker/clicker-a11y"
@@ -173,29 +172,10 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
   return (
     <div className="clicker-skillmap" role="dialog" aria-modal="true" aria-label="스킬 회로">
       <header className="clicker-skillmap-head">
-        <div className="clicker-skillmap-head-main">
-          <strong>스킬 회로</strong>
-          <span>
-            활성 {owned}/{nodes.length} · CORE <b>{formatNumber(coreEnergy)}</b>
-          </span>
-        </div>
-        <ul className="clicker-skillmap-tabs" aria-label="회로 가지">
-          {SKILL_BRANCH_ORDER.map((branch) => {
-            const active = selected?.branch === branch
-            return (
-              <li key={branch}>
-                <span
-                  className={`clicker-skillmap-tab${active ? " is-active" : ""}`}
-                  style={skillBranchCssVars(branch) as CSSProperties}
-                  title={SKILL_BRANCH_LABEL[branch]}
-                >
-                  <span className="clicker-skillmap-tab-glyph" aria-hidden>{SKILL_BRANCH_GLYPH[branch]}</span>
-                  <span className="clicker-skillmap-tab-label">{SKILL_BRANCH_LABEL[branch]}</span>
-                </span>
-              </li>
-            )
-          })}
-        </ul>
+        <strong>스킬 회로</strong>
+        <span>
+          활성 {owned}/{nodes.length} · CORE <b>{formatNumber(coreEnergy)}</b>
+        </span>
         <button type="button" className="clicker-ghost clicker-skillmap-close" onClick={onClose}>
           닫기
         </button>
@@ -241,13 +221,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
               key={node.id}
               type="button"
               className={`clicker-skillmap-node is-${node.status.toLowerCase()}${selectedId === node.id ? " is-selected" : ""}${node.tier >= 5 ? " is-apex" : ""}${node.id === layout.centerId ? " is-final" : ""}`}
-              style={
-                {
-                  left: (node.col + 0.5) * CELL,
-                  top: (node.row + 0.5) * CELL,
-                  ...skillBranchCssVars(node.branch),
-                } as CSSProperties
-              }
+              style={{ left: (node.col + 0.5) * CELL, top: (node.row + 0.5) * CELL, "--branch-color": SKILL_BRANCH_COLOR[node.branch] } as CSSProperties}
               aria-label={`${node.name} · ${skillStatusLabel(node.status)} · ${formatNumber(node.cost)} CORE`}
               onClick={() => {
                 if (drag.current?.moved) return
@@ -260,17 +234,11 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
         </div>
       </div>
       {selected ? (
-        <aside
-          className={`clicker-skillmap-detail is-${selected.status.toLowerCase()}`}
-          style={skillBranchCssVars(selected.branch) as CSSProperties}
-          aria-live="polite"
-        >
-          {selected.assetId ? (
-            <img className="clicker-zoomable clicker-skillmap-detail-icon" src={selected.assetId} alt="" />
-          ) : null}
+        <aside className={`clicker-skillmap-detail is-${selected.status.toLowerCase()}`} aria-live="polite">
+          {selected.assetId ? <img className="clicker-zoomable" src={selected.assetId} alt="" /> : null}
           <div>
-            <small className="clicker-skillmap-detail-branch">
-              {SKILL_BRANCH_GLYPH[selected.branch]} {SKILL_BRANCH_LABEL[selected.branch]} · T{selected.tier}
+            <small>
+              {SKILL_BRANCH_LABEL[selected.branch]} · T{selected.tier}
             </small>
             <strong>{selected.name}</strong>
             <p>{selected.description}</p>
