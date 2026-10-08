@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-07 (cron pass 2)
+Last reviewed: 2026-10-08 (cron pass)
 
 ## Now (actionable)
 
@@ -11,7 +11,6 @@ Last reviewed: 2026-10-07 (cron pass 2)
 | Art | `mine_interior_hitech_mineral_1080p_v1.png` registered, not wired as chamber BG (layout ≠ ore plate / door-walk seam) | `public/clicker/mine/README.md` |
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | `scripts/pacing-sim.ts` |
 | Code | ~69 ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
-| Motion | Rebirth particle plates — A/B opacity on Resonance / Volatile if still flat in play | `clicker-rebirth-motion.css` |
 
 ## Watch (needs asset or design call)
 
@@ -20,7 +19,15 @@ Last reviewed: 2026-10-07 (cron pass 2)
 | Design | Rebirth stamp PNGs vs geometric placeholders until final art lands |
 | BGM | Older `bgm_hub_v2` / `bgm_mine_v2` kept for rollback; catalog prefers v2 loops + mine v3 |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` |
-| Motion | Rebirth particle tint overlays (Resonance / Volatile Core) — wired; tune opacity/timing if art feels flat |
+| Motion | Rebirth plate crossfade timing vs cut flash — tune if seams read on low-end phones |
+
+## Done (2026-10-08)
+
+| Area | Item |
+|------|------|
+| Motion | Rebirth phase plates A/B opacity crossfade (`PlateStack` outgoing + `rb-plate-in/out`) |
+| Motion | Resonance / Volatile stamp+rebuild runtime tint overlays (`data-transcendence-id` + CSS pulse) |
+| Balance | Pacing sim baseline re-run (clicks/s=6, REBIRTH 10M ~95m) — no economy edits |
 
 ## Done (2026-10-07)
 

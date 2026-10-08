@@ -213,10 +213,31 @@ function PlateLayer({ variant, phase, incoming }: { variant: WorldlineMotionVari
   )
 }
 
-/** One painted plate per beat, swapped with a clean cut (the cut flash covers the change). */
+type PlatePhase = ReturnType<typeof platePhaseFor>
+
+/** One painted plate per beat; outgoing plate fades while incoming fades in (cut flash masks the seam). */
 function PlateStack({ variant, phase }: { variant: WorldlineMotionVariant; phase: RebirthPhaseId }) {
   const current = platePhaseFor(phase)
-  return <PlateLayer key={`plate-${current}`} variant={variant} phase={current} incoming />
+  const prevPhaseRef = useRef<PlatePhase>(current)
+  const [outgoing, setOutgoing] = useState<PlatePhase | null>(null)
+
+  useEffect(() => {
+    const prev = prevPhaseRef.current
+    if (prev === current) return
+    setOutgoing(prev)
+    prevPhaseRef.current = current
+    const id = window.setTimeout(() => setOutgoing(null), 450)
+    return () => window.clearTimeout(id)
+  }, [current])
+
+  return (
+    <>
+      {outgoing ? (
+        <PlateLayer key={`plate-out-${outgoing}`} variant={variant} phase={outgoing} incoming={false} />
+      ) : null}
+      <PlateLayer key={`plate-in-${current}`} variant={variant} phase={current} incoming />
+    </>
+  )
 }
 
 function StampGlyph({
@@ -597,6 +618,7 @@ export function ClickerRebirthMotion({ transcendenceId, worldlineLabel, muted = 
       role="dialog"
       aria-modal="true"
       aria-label={`${worldlineLabel} 세계선 환생`}
+      data-transcendence-id={transcendenceId}
       data-phase={stillOnly ? "settle" : frame.phase}
       style={
         {
