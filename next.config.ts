@@ -15,15 +15,6 @@ const staticCache = [
   { key: "CDN-Cache-Control", value: "public, max-age=31536000, immutable" },
 ]
 
-/** Baseline browser hardening for Vercel/Node deploys (skipped on GitHub Pages export). */
-const securityHeaders = [
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "X-Frame-Options", value: "SAMEORIGIN" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-]
-
 const nextConfig: NextConfig = {
   devIndicators: false,
   // HMR WebSocket failures in proxied/cloud dev must not block React hydration.
@@ -32,27 +23,14 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react"],
   },
   allowedDevOrigins: ["127.0.0.1", "localhost", "0.0.0.0"],
-  // Clicker art is static. Keep it out of the server function bundle (Hobby size limit).
-  outputFileTracingExcludes: {
-    "*": ["./public/**/*", "./media/**/*"],
-  },
   async headers() {
     return [
-      {
-        source: "/:path*",
-        headers: securityHeaders,
-      },
       {
         source: "/_next/static/:path*",
         headers: staticCache,
       },
       {
         source: "/:path*.woff2",
-        headers: staticCache,
-      },
-      {
-        // Versioned game art/audio filenames — long CDN cache for repeat visits / back-nav.
-        source: "/clicker/:path*",
         headers: staticCache,
       },
     ]
@@ -63,7 +41,6 @@ const nextConfig: NextConfig = {
 const pagesConfig: NextConfig = {
   ...nextConfig,
   headers: undefined,
-  outputFileTracingExcludes: undefined,
   output: "export",
   basePath: pagesBasePath,
   trailingSlash: true,

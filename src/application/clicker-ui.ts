@@ -2,11 +2,19 @@
  * Clicker UI facade: types and read-only helpers for components and hooks.
  * Domain rules stay in domain; this module is the outward-facing import surface.
  */
-export { spawnMineOres } from "@/application/spawn-mine-ores"
+export { spawnMineOres } from "@/domain/services/ore-node"
 export { ORE_ART } from "@/infrastructure/ore-art"
 export { loadAlphaMask } from "@/infrastructure/image/alpha-mask-loader"
 export { oreHitBox, oreStrikePoint, type OreNode } from "@/domain/services/ore-node"
-export { formatNumber, formatRate } from "@/domain/services/clicker-format"
+export { formatNumber, withParticle } from "@/domain/services/clicker-format"
+export {
+  clickerCompletionRank,
+  clickerPlayTimeMs,
+  clickerElapsedPlayTimeMs,
+  formatClickerPlayTime,
+  sortClickerCompletionRecords,
+  type ClickerCompletionRecord,
+} from "@/domain/services/clicker-completion-records"
 export {
   bulkAffordable,
   bulkCostText,
@@ -17,16 +25,11 @@ export {
   buildRegionViews,
   buildSkillNodeViews,
   buildUpgradeViews,
-  skillStatusLabel,
   type CoreVisual,
   type CurrencyCostView,
   type SkillNodeView,
 } from "@/domain/services/clicker-view"
-export { worldlineDurationMs, type ChronicleSummary } from "@/domain/services/clicker-chronicle"
-export type { ExchangeOfferView } from "@/domain/services/clicker-exchange"
 export type {
-  ChronicleEntry,
-  GachaLogEntry,
   BossDef,
   BossFight,
   ClickerSettings,
@@ -41,21 +44,12 @@ export type {
   TranscendenceDef,
   UpgradeCategory,
 } from "@/domain/entities/clicker"
-export {
-  isMineHotkeyTypingTarget,
-  minePotionHotkeyLabel,
-  minePotionSlotFromKeyboard,
-  mineSkillSlotFromKeyboard,
-  MINE_POTION_HOTKEY_LABELS,
-  MINE_SKILL_HOTKEY_SLOTS,
-} from "@/domain/services/clicker-mine-hotkeys"
+export type { ParsedSaveCode } from "@/domain/services/clicker-save-transfer"
 export type { MineSessionStart, MineSessionSummary } from "@/domain/services/clicker-mine-session"
 export type { GearSlot, GearTier } from "@/domain/services/clicker-lair"
 export {
   INSTABILITY_WARNING,
   drillCooldownMs,
-  drillSessionActive,
-  drillSessionDurationMs,
   isRegionUnlocked,
   monsterAlive,
   relicVaultOpen,
@@ -71,17 +65,9 @@ export {
   worldTreeOwned,
   worldTreeNodeCost,
   worldTreeNodeError,
-  gachaCost,
   lairDamageMultiplier,
-  gachaFreeReady,
-  gachaLegendaryRate,
   gachaStarMultiplier,
-  GACHA_PITY,
-  GACHA_SOFT_PITY,
-  GACHA_FREE_EVERY_MS,
   GACHA_STAR_PRODUCTION,
-  type GachaReward,
-  type GachaRarity,
 } from "@/domain/services/clicker-engine"
 export {
   CLICKER_ADMIN_REMEMBER_KEY,
@@ -112,29 +98,6 @@ export {
 } from "@/domain/services/clicker-admin-tools"
 export { achievementProgress, autoDrillRate, baseDrillRate, VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/domain/services/clicker-bonus"
 export {
-  SKILL_BRANCH_COLOR,
-  SKILL_BRANCH_GLYPH,
-  SKILL_BRANCH_LABEL,
-  SKILL_BRANCH_ORDER,
-  SKILL_BRANCH_THEMES,
-  purchaseFxAccent,
-  skillBranchAccent,
-  skillBranchCssVars,
-  skillBranchTheme,
-  type SkillBranchTheme,
-} from "@/domain/services/clicker-skill-branch-theme"
-export {
-  UPGRADE_NAV_TABS,
-  buildUpgradeNavTabs,
-  stageStationFor,
-  upgradeNavAction,
-  upgradeNavLabel,
-  type StageStation,
-  type UpgradeNavAction,
-  type UpgradeNavTab,
-  type UpgradeNavTabId,
-} from "@/domain/services/clicker-upgrade-nav"
-export {
   buildScreenTabs,
   manageTabForScreen,
   shouldMountMineChamber,
@@ -155,32 +118,15 @@ export {
   GEAR_SLOTS,
   HELMETS,
   LAIR_BOSSES,
+  SHIELD_MS,
   WEAPONS,
+  FORGE_SUCCESS_RATES,
   forgeError,
+  forgeOdds,
   gearImage,
   gearOf,
   lairAttackEveryMs,
   playerMaxHp,
   shieldRemainingMs,
+  type ForgeOdds,
 } from "@/domain/services/clicker-lair"
-export {
-  REBIRTH_CHOICE_IDLE,
-  pickRebirthWorldline,
-  rebirthConfirmDelayMs,
-  type RebirthChoiceState,
-} from "@/domain/services/clicker-rebirth-choice"
-export { rebirthKeyframePreloadOrder } from "@/domain/services/clicker-rebirth-keyframes"
-export { awakenedGuardianLabel } from "@/domain/services/clicker-guardian-rematch"
-export {
-  clickerCompletionRank,
-  clickerPlayTimeMs,
-  formatClickerPlayTime,
-  sortClickerCompletionRecords,
-  type ClickerCompletionRecord,
-} from "@/domain/services/clicker-completion-records"
-
-/** Worldline rule shown for a worldline (data + pure text; null = no rule). */
-export { worldlineRuleText } from "@/domain/services/clicker-worldline-rules"
-export { clickerMineEntranceMedia, type ClickerMineEntranceMedia } from "@/application/clicker-mine-theme"
-export type { WorldlineRuleDef } from "@/domain/services/clicker-worldline-rules"
-export const WORLDLINE_RULE_ICON_DIR = "/clicker/worldline-rule/"

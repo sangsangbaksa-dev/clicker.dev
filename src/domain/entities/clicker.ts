@@ -53,6 +53,8 @@ export type LairFight = {
   playerHp: number
   playerMaxHp: number
   nextAttackAt: number
+  /** Strikes landed this fight (drives the lair-only shockwave and stun). */
+  strikes?: number
 }
 
 export type RunState = {
@@ -84,6 +86,8 @@ export type RunState = {
   lastCollapse?: { at: number; loss: number }
   /** Forged gear tiers (index into WEAPONS / ARMORS / HELMETS / AMULETS). */
   gear?: { weapon: number; armor: number; helmet?: number; amulet?: number }
+  /** Failed forge attempts since the last success, per slot (drives the pity odds). */
+  forgeFails?: Partial<Record<"weapon" | "armor" | "helmet" | "amulet", number>>
   /** Active lair battle against the current region's boss. */
   lair?: LairFight | null
   /** After beating the player, a boss is shielded until this time (region id → ms). */
@@ -122,12 +126,8 @@ export type RunState = {
   costScale: number
   /** Region id → absolute ms when its monster respawns (absent/past = alive). */
   monsterRespawnAt: Record<string, number>
-  /** Region core drilling: taps fill the gauge (0–1); full gauge pays out and resets during an active session. */
+  /** Region core drilling: taps fill the gauge (0–1); a full gauge pays out and starts the cooldown. */
   drillGauge: number
-  /** Absolute ms when the timed drill session ends (0 = none). */
-  drillSessionEndsAt: number
-  drillSessionDurationMs: number
-  /** After a session ends, no new session until this time. */
   drillCooldownUntil: number
   /** Active boss fight, or null. */
   boss: BossFight | null
@@ -141,9 +141,6 @@ export type BossFight = {
   playerMaxHp: number
   endsAt: number
   nextAttackAt: number
-  /** 각성 수호자 rematch (after the ending); its health was scaled at this dawn depth. */
-  awakened?: boolean
-  awakenedDepth?: number
 }
 
 export type ClickerStatistics = {
@@ -180,78 +177,8 @@ export type MetaState = {
   monstersSlain: number
   /** Relic Vault: relic id → level. Permanent across rebirths. */
   relicLevels: Record<string, number>
-  /** Core capsule gacha: pulls since the last legendary (pity), lifetime pulls, legendary stars owned. */
-  gachaPity?: number
-  gachaPulls?: number
+  /** Legendary stars won in the retired capsule shop: permanent production bonus. */
   gachaStars?: number
-  /** When the last free daily capsule was opened (ms). */
-  gachaFreeAt?: number
-  /** Capsules opened per rarity, all time. */
-  gachaCounts?: Partial<Record<"common" | "rare" | "epic" | "legendary", number>>
-  /** The most recent capsules (newest first), for the history screen. */
-  gachaLog?: GachaLogEntry[]
-  /** Dawn Mine after the true ending; absent until the player presses 계속하기. */
-  postgame?: PostgameState
-  /** 세계선 교환소: trades made this week (weekly limit). */
-  exchange?: ExchangeState
-  /** 기록실: one entry per finished worldline (rebirth or true ending), oldest first. */
-  chronicle?: ChronicleEntry[]
-}
-
-/** 세계선 교환소 weekly counter. */
-export type ExchangeState = {
-  /** Start (ms) of the week these counts belong to. */
-  weekStart: number
-  /** Offer id → trades made in that week. */
-  bought: Record<string, number>
-}
-
-export type ExchangeReward = { kind: "POTION"; potionId: string } | { kind: "FREE_CAPSULE" }
-
-/** One trade at 세계선 교환소: region currency in, an item out. */
-export type ExchangeOfferDef = {
-  id: string
-  name: string
-  description: string
-  /** Paid with payRegionCurrency: this world's wallet first, newer worlds cover the rest. */
-  regionId: string
-  cost: number
-  weeklyLimit: number
-  reward: ExchangeReward
-}
-
-/** 기록실: how one worldline went. */
-export type ChronicleEntry = {
-  worldLine: number
-  /** Transcendence picked to leave this worldline; null for the final (ending) one. */
-  transcendenceId: string | null
-  startedAt: number
-  endedAt: number
-  /** Highest combo reached so far (lifetime statistic at the time this worldline ended). */
-  maxCombo: number
-  lifetimeCore: number
-}
-
-/** Post-ending dawn mine progress (permanent, meta-level). */
-export type PostgameState = {
-  depth: number
-  shards: number
-  /** CORE mined toward the next depth. */
-  progress: number
-  /** CORE goal of depth 0 → 1, fixed when the dawn mine opens. */
-  base: number
-  startedAt: number
-  /** Wins against 각성 수호자. */
-  awakenedWins?: number
-}
-
-/** One opened capsule: when, its rarity, what it held (skill / upgrade / circuit id, or star count). */
-export type GachaLogEntry = {
-  at: number
-  rarity: "common" | "rare" | "epic" | "legendary"
-  kind: "skill" | "upgrade" | "circuit" | "star"
-  id: string
-  count?: number
 }
 
 export type ClickerSettings = {
@@ -369,7 +296,7 @@ export type SkillNodeDef = {
   criticalMultiplier?: number
   comboMaxAdd?: number
   finisherReward?: number
-  instabilityRewardBonus?: number
+  flatProductionBonus?: number
   comboWindowAdd?: number
   /** Owning this circuit unlocks FEVER (gauge, gauge start and potions); locked until then. */
   unlocksFever?: boolean
@@ -404,6 +331,17 @@ export type SkillNodeDef = {
   bossDamageMultiplier?: number
   /** Strike damage against lair creatures (multiplies the forged weapon). */
   lairDamageMultiplier?: number
+  /** Lair-only shockwave: every Nth strike on a creature adds weapon damage × this. */
+  lairQuakeMultiplierAdd?: number
+  lairQuakeIntervalReduce?: number
+  /** Lair-only weak spot: chance per strike to hit a creature for extra damage. */
+  lairCritChanceAdd?: number
+  /** Added to the weak-spot multiplier (base ×3). */
+  lairCritMultiplierAdd?: number
+  /** Fraction of max HP healed on every strike in a lair. */
+  lairLifesteal?: number
+  /** Every LAIR_STUN_EVERY strikes the creature's next swing comes this many ms later. */
+  lairStunMs?: number
 }
 
 export type AchievementKind =
@@ -419,17 +357,6 @@ export type AchievementKind =
   | "ORES"
   | "MINE_SESSIONS"
   | "MINE_HAUL"
-  | LateGameAchievementKind
-
-/** Late-game kinds (progress lives in clicker-achievements-lategame.ts). */
-export type LateGameAchievementKind =
-  | "BOSS"
-  | "ENDING"
-  | "TRANSCENDENCE"
-  | "RELIC_LEVELS"
-  | "GACHA_PULLS"
-  | "GACHA_LEGENDARY"
-  | "POSTGAME_DEPTH"
 
 export type AchievementDef = {
   id: string
@@ -437,8 +364,6 @@ export type AchievementDef = {
   description: string
   kind: AchievementKind
   target: number
-  /** Adds ACHIEVEMENT_PRODUCTION_BONUS when unlocked. Default true. */
-  grantsProductionBonus?: boolean
 }
 
 export type ActiveSkillDef = {
@@ -451,8 +376,18 @@ export type ActiveSkillDef = {
   productionMultiplier?: number
   clickMultiplier?: number
   energyBurstSeconds?: number
+  /** Instant CORE worth this many strikes at the current strike power. */
+  clickBurst?: number
   instabilityPerSecond?: number
   instabilityDelta?: number
+  /** While the buff runs, added straight onto the crit chance (past the usual cap, up to 100%). */
+  criticalChanceAdd?: number
+  /** Calls a lightning storm for `duration`: every strike arcs lightning. */
+  lightningStorm?: boolean
+  /** Starts FEVER at once (FEVER must be unlocked). */
+  feverIgnite?: boolean
+  /** Clears the cooldown of every other active skill. */
+  cooldownReset?: boolean
   assetId: string
 }
 
@@ -524,14 +459,8 @@ export type BossDef = {
   kind: string
   /** Optional painted art (transparent PNG/WebP); replaces the inline SVG creature. */
   imageSrc?: string
-  /** Guardian health in CORE-strike damage (used when `strikesToDefeat` is not set). */
+  /** Guardian health in CORE-strike damage. */
   hp: number
-  /**
-   * Strikes of the player's base build (fever and buffs ignored, crits averaged) that bring the
-   * guardian down. Health follows the player's strength, so the final fight is a fight at any
-   * stage of the economy instead of one lucky critical.
-   */
-  strikesToDefeat?: number
   playerHp: number
   /** Damage dealt to the player per attack. */
   attackDamage: number
@@ -579,7 +508,7 @@ export type TranscendenceDef = {
   clickMultiplier?: number
   productionMultiplier?: number
   feverDurationAdd?: number
-  instabilityRewardBonus?: number
+  flatProductionBonus?: number
   startingEnergy?: number
   comboWindowAdd?: number
   criticalMultiplier?: number
@@ -655,6 +584,12 @@ export type GameConfig = {
    * worldline can be paced to its own length.
    */
   rebirthGoalScale?: number[]
+  /**
+   * Extra factor on the rebirth requirement only (index = rebirths so far; missing = 1). Worlds
+   * open at a share of the scaled goal above, so this lengthens a worldline after its last world
+   * has opened without pushing the worlds themselves later.
+   */
+  rebirthGoalStretch?: number[]
   /** Each rebirth multiplies every CORE price (producers, upgrades, circuits, shop) by this. */
   priceGrowth: number
   /**
@@ -675,8 +610,6 @@ export type GameConfig = {
   regions: RegionDef[]
   transcendence: TranscendenceDef[]
   relics: RelicDef[]
-  /** One offsetting rule per worldline 1-8 (missing = neutral). */
-  worldlineRules?: readonly WorldlineRuleDef[]
   /** Per-world skill trees, in purchase order within each world. */
   worldTrees?: WorldTreeNodeDef[]
   /** Share of the CORE earned in a world that mints its currency before any tree bonus. */
@@ -689,46 +622,6 @@ export type GameConfig = {
     productionTargetId?: string
     productionBonus?: number
     feverDurationBonus?: number
-    instabilityRewardBonus?: number
+    flatProductionBonus?: number
   }>
 }
-
-/* ---------- Worldline rules ---------- */
-
-export type WorldlineRuleEffects = {
-  /** Strike CORE ×. */
-  clickMultiplier: number
-  /** Automatic production ×. */
-  productionMultiplier: number
-  feverDurationMultiplier: number
-  feverCooldownMultiplier: number
-  /** Guardian health ×. */
-  bossHpMultiplier: number
-  /** Monster / guardian-side hunt reward ×. */
-  bossRewardMultiplier: number
-  comboMaxMultiplier: number
-  /** Combo window × (below 1 = combo decays faster). */
-  comboWindowMultiplier: number
-  /** Active-skill buff strength × (applied to the buff's bonus part). */
-  skillEffectMultiplier: number
-  skillCostMultiplier: number
-  regionCurrencyMultiplier: number
-  /** All CORE income × (click and production). */
-  coreMultiplier: number
-  /** Game time × per tick (fever, timers, production seconds). */
-  timeScale: number
-}
-
-export type WorldlineRuleDef = {
-  id: string
-  /** 1-based worldline this rule belongs to. */
-  worldline: number
-  name: string
-  /** Icon file stem under /clicker/worldline-rule/. */
-  icon: string
-  /** Player-facing "+" line and "−" line (sign included in the text, never colour only). */
-  plus: string
-  minus: string
-  effects: Partial<WorldlineRuleEffects>
-}
-

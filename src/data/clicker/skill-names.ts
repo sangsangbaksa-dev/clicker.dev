@@ -6,8 +6,8 @@ export const SKILL_NAMES: Record<string, string> = {
   focus_grip: "Iron Knuckle",
   focus_click: "Pulse Needle",
   focus_press: "Seam Crusher",
-  focus_tempo: "Metronome Wrist",
-  focus_combo: "Unbroken Rhythm",
+  focus_tempo: "Momentum Gauntlet",
+  focus_combo: "Afterimage Strike",
   focus_sharp: "Hairline Sight",
   focus_crit: "Fracture Map",
   focus_edge: "Knife's Grain",
@@ -18,13 +18,13 @@ export const SKILL_NAMES: Record<string, string> = {
   focus_deep: "Marrow Bite",
   focus_lethal: "Deathknell Tone",
   focus_chain: "Echo Ledger",
-  focus_rhythm: "Clockwork Heart",
+  focus_rhythm: "Seismic Cadence",
   focus_titan: "Titan's Forearm",
   focus_overcharge: "Redline Trigger",
   focus_breaker: "Core Sunderer",
   focus_star: "Starfall Hammer",
   focus_apex: "One True Strike",
-  mine_quick: "Steady Swing",
+  mine_quick: "Spark Pick",
   mine_lamp: "Lantern Eye",
   mine_turn: "Quick Cage Lift",
   mine_dwell: "Stubborn Lamp",
@@ -94,7 +94,7 @@ export const SKILL_NAMES: Record<string, string> = {
   drone_mesh: "Murmuration",
   drone_fleet: "Iron Locusts",
   drone_apex: "Queen of the Hive",
-  // RESONANCE — FEVER and instability
+  // RESONANCE — FEVER and resonance
   reso_fever: "Fever Echo",
   reso_hum: "Low Drone",
   reso_glow: "Ember Glow",
@@ -108,10 +108,10 @@ export const SKILL_NAMES: Record<string, string> = {
   reso_bell: "Bronze Bell",
   reso_encore: "Encore",
   reso_finale: "Grand Finale",
-  reso_edge: "Edge Hum",
-  reso_risk: "Knife Dance",
-  reso_brink: "Brinkmanship",
-  reso_abyss: "Abyss Tone",
+  reso_edge: "Resonant Hum",
+  reso_risk: "Harmonic Dance",
+  reso_brink: "Crescendo Engine",
+  reso_abyss: "Deep Chord",
   reso_static: "Static Psalm",
   reso_wave: "Standing Wave",
   reso_wave2: "Crest Harmonic",
@@ -132,7 +132,7 @@ export const SKILL_NAMES: Record<string, string> = {
   trans_mine: "Old Engines",
   trans_deep: "Déjà Vu",
   trans_echo: "Worldline Echo",
-  trans_insight: "Second Sight",
+  trans_insight: "Swarm Memory",
   trans_focus: "Worldline Strike",
   trans_grid: "Worldline Grid",
   trans_fever: "Timeless Fever",
@@ -194,9 +194,15 @@ export function describeSkillNode(n: SkillNodeDef): string {
   if (n.feverDurationAdd) parts.push(`FEVER 지속 +${n.feverDurationAdd}초 연장`)
   if (n.feverIntensity) parts.push(`FEVER 보상 강도 +${pct(n.feverIntensity - 1)}`)
   if (n.finisherReward) parts.push(`FEVER 피니셔 보상 ${times(n.finisherReward)}`)
-  if (n.instabilityRewardBonus) parts.push(`생산 +${pct(n.instabilityRewardBonus)}`)
+  if (n.flatProductionBonus) parts.push(`생산 +${pct(n.flatProductionBonus)}`)
   if (n.monsterRewardMultiplier) parts.push(`크리처 처치 보상 ${times(n.monsterRewardMultiplier)}`)
   if (n.bossDamageMultiplier) parts.push(`수호자에게 주는 피해 ${times(n.bossDamageMultiplier)}`)
+  if (n.lairQuakeMultiplierAdd) parts.push(`사냥 지진파 배율 +${n.lairQuakeMultiplierAdd} 강화`)
+  if (n.lairQuakeIntervalReduce) parts.push(`사냥 지진파 주기 ${n.lairQuakeIntervalReduce}타 단축`)
+  if (n.lairCritChanceAdd) parts.push(`크리처 약점 확률 +${pct(n.lairCritChanceAdd)}`)
+  if (n.lairCritMultiplierAdd) parts.push(`약점 피해 배율 +${n.lairCritMultiplierAdd}`)
+  if (n.lairLifesteal) parts.push(`크리처 타격마다 최대 체력 ${pct(n.lairLifesteal)} 회복`)
+  if (n.lairStunMs) parts.push(`기절 시간 +${n.lairStunMs / 1000}초`)
   return parts.join(" · ")
 }
 

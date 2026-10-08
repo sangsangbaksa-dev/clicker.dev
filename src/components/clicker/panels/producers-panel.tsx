@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { bulkAffordable, bulkCostText } from "@/application/clicker-ui"
-import type { PanelProps } from "./types"
+import type { PanelProps } from "@/hooks/use-clicker"
 
 export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automationBuff }: PanelProps & { automationBuff: boolean }) {
   const [selectedProducerId, setSelectedProducerId] = useState<string | null>(null)

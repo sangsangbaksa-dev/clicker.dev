@@ -94,16 +94,16 @@ type NodeSpec = [id: string, branch: SkillBranch, tier: number, name: string, co
 
 const NODE_SPECS: NodeSpec[] = [
   ["focus_grip", "FOCUS", 1, "Firm Grip", 4_500, "focus_click", { clickMultiplier: 1.1 }, "채굴 ×1.1"],
-  ["focus_tempo", "FOCUS", 1, "Tempo", 9_000, "focus_grip", { comboWindowAdd: 0.3 }, "콤보 유지 +0.3초"],
+  ["focus_tempo", "FOCUS", 1, "Tempo", 9_000, "focus_grip", { comboMaxAdd: 5 }, "콤보 상한 +5"],
   ["focus_sharp", "FOCUS", 2, "Sharp Eye", 150_000, "focus_tempo", { criticalChanceAdd: 0.03 }, "치명타 +3%"],
   ["focus_heavy", "FOCUS", 2, "Heavy Hand", 600_000, "focus_sharp", { clickMultiplier: 1.3 }, "채굴 ×1.3"],
   ["focus_split", "FOCUS", 3, "Split Beam", 8_000_000, "focus_heavy", { clickMultiplier: 1.4 }, "채굴 ×1.4"],
   ["focus_deep", "FOCUS", 3, "Deep Bite", 70_000_000, "focus_split", { criticalMultiplier: 1.3 }, "치명타 배율 ×1.3"],
   ["focus_titan", "FOCUS", 4, "Titan Arm", 1_200_000_000, "focus_deep", { clickMultiplier: 1.8 }, "채굴 ×1.8"],
   ["focus_star", "FOCUS", 5, "Star Breaker", 40_000_000_000, "focus_titan", { clickMultiplier: 2.5 }, "채굴 ×2.5"],
-  ["mine_quick", "FOCUS", 1, "Steady Swing", 12_000, "mine_dwell", { comboWindowAdd: 0.3 }, "콤보 유지 +0.3초"],
+  ["mine_quick", "FOCUS", 1, "Steady Swing", 12_000, "mine_dwell", { lightningChanceAdd: 0.02 }, "번개 +2%"],
   ["mine_turn", "FOCUS", 2, "Fast Turnaround", 400_000, "mine_quick", { cooldownReduceSec: 5 }, "광산·시추 대기 -5초"],
-  ["mine_lamp", "FOCUS", 2, "Head Lamp", 500_000, "mine_quick", { clickMultiplier: 1.15 }, "채굴 ×1.15"],
+  ["mine_lamp", "FOCUS", 2, "Head Lamp", 500_000, "mine_turn", { clickMultiplier: 1.15 }, "채굴 ×1.15"],
   ["storm_static", "FOCUS", 2, "Static Hair", 900_000, "storm_spark", { lightningChanceAdd: 0.02 }, "번개 +2%"],
   ["storm_arc", "FOCUS", 3, "Arc Flash", 35_000_000, "storm_static", { lightningMultiplierAdd: 2 }, "번개 배율 +2"],
   ["quake_step", "FOCUS", 2, "Heavy Step", 1_200_000, "quake_tremor", { quakeMultiplierAdd: 3 }, "지진파 배율 +3"],
@@ -126,8 +126,8 @@ const NODE_SPECS: NodeSpec[] = [
   ["reso_wave2", "RESONANCE", 3, "Standing Wave", 25_000_000, "reso_bell", { feverIntensity: 1.2 }, "FEVER 강도 +20%"],
   ["reso_peak", "RESONANCE", 4, "Peak Harmony", 700_000_000, "reso_wave2", { productionMultiplier: 1.4 }, "생산 ×1.4"],
   ["reso_crown", "RESONANCE", 5, "Harmonic Crown", 50_000_000_000, "reso_peak", { clickMultiplier: 1.8, productionMultiplier: 1.8 }, "채굴·생산 ×1.8"],
-  ["reso_risk", "RESONANCE", 3, "Edge Dance", 20_000_000, "reso_edge", { instabilityRewardBonus: 0.1 }, "생산 +10%"],
-  ["trans_spark", "TRANSCENDENCE", 1, "Memory Spark", 25_000, "trans_start", { startingEnergy: 6 }, "다음 런 시작 +6 CORE"],
+  ["reso_risk", "RESONANCE", 3, "Harmonic Dance", 20_000_000, "reso_edge", { flatProductionBonus: 0.1 }, "생산 +10%"],
+  ["trans_spark", "TRANSCENDENCE", 1, "Memory Spark", 25_000, "trans_start", { startingEnergy: 20 }, "다음 런 시작 +20 CORE"],
   ["trans_kin", "TRANSCENDENCE", 2, "Kinship", 400_000, "trans_spark", { clickMultiplier: 1.2 }, "채굴 ×1.2"],
   ["trans_flow", "TRANSCENDENCE", 2, "World Flow", 1_500_000, "trans_kin", { productionMultiplier: 1.2 }, "생산 ×1.2"],
   ["trans_deep", "TRANSCENDENCE", 3, "Deep Memory", 40_000_000, "trans_flow", { clickMultiplier: 1.3, productionMultiplier: 1.3 }, "채굴·생산 ×1.3"],
@@ -150,6 +150,14 @@ const NODE_SPECS: NodeSpec[] = [
   ["hunt_titanslayer", "HUNT", 4, "Titan Slayer", 70_000_000_000, "hunt_rampage", { lairDamageMultiplier: 1.25, bossDamageMultiplier: 1.4, assetId: "/clicker/skill-node/focus_titan.webp" }, "크리처 피해 ×1.25 · 수호자 피해 ×1.4"],
   ["hunt_wrath", "HUNT", 5, "Hunter's Wrath", 110_000_000_000, "hunt_titanslayer", { lairDamageMultiplier: 1.3, bossDamageMultiplier: 1.5, assetId: "/clicker/skill-node/hunt_bane.webp" }, "크리처 피해 ×1.3 · 수호자 피해 ×1.5"],
   ["hunt_godslayer", "HUNT", 5, "Godslayer", 250_000_000_000, "hunt_wrath", { lairDamageMultiplier: 1.5, bossDamageMultiplier: 2, assetId: "/clicker/skill-node/hunt_apex.webp" }, "크리처 피해 ×1.5 · 수호자 피해 ×2"],
+  // Monster-only strike skills: they fire on lair strikes against creatures, never in the mine.
+  ["hunt_quake", "HUNT", 2, "Roaring Quake", 600_000_000, "hunt_claw", { lairQuakeMultiplierAdd: 5 }, "사냥 지진파 해금 · 크리처를 10번 칠 때마다 지진파가 무기 피해의 ×5를 추가"],
+  ["hunt_quake_rift", "HUNT", 3, "Rift Stomp", 3_200_000_000, "hunt_quake", { lairQuakeIntervalReduce: 3 }, "사냥 지진파 주기 -3타"],
+  ["hunt_quake_crush", "HUNT", 4, "Earthbreaker", 25_000_000_000, "hunt_quake_rift", { lairQuakeMultiplierAdd: 10, lairQuakeIntervalReduce: 2 }, "사냥 지진파 배율 +10 · 주기 -2타"],
+  ["hunt_weakspot", "HUNT", 3, "Weak Spot", 1_500_000_000, "hunt_fang", { lairCritChanceAdd: 0.15 }, "약점 간파 해금 · 크리처 타격 15% 확률로 피해 ×3"],
+  ["hunt_weakspot_deep", "HUNT", 4, "Vital Strike", 30_000_000_000, "hunt_weakspot", { lairCritChanceAdd: 0.1, lairCritMultiplierAdd: 2 }, "약점 확률 +10% · 약점 배율 +2"],
+  ["hunt_leech", "HUNT", 3, "Leech Fang", 4_000_000_000, "hunt_frenzy", { lairLifesteal: 0.015 }, "흡혈 해금 · 크리처를 칠 때마다 최대 체력의 1.5% 회복"],
+  ["hunt_stagger", "HUNT", 4, "Staggering Blow", 12_000_000_000, "hunt_pierce", { lairStunMs: 1500 }, "기절 강타 해금 · 크리처를 12번 칠 때마다 다음 공격을 1.5초 늦춤"],
   ["hunt_slayer", "HUNT", 4, "Slayer", 16_000_000_000, "hunt_lure", { monsterRewardMultiplier: 2.5 }, "크리처 보상 ×2.5"],
   ["hunt_bane", "HUNT", 4, "Warden's Bane", 29_000_000_000, "hunt_slayer", { bossDamageMultiplier: 1.5 }, "수호자 피해 ×1.5"],
   ["hunt_apex", "HUNT", 5, "Apex Predator", 150_000_000_000, "hunt_bane", { bossDamageMultiplier: 2, monsterRewardMultiplier: 3 }, "수호자 피해 ×2 · 크리처 보상 ×3"],
@@ -169,15 +177,19 @@ export const EXTRA_SKILL_NODES: SkillNodeDef[] = NODE_SPECS.map(([id, branch, ti
 }))
 
 export const EXTRA_POTIONS: PotionDef[] = [
-  { id: "spark", name: "Spark Tonic", description: "8초 · 채굴 ×1.5 · 생산 ×1.3 · 치명타 +2%", duration: 8, clickMultiplier: 1.5, productionMultiplier: 1.3, criticalChanceAdd: 0.02, instabilityPerSecond: 0, shopCost: 60_000, assetId: "/clicker/potion/potion_spark.webp" },
-  { id: "keen", name: "Keen Elixir", description: "15초 · 채굴 ×2.6 · 치명타 +15% · 생산 ×1.5", duration: 15, clickMultiplier: 2.6, productionMultiplier: 1.5, criticalChanceAdd: 0.15, instabilityPerSecond: 0, shopCost: 4_000_000, assetId: "/clicker/potion/potion_keen.webp" },
-  { id: "golden", name: "Golden Draught", description: "60초 · 자동 생산 ×4.5 · 채굴 ×1.5", duration: 60, clickMultiplier: 1.5, productionMultiplier: 4.5, criticalChanceAdd: 0, instabilityPerSecond: 0, shopCost: 120_000_000, assetId: "/clicker/potion/potion_golden.webp" },
+  { id: "spark", name: "Spark Tonic", description: "8초 · 채굴 ×1.8 · 치명타 +3%", duration: 8, clickMultiplier: 1.8, productionMultiplier: 1, criticalChanceAdd: 0.03, instabilityPerSecond: 0, shopCost: 60_000, assetId: "/clicker/potion/potion_spark.webp" },
+  { id: "keen", name: "Keen Elixir", description: "15초 · 채굴 ×3 · 치명타 +15%", duration: 15, clickMultiplier: 3, productionMultiplier: 1, criticalChanceAdd: 0.15, instabilityPerSecond: 0, shopCost: 4_000_000, assetId: "/clicker/potion/potion_keen.webp" },
+  { id: "golden", name: "Golden Draught", description: "60초 · 채굴 ×3 · 치명타 +3%", duration: 60, clickMultiplier: 3, productionMultiplier: 1, criticalChanceAdd: 0.03, instabilityPerSecond: 0, shopCost: 120_000_000, assetId: "/clicker/potion/potion_golden.webp" },
 ]
 
 export const EXTRA_ACTIVE_SKILLS: ActiveSkillDef[] = [
   { id: "laser_focus", name: "LASER FOCUS", description: "10초 채굴 ×4", cooldown: 40, duration: 10, shopCost: 40_000, clickMultiplier: 4, assetId: "/clicker/skill/skill_laser_focus.webp" },
-  { id: "time_warp", name: "TIME WARP", description: "생산 30초분 즉시 획득", cooldown: 60, duration: 0, shopCost: 300_000, energyBurstSeconds: 30, assetId: "/clicker/skill/skill_time_warp.webp" },
-  { id: "grid_boost", name: "GRID BOOST", description: "20초 생산 ×2", cooldown: 60, duration: 20, shopCost: 150_000, productionMultiplier: 2, assetId: "/clicker/skill/skill_grid_boost.webp" },
+  { id: "time_warp", name: "TIME WARP", description: "채굴 800회분 CORE를 즉시 획득", cooldown: 60, duration: 0, shopCost: 300_000, clickBurst: 800, assetId: "/clicker/skill/skill_time_warp.webp" },
+  { id: "grid_boost", name: "GRID BOOST", description: "20초 채굴 ×2", cooldown: 60, duration: 20, shopCost: 150_000, clickMultiplier: 2, assetId: "/clicker/skill/skill_grid_boost.webp" },
+  { id: "crit_surge", name: "CRIT SURGE", description: "8초 치명타 확률 +60%", cooldown: 50, duration: 8, shopCost: 120_000, criticalChanceAdd: 0.6, assetId: "/clicker/skill/skill_crit_surge.webp" },
+  { id: "thunder_call", name: "THUNDER CALL", description: "10초 동안 모든 타격에 번개", cooldown: 70, duration: 10, shopCost: 220_000, lightningStorm: true, assetId: "/clicker/skill/skill_thunder_call.webp" },
+  { id: "fever_ignite", name: "FEVER IGNITE", description: "FEVER를 즉시 점화", cooldown: 90, duration: 0, shopCost: 260_000, feverIgnite: true, assetId: "/clicker/skill/skill_fever_ignite.webp" },
+  { id: "cryo_purge", name: "CRYO PURGE", description: "다른 스킬 쿨다운 초기화 · 6초 채굴 ×1.5", cooldown: 120, duration: 6, shopCost: 400_000, clickMultiplier: 1.5, cooldownReset: true, assetId: "/clicker/skill/skill_cryo_purge.webp" },
 ]
 
 /**

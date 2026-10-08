@@ -6,8 +6,6 @@ type Props = {
   value: number
   max: number
   tone: "boss" | "player"
-  /** Metal rim + studs (lair bosses); flat track only for the Core guardian HUD. */
-  rim?: "framed" | "flat"
   /** Left caption (name or "내 체력"). */
   label?: string
   /** Right caption, e.g. "1.2K / 5K". */
@@ -19,11 +17,11 @@ type Props = {
  * Framed health bar: metal rim, glossy fill with tick marks, and a pale damage trail that
  * catches up a beat after each hit. Pulses when it drops under a quarter.
  */
-export function ClickerHpBar({ value, max, tone, rim = "framed", label, valueText, ariaLabel }: Props) {
+export function ClickerHpBar({ value, max, tone, label, valueText, ariaLabel }: Props) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0
   return (
     <div
-      className={`clicker-hpbar is-${tone}${rim === "flat" ? " is-flat" : ""}${pct <= 25 ? " is-low" : ""}`}
+      className={`clicker-hpbar is-${tone}${pct <= 25 ? " is-low" : ""}`}
       role="progressbar"
       aria-label={ariaLabel}
       aria-valuemin={0}

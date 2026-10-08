@@ -141,8 +141,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
     id: "core_heart",
     name: "Core Heart",
     description: "코어의 심장부. 수호자가 코어를 틀어막고 있습니다.",
-    // Same sanctum you arrive in. The guardian is painted into that plate.
-    bgAssetId: "/clicker/region/core_heart_still.webp",
+    bgAssetId: "/clicker/bg/region_core_heart_arena.webp",
     intro: { video: "/clicker/region/core_heart_intro.mp4", poster: "/clicker/bg/region_core_heart.jpg", still: "/clicker/region/core_heart_still.webp" },
     // Three quarters of the final worldline's goal: the last run is a ~30-minute climb to the guardian.
     unlockAtLifetimeEnergy: 750_000_000_000,
@@ -154,9 +153,7 @@ export const CLICKER_REGIONS: RegionDef[] = [
       name: "코어 수호자",
       kind: "warden",
       imageSrc: "/clicker/boss/core_guardian.webp",
-      // Legacy fixed HP (balance-8h, 6e6): only a fallback now; health follows the player's base strike.
-      hp: 6e6,
-      strikesToDefeat: 120,
+      hp: 2.7e12,
       playerHp: 100,
       attackDamage: 12,
       attackEverySec: 4,

@@ -12,7 +12,7 @@ export const CLICKER_RELICS: RelicDef[] = [
     lore: "첫 광부가 쥐고 있던 붉은 돌. 쥔 손이 멈추지 않는다.",
     regionId: "signal_relay",
     maxLevel: 5,
-    perLevel: { clickMultiplier: 1.15 },
+    perLevel: { clickMultiplier: 1.6 },
     assetId: "/clicker/relic/relic_heartstone.webp",
   },
   {
@@ -21,7 +21,7 @@ export const CLICKER_RELICS: RelicDef[] = [
     lore: "세계선이 무너져도 혼자 돌고 있던 작은 원통.",
     regionId: "phase_vault",
     maxLevel: 5,
-    perLevel: { productionMultiplier: 1.15 },
+    perLevel: { productionMultiplier: 1.6 },
     assetId: "/clicker/relic/relic_dynamo.webp",
   },
   {
@@ -57,7 +57,7 @@ export const CLICKER_RELICS: RelicDef[] = [
     lore: "한 번 치면 광산 전체가 같은 음으로 운다.",
     regionId: "deep_fault",
     maxLevel: 5,
-    perLevel: { feverIntensity: 1.15, productionMultiplier: 1.05 },
+    perLevel: { feverIntensity: 1.15, productionMultiplier: 1.2 },
     assetId: "/clicker/relic/relic_resonant_fork.webp",
   },
 ]

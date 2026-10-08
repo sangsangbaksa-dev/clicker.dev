@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   clickerAdminGrant,
   clickerAdminGrantCurrencies,
+  clickerAdminMaxAllUpgrades,
   clickerRedeemSecretCode,
   clickerAdminJumpToFinalBoss,
+  clickerAdminTriggerFinalBossDefeated,
   clickerAdminReplayTutorial,
   clickerApplyAdminModes,
   clickerAdminPatch,
@@ -18,23 +20,16 @@ import {
   clickerCanCompleteEnding,
   clickerClaimVein,
   clickerClick,
-  clickerCanPlay,
   clickerCompleteEnding,
-  clickerContinueAfterEnding,
-  clickerWorldlineRule,
-  clickerWorldlineRuleReveal,
-  clickerAwakenedGuardianView,
-  clickerStartAwakenedGuardian,
-  CLICKER_AWAKENED_ROAR_TEXT,
-  clickerDawnDepth,
-  clickerDawnDepthNotice,
-  clickerShowsCompletion,
+  clickerStoreCompletionRecord,
   clickerDrillOverdrive,
   clickerDrinkPotion,
   clickerEnterMine,
   clickerMineEntryError,
   clickerExitMine,
+  clickerExportCode,
   clickerImportSave,
+  clickerParseSaveCode,
   clickerSaveJson,
   clickerFinishMineSession,
   clickerGameConfig,
@@ -52,7 +47,6 @@ import {
   clickerTick,
   clickerUseSkill,
   clickerFinishTutorial,
-  clickerFreshSaveJson,
   clickerSlayMonster,
   clickerDrill,
   clickerStartBoss,
@@ -62,13 +56,10 @@ import {
   clickerStrikeLair,
   clickerForge,
   clickerBuyRelic,
-  clickerBuyExchange,
-  clickerExchangeOffers,
-  clickerChronicle,
   clickerBuyWorldTreeNode,
-  clickerPullGacha,
   allowMineStrike,
   clearClickerStoredSave,
+  clickerFreshSaveJson,
   clickerPauseMine,
   clickerResumeMine,
   clickerSelectScreenTab,
@@ -82,7 +73,7 @@ import {
   clickerClaimLease,
   clickerCreateTabId,
   clickerIsLeaseTakenByOther,
-} from "@/application/clicker-tab-session"
+} from "@/application/clicker-client-bind"
 import {
   achievementProgress,
   autoDrillRate,
@@ -98,6 +89,7 @@ import {
   SECRET_CODE_AMOUNT,
   GEAR,
   gearOf,
+  forgeOdds,
   isClickerAdminAllowed,
   productionSnapshot,
   type ClickerSettings,
@@ -108,12 +100,13 @@ import {
   type ClickerScreenTabId,
   type ManageDrawerTabId,
   type RegionIntroDef,
+  type RunState,
   type SaveData,
   ADMIN_DEFAULT_MODES,
   nextAdminSpeed,
   type AdminModes,
+  withParticle,
 } from "@/application/clicker-ui"
-import { clickerCues, dawnDepthCue } from "@/application/clicker-cues"
 import { playSfx, setSfxMuted } from "@/lib/clicker-sfx"
 import { clearFloats, pushFloat } from "@/lib/clicker-floats"
 
@@ -193,7 +186,7 @@ export function useClicker() {
   }, [])
 
   useEffect(() => {
-    loadAsOwner()
+    queueMicrotask(() => loadAsOwner())
   }, [loadAsOwner])
 
   useEffect(() => {
@@ -217,7 +210,6 @@ export function useClicker() {
   const sfxMuted = save?.settings.muted ?? false
   useEffect(() => {
     setSfxMuted(sfxMuted)
-    clickerCues().setMuted(sfxMuted)
   }, [sfxMuted])
 
   /** Mine → hub: record the session and raise the result card. Returns the save to commit. */
@@ -237,7 +229,7 @@ export function useClicker() {
       if (ts - last > 100) {
         last = ts
         const current = saveRef.current
-        if (current && clickerCanPlay(current) && !blockedRef.current) {
+        if (current && !current.metaState.gameCompleted && !blockedRef.current) {
           const ticked = clickerTick(current, now())
           const modes = adminModesRef.current
           const next = modes.god || modes.speed > 1 ? clickerApplyAdminModes(current, ticked, modes) : ticked
@@ -316,33 +308,6 @@ export function useClicker() {
     flash(`업적 달성 · ${names} (생산 +${fresh.length}%)`)
   }, [achievementIds, flash])
 
-  // Worldline rule: on entering a new worldline with a rule, one cue plus the rule as aria-live text.
-  const currentWorldLine = save?.runState.currentWorldLine ?? null
-  const knownWorldLine = useRef<number | null>(null)
-  useEffect(() => {
-    if (!save || currentWorldLine == null) return
-    const prev = knownWorldLine.current
-    knownWorldLine.current = currentWorldLine
-    const reveal = clickerWorldlineRuleReveal(prev, save)
-    if (!reveal) return
-    clickerCues().play("worldlineRuleReveal")
-    flash(reveal.text)
-  }, [currentWorldLine, flash, save])
-
-  // 새벽의 광산: announce each new depth as text (aria-live toast), not by sound alone.
-  const dawnDepth = save ? clickerDawnDepth(save) : 0
-  const knownDawnDepth = useRef<number | null>(null)
-  useEffect(() => {
-    if (!save) return
-    const prev = knownDawnDepth.current
-    knownDawnDepth.current = dawnDepth
-    if (prev == null) return
-    const notice = clickerDawnDepthNotice(prev, dawnDepth)
-    if (!notice) return
-    clickerCues().play(dawnDepthCue(notice.big))
-    flash(notice.text)
-  }, [dawnDepth, flash, save])
-
   /** Refused action: toast the reason with the deny buzz. */
   const refuse = useCallback(
     (message: string) => {
@@ -363,7 +328,7 @@ export function useClicker() {
   const mineStrikes = useRef<number[]>([])
   const clickCore = useCallback((clientX?: number, clientY?: number, auto = false) => {
     const current = saveRef.current
-    if (!current || !clickerCanPlay(current)) return null
+    if (!current || current.metaState.gameCompleted) return null
     // Taps (mine and region drilling) share the strikes-per-second cap. The assist drill has its own
     // fixed rate and stays out of it: it used to eat the budget, so taps on phones (where the last
     // touch keeps the drill aimed at the ore) failed on and off.
@@ -431,7 +396,7 @@ export function useClicker() {
     const result = clickerBuySkill(saveRef.current, id)
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    playSfx("purchase")
+    playSfx("skillUnlock")
     const def = clickerGameConfig.skillNodes.find((s) => s.id === id)
     setPurchaseFx({ key: ++fxKey.current, kind: def?.branch ?? "FOCUS", assetId: def?.assetId })
     const name = def?.name ?? id
@@ -463,7 +428,19 @@ export function useClicker() {
     commit(result.value)
     const skill = clickerGameConfig.activeSkills.find((s) => s.id === id)
     // Each kind of skill has its own cast: instant energy, mining laser, or a production surge.
-    playSfx(skill?.energyBurstSeconds ? "skillBurst" : skill?.clickMultiplier && !skill.productionMultiplier ? "skillLaser" : "skillPower")
+    playSfx(
+      skill?.lightningStorm
+        ? "lightning"
+        : skill?.feverIgnite
+          ? "fever"
+          : skill?.cooldownReset
+            ? "crisisResolve"
+            : skill?.energyBurstSeconds || skill?.clickBurst
+              ? "skillBurst"
+              : (skill?.clickMultiplier || skill?.criticalChanceAdd) && !skill.productionMultiplier
+                ? "skillLaser"
+                : "skillPower",
+    )
     flash(`${skill?.name ?? id} 발동`)
   }, [commit, flash, refuse])
 
@@ -486,7 +463,7 @@ export function useClicker() {
     playSfx("travel")
     // Every arrival plays the region's cinematic, not just the first.
     if (result.value.intro) setRegionIntro({ regionId, name: label, description: region?.description ?? "", ...result.value.intro })
-    else flash(`${label}(으)로 이동`)
+    else flash(`${withParticle(label, "으로")} 이동`)
   }, [flash, refuse, commitAndSave])
 
   const dismissRegionIntro = useCallback(() => setRegionIntro(null), [])
@@ -526,7 +503,7 @@ export function useClicker() {
     playSfx("travel")
     const home = clickerGameConfig.regions.find((r) => r.isHome)
     if (home?.intro) setRegionIntro({ regionId: home.id, name: home.name, description: home.description ?? "", ...home.intro })
-    else flash("Core Mine으로 복귀")
+    else flash("Core Mine으로 돌아왔습니다")
   }, [commit, flash, refuse])
 
   const rebirth = useCallback((buffId: string) => {
@@ -534,7 +511,7 @@ export function useClicker() {
     const result = clickerRebirth(saveRef.current, buffId, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
-    flash("WORLD LINE 개방!")
+    flash("WORLD LINE이 열렸습니다.")
   }, [commit, flash, refuse])
 
   const completeEnding = useCallback(() => {
@@ -544,17 +521,7 @@ export function useClicker() {
       refuse(result.error)
       return false
     }
-    commitAndSave(result.value)
-    return true
-  }, [refuse, commitAndSave])
-
-  const continueAfterEnding = useCallback(() => {
-    if (!saveRef.current) return false
-    const result = clickerContinueAfterEnding(saveRef.current, now())
-    if (!result.ok) {
-      refuse(result.error)
-      return false
-    }
+    clickerStoreCompletionRecord(result.value)
     commitAndSave(result.value)
     return true
   }, [refuse, commitAndSave])
@@ -573,6 +540,13 @@ export function useClicker() {
     [commit, flash],
   )
 
+  const adminMaxAllUpgrades = useCallback(() => {
+    if (!isClickerAdminAllowed() || !saveRef.current) return
+    commitAndSave(clickerAdminMaxAllUpgrades(saveRef.current))
+    playSfx("achievement")
+    flash("관리자 · 모든 업그레이드 달성")
+  }, [flash, commitAndSave])
+
   /** The secret code typed anywhere: 100T CORE and of every world currency. */
   const redeemSecretCode = useCallback(() => {
     if (!saveRef.current) return
@@ -587,6 +561,13 @@ export function useClicker() {
     const next = clickerAdminJumpToFinalBoss(saveRef.current, now())
     commitAndSave(next)
     flash("관리자 · 최종 보스 전투 시작")
+  }, [flash, commitAndSave])
+
+  const adminJumpFinalBossDefeated = useCallback(() => {
+    if (!isClickerAdminAllowed() || !saveRef.current) return
+    const next = clickerAdminTriggerFinalBossDefeated(saveRef.current, now())
+    commitAndSave(next)
+    flash("관리자 · 최종 보스 격파 · 엔딩 재생")
   }, [flash, commitAndSave])
 
   const adminSkipTutorial = useCallback(() => {
@@ -624,9 +605,11 @@ export function useClicker() {
     )
   }, [commit])
 
-  const adminCrisis = useCallback(() => {
+  /** Admin: five charges of every active skill, all cooldowns cleared. */
+  const adminSkills = useCallback(() => {
     if (!isClickerAdminAllowed() || !saveRef.current) return
-    commit(clickerAdminPatch(saveRef.current, { instability: 100, crisisActive: true }))
+    const skillItems = Object.fromEntries(clickerGameConfig.activeSkills.map((s) => [s.id, 5]))
+    commit(clickerAdminPatch(saveRef.current, { skillItems, skillCooldowns: {} }))
   }, [commit])
 
   const adminPotions = useCallback(() => {
@@ -695,7 +678,7 @@ export function useClicker() {
   /** Title CTA: always land on upgrades/skills hub. Mine opens only via hub CTA. */
   const startFromTitle = useCallback(() => {
     if (!saveRef.current) return
-    const started = clickerStartGame(saveRef.current)
+    const started = clickerStartGame(saveRef.current, now())
     const hubbed = {
       ...started,
       settings: { ...started.settings, playSurface: "hub" as const },
@@ -844,8 +827,13 @@ export function useClicker() {
       const result = clickerStrikeLair(saveRef.current, now())
       if (result.damage <= 0) return null
       commit(result.save)
-      const text = result.defeated ? `+${formatNumber(result.reward)}` : `-${result.damage}`
-      pushFloat({ text, critical: result.defeated, x: clientX, y: clientY }, result.defeated ? 1100 : 600)
+      const { procs } = result
+      const tag = `${procs.quake ? "지진파 " : ""}${procs.weakSpot ? "약점 " : ""}`
+      const text = result.defeated ? `+${formatNumber(result.reward)}` : `${tag}-${result.damage}${procs.stun ? " · 기절" : ""}`
+      const big = result.defeated || procs.quake || procs.weakSpot
+      pushFloat({ text, critical: big, x: clientX, y: clientY }, big ? 1100 : 600)
+      if (procs.quake) playSfx("quake")
+      else if (procs.weakSpot) playSfx("lightning")
       if (result.defeated) {
         playSfx("monsterDie")
         persistNow(result.save)
@@ -860,22 +848,21 @@ export function useClicker() {
       if (!saveRef.current) return
       const result = clickerForge(saveRef.current, slot)
       if (!result.ok) return refuse(result.error)
-      commitAndSave(result.value)
+      const { save, success } = result.value
+      commitAndSave(save)
+      if (!success) {
+        playSfx("deny")
+        const odds = forgeOdds(save.runState, slot)
+        flash(
+          odds?.guaranteed
+            ? "강화 실패 · 장인의 기운 100% — 다음 강화는 반드시 성공"
+            : `강화 실패 · 다음 확률 ${Math.round((odds?.rate ?? 0) * 1000) / 10}% · 장인의 기운 ${Math.round((odds?.energy ?? 0) * 1000) / 10}%`,
+        )
+        return
+      }
       playSfx("upgrade")
-      const tier = GEAR[slot][gearOf(result.value.runState)[slot]]
-      flash(`제작 완료 · ${tier.name}`)
-    },
-    [refuse, flash, commitAndSave],
-  )
-
-  const buyExchange = useCallback(
-    (offerId: string) => {
-      if (!saveRef.current) return
-      const result = clickerBuyExchange(saveRef.current, offerId, Date.now())
-      if (!result.ok) return refuse(result.error)
-      commitAndSave(result.value)
-      playSfx("upgrade")
-      flash("교환을 마쳤어요.")
+      const tier = GEAR[slot][gearOf(save.runState)[slot]]
+      flash(`강화 성공 · ${tier.name}`)
     },
     [refuse, flash, commitAndSave],
   )
@@ -906,22 +893,6 @@ export function useClicker() {
     [refuse, flash, commitAndSave],
   )
 
-  /** Pull core capsules; returns the rewards so the panel can reveal them (null when refused). */
-  /** Open capsules (the gacha screen plays the reveal and its sounds). Returns the rewards, or null when refused. */
-  const pullGacha = useCallback(
-    (count: 1 | 10, free = false) => {
-      if (!saveRef.current) return null
-      const result = clickerPullGacha(saveRef.current, count, now(), free)
-      if (!result.ok) {
-        refuse(result.error)
-        return null
-      }
-      commitAndSave(result.value.save)
-      return result.value.rewards
-    },
-    [refuse, commitAndSave],
-  )
-
   /** One tap on the region drill rig. Returns the payout when this tap bored the vein, else 0 (null when refused). */
   const drillVein = useCallback(
     (clientX: number, clientY: number) => {
@@ -948,29 +919,19 @@ export function useClicker() {
     playSfx("bossRoar")
   }, [commit, refuse])
 
-  /** 각성 수호자 rematch: roar cue with a text alternative (toast is aria-live). */
-  const startAwakenedGuardian = useCallback(() => {
-    if (!saveRef.current) return
-    const result = clickerStartAwakenedGuardian(saveRef.current, now())
-    if (!result.ok) return refuse(result.error)
-    commit(result.value)
-    clickerCues().play("awakenedRoar")
-    flash(CLICKER_AWAKENED_ROAR_TEXT)
-  }, [commit, refuse, flash])
-
   /** Strike the guardian. Returns true on the killing blow. */
   const strikeBoss = useCallback(
-    (_clientX: number, _clientY: number) => {
+    (clientX: number, clientY: number) => {
       if (!saveRef.current) return false
       const result = clickerStrikeBoss(saveRef.current, now())
       if (result.damage <= 0) return false
       playSfx("bossHit")
       commit(result.save)
+      pushFloat({ text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }, 700)
       if (result.defeated) persistNow(result.save)
-      if (result.shards > 0) flash(`각성 수호자 격파 · 새벽 조각 +${result.shards}`)
       return result.defeated
     },
-    [commit, persistNow, flash],
+    [commit, persistNow],
   )
 
   const forceSave = useCallback(() => {
@@ -980,6 +941,14 @@ export function useClicker() {
     flash("진행 상황 저장됨")
   }, [persistNow, flash])
 
+  /** Current save as a copy-pasteable code (settings → 저장 데이터). */
+  const exportSaveCode = useCallback((): string | null => {
+    const current = saveRef.current
+    if (!current) return null
+    persistNow()
+    return clickerExportCode(current)
+  }, [persistNow])
+
   /** Current save as stored JSON (for the cloud save). */
   const exportSaveJson = useCallback((): string | null => {
     const current = saveRef.current
@@ -987,6 +956,8 @@ export function useClicker() {
     persistNow()
     return clickerSaveJson(current)
   }, [persistNow])
+
+  const parseSaveCode = useCallback((code: string) => clickerParseSaveCode(code, now()), [])
 
   /** Replace this device's save with an imported one (the old save is backed up first). */
   const importSaveJson = useCallback(
@@ -1002,6 +973,7 @@ export function useClicker() {
     [loadAsOwner, flash],
   )
 
+  /** A different account logged in on this device: back up the old run and begin a new one. */
   const startFreshRun = useCallback(() => {
     importSaveJson(clickerFreshSaveJson(now()), "새 진행으로 시작합니다")
   }, [importSaveJson])
@@ -1064,9 +1036,7 @@ export function useClicker() {
       }
     : null
   const canCompleteEnding = save ? clickerCanCompleteEnding(save) : false
-  const isCompleted = save ? clickerShowsCompletion(save) : false
-  const awakenedGuardian = save ? clickerAwakenedGuardianView(save) : null
-  const worldlineRule = save ? clickerWorldlineRule(save) : null
+  const isCompleted = Boolean(save?.metaState.gameCompleted)
 
   return {
     save,
@@ -1090,7 +1060,9 @@ export function useClicker() {
     otherTabActive,
     resumeHere,
     forceSave,
+    exportSaveCode,
     exportSaveJson,
+    parseSaveCode,
     importSaveJson,
     startFreshRun,
     dismissToast,
@@ -1109,21 +1081,19 @@ export function useClicker() {
     returnHome,
     rebirth,
     completeEnding,
-    continueAfterEnding,
-    awakenedGuardian,
-    worldlineRule,
-    startAwakenedGuardian,
     adminReset,
     adminGrant,
     adminGrantAllCurrencies,
+    adminMaxAllUpgrades,
     adminJumpFinalBoss,
+    adminJumpFinalBossDefeated,
     adminSkipTutorial,
     adminReplayTutorial,
     adminToggleGod,
     adminCycleSpeed,
     adminModes,
     adminFillFever,
-    adminCrisis,
+    adminSkills,
     adminPotions,
     adminUnlock,
     toggleMute,
@@ -1155,12 +1125,8 @@ export function useClicker() {
     strikeLair,
     forge,
     buyRelic,
-    buyExchange,
-    exchangeOffers: (now: number) => (save ? clickerExchangeOffers(save, now) : []),
-    chronicle: save ? clickerChronicle(save) : null,
     buyWorldTreeNode,
     redeemSecretCode,
-    pullGacha,
     drillVein,
     purchaseFx,
     startBoss,
@@ -1169,3 +1135,11 @@ export function useClicker() {
 }
 
 export type ClickerGame = ReturnType<typeof useClicker>
+
+/** What most drawer panels need: the game, the live run, and the icon-pop feedback. */
+export type PanelProps = {
+  game: ClickerGame
+  run: RunState
+  popIcons: Record<string, number>
+  bumpIcon: (id: string) => void
+}

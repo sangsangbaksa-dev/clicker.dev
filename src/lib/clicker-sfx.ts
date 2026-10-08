@@ -22,8 +22,6 @@ const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   deny: 140,
   tick: 90,
   achievement: 400,
-  relicAwaken: 900,
-  bossPhase: 1500,
   save: 400,
   lightning: 220,
   quake: 380,
@@ -365,16 +363,6 @@ const CUES = {
       tone(c, "sine", f * 2.01, f * 2.01, 0.012, t + i * 0.07, 0.3, { dest: e })
     })
   },
-  /** Final relic awakening: a low crystalline crack followed by a wide, sustained ascent. */
-  relicAwaken(c: AudioContext, t: number) {
-    const e = echo(c, 0.19, 0.48, 0.52)
-    noise(c, "bandpass", 460, 1.2, 0.11, t, 0.42, { sweepTo: 4200, attack: 0.04 })
-    tone(c, "sine", 92, 38, 0.24, t, 0.65, { attack: 0.003 })
-    ;[392, 587.3, 784, 1174.7, 1568].forEach((f, i) => {
-      tone(c, "triangle", f, f * 1.002, 0.046 - i * 0.004, t + 0.16 + i * 0.075, 1.15, { dest: e })
-    })
-    sparkle(c, t + 0.3, 2093, 8, 0.018, 0.035)
-  },
   /** Region travel: warp sweep. */
   travel(c: AudioContext, t: number) {
     tone(c, "sine", 200, 1400, 0.04, t, 0.35, { attack: 0.08 })
@@ -552,32 +540,6 @@ const CUES = {
     noise(c, "lowpass", 1600, 0.8, 0.16, t + 0.7, 1.2, { sweepTo: 60 })
     for (let i = 0; i < 12; i++) noise(c, "bandpass", 900 + ((i * 677) % 2400), 5, 0.025, t + 0.8 + i * 0.07, 0.05)
   },
-  /** Deep Fault: the chasm cracks, then lava pops and a spray of embers. */
-  lavaBurst(c: AudioContext, t: number) {
-    const v = vary()
-    const e = echo(c, 0.16, 0.3, 0.28)
-    noise(c, "highpass", 900, 0.6, 0.1, t, 0.04)
-    tone(c, "sine", 70 * v, 28, 0.22, t, 0.55, { attack: 0.002, dest: e })
-    noise(c, "lowpass", 1400, 0.8, 0.12, t, 0.4, { sweepTo: 180 })
-    for (let i = 0; i < 6; i++) noise(c, "bandpass", 900 + i * 380, 4, 0.03, t + 0.08 + i * 0.04, 0.05)
-    tone(c, "triangle", 520 * v, 180, 0.04, t + 0.05, 0.2, { attack: 0.002 })
-  },
-  /** Core guardian strikes: stone grinding open, then the diamond rings. */
-  wardenPulse(c: AudioContext, t: number) {
-    const v = vary()
-    const e = echo(c, 0.18, 0.36, 0.34)
-    noise(c, "bandpass", 420 * v, 1.4, 0.08, t, 0.35, { sweepTo: 140 })
-    tone(c, "sine", 98 * v, 42, 0.16, t, 0.5, { attack: 0.004, dest: e })
-    tone(c, "triangle", 740, 1480, 0.045, t + 0.08, 0.42, { attack: 0.01, dest: e })
-    bell(c, 1318 * v, 0.03, t + 0.16, 0.5, e)
-  },
-  /** A tap on the guardian: a crystal tick and a short stone knock. */
-  wardenHit(c: AudioContext, t: number) {
-    const v = vary()
-    noise(c, "bandpass", 1800 * v, 2, 0.05, t, 0.05)
-    tone(c, "triangle", 1560 * v, 2100, 0.03, t, 0.12, { attack: 0.002 })
-    tone(c, "sine", 210 * v, 90, 0.06, t, 0.1, { attack: 0.002 })
-  },
   /** Dragon breath: roaring voice under a crackling, buzzing lightning torrent. */
   dragonBreath(c: AudioContext, t: number) {
     const v = vary()
@@ -596,13 +558,6 @@ const CUES = {
     noise(c, "bandpass", 1600, 1.5, 0.05, t, 0.07)
     tone(c, "square", 260 * vary(), 140, 0.035, t, 0.09)
     thump(c, t, 0.08, 150)
-  },
-  /** Guardian crosses into its enraged phase: a low swelling roar over a sub drop. */
-  bossPhase(c: AudioContext, t: number) {
-    tone(c, "sawtooth", 70, 140, 0.07, t, 0.55, { attack: 0.08 })
-    tone(c, "sine", 110, 38, 0.2, t + 0.05, 0.5)
-    noise(c, "bandpass", 500, 0.8, 0.09, t, 0.5, { sweepTo: 1600, attack: 0.1 })
-    thump(c, t + 0.02, 0.16, 90)
   },
   /** World skill learned: deep gong + rising chime. */
   worldSkill(c: AudioContext, t: number) {
@@ -666,14 +621,6 @@ const CUES = {
 
 export type SfxName = keyof typeof CUES
 
-/** HQ one-shots for cues that also have a synth fallback in `CUES`. */
-const SFX_SAMPLE: Partial<Record<SfxName, string>> = {
-  bossRoar: "/clicker/audio/sfx_boss_appear_v1.mp3",
-  bossHit: "/clicker/audio/sfx_boss_hit_v1.mp3",
-  bossPhase: "/clicker/audio/sfx_boss_phase_change_v1.mp3",
-  bossDown: "/clicker/audio/sfx_boss_defeat_v1.mp3",
-}
-
 /** Play a named UI/game cue. Respects the global mute and per-cue rate limits. */
 export function playSfx(name: SfxName) {
   if (muted) return
@@ -681,18 +628,13 @@ export function playSfx(name: SfxName) {
   const gap = MIN_GAP_MS[name] ?? 30
   if (now - (lastPlayed.get(name) ?? -Infinity) < gap) return
   lastPlayed.set(name, now)
-  const playSynth = () => {
-    const c = audio()
-    if (!c) return
-    try {
-      CUES[name](c, c.currentTime + 0.005)
-    } catch {
-      /* audio graph refused (context closed) — never break gameplay for SFX */
-    }
+  const c = audio()
+  if (!c) return
+  try {
+    CUES[name](c, c.currentTime + 0.005)
+  } catch {
+    /* audio graph refused (context closed) — never break gameplay for SFX */
   }
-  const sampleUrl = SFX_SAMPLE[name]
-  if (sampleUrl && playOneShotSample(sampleUrl, playSynth)) return
-  playSynth()
 }
 
 /**
@@ -700,27 +642,6 @@ export function playSfx(name: SfxName) {
  * impact and a rock crunch. Crits add a bright crystal ring with an echo tail.
  * Pitch wobbles a little so rapid taps don't phase into one tone.
  */
-/**
- * Corridor drill: a short metal bite and a cyan spark. A full gauge adds a rising chime.
- * Pitch jitters so repeated taps don't lock into one tone.
- */
-export function playDrillStrike(burst: boolean) {
-  if (muted) return
-  const c = audio()
-  if (!c) return
-  const t0 = c.currentTime
-  const j = 1 + (Math.random() - 0.5) * 0.07
-  noise(c, "bandpass", 1600 * j, 1.6, burst ? 0.1 : 0.05, t0, burst ? 0.18 : 0.08, { sweepTo: 320 })
-  tone(c, "square", 240 * j, 70, burst ? 0.045 : 0.028, t0, 0.07, { attack: 0.001 })
-  tone(c, "sine", 96, 42, burst ? 0.14 : 0.08, t0, 0.14)
-  tone(c, "triangle", 1280 * j, burst ? 2100 : 1680, burst ? 0.045 : 0.02, t0 + 0.015, 0.1, { attack: 0.002 })
-  if (burst) {
-    const e = echo(c, 0.1, 0.28, 0.32)
-    tone(c, "sine", 784, 1318, 0.05, t0 + 0.04, 0.32, { dest: e })
-    tone(c, "triangle", 1760, 1760, 0.028, t0 + 0.1, 0.36, { dest: e })
-  }
-}
-
 export function playLaser(mutedArg: boolean, critical: boolean) {
   if (mutedArg || muted) return
   const c = audio()
@@ -753,51 +674,11 @@ const STAMP_ROOT: Record<string, number> = {
   adaptive_architect: 466,
 }
 
-const REBIRTH_CUE_SAMPLE: Record<string, string> = {
-  sfx_rebirth_confirm_click: "/clicker/audio/sfx_rebirth_trigger_hq.mp3",
-  sfx_rebirth_collapse_whoosh: "/clicker/audio/sfx_rebirth_collapse_whoosh_v3.mp3",
-  sfx_rebirth_void_tear: "/clicker/audio/sfx_rebirth_void_tear_v3.mp3",
-  sfx_rebirth_rebuild_rise: "/clicker/audio/sfx_rebirth_rebuild_hq.mp3",
-  sfx_rebirth_settle_chime: "/clicker/audio/sfx_rebirth_complete_hq.mp3",
-}
-
-function rebirthCueSampleUrl(name: string): string | null {
-  const direct = REBIRTH_CUE_SAMPLE[name]
-  if (direct) return direct
-  if (name.startsWith("sfx_rebirth_stamp_")) return `/clicker/audio/${name}_hq.mp3`
-  return null
-}
-
-type OneShotSampleRec = { audio: HTMLAudioElement; wired: boolean }
-const oneShotSamples = new Map<string, OneShotSampleRec>()
-
-/** One-shot mp3 samples routed through the same master bus as synth SFX. */
-function playOneShotSample(url: string, onFail: () => void): boolean {
-  if (typeof window === "undefined") return false
+/** Rebirth beat cues, keyed by the placeholder names in `REBIRTH_AUDIO_CUES`. */
+export function playRebirthCue(name: string) {
+  if (muted) return
   const c = audio()
-  if (!c) return false
-  let rec = oneShotSamples.get(url)
-  if (!rec) {
-    const audioEl = new Audio(url)
-    audioEl.preload = "auto"
-    rec = { audio: audioEl, wired: false }
-    oneShotSamples.set(url, rec)
-  }
-  if (!rec.wired) {
-    try {
-      c.createMediaElementSource(rec.audio).connect(out(c))
-      rec.wired = true
-      rec.audio.volume = 1
-    } catch {
-      rec.audio.volume = MASTER_GAIN
-    }
-  }
-  rec.audio.currentTime = 0
-  void rec.audio.play().catch(onFail)
-  return true
-}
-
-function playRebirthCueSynth(name: string, c: AudioContext) {
+  if (!c) return
   const t = c.currentTime
   if (name === "sfx_rebirth_confirm_click") {
     tone(c, "square", 1200, 900, 0.04, t, 0.06)
@@ -820,23 +701,6 @@ function playRebirthCueSynth(name: string, c: AudioContext) {
     tone(c, "sine", 1046, 1046, 0.04, t, 0.8, { dest: e })
     tone(c, "sine", 1318, 1318, 0.03, t + 0.08, 0.7, { dest: e })
   }
-}
-
-/** Rebirth beat cues, keyed by the names in `REBIRTH_AUDIO_CUES`. Prefers HQ mp3 when mapped. */
-export function playRebirthCue(name: string) {
-  if (muted) return
-  const synth = () => {
-    const c = audio()
-    if (!c) return
-    try {
-      playRebirthCueSynth(name, c)
-    } catch {
-      /* context closed */
-    }
-  }
-  const sampleUrl = rebirthCueSampleUrl(name)
-  if (sampleUrl && playOneShotSample(sampleUrl, synth)) return
-  synth()
 }
 
 /** Region field challenge feedback: a clean hit, a miss, and the final whistle. */

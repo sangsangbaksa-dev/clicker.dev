@@ -2,8 +2,7 @@
 
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 import type { CurrencyCostView } from "@/application/clicker-ui"
-import type { PanelProps } from "./types"
-import { ClickerGacha } from "../clicker-gacha"
+import type { PanelProps } from "@/hooks/use-clicker"
 
 function CurrencyCosts({ costs }: { costs: CurrencyCostView[] }) {
   return costs.map((c) => (
@@ -16,7 +15,6 @@ function CurrencyCosts({ costs }: { costs: CurrencyCostView[] }) {
 export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) {
   return (
     <div className="clicker-shop">
-      <ClickerGacha game={game} run={run} />
       <h3 className="clicker-shop-section">물약 · FEVER</h3>
       {game.potionShop.map((item) => {
         const statusClass = item.canBuy ? "is-affordable" : "is-poor"
