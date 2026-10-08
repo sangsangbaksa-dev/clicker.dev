@@ -40,7 +40,7 @@ export function ClickerTitle({ muted, onToggleMute, onStart }: Props) {
           AURELIA CORE
         </h1>
         <p id="clicker-title-lead" className="clicker-title-lead">
-          막혀 버린 코어를 되살리세요.
+          누적된 코어로 세계선을 이어가세요.
         </p>
         <div className="clicker-title-cta">
           <button

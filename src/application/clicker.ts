@@ -79,6 +79,8 @@ import { clickerCompletionRecords, clickerPersistence } from "@/application/clic
 import { createClickerCompletionRecord } from "@/domain/services/clicker-completion-records"
 import { pauseMine, resumeMine } from "@/domain/services/clicker-mine-pause"
 import { selectScreenTab, type ClickerScreenTabId, type ManageDrawerTabId } from "@/domain/services/clicker-screen-tabs"
+import { CLICKER_EXCHANGE_OFFERS } from "@/data/clicker/exchange"
+import { buyExchangeOffer, exchangeOffers, type ExchangeOfferView } from "@/domain/services/clicker-exchange"
 
 const config = clickerConfig
 const rng: Rng = () => Math.random()
@@ -524,3 +526,13 @@ export function clickerApplyAdminModes(prev: SaveData, next: SaveData, modes: Ad
 }
 
 export { config as clickerGameConfig, createInitialSave }
+
+export function clickerExchangeOffers(save: SaveData, now: number): ExchangeOfferView[] {
+  return exchangeOffers(save.runState, save.metaState, config, CLICKER_EXCHANGE_OFFERS, now)
+}
+
+export function clickerBuyExchange(save: SaveData, offerId: string, now: number): UseCaseResult<SaveData> {
+  const next = buyExchangeOffer(save.runState, save.metaState, config, CLICKER_EXCHANGE_OFFERS, offerId, now)
+  if (next.error) return { ok: false, status: 400, error: next.error }
+  return ok({ ...save, runState: next.run, metaState: next.meta })
+}

@@ -67,6 +67,8 @@ import {
   persistClickerGame,
   resetClickerPersistence,
   createInitialSave,
+  clickerBuyExchange,
+  clickerExchangeOffers,
 } from "@/application/clicker"
 import {
   clickerCanWriteSave,
@@ -893,6 +895,19 @@ export function useClicker() {
     [refuse, flash, commitAndSave],
   )
 
+  const buyExchange = useCallback(
+    (offerId: string) => {
+      if (!saveRef.current) return
+      const result = clickerBuyExchange(saveRef.current, offerId, Date.now())
+      if (!result.ok) return refuse(result.error)
+      commitAndSave(result.value)
+      playSfx("upgrade")
+      const offer = clickerExchangeOffers(saveRef.current, Date.now()).find((o) => o.id === offerId)
+      flash(`교환 완료 · ${offer?.name ?? offerId}`)
+    },
+    [refuse, flash, commitAndSave],
+  )
+
   /** One tap on the region drill rig. Returns the payout when this tap bored the vein, else 0 (null when refused). */
   const drillVein = useCallback(
     (clientX: number, clientY: number) => {
@@ -1126,6 +1141,8 @@ export function useClicker() {
     forge,
     buyRelic,
     buyWorldTreeNode,
+    buyExchange,
+    exchangeOffers: (now: number) => (save ? clickerExchangeOffers(save, now) : []),
     redeemSecretCode,
     drillVein,
     purchaseFx,

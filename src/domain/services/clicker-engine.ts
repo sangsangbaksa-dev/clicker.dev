@@ -25,6 +25,7 @@ import {
 } from "./clicker-bonus.ts"
 import { clearMinePause, resumeMine } from "./clicker-mine-pause.ts"
 import { withParticle } from "./clicker-format.ts"
+import { sanitizeExchange } from "./clicker-exchange-week.ts"
 
 /** Base timed-mine length before skill-tree extensions. Balance PROVISIONAL. */
 export const MINE_SESSION_BASE_MS = 10_000
@@ -859,7 +860,6 @@ export function productionSnapshot(
     region.production *
     eventBoostMultiplier(run, "surge", now) *
     eventBoostMultiplier(run, "relay", now) *
-    eventBoostMultiplier(run, "gacha", now) *
     gachaStarMultiplier(meta) *
     worldlineMultiplier(meta, config) *
     achievementProductionMultiplier(meta)
@@ -1832,6 +1832,7 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         monstersSlain: typeof meta.monstersSlain === "number" ? meta.monstersSlain : 0,
         relicLevels: sanitizeRelicLevels(meta.relicLevels, config),
         gachaStars: nonNegativeInt(meta.gachaStars),
+        exchange: sanitizeExchange(meta.exchange),
       },
       runState: {
         ...createInitialRun(now, createInitialMeta(), config),
@@ -1852,7 +1853,15 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
           typeof run.mineSessionCoreAtEnter === "number" ? run.mineSessionCoreAtEnter : 0,
         mineSessionDurationMs:
           typeof run.mineSessionDurationMs === "number" ? run.mineSessionDurationMs : 0,
-        eventBoosts: Array.isArray(run.eventBoosts) ? run.eventBoosts : [],
+        eventBoosts: Array.isArray(run.eventBoosts)
+          ? run.eventBoosts.filter(
+              (b) =>
+                b &&
+                typeof b === "object" &&
+                (b as { id?: string }).id !== "gacha" &&
+                ["surge", "laser_rush", "relay"].includes((b as { id?: string }).id ?? ""),
+            )
+          : [],
         drillOverdriveUntil: typeof run.drillOverdriveUntil === "number" ? run.drillOverdriveUntil : 0,
         drillOverdriveReadyAt: typeof run.drillOverdriveReadyAt === "number" ? run.drillOverdriveReadyAt : 0,
         regionCooldowns:

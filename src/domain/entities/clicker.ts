@@ -38,7 +38,7 @@ export type TimedBuff = {
 
 /** Golden-vein rewards: timed multipliers separate from skill buffs (which key into config). */
 /** Golden-vein and region-activity rewards. */
-export type EventBoostId = "surge" | "laser_rush" | "relay" | "gacha"
+export type EventBoostId = "surge" | "laser_rush" | "relay"
 
 export type EventBoost = {
   id: EventBoostId
@@ -177,8 +177,29 @@ export type MetaState = {
   monstersSlain: number
   /** Relic Vault: relic id → level. Permanent across rebirths. */
   relicLevels: Record<string, number>
-  /** Legendary stars won in the retired capsule shop: permanent production bonus. */
+  /** Legacy production stars from retired capsule shop saves; no new grants. */
   gachaStars?: number
+  /** 세계선 교환소 weekly purchase counts. */
+  exchange?: ExchangeState
+}
+
+export type ExchangeState = {
+  weekStart: number
+  bought: Record<string, number>
+}
+
+export type ExchangeReward =
+  | { kind: "POTION"; potionId: string }
+  | { kind: "CORE_CAPSULE"; coreAmount: number }
+
+export type ExchangeOfferDef = {
+  id: string
+  name: string
+  description: string
+  regionId: string
+  cost: number
+  weeklyLimit: number
+  reward: ExchangeReward
 }
 
 export type ClickerSettings = {

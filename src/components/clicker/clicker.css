@@ -1350,6 +1350,8 @@ button.clicker-metric-action.is-fever-ready em {
   border: 0;
   color: var(--muted);
   padding: 10px 8px;
+  line-height: 1.2;
+  min-height: 44px;
   border-bottom: 2px solid transparent;
 }
 
@@ -5240,6 +5242,14 @@ button.clicker-metric-action.is-fever-ready em {
 }
 
 /* Non-home regions: the region activity replaces the Enter Mine CTA. */
+.clicker-shell.is-region-hub .clicker-stage {
+  grid-template-columns: 1fr;
+}
+
+.clicker-shell.is-entrance-hub .clicker-stage {
+  grid-template-columns: 1fr;
+}
+
 .clicker-shell.is-region-hub .clicker-core-wrap {
   position: absolute;
   inset: 0;

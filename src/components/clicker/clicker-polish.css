@@ -612,10 +612,13 @@
   transform: translateX(-50%);
   z-index: 9;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
-  padding: 8px;
+  padding: 8px 10px 10px;
   max-width: calc(100% - 24px);
   overflow-x: auto;
+  overflow-y: visible;
   scrollbar-width: none;
   border: 1px solid var(--edge);
   border-radius: 18px;
@@ -650,8 +653,10 @@
 [data-clicker] .clicker-hub-dock-btn span {
   font-size: 9px;
   font-weight: 700;
+  line-height: 1.25;
   letter-spacing: 0.14em;
   color: color-mix(in srgb, var(--text-2) 80%, var(--core));
+  overflow: visible;
 }
 
 [data-clicker] .clicker-hub-dock-btn:hover,
