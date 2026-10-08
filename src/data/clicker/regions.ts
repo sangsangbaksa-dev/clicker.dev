@@ -37,9 +37,14 @@ export const CLICKER_REGIONS: RegionDef[] = [
       rewardSeconds: 60,
       cooldownSec: 150,
     },
-    // Drill on the same corridor you arrive in — no second plate and no entrance clip.
-    bgAssetId: "/clicker/region/signal_relay_still.webp",
-    intro: { video: "/clicker/region/signal_relay_intro.mp4", poster: "/clicker/bg/region_signal_relay.webp", still: "/clicker/region/signal_relay_still.webp" },
+    bgAssetId: "/clicker/drill/core_drill_bg.webp",
+    intro: {
+      video: "/clicker/region/signal_relay_intro.mp4",
+      poster: "/clicker/bg/region_signal_relay.webp",
+      still: "/clicker/region/signal_relay_still.webp",
+      engageVideo: "/clicker/drill/core_drill_enter.mp4",
+      engagePoster: "/clicker/drill/core_drill_enter_poster.webp",
+    },
     unlockAtLifetimeEnergy: 250_000_000_000,
     productionMultiplier: 1.12,
     activity: {
