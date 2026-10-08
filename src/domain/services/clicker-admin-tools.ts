@@ -1,5 +1,6 @@
 import type { GameConfig, RunState, SaveData } from "../entities/clicker.ts"
 import { regionUnlockThreshold, startBossFight } from "./clicker-engine.ts"
+import { GEAR, GEAR_SLOTS } from "./clicker-lair.ts"
 
 /** Client-only admin switches (not saved). */
 export type AdminModes = {
@@ -21,8 +22,31 @@ export function adminGrantCurrencies(run: RunState, config: GameConfig, amount: 
   return { ...run, regionCurrency: wallet }
 }
 
+/**
+ * Playtest: every upgrade done at once — all shop upgrades, skill circuits and world-tree
+ * nodes owned, every gear slot at its top tier and every relic at max level.
+ */
+export function adminMaxAllUpgrades(save: SaveData, config: GameConfig): SaveData {
+  const gear = Object.fromEntries(GEAR_SLOTS.map((slot) => [slot, GEAR[slot].length - 1])) as Required<NonNullable<RunState["gear"]>>
+  return {
+    ...save,
+    runState: {
+      ...save.runState,
+      ownedUpgradeIds: config.upgrades.map((u) => u.id),
+      ownedSkillNodeIds: config.skillNodes.map((n) => n.id),
+      worldTreeIds: (config.worldTrees ?? []).map((n) => n.id),
+      gear,
+      forgeFails: {},
+    },
+    metaState: {
+      ...save.metaState,
+      relicLevels: Object.fromEntries(config.relics.map((r) => [r.id, r.maxLevel])),
+    },
+  }
+}
+
 /** Secret code typed anywhere in the game (see `clickerRedeemSecretCode`). */
-export const SECRET_CODE = "@kk960399"
+export const SECRET_CODE = "@kk960398"
 /** What the secret code grants: this much CORE and of every world currency. */
 export const SECRET_CODE_AMOUNT = 1e14
 
@@ -38,6 +62,28 @@ export function grantSecretCode(run: RunState, config: GameConfig): RunState {
 
 export function finalBossRegionId(config: GameConfig): string | undefined {
   return [...config.regions].reverse().find((r) => r.boss)?.id
+}
+
+/** Playtest: final region unlocked, fight cleared, bossDefeated — ready for ending cinematics. */
+export function adminTriggerFinalBossDefeated(save: SaveData, config: GameConfig, now: number): SaveData {
+  const jumped = adminJumpToFinalBoss(save, config, now)
+  return {
+    ...jumped,
+    runState: {
+      ...jumped.runState,
+      boss: null,
+      lair: null,
+      crisisActive: false,
+      mineSessionEndsAt: 0,
+    },
+    metaState: {
+      ...jumped.metaState,
+      bossDefeated: true,
+      gameCompleted: false,
+      completedAt: null,
+    },
+    settings: { ...jumped.settings, playSurface: "hub" },
+  }
 }
 
 export function adminJumpToFinalBoss(save: SaveData, config: GameConfig, now: number): SaveData {
@@ -57,7 +103,7 @@ export function adminJumpToFinalBoss(save: SaveData, config: GameConfig, now: nu
     crisisActive: false,
     mineSessionEndsAt: 0,
   }
-  const fight = startBossFight(unlocked, save.metaState, config, now)
+  const fight = startBossFight(unlocked, config, now)
   return {
     ...save,
     settings: { ...save.settings, gameStarted: true, tutorialSeen: true, playSurface: "hub" },

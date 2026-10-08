@@ -14,7 +14,6 @@ export function ClickerTitle({ muted, onToggleMute, onStart }: Props) {
     <div
       className="clicker-title"
       role="dialog"
-      aria-modal="true"
       aria-labelledby="clicker-title-brand"
       aria-describedby="clicker-title-lead"
     >
@@ -41,7 +40,7 @@ export function ClickerTitle({ muted, onToggleMute, onStart }: Props) {
           AURELIA CORE
         </h1>
         <p id="clicker-title-lead" className="clicker-title-lead">
-          막혀 버린 코어를 되살려라.
+          막혀 버린 코어를 되살리세요.
         </p>
         <div className="clicker-title-cta">
           <button

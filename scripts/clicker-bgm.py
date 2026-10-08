@@ -11,7 +11,6 @@ onto the start so the seam is inaudible.
 """
 from __future__ import annotations
 
-import math
 from pathlib import Path
 
 import numpy as np
@@ -736,227 +735,6 @@ def ending() -> np.ndarray:
     return tr.render(reverb=0.5, room=4.0)
 
 
-# ---------- per-rebirth hub themes (one per mine gate; index = rebirth count mod 8) ----------
-
-def soft(x: np.ndarray, cutoff: float = 1800) -> np.ndarray:
-    return lowpass(lowpass(x, cutoff), cutoff * 1.4)
-
-
-def hub_rune() -> np.ndarray:
-    """Rebirth 1 · Rune Vault — A Dorian, 60 BPM: frame drum, organ, choir and a wooden flute-like horn."""
-    tr = Track(60, 8)
-    prog = [("A", "m"), ("G", "M"), ("D", "M"), ("A", "m"), ("F", "M"), ("G", "M"), ("E", "m"), ("A", "m")]
-    for bar, (root, q) in enumerate(prog):
-        b = bar * 4
-        tr.add(b, organ(chord(root, q, 2) + [hz(f"{root}1")], 4 * tr.beat, 1500), 0.16)
-        tr.add(b, choir(chord(root, q, 3), 4 * tr.beat + 0.8), 0.2)
-        tr.add(b, drone(hz(f"{root}1"), 4 * tr.beat), 0.24)
-        for k, g in ((0, 0.34), (1.5, 0.14), (2, 0.24), (3.5, 0.12)):
-            tr.add(b + k, tom(hz("A1") if k % 2 == 0 else hz("E2"), 0.6), g, float(RNG.uniform(-0.3, 0.3)))
-        tr.add(b, toll(hz(f"{root}3"), 4), 0.08, 0.35)
-    theme = [
-        ("E4", 0, 1.5), ("D4", 1.5, 0.5), ("C4", 2, 1), ("A3", 3, 1),
-        ("B3", 4, 1), ("D4", 5, 1), ("G4", 6, 2),
-        ("F#4", 8, 1), ("E4", 9, 1), ("D4", 10, 1.5), ("F#4", 11.5, 0.5),
-        ("E4", 12, 3), ("A3", 15, 1),
-        ("C4", 16, 1), ("E4", 17, 1), ("A4", 18, 2),
-        ("G4", 20, 1.5), ("F#4", 21.5, 0.5), ("D4", 22, 2),
-        ("E4", 24, 1), ("G4", 25, 1), ("B4", 26, 1), ("A4", 27, 1),
-        ("E4", 28, 2), ("A4", 30, 2),
-    ]
-    play(tr, theme, lambda f, d: soft(horn(f, d), 1500), 0.4, -0.1, 0.95)
-    return tr.render(reverb=0.5, room=3.6)
-
-
-def hub_bulkhead() -> np.ndarray:
-    """Rebirth 2 · Bulkhead — E minor, 88 BPM: machine pulse, distorted bass, war drums and a hard brass riff."""
-    tr = Track(88, 8)
-    prog = [("E", "m"), ("E", "m"), ("C", "M"), ("D", "M"), ("E", "m"), ("G", "M"), ("A", "m"), ("B", "M")]
-    for bar, (root, q) in enumerate(prog):
-        b = bar * 4
-        for k in range(8):
-            tr.add(b + k * 0.5, dist_bass(hz(f"{root}1"), 0.5 * tr.beat * 0.9), 0.22 if k % 2 == 0 else 0.14)
-            tr.add(b + k * 0.5 + 0.25, lowpass(hat(), 5000), 0.06, 0.3)
-        tr.add(b, kick(), 0.5)
-        tr.add(b + 1, soft(snare(), 3500), 0.3, -0.1)
-        tr.add(b + 2, kick(), 0.45)
-        tr.add(b + 2.5, kick(), 0.3)
-        tr.add(b + 3, soft(snare(), 3500), 0.34, 0.1)
-        tr.add(b, soft(strings(chord(root, q, 3), 4 * tr.beat), 1600), 0.1)
-        tr.add(b, choir(chord(root, q, 2), 4 * tr.beat + 0.5), 0.14)
-    riff = [
-        ("E3", 0, 0.75), ("E3", 0.75, 0.25), ("G3", 1, 1), ("F#3", 2, 1), ("D3", 3, 1),
-        ("E3", 4, 0.75), ("E3", 4.75, 0.25), ("B3", 5, 1), ("A3", 6, 2),
-        ("G3", 8, 1), ("E3", 9, 1), ("C4", 10, 1.5), ("B3", 11.5, 0.5),
-        ("A3", 12, 1), ("F#3", 13, 1), ("D3", 14, 2),
-        ("E3", 16, 0.75), ("E3", 16.75, 0.25), ("G3", 17, 1), ("B3", 18, 1), ("E4", 19, 1),
-        ("D4", 20, 1.5), ("B3", 21.5, 0.5), ("G3", 22, 2),
-        ("A3", 24, 1), ("C4", 25, 1), ("E4", 26, 1), ("C4", 27, 1),
-        ("B3", 28, 1), ("D#4", 29, 1), ("F#4", 30, 2),
-    ]
-    play(tr, riff, brass, 0.4, 0.0, 0.9)
-    return tr.render(reverb=0.3, room=2.4)
-
-
-def hub_crystal() -> np.ndarray:
-    """Rebirth 3 · Amethyst — F# minor, 72 BPM: glassy arpeggios over choir, a soft pulse and a high bell melody."""
-    tr = Track(72, 8)
-    prog = [("F#", "m"), ("D", "M"), ("A", "M"), ("E", "M"), ("F#", "m"), ("B", "m"), ("D", "M"), ("C#", "M")]
-    for bar, (root, q) in enumerate(prog):
-        b = bar * 4
-        notes = chord(root, q, 4)
-        for k in range(16):
-            tr.add(b + k * 0.25, soft(glass(notes[(k * 2) % 3] * (2 if k % 4 == 3 else 1), 0.9), 2200), 0.04, 0.5 * math.sin(k))
-        tr.add(b, choir(chord(root, q, 3), 4 * tr.beat + 0.8), 0.22)
-        tr.add(b, pad(chord(root, q, 2), 4 * tr.beat, 900), 0.12)
-        tr.add(b, bass(hz(f"{root}1"), 4 * tr.beat * 0.95), 0.2)
-        tr.add(b, kick(0.5), 0.2)
-        tr.add(b + 2, kick(0.5), 0.14)
-    theme = [
-        ("C#5", 0, 2), ("A4", 2, 1), ("F#4", 3, 1),
-        ("D5", 4, 1.5), ("C#5", 5.5, 0.5), ("A4", 6, 2),
-        ("E5", 8, 1), ("C#5", 9, 1), ("A4", 10, 2),
-        ("G#4", 12, 2), ("B4", 14, 2),
-        ("C#5", 16, 1), ("F#5", 17, 1), ("E5", 18, 2),
-        ("D5", 20, 1), ("B4", 21, 1), ("F#4", 22, 2),
-        ("A4", 24, 1), ("D5", 25, 1), ("F#5", 26, 2),
-        ("F5", 28, 2), ("C#5", 30, 2),
-    ]
-    play(tr, theme, bell, 0.3, 0.15, 0.97, tail=1.2)
-    return tr.render(reverb=0.6, room=4.2)
-
-
-def hub_frost() -> np.ndarray:
-    """Rebirth 4 · Frost Gate — D minor, 54 BPM: wind, tremolo strings, high choir and sparse ice bells."""
-    tr = Track(54, 8)
-    prog = [("D", "m"), ("B", "M"), ("G", "m"), ("A", "M"), ("D", "m"), ("F", "M"), ("C", "M"), ("A", "M")]
-    total = tr.bars * 4 * tr.beat
-    tr.add(0, swell(total, 900, 1 / (4 * tr.beat), 0.7), 0.16, -0.3)
-    tr.add(0, swell(total, 1400, 1 / (3 * tr.beat), 0.6), 0.1, 0.3)
-    for bar, (root, q) in enumerate(prog):
-        b = bar * 4
-        tr.add(b, soft(strings(chord(root, q, 3), 4 * tr.beat, trem=6.5), 1500), 0.12)
-        tr.add(b, choir(chord(root, q, 4), 4 * tr.beat + 1.0), 0.16)
-        tr.add(b, low_strings([hz(f"{root}2")], 4 * tr.beat), 0.16)
-        tr.add(b, timpani(hz(f"{root}2"), 2.0), 0.12)
-        for k in (0.5, 2.25, 3.0):
-            tr.add(b + k, soft(glass(chord(root, q, 5)[int(k * 2) % 3], 2.0), 3200), 0.035, 0.45)
-    theme = [
-        ("A4", 0, 3), ("F4", 3, 1),
-        ("D4", 4, 2), ("E4", 6, 2),
-        ("F4", 8, 1.5), ("G4", 9.5, 0.5), ("A4", 10, 2),
-        ("C#5", 12, 4),
-        ("D5", 16, 2), ("C5", 18, 1), ("A4", 19, 1),
-        ("C5", 20, 2), ("A4", 22, 2),
-        ("G4", 24, 1), ("E4", 25, 1), ("C5", 26, 2),
-        ("A4", 28, 4),
-    ]
-    play(tr, theme, lambda f, d: soft(horn(f, d), 1700), 0.3, 0.0, 0.98)
-    return tr.render(reverb=0.65, room=4.6)
-
-
-def hub_forge() -> np.ndarray:
-    """Rebirth 5 · Magma Forge — C minor, 80 BPM: anvil strikes, taiko, embers and a molten brass march."""
-    tr = Track(80, 8)
-    prog = [("C", "m"), ("G#", "M"), ("D#", "M"), ("G", "M"), ("C", "m"), ("F", "m"), ("G#", "M"), ("G", "M")]
-    total = tr.bars * 4 * tr.beat
-    tr.add(0, soft(crackle(total, 14), 3000), 0.16, -0.4)
-    tr.add(0, swell(total, 200, 1 / (2 * 4 * tr.beat), 0.5), 0.2)
-    for bar, (root, q) in enumerate(prog):
-        b = bar * 4
-        war_drums(tr, b, "X...X.x.X...X.xx" if bar % 2 == 0 else "X..xX.x.X.x.XxXx", 0.55)
-        for k in (1, 3):
-            tr.add(b + k, soft(toll(hz("C5") * (1.0 if k == 1 else 1.06), 0.7), 2600), 0.06, 0.4)  # anvil
-        tr.add(b, dist_bass(hz(f"{root}1"), 4 * tr.beat * 0.95), 0.26)
-        tr.add(b, choir(chord(root, q, 2) + chord(root, q, 3), 4 * tr.beat + 0.5), 0.18)
-        tr.add(b, low_strings(chord(root, q, 2), 4 * tr.beat), 0.12)
-    theme = [
-        ("C4", 0, 1), ("C4", 1, 0.5), ("D#4", 1.5, 0.5), ("G4", 2, 2),
-        ("G#4", 4, 1), ("G4", 5, 1), ("D#4", 6, 2),
-        ("D#4", 8, 1), ("F4", 9, 1), ("G4", 10, 1.5), ("A#4", 11.5, 0.5),
-        ("B4", 12, 2), ("G4", 14, 2),
-        ("C5", 16, 1.5), ("A#4", 17.5, 0.5), ("G#4", 18, 1), ("G4", 19, 1),
-        ("F4", 20, 1), ("G#4", 21, 1), ("C5", 22, 2),
-        ("D#5", 24, 1), ("D5", 25, 1), ("C5", 26, 1), ("G#4", 27, 1),
-        ("B4", 28, 2), ("D5", 30, 2),
-    ]
-    play(tr, theme, brass, 0.44, 0.05, 0.92)
-    return tr.render(reverb=0.38, room=3.0)
-
-
-def hub_temple() -> np.ndarray:
-    """Rebirth 6 · Sun Temple — G Phrygian dominant, 66 BPM: plucked harp runs, temple bells, choir and a solemn horn."""
-    tr = Track(66, 8)
-    prog = [("G", "M"), ("G#", "M"), ("G", "M"), ("F", "m"), ("G", "M"), ("G#", "M"), ("A#", "m"), ("G", "M")]
-    for bar, (root, q) in enumerate(prog):
-        b = bar * 4
-        notes = chord(root, q, 3) + chord(root, q, 4)
-        for k in range(8):
-            tr.add(b + k * 0.5, pluck(notes[k % 6], 0.9), 0.07, -0.4 + 0.1 * (k % 6))
-        tr.add(b, choir(chord(root, q, 3), 4 * tr.beat + 0.8), 0.2)
-        tr.add(b, organ(chord(root, q, 2), 4 * tr.beat, 1600), 0.1)
-        tr.add(b, drone(hz("G1"), 4 * tr.beat), 0.24)
-        tr.add(b, toll(hz("G3"), 5), 0.12, -0.25)
-        tr.add(b + 2, toll(hz("D4"), 3), 0.06, 0.25)
-        tr.add(b, timpani(hz("G2"), 1.4), 0.2)
-    theme = [
-        ("G4", 0, 1.5), ("G#4", 1.5, 0.5), ("B4", 2, 2),
-        ("C5", 4, 1), ("B4", 5, 1), ("G#4", 6, 2),
-        ("G4", 8, 1), ("F4", 9, 1), ("D#4", 10, 1), ("F4", 11, 1),
-        ("G4", 12, 4),
-        ("D5", 16, 1.5), ("C5", 17.5, 0.5), ("B4", 18, 2),
-        ("C5", 20, 1), ("G#4", 21, 1), ("F4", 22, 2),
-        ("A#4", 24, 1), ("G#4", 25, 1), ("G4", 26, 1), ("F4", 27, 1),
-        ("G4", 28, 4),
-    ]
-    play(tr, theme, lambda f, d: soft(horn(f, d), 1900), 0.4, 0.05, 0.96)
-    return tr.render(reverb=0.55, room=4.0)
-
-
-def hub_hive() -> np.ndarray:
-    """Rebirth 7 · Hive Gate — B minor, 74 BPM: a living heartbeat, wet pulses, breathing swells and an eerie lead."""
-    tr = Track(74, 8)
-    prog = [("B", "m"), ("C", "M"), ("B", "m"), ("G", "M"), ("B", "m"), ("C", "M"), ("E", "m"), ("F#", "M")]
-    total = tr.bars * 4 * tr.beat
-    tr.add(0, swell(total, 500, 1 / (2 * tr.beat), 0.8), 0.18)
-    for bar, (root, q) in enumerate(prog):
-        b = bar * 4
-        tr.add(b, heartbeat(), 0.55)
-        tr.add(b + 2, heartbeat(), 0.45)
-        for k in range(8):
-            tr.add(b + k * 0.5, soft(arp(chord(root, q, 3)[k % 3] * (2 if k % 4 == 2 else 1), 0.4), 1400), 0.07, 0.35 * (-1) ** k)
-        tr.add(b, drone(hz(f"{root}1"), 4 * tr.beat), 0.3)
-        tr.add(b, pad(chord(root, q, 2) + chord(root, q, 3), 4 * tr.beat, 700, 1.2), 0.16)
-        tr.add(b, choir([hz(f"{root}4")], 4 * tr.beat + 0.6), 0.1)
-    theme = [
-        ("F#4", 0, 2), ("G4", 2, 1), ("F#4", 3, 1),
-        ("E4", 4, 1), ("D4", 5, 1), ("C4", 6, 2),
-        ("B3", 8, 1.5), ("D4", 9.5, 0.5), ("F#4", 10, 2),
-        ("G4", 12, 1), ("F#4", 13, 1), ("D4", 14, 2),
-        ("B4", 16, 2), ("C5", 18, 1), ("B4", 19, 1),
-        ("G4", 20, 1), ("E4", 21, 1), ("C4", 22, 2),
-        ("E4", 24, 1), ("G4", 25, 1), ("B4", 26, 1), ("G4", 27, 1),
-        ("A#4", 28, 2), ("F#4", 30, 2),
-    ]
-    play(tr, theme, lambda f, d: lead(f, d, 1800), 0.18, 0.1, 0.95)
-    return tr.render(reverb=0.5, room=3.6)
-
-
-def mine_of(hub_audio: np.ndarray) -> np.ndarray:
-    """The mine variant of a hub loop: low-passed, narrowed, a light cave echo (wrapped so the
-    loop stays seamless) and about 6 dB under the hub mix."""
-    x = np.stack([lowpass(lowpass(hub_audio[:, c], 1100), 1600) for c in range(2)], axis=1)
-    mid = x.mean(axis=1, keepdims=True)
-    x = mid + (x - mid) * 0.45
-    for delay, gain in ((0.19, 0.28), (0.41, 0.16), (0.67, 0.08)):
-        x = x + np.roll(x, int(delay * SR), axis=0) * gain
-    x = x / np.max(np.abs(x)) * 10 ** (-1.5 / 20)
-    return x * 10 ** (-6 / 20)
-
-
-HUB_VARIANTS = {1: hub_rune, 2: hub_bulkhead, 3: hub_crystal, 4: hub_frost, 5: hub_forge, 6: hub_temple, 7: hub_hive}
-
-
 TRACKS = {
     "bgm_hub_v2": hub,
     "bgm_mine_v2": mine,
@@ -967,7 +745,6 @@ TRACKS = {
     "bgm_world_fault": fault,
     "bgm_world_heart": heart,
     "bgm_ending": ending,
-    **{f"bgm_hub_r{k}": fn for k, fn in HUB_VARIANTS.items()},
 }
 
 
@@ -980,11 +757,6 @@ def main() -> None:
         audio = TRACKS[name]()
         sf.write(OUT / f"{name}.mp3", audio, SR, format="MP3", subtype="MPEG_LAYER_III")
         print(f"{name}.mp3  {len(audio) / SR:.1f}s")
-        if name.startswith("bgm_hub_r"):
-            # Each rebirth's hub theme also gives that rebirth its mine bed.
-            mine_name = name.replace("bgm_hub_r", "bgm_mine_r")
-            sf.write(OUT / f"{mine_name}.mp3", mine_of(audio), SR, format="MP3", subtype="MPEG_LAYER_III")
-            print(f"{mine_name}.mp3")
 
 
 if __name__ == "__main__":

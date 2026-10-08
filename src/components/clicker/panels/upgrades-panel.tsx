@@ -1,22 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import type { RunState, UpgradeCategory, UpgradeNavAction, UpgradeNavTab } from "@/application/clicker-ui"
-import { formatNumber, upgradeNavAction } from "@/application/clicker-ui"
-import { clickerCues, navTabCue } from "@/application/clicker-cues"
-import { ClickerUpgradeNav } from "@/components/clicker/clicker-upgrade-nav"
+import type { RunState, UpgradeCategory } from "@/application/clicker-ui"
+import { formatNumber } from "@/application/clicker-ui"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
-import type { ClickerGame } from "./types"
+import type { ClickerGame } from "@/hooks/use-clicker"
 
-type UpgradesPanelProps = {
-  game: ClickerGame
-  run: RunState
-  navTabs: UpgradeNavTab[]
-  /** Monster / rebirth / drill pills leave this list and open the existing screen. */
-  onNavRoute: (action: UpgradeNavAction) => void
-}
-
-export function ClickerUpgradesPanel({ game, run, navTabs, onNavRoute }: UpgradesPanelProps) {
+export function ClickerUpgradesPanel({ game, run }: { game: ClickerGame; run: RunState }) {
   const [upgradeCat, setUpgradeCat] = useState<UpgradeCategory>("CLICK")
   return (
     <div className="clicker-upgrades">
@@ -35,21 +25,28 @@ export function ClickerUpgradesPanel({ game, run, navTabs, onNavRoute }: Upgrade
             </span>
           ))}
       </div>
-      <ClickerUpgradeNav
-        tabs={navTabs}
-        active={upgradeCat}
-        onSelect={(tab) => {
-          if (!tab.enabled) {
-            game.refuse(tab.disabledReason ?? "지금은 열 수 없습니다.")
-            return
-          }
-          const cue = navTabCue(tab.id)
-          if (cue) clickerCues().play(cue)
-          const action = upgradeNavAction(tab.id)
-          if (action.kind === "filter") setUpgradeCat(action.category)
-          else onNavRoute(action)
-        }}
-      />
+      <div className="clicker-buy clicker-upgrades-cats" role="tablist" aria-label="업그레이드 카테고리">
+        {(
+          [
+            ["CLICK", "채굴"],
+            ["PRODUCTION", "생산"],
+            ["FEVER", "FEVER"],
+            ["UTILITY", "유틸"],
+          ] as const
+        ).map(([cat, label]) => (
+          <button
+            key={cat}
+            type="button"
+            role="tab"
+            aria-selected={upgradeCat === cat}
+            aria-label={`${label} 업그레이드`}
+            className={upgradeCat === cat ? "clicker-primary" : "clicker-ghost"}
+            onClick={() => setUpgradeCat(cat)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       {(() => {
         const list = game.upgrades.filter((u) => u.category === upgradeCat)
         if (list.length === 0) {

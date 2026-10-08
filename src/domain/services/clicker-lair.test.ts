@@ -85,3 +85,67 @@ test("every gear tier has its painted icon on disk", async () => {
     for (const tier of lair.GEAR[slot]) assert.ok(existsSync(`public${lair.gearImage(tier)}`), `missing ${tier.id}`)
   }
 })
+
+test("forge: odds fall with tier, failures pay, raise the next roll and fill artisan's energy", async () => {
+  const lair = await import("./clicker-lair.ts")
+  const meta = createInitialMeta()
+  const rich = { ...createInitialRun(0, meta, clickerConfig), coreEnergy: 1e15, regionCurrency: { signal_relay: 1e12, phase_vault: 1e12, storm_spire: 1e12, deep_fault: 1e12 } }
+  // Rates only go down as the target tier rises.
+  for (let i = 2; i < lair.FORGE_SUCCESS_RATES.length; i++) assert.ok(lair.FORGE_SUCCESS_RATES[i] <= lair.FORGE_SUCCESS_RATES[i - 1])
+  const atTier8 = { ...rich, gear: { weapon: 8, armor: 0, helmet: 0, amulet: 0 } }
+  const odds = lair.forgeOdds(atTier8, "weapon")!
+  assert.equal(odds.base, 0.2)
+  assert.equal(odds.rate, 0.2)
+  // A failed roll costs the full price and keeps the tier.
+  const fail = lair.forgeGear(atTier8, clickerConfig, "weapon", () => 0.99)
+  assert.equal(fail.success, false)
+  assert.equal(gearOf(fail.run).weapon, 8)
+  assert.ok(fail.run.coreEnergy < atTier8.coreEnergy)
+  const after = lair.forgeOdds(fail.run, "weapon")!
+  assert.ok(Math.abs(after.rate - 0.22) < 1e-9, "next roll +10% of base")
+  assert.ok(Math.abs(after.energy - 0.2 * lair.FORGE_ENERGY_PER_FAIL) < 1e-9)
+  // Keep failing: energy reaches 100% and the next attempt cannot miss.
+  let run = fail.run
+  let guard = 0
+  while (!lair.forgeOdds(run, "weapon")!.guaranteed && guard++ < 50) run = lair.forgeGear(run, clickerConfig, "weapon", () => 0.99).run
+  assert.ok(guard < 50)
+  const sure = lair.forgeGear(run, clickerConfig, "weapon", () => 0.99)
+  assert.equal(sure.success, true)
+  assert.equal(gearOf(sure.run).weapon, 9)
+  assert.equal(sure.run.forgeFails?.weapon, 0)
+  // Tier 1 always lands.
+  assert.equal(lair.forgeGear(rich, clickerConfig, "armor", () => 0.999).success, true)
+})
+
+test("lair: HUNT monster-only skills — shockwave, weak spot, lifesteal and stun", async () => {
+  const engine = await import("./clicker-engine.ts")
+  const meta = createInitialMeta()
+  const ids = ["hunt_quake", "hunt_weakspot", "hunt_leech", "hunt_stagger"]
+  for (const id of ids) assert.ok(clickerConfig.skillNodes.some((n) => n.id === id && n.branch === "HUNT"), id)
+  const base = { ...createInitialRun(0, meta, clickerConfig), currentRegionId: "phase_vault", ownedSkillNodeIds: ids }
+  const skills = engine.lairSkills(base, clickerConfig)
+  assert.equal(skills.quakeInterval, engine.LAIR_QUAKE_BASE_INTERVAL)
+  assert.ok(skills.quakeMultiplier > 0 && skills.critChance > 0 && skills.lifesteal > 0 && skills.stunMs > 0)
+  let run = enterLair(base, clickerConfig, 0).run
+  run = { ...run, lair: { ...run.lair!, bossHp: 1e9, bossMaxHp: 1e9, playerHp: 10 } }
+  const plain = strikeLair(run, meta, clickerConfig, 1, () => 0.99)
+  assert.deepEqual([plain.procs.quake, plain.procs.weakSpot], [false, false])
+  assert.ok(plain.procs.healed > 0, "lifesteal heals on every strike")
+  const crit = strikeLair(run, meta, clickerConfig, 1, () => 0)
+  assert.equal(crit.procs.weakSpot, true)
+  assert.equal(crit.damage, plain.damage * skills.critMultiplier)
+  // The 10th strike is a shockwave; the 12th staggers the next swing.
+  let r = run
+  let tenth
+  for (let i = 1; i <= 12; i++) {
+    const s = strikeLair(r, meta, clickerConfig, 1, () => 0.99)
+    if (i === 10) tenth = s
+    if (i === 12) {
+      assert.equal(s.procs.stun, true)
+      assert.equal(s.run.lair!.nextAttackAt, r.lair!.nextAttackAt + skills.stunMs)
+    }
+    r = s.run
+  }
+  assert.equal(tenth!.procs.quake, true)
+  assert.equal(tenth!.damage, plain.damage * (1 + skills.quakeMultiplier))
+})

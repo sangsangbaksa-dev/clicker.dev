@@ -2,9 +2,8 @@
 
 import { formatNumber } from "@/application/clicker-ui"
 import { ClickerRebirthWorldlineSelect } from "@/components/clicker/clicker-rebirth-worldline-select"
-import { ClickerWorldlineRule } from "@/components/clicker/clicker-worldline-rule"
 import type { MetaState, TranscendenceDef } from "@/application/clicker-ui"
-import type { PanelProps } from "./types"
+import type { PanelProps } from "@/hooks/use-clicker"
 
 export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon, onSelectTab, onChoose }: PanelProps & {
   meta: MetaState
@@ -21,7 +20,7 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
     <div className="clicker-transcendence">
       <header className="clicker-transcendence-head">
         <div className="clicker-transcendence-head-row">
-          <p className="clicker-transcendence-kicker">WORLD LINE · 초월</p>
+          <p className="clicker-transcendence-kicker">WORLD LINE · 환생</p>
           <button
             type="button"
             className="clicker-ghost clicker-transcendence-back"
@@ -31,7 +30,6 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
             ← 돌아가기
           </button>
         </div>
-        <ClickerWorldlineRule rule={game.worldlineRule} />
         <h3>{transcendenceUnlocked ? "환생할 세계선을 고르세요" : allWalked ? `${transcendenceTotal}개 세계선 완료` : "환생 준비 중"}</h3>
         <div
           className="clicker-transcendence-meter"
@@ -70,13 +68,21 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
           />
         </>
       ) : (
-        <div className="clicker-transcendence-locked" role="status">
-          <div className="clicker-transcendence-locked-actions">
-            <button type="button" className="clicker-primary" onClick={() => onSelectTab("producers")}>
-              돌아가기
-            </button>
+        <>
+          <div className="clicker-transcendence-locked" role="status">
+            <p>
+              환생까지 누적 CORE <strong>{formatNumber(Math.max(0, requirement - run.lifetimeCoreEnergy))}</strong> 남았습니다.
+              목표를 채우면 아래 세계선 중 하나를 골라 환생합니다.
+            </p>
           </div>
-        </div>
+          <ClickerRebirthWorldlineSelect
+            buffs={game.config.transcendence}
+            ownedIds={meta.transcendenceIds}
+            popIcons={popIcons}
+            locked
+            onChoose={() => {}}
+          />
+        </>
       )}
     </div>
   )

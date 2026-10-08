@@ -4,10 +4,8 @@ import type {
   ComboState,
   CrisisChoice,
   FeverState,
-  BossDef,
   GameConfig,
   InstabilityLevel,
-  GachaLogEntry,
   MetaState,
   PotionDef,
   ProductionSnapshot,
@@ -25,13 +23,8 @@ import {
   eventBoostMultiplier,
   pruneEventBoosts,
 } from "./clicker-bonus.ts"
-import { gachaBatchFactor, gachaPriceFactor } from "./clicker-gacha-cost.ts"
 import { clearMinePause, resumeMine } from "./clicker-mine-pause.ts"
-import { sanitizePostgame } from "./clicker-postgame.ts"
-import { sanitizeExchange } from "./clicker-exchange-week.ts"
-import { sanitizeChronicle } from "./clicker-chronicle.ts"
-import { scaleBuffBonus, worldlineRuleEffects } from "./clicker-worldline-rules.ts"
-import { worldlineGoalValue, worldlinePowerMultiplier, worldlinePriceScale } from "./clicker-worldline-economy.ts"
+import { withParticle } from "./clicker-format.ts"
 
 /** Base timed-mine length before skill-tree extensions. Balance PROVISIONAL. */
 export const MINE_SESSION_BASE_MS = 10_000
@@ -112,8 +105,6 @@ export function createInitialRun(now: number, meta: MetaState, config: GameConfi
     costScale: scale,
     monsterRespawnAt: {},
     drillGauge: 0,
-    drillSessionEndsAt: 0,
-    drillSessionDurationMs: 0,
     drillCooldownUntil: 0,
     boss: null,
   }
@@ -157,7 +148,7 @@ export function canTriggerTrueEnding(meta: MetaState, config: GameConfig): boole
 export function applyTrueEnding(save: SaveData, config: GameConfig, now: number): { save: SaveData; error?: string } {
   if (save.metaState.gameCompleted) return { save, error: "이미 완료된 기록입니다." }
   if (!canTriggerTrueEnding(save.metaState, config)) {
-    return { save, error: "코어 수호자를 아직 쓰러뜨리지 못했다." }
+    return { save, error: "아직 코어 수호자를 쓰러뜨리지 않았습니다." }
   }
   return {
     save: {
@@ -191,7 +182,7 @@ export function createInitialSave(now: number, config: GameConfig): SaveData {
 }
 
 /** Title CTA: clear title and land on the upgrades/skills hub (not the mine). */
-export function startClickerGame(save: SaveData, now = save.runState.lastTickAt): SaveData {
+export function startClickerGame(save: SaveData, now = save.savedAt): SaveData {
   if (save.settings.gameStarted) return save
   return {
     ...save,
@@ -228,7 +219,7 @@ export function mineEntryCheck(save: SaveData, now: number): { cost: number; err
     return { cost: 0, error: `광산 재입장 대기 ${secs}초` }
   }
   // Ore strikes yield nothing during a crisis; entering would only burn the cooldown.
-  if (save.runState.crisisActive) return { cost: 0, error: "먼저 위기를 해소해야 한다." }
+  if (save.runState.crisisActive) return { cost: 0, error: "위기를 먼저 해소하세요." }
   return { cost: 0 }
 }
 
@@ -330,6 +321,35 @@ function ownedUpgrades(run: RunState, config: GameConfig): UpgradeDef[] {
 /** Lair strike damage multiplier from owned circuits. */
 export function lairDamageMultiplier(run: RunState, config: GameConfig): number {
   return ownedSkills(run, config).reduce((m, n) => m * (n.lairDamageMultiplier ?? 1), 1)
+}
+
+export const LAIR_QUAKE_BASE_INTERVAL = 10
+export const LAIR_QUAKE_MIN_INTERVAL = 4
+export const LAIR_CRIT_BASE_MULTIPLIER = 3
+export const LAIR_STUN_EVERY = 12
+
+/** Monster-only strike skills from the HUNT tree (shockwave, weak spot, lifesteal, stun). */
+export type LairSkills = {
+  quakeMultiplier: number
+  quakeInterval: number
+  critChance: number
+  critMultiplier: number
+  lifesteal: number
+  stunMs: number
+}
+
+export function lairSkills(run: RunState, config: GameConfig): LairSkills {
+  const owned = ownedSkills(run, config)
+  const sum = (k: "lairQuakeMultiplierAdd" | "lairQuakeIntervalReduce" | "lairCritChanceAdd" | "lairCritMultiplierAdd" | "lairLifesteal" | "lairStunMs") =>
+    owned.reduce((s, n) => s + (n[k] ?? 0), 0)
+  return {
+    quakeMultiplier: sum("lairQuakeMultiplierAdd"),
+    quakeInterval: Math.max(LAIR_QUAKE_MIN_INTERVAL, LAIR_QUAKE_BASE_INTERVAL - sum("lairQuakeIntervalReduce")),
+    critChance: Math.min(1, sum("lairCritChanceAdd")),
+    critMultiplier: LAIR_CRIT_BASE_MULTIPLIER + sum("lairCritMultiplierAdd"),
+    lifesteal: sum("lairLifesteal"),
+    stunMs: sum("lairStunMs"),
+  }
 }
 
 function ownedSkills(run: RunState, config: GameConfig): SkillNodeDef[] {
@@ -465,7 +485,7 @@ export function relicError(run: RunState, meta: MetaState, config: GameConfig, r
   const wallet = { ...run.regionCurrency }
   if (!payRegionCurrency(wallet, config, relic.regionId, relicCost(meta, config, relic))) {
     const region = config.regions.find((r) => r.id === relic.regionId)
-    return `${region?.currency?.name ?? "지역 화폐"}이(가) 부족합니다.`
+    return `${withParticle(region?.currency?.name ?? "지역 화폐", "이가")} 부족합니다.`
   }
   return undefined
 }
@@ -490,7 +510,7 @@ export function buyRelic(
 
 /** Permanent multiplier on click and production: compounding per rebirth. */
 export function worldlineMultiplier(meta: MetaState, config: GameConfig): number {
-  return worldlinePowerMultiplier(meta.rebirthCount, config.worldlineBonus)
+  return (1 + config.worldlineBonus) ** meta.rebirthCount
 }
 
 /**
@@ -499,7 +519,7 @@ export function worldlineMultiplier(meta: MetaState, config: GameConfig): number
  * further up the producer ladder and circuit tree than the last.
  */
 export function worldlineCostScale(meta: MetaState, config: GameConfig): number {
-  return worldlinePriceScale(meta.rebirthCount, config.priceGrowth)
+  return config.priceGrowth ** meta.rebirthCount
 }
 
 /** A catalog price at this run's price level. */
@@ -509,7 +529,7 @@ export function scaledCost(run: RunState, cost: number): number {
 
 /** Lifetime CORE the current worldline must reach before it can fold. */
 export function rebirthRequirement(meta: MetaState, config: GameConfig): number {
-  return worldlineGoal(config, meta.rebirthCount)
+  return worldlineGoal(config, meta.rebirthCount) * (config.rebirthGoalStretch?.[meta.rebirthCount] ?? 1)
 }
 
 function startingEnergy(meta: MetaState, config: GameConfig): number {
@@ -642,13 +662,7 @@ export function softStack(multiplier: number, config: GameConfig): number {
   return cap * (multiplier / cap) ** (config.stackSoftExponent ?? 1)
 }
 
-/** This worldline's rule effects (neutral when the catalog has none). */
-export function ruleEffects(run: RunState, config: GameConfig) {
-  return worldlineRuleEffects(config.worldlineRules ?? [], run.currentWorldLine)
-}
-
 export function derivedClick(run: RunState, meta: MetaState, config: GameConfig) {
-  const rule = ruleEffects(run, config)
   const upgrades = ownedUpgrades(run, config)
   const skills = ownedSkills(run, config)
   const trans = ownedTranscendence(meta, config)
@@ -691,14 +705,7 @@ export function derivedClick(run: RunState, meta: MetaState, config: GameConfig)
     config.comboWindow +
     skills.reduce((s, n) => s + (n.comboWindowAdd ?? 0), 0) +
     trans.reduce((s, t) => s + (t.comboWindowAdd ?? 0), 0)
-  click *= rule.clickMultiplier * rule.coreMultiplier
-  return {
-    click,
-    critChance,
-    critMult,
-    comboMax: Math.max(1, Math.round(comboMax * rule.comboMaxMultiplier)),
-    comboWindow: comboWindow * rule.comboWindowMultiplier,
-  }
+  return { click, critChance, critMult, comboMax, comboWindow }
 }
 
 function feverMultipliers(run: RunState, meta: MetaState, config: GameConfig) {
@@ -743,7 +750,7 @@ function feverDurationSeconds(run: RunState, meta: MetaState, config: GameConfig
       duration *= 1 + syn.feverDurationBonus
     }
   }
-  return duration * ruleEffects(run, config).feverDurationMultiplier
+  return duration
 }
 
 export function producerCost(config: GameConfig, producerId: string, level: number, scale = 1): number {
@@ -804,9 +811,20 @@ export function buffMultiplier(run: RunState, now: number, field: "productionMul
   let m = 1
   for (const b of run.activeBuffs) {
     if (b.expiresAt <= now) continue
-    m *= scaleBuffBonus(config.activeSkills.find((s) => s.id === b.id)?.[field] ?? 1, ruleEffects(run, config).skillEffectMultiplier)
+    m *= config.activeSkills.find((s) => s.id === b.id)?.[field] ?? 1
   }
   return m
+}
+
+/** Crit chance added by running active-skill buffs (CRIT SURGE). */
+export function buffCritChance(run: RunState, now: number, config: GameConfig): number {
+  if (!skillClockRunning(run)) return 0
+  let add = 0
+  for (const b of run.activeBuffs) {
+    if (b.expiresAt <= now) continue
+    add += config.activeSkills.find((s) => s.id === b.id)?.criticalChanceAdd ?? 0
+  }
+  return add
 }
 
 export function productionSnapshot(
@@ -819,26 +837,24 @@ export function productionSnapshot(
   const skills = ownedSkills(run, config)
   const trans = ownedTranscendence(meta, config)
   const fever = feverMultipliers(run, meta, config)
-  let instabBonus = 0
+  let flatBonus = 0 // flat production bonus from circuits, worldlines and synergies
   for (const syn of config.synergies) {
     if ((run.producerLevels[syn.producerId] ?? 0) >= syn.minLevel) {
-      instabBonus += syn.instabilityRewardBonus ?? 0
+      flatBonus += syn.flatProductionBonus ?? 0
     }
   }
-  instabBonus += trans.reduce((s, t) => s + (t.instabilityRewardBonus ?? 0), 0)
-  instabBonus += skills.reduce((s, n) => s + (n.instabilityRewardBonus ?? 0), 0)
-  const instab = instabilityReward(run.instability, instabBonus)
+  flatBonus += trans.reduce((s, t) => s + (t.flatProductionBonus ?? 0), 0)
+  flatBonus += skills.reduce((s, n) => s + (n.flatProductionBonus ?? 0), 0)
+  const flatMult = 1 + flatBonus
   const buffs = buffMultiplier(run, now, "productionMultiplier", config)
   const region = regionPresenceMultipliers(run, config)
   const boughtGlobal =
     product(upgrades.filter((u) => !u.producerId && !u.producerTag).map((u) => u.productionMultiplier ?? 1)) *
     product(skills.filter((s) => !s.producerTag).map((s) => s.productionMultiplier ?? 1))
-  const ruleNow = ruleEffects(run, config)
-  const ruleProd = ruleNow.productionMultiplier * ruleNow.coreMultiplier
   const globalProd =
     product(trans.map((t) => t.productionMultiplier ?? 1)) *
     fever.production *
-    instab *
+    flatMult *
     buffs *
     region.production *
     eventBoostMultiplier(run, "surge", now) *
@@ -846,7 +862,7 @@ export function productionSnapshot(
     eventBoostMultiplier(run, "gacha", now) *
     gachaStarMultiplier(meta) *
     worldlineMultiplier(meta, config) *
-    achievementProductionMultiplier(meta, config.achievements)
+    achievementProductionMultiplier(meta)
 
   const byProducer: Record<string, number> = {}
   let perSecond = 0
@@ -878,7 +894,7 @@ export function productionSnapshot(
         rate *= 1 + syn.productionBonus
       }
     }
-    rate *= globalProd * ruleProd
+    rate *= globalProd
     byProducer[producer.id] = rate
     perSecond += rate
   }
@@ -920,7 +936,7 @@ export function processClick(
   if (combo.count > combo.maxCombo) combo.maxCombo = combo.count
 
   const fever = feverMultipliers(run, meta, config)
-  const isCritical = rng() < derived.critChance
+  const isCritical = rng() < Math.min(1, derived.critChance + buffCritChance(run, now, config))
   if (isCritical) combo.expiresAt += 250
 
   let hit =
@@ -998,7 +1014,7 @@ export function buyPotion(run: RunState, config: GameConfig, potionId: string): 
   const cost = scaledCost(run, potion.shopCost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, potion.shopCost))
-  if (short) return { run, error: `${short.name} 부족` }
+  if (short) return { run, error: `${withParticle(short.name, "이가")} 부족합니다.` }
   return {
     run: {
       ...run,
@@ -1018,10 +1034,9 @@ export const ACTIVE_SKILL_LIFETIME_SHARE = 0.012
 const ACTIVE_SKILL_REFERENCE_COST = 20
 
 /** Price of one active skill charge: it keeps pace with the run instead of going trivial. */
-export function activeSkillCost(run: RunState, skill: ActiveSkillDef, config?: GameConfig): number {
-  const rule = config ? ruleEffects(run, config).skillCostMultiplier : 1
+export function activeSkillCost(run: RunState, skill: ActiveSkillDef): number {
   const share = ACTIVE_SKILL_LIFETIME_SHARE * Math.sqrt(skill.shopCost / ACTIVE_SKILL_REFERENCE_COST)
-  return Math.ceil(Math.max(scaledCost(run, skill.shopCost * ACTIVE_SKILL_PRICE_MULT), run.lifetimeCoreEnergy * share) * rule)
+  return Math.ceil(Math.max(scaledCost(run, skill.shopCost * ACTIVE_SKILL_PRICE_MULT), run.lifetimeCoreEnergy * share))
 }
 export function buyActiveSkillItem(
   run: RunState,
@@ -1030,10 +1045,10 @@ export function buyActiveSkillItem(
 ): { run: RunState; error?: string } {
   const skill = config.activeSkills.find((s) => s.id === skillId)
   if (!skill) return { run, error: "스킬을 찾을 수 없습니다." }
-  const cost = activeSkillCost(run, skill, config)
+  const cost = activeSkillCost(run, skill)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, skill.shopCost))
-  if (short) return { run, error: `${short.name} 부족` }
+  if (short) return { run, error: `${withParticle(short.name, "이가")} 부족합니다.` }
   return {
     run: {
       ...run,
@@ -1057,10 +1072,10 @@ export function startFever(
   source: "GAUGE" | "POTION",
   potionId: string | null
 ): { run: RunState; error?: string } {
-  if (!feverUnlocked(run, config)) return { run, error: "스킬 「Fever Core」에서 FEVER를 해금해야 한다." }
+  if (!feverUnlocked(run, config)) return { run, error: "스킬 「Fever Core」에서 FEVER를 해금해야 합니다." }
   if (run.crisisActive) return { run, error: "위기 중에는 FEVER를 열 수 없습니다." }
   if (feverActive(run.fever) || run.fever.phase === "COOL_DOWN") {
-    return { run, error: "FEVER가 아직 진행 중이다." }
+    return { run, error: "FEVER가 아직 끝나지 않았습니다." }
   }
   const potion = potionId ? config.potions.find((p) => p.id === potionId) : undefined
   if (source === "POTION") {
@@ -1126,11 +1141,10 @@ export function processTick(
   config: GameConfig,
   now: number
 ): { run: RunState; meta: MetaState } {
-  // 가속 rule: game seconds per real second (the per-tick production cut sits in the rule's production ×).
-  const dt = Math.max(0, Math.min((now - run.lastTickAt) / 1000, 1)) * ruleEffects(run, config).timeScale
+  const dt = Math.max(0, Math.min((now - run.lastTickAt) / 1000, 1))
   if (dt <= 0) return { run: { ...run, lastTickAt: now }, meta }
 
-  let next = finalizeDrillSession(pruneEventBoosts({ ...run, lastTickAt: now }, now), config, now)
+  let next = pruneEventBoosts({ ...run, lastTickAt: now }, now)
   if (now > next.combo.expiresAt && next.combo.count > 0) {
     next.combo = { ...next.combo, count: 0, multiplier: 1 }
   }
@@ -1168,7 +1182,7 @@ export function processTick(
       next.fever = {
         ...createInitialFever(),
         phase: "COOL_DOWN",
-        remainingTime: config.feverCoolDown * ruleEffects(next, config).feverCooldownMultiplier,
+        remainingTime: config.feverCoolDown,
         gauge: next.fever.gauge,
       }
     }
@@ -1351,7 +1365,7 @@ export function accrueRegionCurrency(prev: RunState, next: RunState, config: Gam
 }
 
 export function regionCurrencyRate(run: RunState, config: GameConfig, regionId: string): number {
-  return (config.regionCurrencyRate ?? 1) * worldTreeMultiplier(run, config, regionId, "currencyMultiplier") * ruleEffects(run, config).regionCurrencyMultiplier
+  return (config.regionCurrencyRate ?? 1) * worldTreeMultiplier(run, config, regionId, "currencyMultiplier")
 }
 
 /**
@@ -1392,7 +1406,7 @@ export function buyUpgrade(
   const cost = scaledCost(run, upgrade.cost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, upgradeCurrencyCosts(run, config, upgrade))
-  if (short) return { run, error: `${short.name} 부족` }
+  if (short) return { run, error: `${withParticle(short.name, "이가")} 부족합니다.` }
   return {
     run: {
       ...run,
@@ -1423,7 +1437,7 @@ export function buySkillNode(
   const cost = scaledCost(run, node.cost)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, node.cost))
-  if (short) return { run, error: `${short.name} 부족` }
+  if (short) return { run, error: `${withParticle(short.name, "이가")} 부족합니다.` }
   return {
     run: {
       ...run,
@@ -1446,18 +1460,34 @@ export function activateSkill(
   const skill = config.activeSkills.find((s) => s.id === skillId)
   if (!skill) return { run, error: "스킬이 없습니다." }
   if ((run.skillItems[skillId] ?? 0) <= 0) return { run, error: "스킬이 부족합니다." }
-  if ((run.skillCooldowns[skillId] ?? 0) > 0) return { run, error: "쿨다운 중이다." }
-  let next = {
-    ...run,
-    skillItems: { ...run.skillItems, [skillId]: Math.max(0, (run.skillItems[skillId] ?? 0) - 1) },
-    skillCooldowns: { ...run.skillCooldowns, [skillId]: skill.cooldown },
+  if ((run.skillCooldowns[skillId] ?? 0) > 0) return { run, error: "쿨다운 중입니다." }
+  // FEVER IGNITE is checked before anything is spent, so a refused cast keeps the charge.
+  let ignited: RunState | null = null
+  if (skill.feverIgnite) {
+    const lit = startFever(run, meta, config, "GAUGE", null)
+    if (lit.error) return { run, error: lit.error }
+    ignited = lit.run
   }
+  const base = ignited ?? run
+  const cooldowns = skill.cooldownReset
+    ? Object.fromEntries(Object.keys(base.skillCooldowns).map((id) => [id, 0]))
+    : base.skillCooldowns
+  let next = {
+    ...base,
+    skillItems: { ...base.skillItems, [skillId]: Math.max(0, (base.skillItems[skillId] ?? 0) - 1) },
+    skillCooldowns: { ...cooldowns, [skillId]: skill.cooldown },
+  }
+  if (skill.lightningStorm) next.lightningStormUntil = Math.max(next.lightningStormUntil, now + skill.duration * 1000)
   if (skill.instabilityDelta) next = applyInstabilityDelta(next, skill.instabilityDelta)
   if (skill.duration > 0) {
     next.activeBuffs = [
       ...next.activeBuffs.filter((b) => b.id !== skillId),
       { id: skillId, expiresAt: now + skill.duration * 1000 },
     ]
+  }
+  if (skill.clickBurst) {
+    const burst = derivedClick(next, meta, config).click * skill.clickBurst
+    next = { ...next, coreEnergy: next.coreEnergy + burst, lifetimeCoreEnergy: next.lifetimeCoreEnergy + burst }
   }
   if (skill.energyBurstSeconds) {
     const snapshot = productionSnapshot(next, meta, config, now)
@@ -1663,7 +1693,7 @@ export function regionUnlockThreshold(run: RunState, config: GameConfig, region:
 
 /** Lifetime CORE that ends the worldline after `rebirths` rebirths (the per-worldline goal table applied). */
 export function worldlineGoal(config: GameConfig, rebirths: number): number {
-  return worldlineGoalValue(config.rebirthEnergy, config.rebirthGrowth, config.rebirthGoalScale, rebirths)
+  return config.rebirthEnergy * config.rebirthGrowth ** rebirths * (config.rebirthGoalScale?.[rebirths] ?? 1)
 }
 
 export function isRegionUnlocked(run: RunState, config: GameConfig, regionId: string): boolean {
@@ -1719,7 +1749,10 @@ export function resumeAfterGap(run: RunState): RunState {
     combo: createInitialCombo(),
     activeBuffs: [],
     eventBoosts: [],
+    // A fight left mid-way (tab hidden, phone locked) is called off, not lost: replaying the
+    // missed boss blows used to knock the player out and raise a 3-minute shield on return.
     boss: null,
+    lair: null,
   }
 }
 
@@ -1786,20 +1819,19 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         visitedRegionIds: Array.isArray(meta.visitedRegionIds)
           ? meta.visitedRegionIds.filter((id) => typeof id === "string")
           : [],
+        startedAt:
+          typeof meta.startedAt === "number" && Number.isFinite(meta.startedAt) && meta.startedAt >= 0
+            ? meta.startedAt
+            : null,
         gameCompleted: Boolean(meta.gameCompleted),
-        completedAt: typeof meta.completedAt === "number" ? meta.completedAt : null,
+        completedAt:
+          typeof meta.completedAt === "number" && Number.isFinite(meta.completedAt) && meta.completedAt >= 0
+            ? meta.completedAt
+            : null,
         bossDefeated: Boolean(meta.bossDefeated),
         monstersSlain: typeof meta.monstersSlain === "number" ? meta.monstersSlain : 0,
         relicLevels: sanitizeRelicLevels(meta.relicLevels, config),
-        gachaPity: nonNegativeInt(meta.gachaPity),
-        gachaPulls: nonNegativeInt(meta.gachaPulls),
         gachaStars: nonNegativeInt(meta.gachaStars),
-        gachaFreeAt: typeof meta.gachaFreeAt === "number" && Number.isFinite(meta.gachaFreeAt) ? meta.gachaFreeAt : 0,
-        gachaCounts: sanitizeGachaCounts(meta.gachaCounts),
-        postgame: meta.gameCompleted && meta.postgame ? sanitizePostgame(meta.postgame) : undefined,
-        gachaLog: sanitizeGachaLog(meta.gachaLog),
-        exchange: sanitizeExchange(meta.exchange),
-        chronicle: sanitizeChronicle(meta.chronicle),
       },
       runState: {
         ...createInitialRun(now, createInitialMeta(), config),
@@ -1830,8 +1862,6 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         monsterRespawnAt:
           run.monsterRespawnAt && typeof run.monsterRespawnAt === "object" ? { ...run.monsterRespawnAt } : {},
         drillGauge: typeof run.drillGauge === "number" ? Math.min(1, Math.max(0, run.drillGauge)) : 0,
-        drillSessionEndsAt: typeof run.drillSessionEndsAt === "number" ? run.drillSessionEndsAt : 0,
-        drillSessionDurationMs: typeof run.drillSessionDurationMs === "number" ? run.drillSessionDurationMs : 0,
         drillCooldownUntil: typeof run.drillCooldownUntil === "number" ? run.drillCooldownUntil : 0,
         boss: null,
         costScale:
@@ -1852,6 +1882,11 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
           helmet: Number.isInteger(run.gear?.helmet) ? Math.max(0, run.gear!.helmet!) : 0,
           amulet: Number.isInteger(run.gear?.amulet) ? Math.max(0, run.gear!.amulet!) : 0,
         },
+        forgeFails: Object.fromEntries(
+          Object.entries(run.forgeFails && typeof run.forgeFails === "object" ? run.forgeFails : {}).filter(
+            ([k, v]) => ["weapon", "armor", "helmet", "amulet"].includes(k) && Number.isInteger(v) && (v as number) >= 0,
+          ),
+        ),
         // A reload walks you back out of any lair fight; shields keep running.
         lair: null,
         monsterShieldUntil: Object.fromEntries(
@@ -1902,7 +1937,7 @@ export function slayMonster(
   const respawnSec = Math.max(5, monster.respawnSec - skills.reduce((s, n) => s + (n.monsterRespawnReduce ?? 0), 0))
   // Hunting grounds are the region's main income, so their kills pay a much bigger click floor.
   const clickFloor = region.huntMode ? 150 : 25
-  const reward = (perSecond * monster.rewardSeconds + derivedClick(run, meta, config).click * clickFloor) * rewardMul * ruleEffects(run, config).bossRewardMultiplier
+  const reward = (perSecond * monster.rewardSeconds + derivedClick(run, meta, config).click * clickFloor) * rewardMul
   return {
     run: {
       ...run,
@@ -1931,46 +1966,15 @@ export function drillTaps(run: RunState, config: GameConfig): number {
   return Math.max(DRILL_MIN_TAPS, DRILL_TAPS - ownedUpgradeSum(run, config, "drillTapsReduce"))
 }
 
-/** Timed drill window and post-session wait share the same tuned duration (coolant upgrades apply to both). */
+/** Cooldown after a bore: the shared re-entry cooldown minus drill coolant upgrades. */
 export function drillCooldownMs(run: RunState, config: GameConfig): number {
   const cut = ownedUpgradeSum(run, config, "drillCooldownReduceSec") * 1000
   return Math.max(DRILL_MIN_COOLDOWN_MS, referenceCooldownMs(run, config) - cut)
 }
 
-export function drillSessionDurationMs(run: RunState, config: GameConfig): number {
-  return drillCooldownMs(run, config)
-}
-
-export function drillSessionActive(run: RunState, now: number): boolean {
-  return run.drillSessionEndsAt > now
-}
-
-/** Ends an expired drill session and starts the between-session cooldown. */
-export function finalizeDrillSession(run: RunState, config: GameConfig, now: number): RunState {
-  if (run.drillSessionEndsAt <= 0 || run.drillSessionEndsAt > now) return run
-  const wait = drillCooldownMs(run, config)
-  return {
-    ...run,
-    drillSessionEndsAt: 0,
-    drillSessionDurationMs: 0,
-    drillGauge: 0,
-    drillCooldownUntil: now + wait,
-  }
-}
-
-function beginDrillSession(run: RunState, config: GameConfig, now: number): RunState {
-  const durationMs = drillSessionDurationMs(run, config)
-  return {
-    ...run,
-    drillSessionEndsAt: now + durationMs,
-    drillSessionDurationMs: durationMs,
-    drillGauge: 0,
-  }
-}
-
 /**
- * One tap on the region drill rig. During a timed session, filling the gauge pays out and resets the gauge;
- * the session keeps running until its timer ends, then the rig cools down before the next session.
+ * One tap on the region drill rig. Fills the gauge; the tap that fills it bores the vein:
+ * pays 90s of production plus a click-based floor, empties the gauge and starts the cooldown.
  */
 export function drillStrike(
   run: RunState,
@@ -1978,27 +1982,20 @@ export function drillStrike(
   config: GameConfig,
   now: number,
 ): { run: RunState; meta: MetaState; reward: number; error?: string } {
-  let next = finalizeDrillSession(run, config, now)
-  if (next.drillCooldownUntil > now) {
-    return { run: next, meta, reward: 0, error: `시추 장비 냉각 중 · ${Math.ceil((next.drillCooldownUntil - now) / 1000)}초` }
+  if (run.drillCooldownUntil > now) {
+    return { run, meta, reward: 0, error: `시추 장비 냉각 중 · ${Math.ceil((run.drillCooldownUntil - now) / 1000)}초` }
   }
-  if (!drillSessionActive(next, now)) {
-    next = beginDrillSession(next, config, now)
-  }
-  if (now >= next.drillSessionEndsAt) {
-    next = finalizeDrillSession(next, config, now)
-    return { run: next, meta, reward: 0, error: "시추 시간 종료" }
-  }
-  const gauge = Math.min(1, next.drillGauge + 1 / drillTaps(next, config))
-  if (gauge < 1 - 1e-9) return { run: { ...next, drillGauge: gauge }, meta, reward: 0 }
-  const perSecond = productionSnapshot(next, meta, config, now).perSecond
-  const reward = perSecond * 90 + derivedClick(next, meta, config).click * 60
+  const gauge = Math.min(1, run.drillGauge + 1 / drillTaps(run, config))
+  if (gauge < 1 - 1e-9) return { run: { ...run, drillGauge: gauge }, meta, reward: 0 }
+  const perSecond = productionSnapshot(run, meta, config, now).perSecond
+  const reward = perSecond * 90 + derivedClick(run, meta, config).click * 60
   return {
     run: {
-      ...next,
+      ...run,
       drillGauge: 0,
-      coreEnergy: next.coreEnergy + reward,
-      lifetimeCoreEnergy: next.lifetimeCoreEnergy + reward,
+      drillCooldownUntil: now + drillCooldownMs(run, config),
+      coreEnergy: run.coreEnergy + reward,
+      lifetimeCoreEnergy: run.lifetimeCoreEnergy + reward,
     },
     meta: { ...meta, totalCoreEnergy: meta.totalCoreEnergy + reward },
     reward,
@@ -2007,64 +2004,19 @@ export function drillStrike(
 
 /* ---------- Core guardian ---------- */
 
-/** Strikes sampled to size the guardian, at the pace of a steady player. */
-const BOSS_SAMPLE_STRIKES = 600
-const BOSS_SAMPLE_STRIKES_PER_SEC = 6
-
-/**
- * Mean damage of one strike from the player's base build: fever, timed buffs, storms and event boosts are
- * off, crits / combo / echo / lightning / quake are averaged in by replaying a fixed strike
- * sequence through the same code a real strike uses (so it cannot drift from the fight itself).
- */
-export function baseBossStrike(run: RunState, meta: MetaState, config: GameConfig): number {
-  // The replay runs on its own clock, so any "until" timer left in the save would read as still running.
-  let calm: RunState = {
-    ...run,
-    fever: createInitialFever(),
-    activeBuffs: [],
-    eventBoosts: [],
-    crisisActive: false,
-    lightningStormUntil: 0,
-    droneSwarmUntil: 0,
-    drillOverdriveUntil: 0,
-    combo: { ...run.combo, count: 0, multiplier: 1, expiresAt: 0 },
-  }
-  const bossMul = ownedSkills(calm, config).reduce((m, n) => m * (n.bossDamageMultiplier ?? 1), 1)
-  // Crits are ×300+ here, so a pseudo-random sample is far too noisy (it was off by ~6×). A golden-ratio
-  // (Weyl) sequence covers [0,1) evenly, which pins the mean to about 1% with 600 strikes.
-  let seed = 0.37
-  const rng = () => (seed = (seed + 0.6180339887498949) % 1)
-  const stepMs = 1000 / BOSS_SAMPLE_STRIKES_PER_SEC
-  let total = 0
-  for (let i = 0; i < BOSS_SAMPLE_STRIKES; i++) {
-    const hit = processClick(calm, meta, config, 1_000_000 + i * stepMs, rng)
-    calm = hit.run
-    total += hit.result.energyGained * bossMul
-  }
-  return total / BOSS_SAMPLE_STRIKES
-}
-
-/** Guardian health for this player: `strikesToDefeat` base strikes when the catalog sets it, else the fixed `hp`. */
-export function bossFightHp(boss: BossDef, run: RunState, meta: MetaState, config: GameConfig): number {
-  const rule = ruleEffects(run, config).bossHpMultiplier
-  if (!boss.strikesToDefeat) return boss.hp * rule
-  return baseBossStrike(run, meta, config) * boss.strikesToDefeat * rule
-}
-
-export function startBossFight(run: RunState, meta: MetaState, config: GameConfig, now: number): { run: RunState; error?: string } {
+export function startBossFight(run: RunState, config: GameConfig, now: number): { run: RunState; error?: string } {
   const region = currentRegionDef(run, config)
   const boss = region?.boss
   if (!region || !boss) return { run, error: "여기에는 수호자가 없습니다." }
   if (run.crisisActive) return { run, error: "위기 중에는 싸울 수 없습니다." }
   if (run.boss) return { run }
-  const hp = bossFightHp(boss, run, meta, config)
   return {
     run: {
       ...run,
       boss: {
         regionId: region.id,
-        hp,
-        maxHp: hp,
+        hp: boss.hp,
+        maxHp: boss.hp,
         playerHp: boss.playerHp,
         playerMaxHp: boss.playerHp,
         endsAt: now + boss.timeLimitSec * 1000,
@@ -2167,9 +2119,9 @@ export function worldTreeNodeError(run: RunState, config: GameConfig, nodeId: st
   if (!region || !isRegionUnlocked(run, config, region.id)) return "아직 열리지 않은 지역입니다."
   const tree = worldTreeNodes(config, node.regionId)
   const prev = tree[tree.indexOf(node) - 1]
-  if (prev && !worldTreeOwned(run, prev.id)) return `먼저 「${prev.name}」을(를) 배워야 합니다.`
+  if (prev && !worldTreeOwned(run, prev.id)) return `먼저 「${prev.name}」${withParticle(prev.name, "을를").slice(prev.name.length)} 배워야 합니다.`
   if (regionCurrencyBalance(run, node.regionId) < worldTreeNodeCost(run, config, node)) {
-    return `${region.currency?.name ?? "지역 화폐"}이(가) 부족합니다.`
+    return `${withParticle(region.currency?.name ?? "지역 화폐", "이가")} 부족합니다.`
   }
   return undefined
 }
@@ -2189,214 +2141,12 @@ export function buyWorldTreeNode(run: RunState, config: GameConfig, nodeId: stri
   }
 }
 
-/* ---------- Core capsule gacha ---------- */
+/* ---------- Legendary stars (from the retired capsule shop) ---------- */
 
-export type GachaRarity = "common" | "rare" | "epic" | "legendary"
-
-export type GachaReward =
-  | { rarity: GachaRarity; kind: "skill"; skillId: string; count: number }
-  | { rarity: GachaRarity; kind: "upgrade"; upgradeId: string }
-  | { rarity: GachaRarity; kind: "circuit"; nodeId: string }
-  | { rarity: "legendary"; kind: "star"; stars: number }
-
-/** Pulls without a legendary before one is guaranteed. */
-export const GACHA_PITY = 60
-/** From this many pulls without a legendary, its odds climb every pull (soft pity)… */
-export const GACHA_SOFT_PITY = 45
-/** …by this much per pull. */
-export const GACHA_SOFT_PITY_STEP = 0.06
-/** One free capsule per this long. */
-export const GACHA_FREE_EVERY_MS = 24 * 60 * 60 * 1000
-/** Each legendary star: permanent production ×1.08 (survives rebirth). */
+/** Each legendary star: permanent production ×1.08 (survives rebirth). Stars won before the
+    capsule shop closed keep their bonus; no new ones are handed out. */
 export const GACHA_STAR_PRODUCTION = 1.08
-/** A ten-pull costs nine. */
-export const GACHA_TEN_PULL_DISCOUNT = 0.9
-/**
- * Capsules hand out things, never CORE: common = active skill charges, rare = a free upgrade,
- * epic = a free skill circuit. Only items priced within a few pulls are in the pool, so a
- * capsule saves a little time but never skips far ahead.
- */
-export const GACHA_COMMON_CHARGES = 1
-export const GACHA_UPGRADE_MAX_PULLS = 2
-export const GACHA_CIRCUIT_MAX_PULLS = 4
-/** Each draw picks from this many of the cheapest eligible items. */
-const GACHA_POOL = 5
-const GACHA_RATES: Array<[GachaRarity, number]> = [
-  ["legendary", 0.02],
-  ["epic", 0.1],
-  ["rare", 0.28],
-  ["common", 0.6],
-]
 
 export function gachaStarMultiplier(meta: MetaState): number {
   return GACHA_STAR_PRODUCTION ** (meta.gachaStars ?? 0)
-}
-
-/** Value of a second of play: production plus a slice of a click, never 0 (fresh runs). */
-function gachaUnit(run: RunState, meta: MetaState, config: GameConfig, now: number): number {
-  return Math.max(productionSnapshot(run, meta, config, now).perSecond, derivedClick(run, meta, config).click * 0.3, config.baseClick)
-}
-
-/** Ten minutes of current income: the price basis, and the size of what a capsule can hand out. */
-function gachaBasePrice(run: RunState, meta: MetaState, config: GameConfig, now: number): number {
-  return Math.ceil(gachaUnit(run, meta, config, now) * 600)
-}
-
-/** A capsule costs ten minutes of income × a factor that rises faster with every pull made (see clicker-gacha-cost). */
-export function gachaCost(run: RunState, meta: MetaState, config: GameConfig, now: number, count: 1 | 10 = 1): number {
-  const base = gachaBasePrice(run, meta, config, now)
-  const pulls = meta.gachaPulls ?? 0
-  return count === 10 ? Math.ceil(base * gachaBatchFactor(pulls, 10) * GACHA_TEN_PULL_DISCOUNT) : Math.ceil(base * gachaPriceFactor(pulls))
-}
-
-/** How many opened capsules the history keeps. */
-export const GACHA_LOG_MAX = 100
-const GACHA_RARITIES = ["common", "rare", "epic", "legendary"] as const
-
-function sanitizeGachaCounts(value: unknown): MetaState["gachaCounts"] {
-  const src = value && typeof value === "object" ? (value as Record<string, unknown>) : {}
-  return Object.fromEntries(GACHA_RARITIES.map((r) => [r, nonNegativeInt(src[r])]))
-}
-
-function sanitizeGachaLog(value: unknown): GachaLogEntry[] {
-  if (!Array.isArray(value)) return []
-  return value
-    .filter(
-      (e): e is GachaLogEntry =>
-        Boolean(e) &&
-        typeof e === "object" &&
-        typeof e.at === "number" &&
-        (GACHA_RARITIES as readonly string[]).includes(e.rarity) &&
-        ["skill", "upgrade", "circuit", "star"].includes(e.kind) &&
-        typeof e.id === "string",
-    )
-    .slice(0, GACHA_LOG_MAX)
-    .map((e) => ({ at: e.at, rarity: e.rarity, kind: e.kind, id: e.id, ...(typeof e.count === "number" ? { count: e.count } : {}) }))
-}
-
-/** Legendary odds for the next pull, with soft pity after GACHA_SOFT_PITY dry pulls. */
-export function gachaLegendaryRate(pity: number): number {
-  if (pity + 1 >= GACHA_PITY) return 1
-  const base = GACHA_RATES[0][1]
-  return Math.min(1, base + Math.max(0, pity + 1 - GACHA_SOFT_PITY) * GACHA_SOFT_PITY_STEP)
-}
-
-export function gachaFreeReady(meta: MetaState, now: number): boolean {
-  return now - (meta.gachaFreeAt ?? 0) >= GACHA_FREE_EVERY_MS
-}
-
-function rollRarity(pity: number, rng: () => number): GachaRarity {
-  const legendary = gachaLegendaryRate(pity)
-  if (legendary >= 1) return "legendary"
-  let r = rng()
-  if (r < legendary) return "legendary"
-  r -= legendary
-  // The other rarities keep their relative odds in what is left.
-  const scale = (1 - legendary) / (1 - GACHA_RATES[0][1])
-  for (const [rarity, rate] of GACHA_RATES.slice(1)) {
-    if (r < rate * scale) return rarity
-    r -= rate * scale
-  }
-  return "common"
-}
-
-function pickCheapest<T>(items: T[], price: (item: T) => number, rng: () => number): T | undefined {
-  const pool = [...items].sort((x, y) => price(x) - price(y)).slice(0, GACHA_POOL)
-  return pool.length ? pool[Math.floor(rng() * pool.length) % pool.length] : undefined
-}
-
-/** Upgrades the player could buy right now (conditions met), priced within `maxCost`. */
-export function gachaUpgradePool(run: RunState, config: GameConfig, maxCost: number) {
-  return config.upgrades.filter(
-    (u) =>
-      !run.ownedUpgradeIds.includes(u.id) &&
-      (!u.unlockProducerId || (run.producerLevels[u.unlockProducerId] ?? 0) > 0) &&
-      (!u.unlockFeverStarts || run.feverStarts >= u.unlockFeverStarts) &&
-      scaledCost(run, u.cost) <= maxCost,
-  )
-}
-
-/** Circuits whose prerequisites are owned, priced within `maxCost`. Rebirth-side nodes never drop. */
-export function gachaCircuitPool(run: RunState, config: GameConfig, maxCost: number) {
-  return config.skillNodes.filter(
-    (n) =>
-      n.branch !== "TRANSCENDENCE" &&
-      !run.ownedSkillNodeIds.includes(n.id) &&
-      (n.requires ?? []).every((id) => run.ownedSkillNodeIds.includes(id)) &&
-      scaledCost(run, n.cost) <= maxCost,
-  )
-}
-
-/**
- * Pull `count` capsules: pays CORE, rolls rarities (legendary guaranteed by the pity counter) and
- * grants each reward. A rarity with nothing left to give falls back a step: circuit → upgrade →
- * skill charges.
- */
-export function pullGacha(
-  run: RunState,
-  meta: MetaState,
-  config: GameConfig,
-  now: number,
-  rng: () => number,
-  count: 1 | 10 = 1,
-  free = false,
-): { run: RunState; meta: MetaState; rewards: GachaReward[]; error?: string } {
-  if (free && (count !== 1 || !gachaFreeReady(meta, now))) return { run, meta, rewards: [], error: "무료 캡슐은 하루에 한 번입니다." }
-  const cost = free ? 0 : gachaCost(run, meta, config, now, count)
-  if (run.coreEnergy < cost) return { run, meta, rewards: [], error: "CORE가 부족합니다." }
-  const one = gachaBasePrice(run, meta, config, now) // reward pools keep the old size; only the price rises
-  let next: RunState = { ...run, coreEnergy: run.coreEnergy - cost }
-  let nextMeta: MetaState = free ? { ...meta, gachaFreeAt: now } : { ...meta }
-  const rewards: GachaReward[] = []
-  const giveCharges = (rarity: GachaRarity, charges: number) => {
-    const skill = config.activeSkills[Math.floor(rng() * config.activeSkills.length) % config.activeSkills.length]
-    if (!skill) return
-    next = { ...next, skillItems: { ...next.skillItems, [skill.id]: (next.skillItems[skill.id] ?? 0) + charges } }
-    rewards.push({ rarity, kind: "skill", skillId: skill.id, count: charges })
-  }
-  const giveUpgrade = (rarity: GachaRarity): boolean => {
-    const upgrade = pickCheapest(gachaUpgradePool(next, config, one * GACHA_UPGRADE_MAX_PULLS), (u) => u.cost, rng)
-    if (!upgrade) return false
-    next = { ...next, ownedUpgradeIds: [...next.ownedUpgradeIds, upgrade.id] }
-    rewards.push({ rarity, kind: "upgrade", upgradeId: upgrade.id })
-    return true
-  }
-  const giveCircuit = (rarity: GachaRarity): boolean => {
-    const node = pickCheapest(gachaCircuitPool(next, config, one * GACHA_CIRCUIT_MAX_PULLS), (n) => n.cost, rng)
-    if (!node) return false
-    next = { ...next, ownedSkillNodeIds: [...next.ownedSkillNodeIds, node.id] }
-    rewards.push({ rarity, kind: "circuit", nodeId: node.id })
-    return true
-  }
-  let gotRare = false
-  for (let i = 0; i < count; i++) {
-    let rarity = rollRarity(nextMeta.gachaPity ?? 0, rng)
-    // A ten-pull always holds at least one rare or better.
-    if (count === 10 && i === count - 1 && !gotRare && rarity === "common") rarity = "rare"
-    if (rarity !== "common") gotRare = true
-    nextMeta = { ...nextMeta, gachaPulls: (nextMeta.gachaPulls ?? 0) + 1, gachaPity: rarity === "legendary" ? 0 : (nextMeta.gachaPity ?? 0) + 1 }
-    if (rarity === "legendary") {
-      nextMeta = { ...nextMeta, gachaStars: (nextMeta.gachaStars ?? 0) + 1 }
-      rewards.push({ rarity, kind: "star", stars: nextMeta.gachaStars ?? 1 })
-    } else if (rarity === "epic") {
-      if (!giveCircuit(rarity) && !giveUpgrade(rarity)) giveCharges(rarity, GACHA_COMMON_CHARGES * 3)
-    } else if (rarity === "rare") {
-      if (!giveUpgrade(rarity)) giveCharges(rarity, GACHA_COMMON_CHARGES * 2)
-    } else {
-      giveCharges(rarity, GACHA_COMMON_CHARGES)
-    }
-  }
-  // History: per-rarity totals and the newest capsules first.
-  const counts = { ...(nextMeta.gachaCounts ?? {}) }
-  for (const r of rewards) counts[r.rarity] = (counts[r.rarity] ?? 0) + 1
-  const logged: GachaLogEntry[] = rewards
-    .map((r): GachaLogEntry => {
-      if (r.kind === "skill") return { at: now, rarity: r.rarity, kind: "skill", id: r.skillId, count: r.count }
-      if (r.kind === "upgrade") return { at: now, rarity: r.rarity, kind: "upgrade", id: r.upgradeId }
-      if (r.kind === "circuit") return { at: now, rarity: r.rarity, kind: "circuit", id: r.nodeId }
-      return { at: now, rarity: r.rarity, kind: "star", id: "star", count: r.stars }
-    })
-    .reverse()
-  nextMeta = { ...nextMeta, gachaCounts: counts, gachaLog: [...logged, ...(nextMeta.gachaLog ?? [])].slice(0, GACHA_LOG_MAX) }
-  return { run: next, meta: nextMeta, rewards }
 }

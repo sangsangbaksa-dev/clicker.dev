@@ -1,16 +1,14 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
-import { layoutSkillTree, connectorPath, type SkillCell } from "@/data/clicker/skill-tree-layout"
 import {
   SKILL_BRANCH_COLOR,
-  SKILL_BRANCH_GLYPH,
   SKILL_BRANCH_LABEL,
-  SKILL_BRANCH_ORDER,
-  skillBranchCssVars,
-} from "@/application/clicker-ui"
-import { clampSkillmapPan, fitSkillmapView } from "@/application/clicker-skillmap-fit"
-import { formatNumber, skillStatusLabel, type SkillNodeView } from "@/application/clicker-ui"
+  layoutSkillTree,
+  connectorPath,
+  type SkillCell,
+} from "@/data/clicker/skill-tree-layout"
+import { formatNumber, type SkillNodeView } from "@/application/clicker-ui"
 import { useClickerEscape } from "@/components/clicker/clicker-a11y"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 
@@ -28,6 +26,17 @@ const CELL = 84
 /** Moving the pointer this close to an edge pans the map that way. */
 const EDGE = 56
 const EDGE_SPEED = 9
+
+function statusLabel(status: SkillNodeView["status"]): string {
+  switch (status) {
+    case "OWNED":
+      return "활성"
+    case "POOR":
+      return "CORE 부족"
+    default:
+      return "해금 가능"
+  }
+}
 
 /**
  * Full-screen circuit map. Only circuits whose prerequisites are all owned are drawn —
@@ -52,9 +61,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
 
   const viewRef = useRef<HTMLDivElement>(null)
   const [pan, setPan] = useState<{ x: number; y: number } | null>(null)
-  const [viewScale, setViewScale] = useState(1)
   const panRef = useRef({ x: 0, y: 0 })
-  const scaleRef = useRef(1)
   const drag = useRef<{ x: number; y: number; px: number; py: number; moved: boolean } | null>(null)
   const edge = useRef({ dx: 0, dy: 0 })
 
@@ -65,16 +72,11 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
     const el = viewRef.current
     const w = el?.clientWidth ?? 800
     const h = el?.clientHeight ?? 600
-    const next = clampSkillmapPan({
-      panX: x,
-      panY: y,
-      scale: scaleRef.current,
-      boardW,
-      boardH,
-      viewW: w,
-      viewH: h,
-    })
-    return { x: next.panX, y: next.panY }
+    const pad = 160
+    return {
+      x: Math.min(pad, Math.max(w - boardW - pad, x)),
+      y: Math.min(pad, Math.max(h - boardH - pad, y)),
+    }
   }
   const applyPan = (x: number, y: number) => {
     const next = clampPan(x, y)
@@ -82,30 +84,13 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
     setPan(next)
   }
 
-  const fitToView = () => {
-    const el = viewRef.current
-    if (!el || !treeNodes.length) return
-    const fit = fitSkillmapView({
-      nodes: treeNodes.map((n) => ({ col: n.col, row: n.row, tier: n.tier })),
-      cell: CELL,
-      viewW: el.clientWidth,
-      viewH: el.clientHeight,
-    })
-    scaleRef.current = fit.scale
-    setViewScale(fit.scale)
-    applyPan(fit.panX, fit.panY)
-  }
-
-  // Fit all visible nodes in view on open and when the viewport changes.
+  // Start centred on the hub.
   useEffect(() => {
-    fitToView()
     const el = viewRef.current
-    if (!el || typeof ResizeObserver === "undefined") return
-    const ro = new ResizeObserver(() => fitToView())
-    ro.observe(el)
-    return () => ro.disconnect()
+    if (!el) return
+    applyPan(el.clientWidth / 2 - (layout.hub.col + 0.5) * CELL, el.clientHeight / 2 - (layout.hub.row + 0.5) * CELL)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [treeNodes.length, layout.cols, layout.rows])
+  }, [])
 
   // Edge panning loop (desktop pointers only).
   useEffect(() => {
@@ -173,29 +158,10 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
   return (
     <div className="clicker-skillmap" role="dialog" aria-modal="true" aria-label="스킬 회로">
       <header className="clicker-skillmap-head">
-        <div className="clicker-skillmap-head-main">
-          <strong>스킬 회로</strong>
-          <span>
-            활성 {owned}/{nodes.length} · CORE <b>{formatNumber(coreEnergy)}</b>
-          </span>
-        </div>
-        <ul className="clicker-skillmap-tabs" aria-label="회로 가지">
-          {SKILL_BRANCH_ORDER.map((branch) => {
-            const active = selected?.branch === branch
-            return (
-              <li key={branch}>
-                <span
-                  className={`clicker-skillmap-tab${active ? " is-active" : ""}`}
-                  style={skillBranchCssVars(branch) as CSSProperties}
-                  title={SKILL_BRANCH_LABEL[branch]}
-                >
-                  <span className="clicker-skillmap-tab-glyph" aria-hidden>{SKILL_BRANCH_GLYPH[branch]}</span>
-                  <span className="clicker-skillmap-tab-label">{SKILL_BRANCH_LABEL[branch]}</span>
-                </span>
-              </li>
-            )
-          })}
-        </ul>
+        <strong>스킬 회로</strong>
+        <span>
+          활성 {owned}/{nodes.length} · CORE <b>{formatNumber(coreEnergy)}</b>
+        </span>
         <button type="button" className="clicker-ghost clicker-skillmap-close" onClick={onClose}>
           닫기
         </button>
@@ -215,8 +181,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
           style={{
             width: boardW,
             height: boardH,
-            transform: `translate3d(${pan?.x ?? 0}px, ${pan?.y ?? 0}px, 0) scale(${viewScale})`,
-            transformOrigin: "0 0",
+            transform: `translate3d(${pan?.x ?? 0}px, ${pan?.y ?? 0}px, 0)`,
             visibility: pan ? "visible" : "hidden",
           }}
         >
@@ -241,14 +206,8 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
               key={node.id}
               type="button"
               className={`clicker-skillmap-node is-${node.status.toLowerCase()}${selectedId === node.id ? " is-selected" : ""}${node.tier >= 5 ? " is-apex" : ""}${node.id === layout.centerId ? " is-final" : ""}`}
-              style={
-                {
-                  left: (node.col + 0.5) * CELL,
-                  top: (node.row + 0.5) * CELL,
-                  ...skillBranchCssVars(node.branch),
-                } as CSSProperties
-              }
-              aria-label={`${node.name} · ${skillStatusLabel(node.status)} · ${formatNumber(node.cost)} CORE`}
+              style={{ left: (node.col + 0.5) * CELL, top: (node.row + 0.5) * CELL, "--branch-color": SKILL_BRANCH_COLOR[node.branch] } as CSSProperties}
+              aria-label={`${node.name} · ${statusLabel(node.status)} · ${formatNumber(node.cost)} CORE`}
               onClick={() => {
                 if (drag.current?.moved) return
                 setSelectedId(node.id)
@@ -260,17 +219,11 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
         </div>
       </div>
       {selected ? (
-        <aside
-          className={`clicker-skillmap-detail is-${selected.status.toLowerCase()}`}
-          style={skillBranchCssVars(selected.branch) as CSSProperties}
-          aria-live="polite"
-        >
-          {selected.assetId ? (
-            <img className="clicker-zoomable clicker-skillmap-detail-icon" src={selected.assetId} alt="" />
-          ) : null}
+        <aside className={`clicker-skillmap-detail is-${selected.status.toLowerCase()}`} aria-live="polite">
+          {selected.assetId ? <img className="clicker-zoomable" src={selected.assetId} alt="" /> : null}
           <div>
-            <small className="clicker-skillmap-detail-branch">
-              {SKILL_BRANCH_GLYPH[selected.branch]} {SKILL_BRANCH_LABEL[selected.branch]} · T{selected.tier}
+            <small>
+              {SKILL_BRANCH_LABEL[selected.branch]} · T{selected.tier}
             </small>
             <strong>{selected.name}</strong>
             <p>{selected.description}</p>

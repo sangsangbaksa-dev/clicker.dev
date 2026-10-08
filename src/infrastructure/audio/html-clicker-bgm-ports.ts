@@ -1,8 +1,7 @@
-import type { BgmLoopTrack, ClickerBgmPorts } from "@/application/clicker-audio-ports"
+import type { BgmLoopTrack, ClickerBgmPorts } from "@/application/clicker-bgm-engine"
 import type { BgmTrackId } from "@/domain/services/clicker-bgm"
 import {
   allBgmTrackIds,
-  bgmTrackLoopRegion,
   bgmTrackShouldLoop,
   CLICKER_BGM_URL,
   warmBgmTracks,
@@ -45,10 +44,6 @@ function wrapTrack(rec: TrackRecord): BgmLoopTrack {
     rewind() {
       rec.audio.currentTime = 0
     },
-    preload() {
-      rec.audio.preload = "auto"
-      rec.audio.load()
-    },
   }
 }
 
@@ -61,16 +56,10 @@ export function createHtmlClickerBgmPorts(deps: HtmlClickerBgmPortDeps): Clicker
     let rec = records.get(id)
     if (!rec) {
       const audio = new Audio()
-      const loopRegion = bgmTrackLoopRegion(id)
       audio.loop = bgmTrackShouldLoop(id)
       audio.preload = "none"
       audio.volume = 0
       audio.src = CLICKER_BGM_URL[id]
-      if (loopRegion) {
-        audio.addEventListener("timeupdate", () => {
-          if (audio.currentTime >= loopRegion.end) audio.currentTime = loopRegion.start
-        })
-      }
       rec = { audio, gain: null, playing: false }
       records.set(id, rec)
     }
@@ -90,7 +79,8 @@ export function createHtmlClickerBgmPorts(deps: HtmlClickerBgmPortDeps): Clicker
       if (!allowNetwork) return
       warmBgmTracks(ids)
     },
-    wireTrack(id, _track: BgmLoopTrack) {
+    wireTrack(id, track: BgmLoopTrack) {
+      void track
       const rec = records.get(id)
       if (!rec || rec.gain) return
       const c = deps.sharedAudioContext()

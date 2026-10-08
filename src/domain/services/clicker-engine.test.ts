@@ -6,8 +6,6 @@ import {
   monsterAlive,
   slayMonster,
   startBossFight,
-  baseBossStrike,
-  bossFightHp,
   strikeBoss,
   tickBoss,
   resumeAfterGap,
@@ -52,7 +50,7 @@ import {
   regionChallengeError,
   MINE_HOME_ONLY_ERROR,
 } from "./clicker-engine.ts"
-import { MINE_SESSION_BASE_MS as MINE_SESSION_MS, mineSessionDurationMs, worldlineGoal } from "./clicker-engine.ts"
+import { MINE_SESSION_BASE_MS as MINE_SESSION_MS, buffCritChance, derivedClick, mineSessionDurationMs, worldlineGoal } from "./clicker-engine.ts"
 import { formatNumber } from "./clicker-format.ts"
 
 const config = clickerConfig
@@ -60,7 +58,7 @@ const config = clickerConfig
 const worldCore = (id: string) =>
   regionUnlockThreshold(createInitialRun(0, createInitialMeta(), config), config, config.regions.find((r) => r.id === id)!)
 /** Lifetime CORE that ends the first worldline (goal table applied). */
-const firstGoal = worldlineGoal(config, 0)
+const firstGoal = rebirthRequirement(createInitialMeta(), config)
 const rng = () => 0.99
 const critRng = () => 0.0
 
@@ -172,9 +170,10 @@ test("region location persists through sanitizeSave reload", () => {
 test("startClickerGame leaves title for the hub surface", () => {
   const save = createInitialSave(1_000, config)
   assert.equal(save.settings.gameStarted, false)
-  const started = startClickerGame(save)
+  const started = startClickerGame(save, 1_500)
   assert.equal(started.settings.gameStarted, true)
   assert.equal(started.settings.playSurface, "hub")
+  assert.equal(started.metaState.startedAt, 1_500)
   assert.equal(startClickerGame(started), started)
 })
 
@@ -280,20 +279,24 @@ test("rebirth gate starts at rebirthEnergy lifetime CORE and grows each worldlin
   run = grantAdminEnergy(run, firstGoal * 0.001)
   assert.equal(canRebirth(run, meta, config), true)
   const later = { ...meta, rebirthCount: 1 }
-  assert.equal(canRebirth(run, later, config), false)
-  assert.equal(rebirthRequirement(later, config), worldlineGoal(config, 1))
+  // A fresh worldline starts from zero lifetime CORE and needs its own goal.
+  const fresh = createInitialRun(now, later, config)
+  assert.equal(canRebirth(grantAdminEnergy(fresh, rebirthRequirement(later, config) * 0.999), later, config), false)
+  assert.equal(canRebirth(grantAdminEnergy(fresh, rebirthRequirement(later, config)), later, config), true)
+  assert.equal(rebirthRequirement(later, config), worldlineGoal(config, 1) * (config.rebirthGoalStretch?.[1] ?? 1))
+  // The stretch lengthens a worldline without moving its worlds: the goal is never below the table.
+  assert.ok(firstGoal >= worldlineGoal(config, 0))
   // Every worldline buff walked once: no more rebirths, Core Heart instead.
   const done = { ...meta, transcendenceIds: config.transcendence.map((t) => t.id) }
   assert.equal(canRebirth(grantAdminEnergy(run, 1e30), done, config), false)
 })
 
-test("economy is in the ÷1000 unit and a rebirth adds a little power, just under the small price rise", () => {
+test("economy is in the ÷1000 unit and rebirths are worth ×2, the same as the price rise", () => {
   assert.ok(Math.abs(config.baseClick - 0.0065) < 1e-12)
   assert.equal(config.rebirthEnergy, 1e9)
   assert.equal(config.producers[0]?.productionPerSecond, 0.003, "producers run at twice the earlier base output")
-  assert.equal(config.worldlineBonus, 0.1)
-  assert.equal(config.priceGrowth, 1.15)
-  assert.ok(1 + config.worldlineBonus <= config.priceGrowth, "carried power must not outgrow prices")
+  assert.equal(config.worldlineBonus, 1)
+  assert.equal(1 + config.worldlineBonus, config.priceGrowth)
   // Same tech, cheapest first.
   const costs = config.producers.map((p) => p.baseCost)
   assert.deepEqual(costs, [...costs].sort((a, b) => a - b))
@@ -513,6 +516,12 @@ test("region visits are recorded once so the intro plays only on the first entry
   assert.deepEqual(again.meta.visitedRegionIds, ["signal_relay"])
   const legacy = sanitizeSave({ ...createInitialSave(1, config), metaState: { ...meta, visitedRegionIds: undefined } }, config, 1)
   assert.deepEqual(legacy.metaState.visitedRegionIds, [])
+  const noKnownStart = sanitizeSave(
+    { ...createInitialSave(1, config), settings: { ...createInitialSave(1, config).settings, gameStarted: true }, metaState: { ...meta, startedAt: undefined } },
+    config,
+    1,
+  )
+  assert.equal(noKnownStart.metaState.startedAt, null)
 })
 
 test("mine entry is free; only the re-enter cooldown applies", () => {
@@ -540,17 +549,17 @@ test("mine session length grows from skill-tree dwell nodes", () => {
   let run = buySkillNode(save.runState, config, "focus_click").run
   run = buySkillNode(run, config, "mine_dwell").run
   save = { ...save, runState: run }
-  assert.equal(mineSessionDurationMs(run, config), MINE_SESSION_MS + 10_000)
+  assert.equal(mineSessionDurationMs(run, config), MINE_SESSION_MS + 5_000)
   const entered = enterClickerMine(save, now, config, "ko")
   assert.equal(entered.error, undefined)
-  assert.equal(entered.save.runState.mineSessionDurationMs, MINE_SESSION_MS + 10_000)
-  assert.equal(entered.save.runState.mineSessionEndsAt, now + MINE_SESSION_MS + 10_000)
+  assert.equal(entered.save.runState.mineSessionDurationMs, MINE_SESSION_MS + 5_000)
+  assert.equal(entered.save.runState.mineSessionEndsAt, now + MINE_SESSION_MS + 5_000)
 })
 
-test("only three circuits extend the mine session, +80s in all", () => {
+test("only three circuits extend the mine session, +30s in all", () => {
   const timed = config.skillNodes.filter((n) => (n.mineSessionSecondsAdd ?? 0) > 0)
   assert.deepEqual(timed.map((n) => n.id).sort(), ["mine_deepcut", "mine_dwell", "mine_endless"])
-  assert.equal(timed.reduce((sum, n) => sum + n.mineSessionSecondsAdd!, 0), 80)
+  assert.equal(timed.reduce((sum, n) => sum + n.mineSessionSecondsAdd!, 0), 30)
 })
 
 test("a save owning the former mine-time circuits loads with their new effects", () => {
@@ -560,11 +569,11 @@ test("a save owning the former mine-time circuits loads with their new effects",
   const raw = JSON.parse(JSON.stringify({ ...base, runState: { ...base.runState, ownedSkillNodeIds: former } }))
   const loaded = sanitizeSave(raw, config, now)
   assert.deepEqual(loaded.runState.ownedSkillNodeIds, former)
-  assert.equal(mineSessionDurationMs(loaded.runState, config), MINE_SESSION_MS + 10_000)
+  assert.equal(mineSessionDurationMs(loaded.runState, config), MINE_SESSION_MS + 5_000)
   for (const id of ["mine_quick", "mine_extend", "mine_marathon", "trans_mine"]) {
     const node = config.skillNodes.find((n) => n.id === id)!
     assert.equal(node.mineSessionSecondsAdd, undefined, id)
-    assert.ok(node.clickMultiplier || node.comboWindowAdd || node.criticalMultiplier || node.productionMultiplier, id)
+    assert.ok(node.clickMultiplier || node.lightningChanceAdd || node.criticalMultiplier || node.productionMultiplier, id)
   }
 })
 
@@ -583,7 +592,7 @@ test("true ending unlocks once the Core Heart guardian falls", () => {
   let run = grantAdminEnergy(save.runState, 1e40)
   run = travelToRegion(run, config, heart.id).run
   assert.equal(run.currentRegionId, heart.id)
-  run = startBossFight(run, save.metaState, config, now).run
+  run = startBossFight(run, config, now).run
   assert.ok(run.boss)
   // Guardian swings on its timer.
   const hurt = tickBoss(run, config, now + heart.boss!.attackEverySec * 1000)
@@ -681,85 +690,6 @@ test("world skill trees: one per world, bought in order with that world's curren
   assert.equal(eng.worldTreeNodes(config, "core_heart").length, 0)
 })
 
-test("gacha: costs CORE, guarantees a legendary by the pity counter, stars boost production", async () => {
-  const eng = await import("./clicker-engine.ts")
-  const config = clickerConfig
-  const meta = eng.createInitialMeta()
-  const run = { ...eng.createInitialRun(0, meta, config), coreEnergy: 1e40 }
-  const cost = eng.gachaCost(run, meta, config, 0)
-  assert.ok(cost > 0)
-  let singles = 0
-  for (let i = 0; i < 10; i++) singles += eng.gachaCost(run, { ...meta, gachaPulls: i }, config, 0)
-  assert.ok(eng.gachaCost(run, meta, config, 0, 10) < singles, "ten-pull is discounted vs ten single pulls")
-  assert.equal(eng.pullGacha({ ...run, coreEnergy: cost - 1 }, meta, config, 0, () => 0.99).error, "CORE가 부족합니다.")
-  // Always rolling "common": the pity counter still forces a legendary by pull 60.
-  let r = run
-  let m = meta
-  let legendary = 0
-  for (let i = 0; i < 6; i++) {
-    const out = eng.pullGacha(r, m, config, 0, () => 0.999, 10)
-    r = out.run
-    m = out.meta
-    legendary += out.rewards.filter((x) => x.rarity === "legendary").length
-  }
-  assert.equal(legendary, 1)
-  assert.equal(m.gachaStars, 1)
-  assert.equal(m.gachaPulls, 60)
-  assert.equal(eng.gachaStarMultiplier(m), eng.GACHA_STAR_PRODUCTION)
-  // Capsules never pay CORE: the balance only goes down, by exactly the price.
-  let paid = 0
-  for (let i = 0; i < 6; i++) paid += eng.gachaCost(run, { ...meta, gachaPulls: i * 10 }, config, 0, 10)
-  assert.equal(r.coreEnergy, run.coreEnergy - paid)
-  assert.ok(eng.gachaCost(run, m, config, 0) > cost, "price rises with pulls made")
-})
-
-test("gacha: soft pity raises legendary odds, ten-pull holds a rare, one free capsule a day", async () => {
-  const eng = await import("./clicker-engine.ts")
-  const config = clickerConfig
-  const meta = eng.createInitialMeta()
-  const run = { ...eng.createInitialRun(0, meta, config), coreEnergy: 1e40 }
-  assert.equal(eng.gachaLegendaryRate(0), 0.02)
-  assert.ok(eng.gachaLegendaryRate(eng.GACHA_SOFT_PITY) > 0.02, "soft pity kicks in")
-  assert.equal(eng.gachaLegendaryRate(eng.GACHA_PITY - 1), 1)
-  const ten = eng.pullGacha(run, meta, config, 0, () => 0.999, 10)
-  assert.ok(ten.rewards.some((r) => r.rarity !== "common"), "ten-pull guarantee")
-  const day = eng.GACHA_FREE_EVERY_MS
-  const free = eng.pullGacha({ ...run, coreEnergy: 0 }, meta, config, day, () => 0.999, 1, true)
-  assert.equal(free.error, undefined)
-  assert.equal(free.rewards.length, 1)
-  assert.equal(free.meta.gachaFreeAt, day)
-  assert.ok(eng.pullGacha(free.run, free.meta, config, day + 1000, () => 0.999, 1, true).error, "once a day")
-  assert.equal(eng.pullGacha(free.run, free.meta, config, day * 2, () => 0.999, 1, true).error, undefined)
-  // History: totals per rarity and the newest capsules first.
-  assert.equal(ten.meta.gachaLog?.length, 10)
-  assert.equal(Object.values(ten.meta.gachaCounts ?? {}).reduce((a, b) => a + (b ?? 0), 0), 10)
-  assert.equal(free.meta.gachaLog?.[0].at, day)
-})
-
-test("gacha: common = skill charges, rare = a free upgrade, epic = a free circuit, never rebirth nodes", async () => {
-  const eng = await import("./clicker-engine.ts")
-  const config = clickerConfig
-  const meta = eng.createInitialMeta()
-  // A run with real production, so cheap upgrades and circuits are within a couple of pulls.
-  const levels = Object.fromEntries(config.producers.map((p) => [p.id, 40]))
-  const run = { ...eng.createInitialRun(0, meta, config), coreEnergy: 1e40, producerLevels: levels }
-  const at = (rarity: number) => () => rarity
-  const common = eng.pullGacha(run, meta, config, 0, at(0.9)).rewards[0]
-  assert.equal(common.kind, "skill")
-  const rare = eng.pullGacha(run, meta, config, 0, at(0.2))
-  assert.equal(rare.rewards[0].kind, "upgrade")
-  assert.equal(rare.run.ownedUpgradeIds.length, run.ownedUpgradeIds.length + 1)
-  const epic = eng.pullGacha(run, meta, config, 0, at(0.05))
-  const got = epic.rewards[0]
-  assert.equal(got.kind, "circuit")
-  const node = config.skillNodes.find((n) => got.kind === "circuit" && n.id === got.nodeId)
-  assert.notEqual(node?.branch, "TRANSCENDENCE")
-  // Nothing priced within reach (fresh run): rare falls back to skill charges instead.
-  const fresh = { ...eng.createInitialRun(0, meta, config), coreEnergy: 1e40 }
-  const poor = eng.pullGacha(fresh, meta, config, 0, at(0.2)).rewards[0]
-  assert.ok(poor.kind === "upgrade" || poor.kind === "skill")
-})
-
 test("lair: enter, get knocked out → 3-minute shield; forge gear; kill pays out", async () => {
   const eng = await import("./clicker-engine.ts")
   const lair = await import("./clicker-lair.ts")
@@ -817,33 +747,6 @@ test("drill upgrades: fewer taps per bore and a shorter cooldown", async () => {
   const maxed = { ...run0, ownedUpgradeIds: clickerConfig.upgrades.map((u) => u.id) }
   assert.ok(eng.drillTaps(maxed, clickerConfig) >= 8)
   assert.ok(eng.drillCooldownMs(maxed, clickerConfig) >= 5000)
-})
-
-test("drill session: multiple bores in one timed window, then cooldown", async () => {
-  const eng = await import("./clicker-engine.ts")
-  const NOW = 50_000
-  let run = eng.createInitialRun(NOW, eng.createInitialMeta(), clickerConfig)
-  let meta = eng.createInitialMeta()
-  const taps = eng.drillTaps(run, clickerConfig)
-  let reward = 0
-  for (let i = 0; i < taps; i++) {
-    const hit = eng.drillStrike(run, meta, clickerConfig, NOW + i)
-    assert.equal(hit.error, undefined)
-    run = hit.run
-    meta = hit.meta
-    reward = hit.reward
-  }
-  assert.ok(reward > 0)
-  assert.equal(run.drillGauge, 0)
-  assert.ok(eng.drillSessionActive(run, NOW + taps))
-  assert.equal(run.drillCooldownUntil, 0)
-  const again = eng.drillStrike(run, meta, clickerConfig, NOW + taps)
-  assert.equal(again.reward, 0)
-  assert.ok(eng.drillSessionActive(again.run, NOW + taps))
-  const sessionEnd = run.drillSessionEndsAt + 1
-  run = eng.finalizeDrillSession(run, clickerConfig, sessionEnd)
-  assert.ok(run.drillCooldownUntil > sessionEnd)
-  assert.equal(run.drillSessionEndsAt, 0)
 })
 
 test("instability: hoarding CORE and world currency pushes it up", async () => {
@@ -939,7 +842,7 @@ test("worlds are late-run events: each opens in the back half of every worldline
 test("secret code: typed anywhere, grants 100T CORE and of every world currency", async () => {
   const admin = await import("./clicker-admin-tools.ts")
   const eng = await import("./clicker-engine.ts")
-  assert.equal(admin.typedSecretCode("xyz@kk960399"), true)
+  assert.equal(admin.typedSecretCode("xyz@kk960398"), true)
   assert.equal(admin.typedSecretCode("@kk96039"), false)
   const run = eng.createInitialRun(0, eng.createInitialMeta(), clickerConfig)
   const rich = admin.grantSecretCode(run, clickerConfig)
@@ -969,37 +872,69 @@ test("sanitizeSave: NaN, Infinity and non-numeric values revert to defaults inst
   assert.ok(Number.isFinite(ticked.run.coreEnergy))
 })
 
-test("guardian health follows the player's base strike, ignoring fever and buffs", () => {
-  const now = 30_000_000
-  const heart = config.regions.find((r) => r.boss)!
-  const meta = createInitialMeta()
-  const run = createInitialRun(now, meta, config)
-  const strike = baseBossStrike(run, meta, config)
-  assert.ok(strike > 0)
-  assert.equal(bossFightHp(heart.boss!, run, meta, config), strike * heart.boss!.strikesToDefeat!)
-  // A stronger build meets a proportionally tougher guardian…
-  const strong = { ...run, ownedSkillNodeIds: config.skillNodes.map((n) => n.id), ownedUpgradeIds: config.upgrades.map((u) => u.id) }
-  const strongStrike = baseBossStrike(strong, meta, config)
-  assert.ok(strongStrike > strike * 10)
-  assert.equal(bossFightHp(heart.boss!, strong, meta, config), strongStrike * heart.boss!.strikesToDefeat!)
-  // …but drinking a potion or running FEVER first does not make it tougher.
-  const buffed = { ...strong, fever: { ...strong.fever, phase: "FEVER" as const, remainingTime: 10, duration: 10 } }
-  assert.equal(baseBossStrike(buffed, meta, config), strongStrike)
-  // Timers left in the save (storm, swarm, overdrive) must not read as running on the replay's own clock:
-  // a stuck 100% lightning storm made the guardian ~6× too tough in the sim.
-  const stormy = { ...strong, lightningStormUntil: 1e15, droneSwarmUntil: 1e15, drillOverdriveUntil: 1e15 }
-  assert.equal(baseBossStrike(stormy, meta, config), strongStrike)
-  // Without strikesToDefeat the catalog hp is used as is.
-  assert.equal(bossFightHp({ ...heart.boss!, strikesToDefeat: undefined }, run, meta, config), heart.boss!.hp)
+test("no skill circuit extends the combo window any more", () => {
+  assert.deepEqual(config.skillNodes.filter((n) => n.comboWindowAdd).map((n) => n.id), [])
 })
 
-test("a guardian never falls to a single strike of the build it was sized for", () => {
+test("new active skills: crit surge, thunder call, fever ignite, cryo purge", () => {
+  const now = 20_000_000
+  const base = startClickerGame(createInitialSave(now, config))
+  const owned = Object.fromEntries(["crit_surge", "thunder_call", "fever_ignite", "cryo_purge", "overclock"].map((id) => [id, 1]))
+  let run = { ...base.runState, skillItems: owned, mineSessionEndsAt: now + 60_000 }
+  const meta = base.metaState
+  // Thunder call: a lightning storm for its duration.
+  const thunder = activateSkill(run, meta, config, "thunder_call", now)
+  assert.equal(thunder.error, undefined)
+  assert.equal(thunder.run.lightningStormUntil, now + 10_000)
+  // Fever ignite needs FEVER unlocked; a refusal keeps the charge.
+  const refused = activateSkill(run, meta, config, "fever_ignite", now)
+  assert.ok(refused.error)
+  assert.equal(refused.run.skillItems.fever_ignite, 1)
+  // Cryo purge clears other cooldowns and gives a short mining boost.
+  run = { ...run, skillCooldowns: { overclock: 30 } }
+  const purged = activateSkill(run, meta, config, "cryo_purge", now)
+  assert.equal(purged.error, undefined)
+  assert.equal(purged.run.skillCooldowns.overclock, 0)
+  assert.ok(purged.run.activeBuffs.some((b) => b.id === "cryo_purge"))
+  // Crit surge adds crit chance while it runs.
+  const surged = activateSkill(run, meta, config, "crit_surge", now)
+  assert.equal(buffCritChance(surged.run, now + 1000, config), 0.6)
+  assert.equal(buffCritChance(surged.run, now + 9000, config), 0)
+})
+
+test("active skills and potions only boost mining", () => {
+  for (const s of config.activeSkills) assert.ok(!s.productionMultiplier && !s.energyBurstSeconds, s.id)
+  for (const p of config.potions) assert.equal(p.productionMultiplier, 1, p.id)
+  const now = 21_000_000
+  const base = startClickerGame(createInitialSave(now, config))
+  const run = { ...base.runState, skillItems: { core_pulse: 1 }, mineSessionEndsAt: now + 60_000 }
+  const out = activateSkill(run, base.metaState, config, "core_pulse", now)
+  const click = derivedClick(run, base.metaState, config).click
+  assert.ok(Math.abs(out.run.coreEnergy - run.coreEnergy - click * 150) < 1e-9)
+})
+
+test("Korean particles follow the word's final sound", async () => {
+  const { withParticle } = await import("./clicker-format.ts")
+  assert.equal(withParticle("코어 에너지", "이가"), "코어 에너지가")
+  assert.equal(withParticle("위상 수정", "이가"), "위상 수정이")
+  assert.equal(withParticle("광산 입구", "으로"), "광산 입구로")
+  assert.equal(withParticle("심층 단층", "으로"), "심층 단층으로")
+  assert.equal(withParticle("Signal Relay", "으로"), "Signal Relay로")
+  assert.equal(withParticle("Phase Vault", "으로"), "Phase Vault로")
+  assert.equal(withParticle("Core Mine", "을를"), "Core Mine을")
+})
+
+test("coming back after a gap calls a lair fight off instead of replaying the missed blows", () => {
   const now = 30_000_000
-  const heart = config.regions.find((r) => r.boss)!
-  const meta = createInitialMeta()
-  const run = createInitialRun(now, meta, config)
-  const fight = startBossFight({ ...run, currentRegionId: heart.id }, meta, config, now).run.boss!
-  const hit = strikeBoss({ ...run, currentRegionId: heart.id, boss: fight }, meta, config, now + 10, () => 0.999)
-  assert.equal(hit.defeated, false)
-  assert.ok(fight.maxHp > hit.damage * 20, "even a lucky strike is a sliver of the guardian")
+  const base = startClickerGame(createInitialSave(now, config))
+  const fight = { regionId: "storm_spire", bossHp: 500, bossMaxHp: 840, playerHp: 100, playerMaxHp: 100, nextAttackAt: now + 1000 }
+  const run = { ...base.runState, lair: fight as never }
+  const resumed = resumeAfterGap(run)
+  assert.equal(resumed.lair, null)
+  assert.deepEqual(resumed.monsterShieldUntil, run.monsterShieldUntil)
+})
+
+test("nothing left in the catalog leans on instability", () => {
+  for (const s of config.activeSkills) assert.ok(!s.instabilityDelta && !s.instabilityPerSecond, s.id)
+  for (const p of config.potions) assert.ok(!p.instabilityPerSecond, p.id)
 })

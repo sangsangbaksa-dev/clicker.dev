@@ -1,16 +1,12 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { readCinematicEndFadeMs, resolveCinematic, type CinematicEndReason } from "@/lib/clicker-cinematic-quality"
 import "./clicker-cinematic.css"
 
 /** Warm cache: one detached <video preload="auto"> per src, so the real player starts at once. */
 const warmed = new Map<string, HTMLVideoElement>()
-export function preloadCinematic(requested: string) {
-  if (typeof window === "undefined") return
-  // Warm the resolved file (mine entry is a single 1080p render on all devices).
-  const src = resolveCinematic(requested, "").src
-  if (warmed.has(src)) return
+export function preloadCinematic(src: string) {
+  if (typeof window === "undefined" || warmed.has(src)) return
   const v = document.createElement("video")
   v.preload = "auto"
   v.muted = true
@@ -29,9 +25,6 @@ type Props = {
   /** Follows the background-music settings: muted with the music, at the music volume (0..1). */
   muted: boolean
   volume?: number
-  /**
-   * Fires once, right before the closing fade starts (or together with `onDone` when there is no fade): put the next screen underneath here. */
-  onReveal?: () => void
   onDone: () => void
 }
 
@@ -42,48 +35,22 @@ const SAFETY_TIMEOUT_MS = 15_000
  * Full-screen video with its own soundtrack (mine entry, first-visit region intros).
  * Always completes: ended, skip, Esc/Enter/Space, load error, or the safety timeout.
  */
-export function ClickerCinematic({ src, poster, label, caption, muted, volume = 1, onReveal, onDone }: Props) {
-  // One resolution per mount: file, poster and closing fade for this device (registry in data).
-  const [media] = useState(() => resolveCinematic(src, poster))
-  const handoffMs = media.handoffMs
+export function ClickerCinematic({ src, poster, label, caption, muted, volume = 1, onDone }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const doneRef = useRef(false)
-  const revealedRef = useRef(false)
-  const leavingRef = useRef(false)
-  const leaveTimerRef = useRef<number | null>(null)
   const mutedAtStart = useRef(muted)
   const onDoneRef = useRef(onDone)
-  const onRevealRef = useRef(onReveal)
-  const handoffRef = useRef(handoffMs)
   /** The poster stays up until the first frame is ready, so there's no black flash. */
   const [ready, setReady] = useState(false)
-  /** Closing cross-fade running: the last frame is held while the screen underneath shows through. */
-  const [leaving, setLeaving] = useState(false)
 
   useEffect(() => {
     onDoneRef.current = onDone
-    onRevealRef.current = onReveal
-  }, [onDone, onReveal])
+  }, [onDone])
 
   // Idempotent: ended, skip, keys, error and the timeout may all race.
-  const finishRef = useRef((reason: CinematicEndReason) => {
+  const finishRef = useRef(() => {
     if (doneRef.current) return
-    const reveal = () => {
-      if (revealedRef.current) return
-      revealedRef.current = true
-      onRevealRef.current?.()
-    }
-    const fadeMs = leavingRef.current ? 0 : readCinematicEndFadeMs(reason, handoffRef.current)
-    if (fadeMs > 0) {
-      leavingRef.current = true
-      reveal()
-      setLeaving(true)
-      leaveTimerRef.current = window.setTimeout(() => finishRef.current("timeout"), fadeMs)
-      return
-    }
     doneRef.current = true
-    if (leaveTimerRef.current !== null) window.clearTimeout(leaveTimerRef.current)
-    reveal()
     onDoneRef.current()
   })
 
@@ -102,42 +69,36 @@ export function ClickerCinematic({ src, poster, label, caption, muted, volume = 
       void video.play().catch(() => {
         // Autoplay with sound refused — retry silently, else skip the cinematic.
         video.muted = true
-        void video.play().catch(() => finish("error"))
+        void video.play().catch(finish)
       })
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape" && e.key !== "Enter" && e.key !== " ") return
       e.preventDefault()
-      finish("skip")
+      finish()
     }
     window.addEventListener("keydown", onKey)
-    const timer = window.setTimeout(() => finish("timeout"), SAFETY_TIMEOUT_MS)
+    const timer = window.setTimeout(finish, SAFETY_TIMEOUT_MS)
     return () => {
       window.removeEventListener("keydown", onKey)
       window.clearTimeout(timer)
-      if (leaveTimerRef.current !== null) window.clearTimeout(leaveTimerRef.current)
     }
   }, [])
 
-  const finish = (reason: CinematicEndReason) => finishRef.current(reason)
+  const finish = () => finishRef.current()
 
   return (
-    <div
-      className={`clicker-cinematic${leaving ? " is-leaving" : ""}`}
-      role="dialog"
-      aria-label={label}
-      style={{ backgroundImage: `url(${media.poster})`, ...(leaving ? { transitionDuration: `${handoffMs}ms` } : null) }}
-    >
+    <div className="clicker-cinematic" role="dialog" aria-label={label} style={{ backgroundImage: `url(${poster})` }}>
       <video
         ref={videoRef}
         className={`clicker-cinematic-video${ready ? " is-ready" : ""}`}
         onPlaying={() => setReady(true)}
-        src={media.src}
-        poster={media.poster}
+        src={src}
+        poster={poster}
         playsInline
         preload="auto"
-        onEnded={() => finish("ended")}
-        onError={() => finish("error")}
+        onEnded={finish}
+        onError={finish}
       />
       {caption ? (
         <div className="clicker-cinematic-caption" aria-live="polite">
@@ -146,7 +107,7 @@ export function ClickerCinematic({ src, poster, label, caption, muted, volume = 
           <span>{caption.body}</span>
         </div>
       ) : null}
-      <button type="button" className="clicker-cinematic-skip" onClick={() => finish("skip")}>
+      <button type="button" className="clicker-cinematic-skip" onClick={finish}>
         건너뛰기 ▶▶
       </button>
     </div>

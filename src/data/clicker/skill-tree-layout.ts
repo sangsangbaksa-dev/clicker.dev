@@ -1,10 +1,4 @@
-import type { SkillNodeDef } from "../../domain/entities/clicker"
-import {
-  SKILL_BRANCH_COLOR,
-  SKILL_BRANCH_GLYPH,
-  SKILL_BRANCH_LABEL,
-  SKILL_BRANCH_ORDER,
-} from "../../domain/services/clicker-skill-branch-theme.ts"
+import type { SkillBranch, SkillNodeDef } from "@/domain/entities/clicker"
 
 export type SkillCell = { col: number; row: number }
 
@@ -17,7 +11,8 @@ export type SkillTreeLayout = {
   rows: number
 }
 
-export { SKILL_BRANCH_COLOR, SKILL_BRANCH_GLYPH, SKILL_BRANCH_LABEL, SKILL_BRANCH_ORDER }
+/** Five branches around the hub, one per pentagon corner, clockwise from the top. */
+export const SKILL_BRANCH_ORDER: SkillBranch[] = ["FOCUS", "AUTOMATION", "RESONANCE", "HUNT", "TRANSCENDENCE"]
 
 /** The last upgrade of the whole tree; it sits on the hub, the goal every branch points at. */
 export const SKILL_FINAL_NODE_ID = "trans_heart"
@@ -147,3 +142,26 @@ export function connectorPath(from: SkillCell, to: SkillCell): string {
   return `M${f(from.col)} ${f(from.row)}L${f(to.col)} ${f(to.row)}`
 }
 
+export const SKILL_BRANCH_LABEL: Record<SkillBranch, string> = {
+  FOCUS: "직접 개입",
+  AUTOMATION: "자동화",
+  RESONANCE: "공명",
+  TRANSCENDENCE: "초월",
+  HUNT: "사냥",
+}
+
+export const SKILL_BRANCH_COLOR: Record<SkillBranch, string> = {
+  FOCUS: "#62d8eb",
+  AUTOMATION: "#6fd9b0",
+  RESONANCE: "#a98cff",
+  TRANSCENDENCE: "#e8c468",
+  HUNT: "#ff7a5c",
+}
+
+export const SKILL_BRANCH_GLYPH: Record<SkillBranch, string> = {
+  FOCUS: "⚡",
+  AUTOMATION: "⚙",
+  RESONANCE: "◎",
+  TRANSCENDENCE: "✦",
+  HUNT: "⚔",
+}
