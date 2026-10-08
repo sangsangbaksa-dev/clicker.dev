@@ -70,6 +70,7 @@ import {
   clickerBuyExchange,
   clickerExchangeOffers,
 } from "@/application/clicker"
+import { CLICKER_EXCHANGE_OFFERS } from "@/data/clicker/exchange"
 import {
   clickerCanWriteSave,
   clickerClaimLease,
@@ -898,12 +899,12 @@ export function useClicker() {
   const buyExchange = useCallback(
     (offerId: string) => {
       if (!saveRef.current) return
+      const offerName = CLICKER_EXCHANGE_OFFERS.find((o) => o.id === offerId)?.name ?? offerId
       const result = clickerBuyExchange(saveRef.current, offerId, Date.now())
       if (!result.ok) return refuse(result.error)
       commitAndSave(result.value)
       playSfx("upgrade")
-      const offer = clickerExchangeOffers(saveRef.current, Date.now()).find((o) => o.id === offerId)
-      flash(`교환 완료 · ${offer?.name ?? offerId}`)
+      flash(`교환 완료 · ${offerName}`)
     },
     [refuse, flash, commitAndSave],
   )

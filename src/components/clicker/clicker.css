@@ -1392,6 +1392,10 @@ button.clicker-metric-action.is-fever-ready em {
   margin-top: 0;
 }
 
+.clicker-world .clicker-exchange {
+  margin-top: 1.25rem;
+}
+
 .clicker-world {
   display: grid;
   gap: 10px;

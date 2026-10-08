@@ -21,7 +21,7 @@ export const CLICKER_EXCHANGE_OFFERS: ExchangeOfferDef[] = [
   {
     id: "exchange_free_capsule",
     name: "무료 코어 캡슐",
-    description: "남는 월드 화폐로 즉시 코어 에너지를 받습니다.",
+    description: `남는 월드 화폐로 즉시 코어 에너지 ${EXCHANGE_CORE_CAPSULE_AMOUNT.toLocaleString("ko-KR")}를 받습니다.`,
     regionId: "signal_relay",
     cost: EXCHANGE_PLACEHOLDER_COST,
     weeklyLimit: EXCHANGE_PLACEHOLDER_CAPSULE_WEEKLY_LIMIT,
