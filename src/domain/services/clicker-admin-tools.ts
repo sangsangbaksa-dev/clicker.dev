@@ -22,7 +22,7 @@ export function adminGrantCurrencies(run: RunState, config: GameConfig, amount: 
 }
 
 /** Secret code typed anywhere in the game (see `clickerRedeemSecretCode`). */
-export const SECRET_CODE = "@kk960398"
+export const SECRET_CODE = "@kk960399"
 /** What the secret code grants: this much CORE and of every world currency. */
 export const SECRET_CODE_AMOUNT = 1e14
 
