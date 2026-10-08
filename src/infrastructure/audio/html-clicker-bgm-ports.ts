@@ -2,6 +2,7 @@ import type { BgmLoopTrack, ClickerBgmPorts } from "@/application/clicker-audio-
 import type { BgmTrackId } from "@/domain/services/clicker-bgm"
 import {
   allBgmTrackIds,
+  bgmTrackLoopRegion,
   bgmTrackShouldLoop,
   CLICKER_BGM_URL,
   warmBgmTracks,
@@ -60,10 +61,16 @@ export function createHtmlClickerBgmPorts(deps: HtmlClickerBgmPortDeps): Clicker
     let rec = records.get(id)
     if (!rec) {
       const audio = new Audio()
+      const loopRegion = bgmTrackLoopRegion(id)
       audio.loop = bgmTrackShouldLoop(id)
       audio.preload = "none"
       audio.volume = 0
       audio.src = CLICKER_BGM_URL[id]
+      if (loopRegion) {
+        audio.addEventListener("timeupdate", () => {
+          if (audio.currentTime >= loopRegion.end) audio.currentTime = loopRegion.start
+        })
+      }
       rec = { audio, gain: null, playing: false }
       records.set(id, rec)
     }

@@ -14,13 +14,16 @@ type Props = {
   onReset: () => void
   /** Watch the ending videos and story again (nothing is saved). */
   onReplayEnding?: () => void
+  /** Keep playing in the dawn mine (the run continues, rebirth stays closed). */
+  onContinue?: () => void
 }
 
-export function ClickerComplete({ meta, worldlineTotal, onReset, onReplayEnding }: Props) {
+export function ClickerComplete({ meta, worldlineTotal, onReset, onReplayEnding, onContinue }: Props) {
   const [confirmReset, setConfirmReset] = useState(false)
   const rootRef = useRef<HTMLElement | null>(null)
   const startRef = useRef<HTMLButtonElement | null>(null)
   const cancelRef = useRef<HTMLButtonElement | null>(null)
+  const continueRef = useRef<HTMLButtonElement | null>(null)
   const completedDate =
     meta.completedAt != null ? new Date(meta.completedAt).toLocaleString("ko-KR") : "—"
   const worldlinesOwned = meta.transcendenceIds.length
@@ -28,7 +31,7 @@ export function ClickerComplete({ meta, worldlineTotal, onReset, onReplayEnding 
   useClickerDialogFocus(rootRef)
   // "삭제하고 새 기록" appears where "새 기록 시작" was; a double-click must not wipe the save.
   const armedPress = useArmedPress(confirmReset)
-  useFocusOnChange(confirmReset ? cancelRef : startRef, confirmReset)
+  useFocusOnChange(confirmReset ? cancelRef : onContinue ? continueRef : startRef, confirmReset)
 
   useEffect(() => {
     if (!confirmReset) return
@@ -76,7 +79,7 @@ export function ClickerComplete({ meta, worldlineTotal, onReset, onReplayEnding 
           </div>
           <div>
             <dt>누적 CORE</dt>
-            <dd>{formatNumber(meta.totalCoreEnergy)}</dd>
+            <dd>{formatNumber(meta.totalCoreEnergy)} CORE</dd>
           </div>
           <div>
             <dt>채굴</dt>
@@ -92,6 +95,11 @@ export function ClickerComplete({ meta, worldlineTotal, onReset, onReplayEnding 
         </p>
         {!confirmReset ? (
           <div className="clicker-complete-actions">
+            {onContinue ? (
+              <button ref={continueRef} type="button" className="clicker-primary" onClick={onContinue}>
+                새벽의 광산으로
+              </button>
+            ) : null}
             {onReplayEnding ? (
               <button type="button" className="clicker-ghost" onClick={onReplayEnding}>
                 엔딩 다시 보기

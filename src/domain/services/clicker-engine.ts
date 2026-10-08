@@ -27,6 +27,10 @@ import {
 } from "./clicker-bonus.ts"
 import { gachaBatchFactor, gachaPriceFactor } from "./clicker-gacha-cost.ts"
 import { clearMinePause, resumeMine } from "./clicker-mine-pause.ts"
+import { sanitizePostgame } from "./clicker-postgame.ts"
+import { sanitizeExchange } from "./clicker-exchange-week.ts"
+import { sanitizeChronicle } from "./clicker-chronicle.ts"
+import { scaleBuffBonus, worldlineRuleEffects } from "./clicker-worldline-rules.ts"
 import { worldlineGoalValue, worldlinePowerMultiplier, worldlinePriceScale } from "./clicker-worldline-economy.ts"
 
 /** Base timed-mine length before skill-tree extensions. Balance PROVISIONAL. */
@@ -108,6 +112,8 @@ export function createInitialRun(now: number, meta: MetaState, config: GameConfi
     costScale: scale,
     monsterRespawnAt: {},
     drillGauge: 0,
+    drillSessionEndsAt: 0,
+    drillSessionDurationMs: 0,
     drillCooldownUntil: 0,
     boss: null,
   }
@@ -631,7 +637,13 @@ export function softStack(multiplier: number, config: GameConfig): number {
   return cap * (multiplier / cap) ** (config.stackSoftExponent ?? 1)
 }
 
+/** This worldline's rule effects (neutral when the catalog has none). */
+export function ruleEffects(run: RunState, config: GameConfig) {
+  return worldlineRuleEffects(config.worldlineRules ?? [], run.currentWorldLine)
+}
+
 export function derivedClick(run: RunState, meta: MetaState, config: GameConfig) {
+  const rule = ruleEffects(run, config)
   const upgrades = ownedUpgrades(run, config)
   const skills = ownedSkills(run, config)
   const trans = ownedTranscendence(meta, config)
@@ -674,7 +686,14 @@ export function derivedClick(run: RunState, meta: MetaState, config: GameConfig)
     config.comboWindow +
     skills.reduce((s, n) => s + (n.comboWindowAdd ?? 0), 0) +
     trans.reduce((s, t) => s + (t.comboWindowAdd ?? 0), 0)
-  return { click, critChance, critMult, comboMax, comboWindow }
+  click *= rule.clickMultiplier * rule.coreMultiplier
+  return {
+    click,
+    critChance,
+    critMult,
+    comboMax: Math.max(1, Math.round(comboMax * rule.comboMaxMultiplier)),
+    comboWindow: comboWindow * rule.comboWindowMultiplier,
+  }
 }
 
 function feverMultipliers(run: RunState, meta: MetaState, config: GameConfig) {
@@ -719,7 +738,7 @@ function feverDurationSeconds(run: RunState, meta: MetaState, config: GameConfig
       duration *= 1 + syn.feverDurationBonus
     }
   }
-  return duration
+  return duration * ruleEffects(run, config).feverDurationMultiplier
 }
 
 export function producerCost(config: GameConfig, producerId: string, level: number, scale = 1): number {
@@ -780,7 +799,7 @@ export function buffMultiplier(run: RunState, now: number, field: "productionMul
   let m = 1
   for (const b of run.activeBuffs) {
     if (b.expiresAt <= now) continue
-    m *= config.activeSkills.find((s) => s.id === b.id)?.[field] ?? 1
+    m *= scaleBuffBonus(config.activeSkills.find((s) => s.id === b.id)?.[field] ?? 1, ruleEffects(run, config).skillEffectMultiplier)
   }
   return m
 }
@@ -809,6 +828,8 @@ export function productionSnapshot(
   const boughtGlobal =
     product(upgrades.filter((u) => !u.producerId && !u.producerTag).map((u) => u.productionMultiplier ?? 1)) *
     product(skills.filter((s) => !s.producerTag).map((s) => s.productionMultiplier ?? 1))
+  const ruleNow = ruleEffects(run, config)
+  const ruleProd = ruleNow.productionMultiplier * ruleNow.coreMultiplier
   const globalProd =
     product(trans.map((t) => t.productionMultiplier ?? 1)) *
     fever.production *
@@ -820,7 +841,7 @@ export function productionSnapshot(
     eventBoostMultiplier(run, "gacha", now) *
     gachaStarMultiplier(meta) *
     worldlineMultiplier(meta, config) *
-    achievementProductionMultiplier(meta)
+    achievementProductionMultiplier(meta, config.achievements)
 
   const byProducer: Record<string, number> = {}
   let perSecond = 0
@@ -852,7 +873,7 @@ export function productionSnapshot(
         rate *= 1 + syn.productionBonus
       }
     }
-    rate *= globalProd
+    rate *= globalProd * ruleProd
     byProducer[producer.id] = rate
     perSecond += rate
   }
@@ -992,9 +1013,10 @@ export const ACTIVE_SKILL_LIFETIME_SHARE = 0.012
 const ACTIVE_SKILL_REFERENCE_COST = 20
 
 /** Price of one active skill charge: it keeps pace with the run instead of going trivial. */
-export function activeSkillCost(run: RunState, skill: ActiveSkillDef): number {
+export function activeSkillCost(run: RunState, skill: ActiveSkillDef, config?: GameConfig): number {
+  const rule = config ? ruleEffects(run, config).skillCostMultiplier : 1
   const share = ACTIVE_SKILL_LIFETIME_SHARE * Math.sqrt(skill.shopCost / ACTIVE_SKILL_REFERENCE_COST)
-  return Math.ceil(Math.max(scaledCost(run, skill.shopCost * ACTIVE_SKILL_PRICE_MULT), run.lifetimeCoreEnergy * share))
+  return Math.ceil(Math.max(scaledCost(run, skill.shopCost * ACTIVE_SKILL_PRICE_MULT), run.lifetimeCoreEnergy * share) * rule)
 }
 export function buyActiveSkillItem(
   run: RunState,
@@ -1003,7 +1025,7 @@ export function buyActiveSkillItem(
 ): { run: RunState; error?: string } {
   const skill = config.activeSkills.find((s) => s.id === skillId)
   if (!skill) return { run, error: "스킬을 찾을 수 없습니다." }
-  const cost = activeSkillCost(run, skill)
+  const cost = activeSkillCost(run, skill, config)
   if (run.coreEnergy < cost) return { run, error: "CORE가 부족합니다." }
   const { wallet: regionCurrency, short } = payCurrencyCosts(run, config, purchaseCurrencyCosts(run, config, skill.shopCost))
   if (short) return { run, error: `${short.name} 부족` }
@@ -1099,10 +1121,11 @@ export function processTick(
   config: GameConfig,
   now: number
 ): { run: RunState; meta: MetaState } {
-  const dt = Math.max(0, Math.min((now - run.lastTickAt) / 1000, 1))
+  // 가속 rule: game seconds per real second (the per-tick production cut sits in the rule's production ×).
+  const dt = Math.max(0, Math.min((now - run.lastTickAt) / 1000, 1)) * ruleEffects(run, config).timeScale
   if (dt <= 0) return { run: { ...run, lastTickAt: now }, meta }
 
-  let next = pruneEventBoosts({ ...run, lastTickAt: now }, now)
+  let next = finalizeDrillSession(pruneEventBoosts({ ...run, lastTickAt: now }, now), config, now)
   if (now > next.combo.expiresAt && next.combo.count > 0) {
     next.combo = { ...next.combo, count: 0, multiplier: 1 }
   }
@@ -1140,7 +1163,7 @@ export function processTick(
       next.fever = {
         ...createInitialFever(),
         phase: "COOL_DOWN",
-        remainingTime: config.feverCoolDown,
+        remainingTime: config.feverCoolDown * ruleEffects(next, config).feverCooldownMultiplier,
         gauge: next.fever.gauge,
       }
     }
@@ -1323,7 +1346,7 @@ export function accrueRegionCurrency(prev: RunState, next: RunState, config: Gam
 }
 
 export function regionCurrencyRate(run: RunState, config: GameConfig, regionId: string): number {
-  return (config.regionCurrencyRate ?? 1) * worldTreeMultiplier(run, config, regionId, "currencyMultiplier")
+  return (config.regionCurrencyRate ?? 1) * worldTreeMultiplier(run, config, regionId, "currencyMultiplier") * ruleEffects(run, config).regionCurrencyMultiplier
 }
 
 /**
@@ -1768,7 +1791,10 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         gachaStars: nonNegativeInt(meta.gachaStars),
         gachaFreeAt: typeof meta.gachaFreeAt === "number" && Number.isFinite(meta.gachaFreeAt) ? meta.gachaFreeAt : 0,
         gachaCounts: sanitizeGachaCounts(meta.gachaCounts),
+        postgame: meta.gameCompleted && meta.postgame ? sanitizePostgame(meta.postgame) : undefined,
         gachaLog: sanitizeGachaLog(meta.gachaLog),
+        exchange: sanitizeExchange(meta.exchange),
+        chronicle: sanitizeChronicle(meta.chronicle),
       },
       runState: {
         ...createInitialRun(now, createInitialMeta(), config),
@@ -1799,6 +1825,8 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         monsterRespawnAt:
           run.monsterRespawnAt && typeof run.monsterRespawnAt === "object" ? { ...run.monsterRespawnAt } : {},
         drillGauge: typeof run.drillGauge === "number" ? Math.min(1, Math.max(0, run.drillGauge)) : 0,
+        drillSessionEndsAt: typeof run.drillSessionEndsAt === "number" ? run.drillSessionEndsAt : 0,
+        drillSessionDurationMs: typeof run.drillSessionDurationMs === "number" ? run.drillSessionDurationMs : 0,
         drillCooldownUntil: typeof run.drillCooldownUntil === "number" ? run.drillCooldownUntil : 0,
         boss: null,
         costScale:
@@ -1869,7 +1897,7 @@ export function slayMonster(
   const respawnSec = Math.max(5, monster.respawnSec - skills.reduce((s, n) => s + (n.monsterRespawnReduce ?? 0), 0))
   // Hunting grounds are the region's main income, so their kills pay a much bigger click floor.
   const clickFloor = region.huntMode ? 150 : 25
-  const reward = (perSecond * monster.rewardSeconds + derivedClick(run, meta, config).click * clickFloor) * rewardMul
+  const reward = (perSecond * monster.rewardSeconds + derivedClick(run, meta, config).click * clickFloor) * rewardMul * ruleEffects(run, config).bossRewardMultiplier
   return {
     run: {
       ...run,
@@ -1898,15 +1926,46 @@ export function drillTaps(run: RunState, config: GameConfig): number {
   return Math.max(DRILL_MIN_TAPS, DRILL_TAPS - ownedUpgradeSum(run, config, "drillTapsReduce"))
 }
 
-/** Cooldown after a bore: the shared re-entry cooldown minus drill coolant upgrades. */
+/** Timed drill window and post-session wait share the same tuned duration (coolant upgrades apply to both). */
 export function drillCooldownMs(run: RunState, config: GameConfig): number {
   const cut = ownedUpgradeSum(run, config, "drillCooldownReduceSec") * 1000
   return Math.max(DRILL_MIN_COOLDOWN_MS, referenceCooldownMs(run, config) - cut)
 }
 
+export function drillSessionDurationMs(run: RunState, config: GameConfig): number {
+  return drillCooldownMs(run, config)
+}
+
+export function drillSessionActive(run: RunState, now: number): boolean {
+  return run.drillSessionEndsAt > now
+}
+
+/** Ends an expired drill session and starts the between-session cooldown. */
+export function finalizeDrillSession(run: RunState, config: GameConfig, now: number): RunState {
+  if (run.drillSessionEndsAt <= 0 || run.drillSessionEndsAt > now) return run
+  const wait = drillCooldownMs(run, config)
+  return {
+    ...run,
+    drillSessionEndsAt: 0,
+    drillSessionDurationMs: 0,
+    drillGauge: 0,
+    drillCooldownUntil: now + wait,
+  }
+}
+
+function beginDrillSession(run: RunState, config: GameConfig, now: number): RunState {
+  const durationMs = drillSessionDurationMs(run, config)
+  return {
+    ...run,
+    drillSessionEndsAt: now + durationMs,
+    drillSessionDurationMs: durationMs,
+    drillGauge: 0,
+  }
+}
+
 /**
- * One tap on the region drill rig. Fills the gauge; the tap that fills it bores the vein:
- * pays 90s of production plus a click-based floor, empties the gauge and starts the cooldown.
+ * One tap on the region drill rig. During a timed session, filling the gauge pays out and resets the gauge;
+ * the session keeps running until its timer ends, then the rig cools down before the next session.
  */
 export function drillStrike(
   run: RunState,
@@ -1914,20 +1973,27 @@ export function drillStrike(
   config: GameConfig,
   now: number,
 ): { run: RunState; meta: MetaState; reward: number; error?: string } {
-  if (run.drillCooldownUntil > now) {
-    return { run, meta, reward: 0, error: `시추 장비 냉각 중 · ${Math.ceil((run.drillCooldownUntil - now) / 1000)}초` }
+  let next = finalizeDrillSession(run, config, now)
+  if (next.drillCooldownUntil > now) {
+    return { run: next, meta, reward: 0, error: `시추 장비 냉각 중 · ${Math.ceil((next.drillCooldownUntil - now) / 1000)}초` }
   }
-  const gauge = Math.min(1, run.drillGauge + 1 / drillTaps(run, config))
-  if (gauge < 1 - 1e-9) return { run: { ...run, drillGauge: gauge }, meta, reward: 0 }
-  const perSecond = productionSnapshot(run, meta, config, now).perSecond
-  const reward = perSecond * 90 + derivedClick(run, meta, config).click * 60
+  if (!drillSessionActive(next, now)) {
+    next = beginDrillSession(next, config, now)
+  }
+  if (now >= next.drillSessionEndsAt) {
+    next = finalizeDrillSession(next, config, now)
+    return { run: next, meta, reward: 0, error: "시추 시간 종료" }
+  }
+  const gauge = Math.min(1, next.drillGauge + 1 / drillTaps(next, config))
+  if (gauge < 1 - 1e-9) return { run: { ...next, drillGauge: gauge }, meta, reward: 0 }
+  const perSecond = productionSnapshot(next, meta, config, now).perSecond
+  const reward = perSecond * 90 + derivedClick(next, meta, config).click * 60
   return {
     run: {
-      ...run,
+      ...next,
       drillGauge: 0,
-      drillCooldownUntil: now + drillCooldownMs(run, config),
-      coreEnergy: run.coreEnergy + reward,
-      lifetimeCoreEnergy: run.lifetimeCoreEnergy + reward,
+      coreEnergy: next.coreEnergy + reward,
+      lifetimeCoreEnergy: next.lifetimeCoreEnergy + reward,
     },
     meta: { ...meta, totalCoreEnergy: meta.totalCoreEnergy + reward },
     reward,
@@ -1975,8 +2041,9 @@ export function baseBossStrike(run: RunState, meta: MetaState, config: GameConfi
 
 /** Guardian health for this player: `strikesToDefeat` base strikes when the catalog sets it, else the fixed `hp`. */
 export function bossFightHp(boss: BossDef, run: RunState, meta: MetaState, config: GameConfig): number {
-  if (!boss.strikesToDefeat) return boss.hp
-  return baseBossStrike(run, meta, config) * boss.strikesToDefeat
+  const rule = ruleEffects(run, config).bossHpMultiplier
+  if (!boss.strikesToDefeat) return boss.hp * rule
+  return baseBossStrike(run, meta, config) * boss.strikesToDefeat * rule
 }
 
 export function startBossFight(run: RunState, meta: MetaState, config: GameConfig, now: number): { run: RunState; error?: string } {

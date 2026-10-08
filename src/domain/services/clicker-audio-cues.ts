@@ -28,6 +28,10 @@ export type CueId =
   | "bossHit"
   | "bossEnrage"
   | "bossDefeat"
+  | "dawnDepth"
+  | "dawnDepthBig"
+  | "awakenedRoar"
+  | "worldlineRuleReveal"
 
 export type CueDef = {
   /** File name inside CUE_PUBLIC_DIR. */
@@ -53,6 +57,13 @@ export const CUE_REGISTRY: Readonly<Record<CueId, CueDef>> = {
   bossHit: { file: "sfx_finalboss_hit_v1_norm.mp3", gainDb: 0, loop: false, minGapMs: 120 },
   bossEnrage: { file: "sfx_finalboss_enrage_v1_norm.mp3", gainDb: 0, loop: false },
   bossDefeat: { file: "sfx_finalboss_collapse_v1_norm.mp3", gainDb: 0, loop: false },
+  // 새벽의 광산 (Waldusic 2026-10-07): depth milestone -4 dB, every 10th depth -2 dB.
+  dawnDepth: { file: "sfx_dawn_depth_milestone_v1.mp3", gainDb: -4, loop: false, minGapMs: 400 },
+  dawnDepthBig: { file: "sfx_dawn_depth_milestone_big_v1.mp3", gainDb: -2, loop: false, minGapMs: 400 },
+  // 각성 수호자 roar: LUFS -7.9, 2.7 dB hotter than the final-boss roar (played at -2.4) -> -5.1 to match.
+  // Worldline rule reveal (Waldusic 2026-10-07): -6 dB, once per new worldline that has a rule.
+  worldlineRuleReveal: { file: "sfx_worldline_rule_reveal_v1.mp3", gainDb: -6, loop: false, minGapMs: 1000 },
+  awakenedRoar: { file: "sfx_guardian_awakened_roar_v1.mp3", gainDb: -5.1, loop: false },
 }
 
 export const ALL_CUE_IDS = Object.keys(CUE_REGISTRY) as CueId[]
@@ -89,8 +100,10 @@ export type DrillTapPlan = { readonly play: readonly CueId[]; readonly loop: "st
  * One accepted tap on the drill rig. `active`: the hum is running (a cycle is in progress).
  * `reward > 0` means this tap bored through the vein.
  */
-export function drillTapPlan(active: boolean, reward: number): DrillTapPlan {
-  if (reward > 0) return { play: ["drillComplete"], loop: "stop" }
+export function drillTapPlan(active: boolean, reward: number, sessionContinues = false): DrillTapPlan {
+  if (reward > 0) {
+    return sessionContinues ? { play: ["drillComplete"], loop: "keep" } : { play: ["drillComplete"], loop: "stop" }
+  }
   if (!active) return { play: ["drillStart"], loop: "start" }
   return { play: [], loop: "keep" }
 }
@@ -136,4 +149,11 @@ export function guardianAudioPlan(prev: GuardianAudioSnap | null, next: Guardian
   if (next.fighting && next.attacks > prev.attacks) play.push("bossStomp")
   if (next.fighting && prev.enrage < GUARDIAN_ENRAGE_CUE_AT && next.enrage >= GUARDIAN_ENRAGE_CUE_AT) play.push("bossEnrage")
   return { play, breath }
+}
+
+/* ---------- 새벽의 광산 ---------- */
+
+/** Cue for a new dawn depth: the big one on every 10th depth. */
+export function dawnDepthCue(big: boolean): CueId {
+  return big ? "dawnDepthBig" : "dawnDepth"
 }

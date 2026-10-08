@@ -22,7 +22,10 @@ export {
   type CurrencyCostView,
   type SkillNodeView,
 } from "@/domain/services/clicker-view"
+export { worldlineDurationMs, type ChronicleSummary } from "@/domain/services/clicker-chronicle"
+export type { ExchangeOfferView } from "@/domain/services/clicker-exchange"
 export type {
+  ChronicleEntry,
   GachaLogEntry,
   BossDef,
   BossFight,
@@ -38,12 +41,21 @@ export type {
   TranscendenceDef,
   UpgradeCategory,
 } from "@/domain/entities/clicker"
-export type { ParsedSaveCode } from "@/domain/services/clicker-save-transfer"
+export {
+  isMineHotkeyTypingTarget,
+  minePotionHotkeyLabel,
+  minePotionSlotFromKeyboard,
+  mineSkillSlotFromKeyboard,
+  MINE_POTION_HOTKEY_LABELS,
+  MINE_SKILL_HOTKEY_SLOTS,
+} from "@/domain/services/clicker-mine-hotkeys"
 export type { MineSessionStart, MineSessionSummary } from "@/domain/services/clicker-mine-session"
 export type { GearSlot, GearTier } from "@/domain/services/clicker-lair"
 export {
   INSTABILITY_WARNING,
   drillCooldownMs,
+  drillSessionActive,
+  drillSessionDurationMs,
   isRegionUnlocked,
   monsterAlive,
   relicVaultOpen,
@@ -146,3 +158,10 @@ export {
   type RebirthChoiceState,
 } from "@/domain/services/clicker-rebirth-choice"
 export { rebirthKeyframePreloadOrder } from "@/domain/services/clicker-rebirth-keyframes"
+export { awakenedGuardianLabel } from "@/domain/services/clicker-guardian-rematch"
+
+/** Worldline rule shown for a worldline (data + pure text; null = no rule). */
+export { worldlineRuleText } from "@/domain/services/clicker-worldline-rules"
+export { clickerMineEntranceMedia, type ClickerMineEntranceMedia } from "@/application/clicker-mine-theme"
+export type { WorldlineRuleDef } from "@/domain/services/clicker-worldline-rules"
+export const WORLDLINE_RULE_ICON_DIR = "/clicker/worldline-rule/"

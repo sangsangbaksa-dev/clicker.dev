@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react"
 import type { BossDef, BossFight } from "@/application/clicker-ui"
 import { formatNumber } from "@/application/clicker-ui"
+import { awakenedGuardianLabel as clickerAwakenedLabel } from "@/application/clicker-ui"
 import { guardianLayout } from "@/application/clicker-guardian-frame"
 import { clickerCues, guardianAudioPlan, type GuardianAudioSnap } from "@/application/clicker-cues"
 import { bossFightOutcome, enrageLevel } from "@/application/clicker-guardian-motion"
@@ -22,10 +23,14 @@ type Props = {
   defeated: boolean
   onStart: () => void
   onStrike: (clientX: number, clientY: number) => void
+  /** 각성 수호자 rematch offer (새벽의 광산 only). */
+  awakened?: { label: string; reward: number; onStart: () => void } | null
 }
 
 /** Core Heart: tap the guardian to hurt it before its blows or the clock end the fight. */
-export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike }: Props) {
+export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike, awakened = null }: Props) {
+  const isAwakened = Boolean(fight?.awakened)
+  const name = isAwakened ? clickerAwakenedLabel(fight?.awakenedDepth ?? 0) : def.name
   const [attack, setAttack] = useState(0)
   const [lost, setLost] = useState(false)
   const [hit, setHit] = useState(0)
@@ -98,14 +103,16 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
         <div className="clicker-boss-bars">
           <ClickerHpBar
             tone="boss"
+            rim={def.imageSrc ? "flat" : "framed"}
             value={fight.hp}
             max={fight.maxHp}
-            label={def.name}
+            label={name}
             valueText={`${formatNumber(Math.max(0, fight.hp))} / ${formatNumber(fight.maxHp)}`}
-            ariaLabel="수호자 체력"
+            ariaLabel={`${name} 체력`}
           />
           <ClickerHpBar
             tone="player"
+            rim={def.imageSrc ? "flat" : "framed"}
             value={fight.playerHp}
             max={fight.playerMaxHp}
             label="내 체력"
@@ -121,6 +128,7 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
           attacks={attack}
           defeats={fallen}
           enrage={enrage}
+          awakened={isAwakened}
         />
       ) : null}
       <button
@@ -128,7 +136,7 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
         data-sfx="off"
         className="clicker-boss-target"
         style={hitStyle}
-        aria-label={fight ? `${def.name} 공격` : `${def.name}`}
+        aria-label={fight ? `${name} 공격` : `${def.name}`}
         disabled={!fight}
         onPointerDown={(e) => {
           if (!fight || e.button !== 0) return
@@ -147,9 +155,20 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
           <button type="button" className="clicker-danger clicker-boss-start" onClick={onStart}>
             {defeated ? "다시 싸우기" : "수호자에게 도전"} · {def.timeLimitSec}초
           </button>
+          {awakened ? (
+            <button type="button" className="clicker-danger clicker-boss-start" onClick={awakened.onStart}>
+              {awakened.label}에게 도전 · 새벽 조각 +{awakened.reward}
+            </button>
+          ) : null}
         </>
       ) : null}
-      {attack && fight ? <div className="clicker-boss-hurt" key={`hurt-${attack}`} aria-hidden /> : null}
+      {attack && fight ? (
+        def.imageSrc ? (
+          <div className="clicker-boss-guardian-hurt" key={`hurt-${attack}`} aria-hidden />
+        ) : (
+          <div className="clicker-boss-hurt" key={`hurt-${attack}`} aria-hidden />
+        )
+      ) : null}
     </div>
   )
 }

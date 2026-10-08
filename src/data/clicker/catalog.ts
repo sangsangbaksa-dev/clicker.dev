@@ -4,16 +4,17 @@ import { MineArt } from "./mine-assets.ts"
 import { CLICKER_ACHIEVEMENTS } from "./achievements.ts"
 import { finalizeCatalog } from "./catalog-extra.ts"
 import { CLICKER_RELICS } from "./relics.ts"
+import { CLICKER_WORLDLINE_RULES } from "./worldline-rules.ts"
 import { CLICKER_WORLD_TREES, REGION_CURRENCY_RATE } from "./world-trees.ts"
 
 export const CLICKER_ASSETS = {
   bgLoading: "/clicker/bg/loading_core_awakening.webp",
   bgChamber: "/clicker/bg/region_core_chamber.webp",
-  /** Hub pre-enter — exterior gate only. */
+  /** Hub pre-enter — exterior gate (worldline tint applied in the shell). */
   bgMineEntrance: MineArt.entranceGate,
   bgTitleGate: MineArt.titleGate,
-  /** Timed mine session — hi-tech interior chamber. */
-  bgMine: MineArt.chamberBg,
+  /** Timed mine session — same clean interior plate as the live mine view. */
+  bgMine: MineArt.orePlate,
   mineCoreOre: MineArt.coreOre,
   bgTranscendence: "/clicker/bg/transcendence_room_base.webp",
   coreIdle: "/clicker/core/core_idle.webp",
@@ -1623,6 +1624,7 @@ const baseConfig: GameConfig = {
     },
   ],
   relics: CLICKER_RELICS,
+  worldlineRules: CLICKER_WORLDLINE_RULES,
   worldTrees: CLICKER_WORLD_TREES,
   regionCurrencyRate: REGION_CURRENCY_RATE,
   regions: CLICKER_REGIONS,

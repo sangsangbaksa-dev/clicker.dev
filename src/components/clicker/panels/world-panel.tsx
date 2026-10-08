@@ -6,6 +6,8 @@ import type { RunState } from "@/application/clicker-ui"
 import type { ClickerGame } from "./types"
 import { ClickerWorldTree } from "../clicker-world-tree"
 
+import { ClickerExchange } from "@/components/clicker/clicker-exchange"
+
 export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; run: RunState; onBack: () => void }) {
   return (
     <div className="clicker-world">
@@ -113,6 +115,7 @@ export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; ru
           ← Core Mine으로 돌아가기
         </button>
       ) : null}
+      <ClickerExchange game={game} now={run.lastTickAt} />
     </div>
   )
 }

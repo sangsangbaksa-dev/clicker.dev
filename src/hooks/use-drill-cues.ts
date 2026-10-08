@@ -9,7 +9,7 @@ import { clickerCues, drillLoopExpired, drillTapPlan, DRILL_LOOP_IDLE_MS } from 
  * tap, when the region changes, or on unmount. What plays when is decided by `drillTapPlan`.
  * Returns the callback for an accepted tap with its payout (0 = no bore yet).
  */
-export function useDrillCues(regionId: string | undefined): (reward: number) => void {
+export function useDrillCues(regionId: string | undefined): (reward: number, sessionContinues?: boolean) => void {
   const active = useRef(false)
   const lastTap = useRef(0)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -26,9 +26,9 @@ export function useDrillCues(regionId: string | undefined): (reward: number) => 
   useEffect(() => stop, [regionId, stop])
 
   return useCallback(
-    (reward: number) => {
+    (reward: number, sessionContinues = false) => {
       const cues = clickerCues()
-      const plan = drillTapPlan(active.current, reward)
+      const plan = drillTapPlan(active.current, reward, sessionContinues)
       for (const id of plan.play) cues.play(id)
       if (plan.loop === "stop") {
         stop()

@@ -4,6 +4,8 @@ import { formatNumber } from "@/application/clicker-ui"
 import type { MetaState } from "@/application/clicker-ui"
 import type { ClickerGame } from "./types"
 
+import { ClickerChronicle } from "@/components/clicker/clicker-chronicle"
+
 export function ClickerAchievementsPanel({ game, meta }: { game: ClickerGame; meta: MetaState }) {
   return (
     <div className="clicker-achievements">
@@ -42,6 +44,7 @@ export function ClickerAchievementsPanel({ game, meta }: { game: ClickerGame; me
           </li>
         ))}
       </ul>
+      <ClickerChronicle game={game} />
     </div>
   )
 }

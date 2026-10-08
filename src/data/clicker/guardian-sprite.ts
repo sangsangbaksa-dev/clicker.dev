@@ -31,3 +31,13 @@ export const GUARDIAN_TIERS: readonly GuardianTier[] = [
 
 export const guardianFrameSrc = (tier: GuardianTier, clip: ClipName, index: number): string =>
   `${tier.dir}/${clip}_${String(index).padStart(2, "0")}.webp`
+
+/** 각성 수호자 frames: same sheet geometry (re-framed to the same pivot), own folder. */
+export const GUARDIAN_AWAKENED_TIERS: readonly GuardianTier[] = [
+  { id: "tight", scaleVsBase: 1, dir: "/clicker/boss/guardian-awakened/tight" },
+  { id: "big", scaleVsBase: 1.5, dir: "/clicker/boss/guardian-awakened/big" },
+]
+
+/** The tier of the awakened sheet that matches `tier` (same id and scale). */
+export const awakenedGuardianTier = (tier: GuardianTier): GuardianTier =>
+  GUARDIAN_AWAKENED_TIERS.find((t) => t.id === tier.id) ?? tier

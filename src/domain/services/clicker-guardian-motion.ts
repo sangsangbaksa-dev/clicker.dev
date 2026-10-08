@@ -197,9 +197,9 @@ export function sampleMotion(state: MotionState, now: number, opts: SampleOption
     } else {
       pushClip(layers, "defeat", t, 1, false)
       pose = {
-        scaleX: 1 + 0.05 * easeOutCubic(p),
-        scaleY: 1,
-        skewDeg: 2.6 * Math.sin(t / 38) * (1 - p) ** 2,
+        scaleX: 1 + 0.04 * easeOutCubic(p),
+        scaleY: 1 - 0.06 * easeOutCubic(p),
+        skewDeg: 0,
         glow: 0,
       }
     }
@@ -230,12 +230,12 @@ export function sampleMotion(state: MotionState, now: number, opts: SampleOption
       lean = Math.max(-1.35, Math.min(1.35, lean))
       const lunge = s.attackAt === null ? 1 : lungeScale(now - s.attackAt)
       const wave = Math.sin((now / (1100 - 500 * enrage)) * Math.PI * 2)
-      const pulse = 1 + 0.012 * enrage * wave
+      const pulse = 1 + 0.008 * enrage * wave
       pose = {
-        scaleX: (1 + 0.035 * k) * lunge * pulse,
-        scaleY: (1 - 0.05 * k) * lunge * pulse,
-        skewDeg: 2.2 * lean,
-        glow: enrage * (0.5 + 0.5 * wave),
+        scaleX: (1 + 0.042 * k) * lunge * pulse,
+        scaleY: (1 - 0.058 * k) * lunge * pulse,
+        skewDeg: 1.6 * lean,
+        glow: enrage * (0.35 + 0.35 * wave),
       }
     }
   }

@@ -2,6 +2,7 @@
 
 import { formatNumber } from "@/application/clicker-ui"
 import { ClickerRebirthWorldlineSelect } from "@/components/clicker/clicker-rebirth-worldline-select"
+import { ClickerWorldlineRule } from "@/components/clicker/clicker-worldline-rule"
 import type { MetaState, TranscendenceDef } from "@/application/clicker-ui"
 import type { PanelProps } from "./types"
 
@@ -30,6 +31,7 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
             ← 돌아가기
           </button>
         </div>
+        <ClickerWorldlineRule rule={game.worldlineRule} />
         <h3>{transcendenceUnlocked ? "환생할 세계선을 고르세요" : allWalked ? `${transcendenceTotal}개 세계선 완료` : "환생 준비 중"}</h3>
         <div
           className="clicker-transcendence-meter"

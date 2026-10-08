@@ -18,15 +18,23 @@ import {
   clickerCanCompleteEnding,
   clickerClaimVein,
   clickerClick,
+  clickerCanPlay,
   clickerCompleteEnding,
+  clickerContinueAfterEnding,
+  clickerWorldlineRule,
+  clickerWorldlineRuleReveal,
+  clickerAwakenedGuardianView,
+  clickerStartAwakenedGuardian,
+  CLICKER_AWAKENED_ROAR_TEXT,
+  clickerDawnDepth,
+  clickerDawnDepthNotice,
+  clickerShowsCompletion,
   clickerDrillOverdrive,
   clickerDrinkPotion,
   clickerEnterMine,
   clickerMineEntryError,
   clickerExitMine,
-  clickerExportCode,
   clickerImportSave,
-  clickerParseSaveCode,
   clickerSaveJson,
   clickerFinishMineSession,
   clickerGameConfig,
@@ -53,6 +61,9 @@ import {
   clickerStrikeLair,
   clickerForge,
   clickerBuyRelic,
+  clickerBuyExchange,
+  clickerExchangeOffers,
+  clickerChronicle,
   clickerBuyWorldTreeNode,
   clickerPullGacha,
   allowMineStrike,
@@ -101,7 +112,7 @@ import {
   nextAdminSpeed,
   type AdminModes,
 } from "@/application/clicker-ui"
-import { clickerCues } from "@/application/clicker-cues"
+import { clickerCues, dawnDepthCue } from "@/application/clicker-cues"
 import { playSfx, setSfxMuted } from "@/lib/clicker-sfx"
 import { clearFloats, pushFloat } from "@/lib/clicker-floats"
 
@@ -225,7 +236,7 @@ export function useClicker() {
       if (ts - last > 100) {
         last = ts
         const current = saveRef.current
-        if (current && !current.metaState.gameCompleted && !blockedRef.current) {
+        if (current && clickerCanPlay(current) && !blockedRef.current) {
           const ticked = clickerTick(current, now())
           const modes = adminModesRef.current
           const next = modes.god || modes.speed > 1 ? clickerApplyAdminModes(current, ticked, modes) : ticked
@@ -304,6 +315,33 @@ export function useClicker() {
     flash(`업적 달성 · ${names} (생산 +${fresh.length}%)`)
   }, [achievementIds, flash])
 
+  // Worldline rule: on entering a new worldline with a rule, one cue plus the rule as aria-live text.
+  const currentWorldLine = save?.runState.currentWorldLine ?? null
+  const knownWorldLine = useRef<number | null>(null)
+  useEffect(() => {
+    if (!save || currentWorldLine == null) return
+    const prev = knownWorldLine.current
+    knownWorldLine.current = currentWorldLine
+    const reveal = clickerWorldlineRuleReveal(prev, save)
+    if (!reveal) return
+    clickerCues().play("worldlineRuleReveal")
+    flash(reveal.text)
+  }, [currentWorldLine, flash, save])
+
+  // 새벽의 광산: announce each new depth as text (aria-live toast), not by sound alone.
+  const dawnDepth = save ? clickerDawnDepth(save) : 0
+  const knownDawnDepth = useRef<number | null>(null)
+  useEffect(() => {
+    if (!save) return
+    const prev = knownDawnDepth.current
+    knownDawnDepth.current = dawnDepth
+    if (prev == null) return
+    const notice = clickerDawnDepthNotice(prev, dawnDepth)
+    if (!notice) return
+    clickerCues().play(dawnDepthCue(notice.big))
+    flash(notice.text)
+  }, [dawnDepth, flash, save])
+
   /** Refused action: toast the reason with the deny buzz. */
   const refuse = useCallback(
     (message: string) => {
@@ -324,7 +362,7 @@ export function useClicker() {
   const mineStrikes = useRef<number[]>([])
   const clickCore = useCallback((clientX?: number, clientY?: number, auto = false) => {
     const current = saveRef.current
-    if (!current || current.metaState.gameCompleted) return null
+    if (!current || !clickerCanPlay(current)) return null
     // Taps (mine and region drilling) share the strikes-per-second cap. The assist drill has its own
     // fixed rate and stays out of it: it used to eat the budget, so taps on phones (where the last
     // touch keeps the drill aimed at the ore) failed on and off.
@@ -501,6 +539,17 @@ export function useClicker() {
   const completeEnding = useCallback(() => {
     if (!saveRef.current) return false
     const result = clickerCompleteEnding(saveRef.current, now())
+    if (!result.ok) {
+      refuse(result.error)
+      return false
+    }
+    commitAndSave(result.value)
+    return true
+  }, [refuse, commitAndSave])
+
+  const continueAfterEnding = useCallback(() => {
+    if (!saveRef.current) return false
+    const result = clickerContinueAfterEnding(saveRef.current, now())
     if (!result.ok) {
       refuse(result.error)
       return false
@@ -818,6 +867,18 @@ export function useClicker() {
     [refuse, flash, commitAndSave],
   )
 
+  const buyExchange = useCallback(
+    (offerId: string) => {
+      if (!saveRef.current) return
+      const result = clickerBuyExchange(saveRef.current, offerId, Date.now())
+      if (!result.ok) return refuse(result.error)
+      commitAndSave(result.value)
+      playSfx("upgrade")
+      flash("교환을 마쳤어요.")
+    },
+    [refuse, flash, commitAndSave],
+  )
+
   const buyRelic = useCallback(
     (relicId: string) => {
       if (!saveRef.current) return
@@ -886,19 +947,29 @@ export function useClicker() {
     playSfx("bossRoar")
   }, [commit, refuse])
 
+  /** 각성 수호자 rematch: roar cue with a text alternative (toast is aria-live). */
+  const startAwakenedGuardian = useCallback(() => {
+    if (!saveRef.current) return
+    const result = clickerStartAwakenedGuardian(saveRef.current, now())
+    if (!result.ok) return refuse(result.error)
+    commit(result.value)
+    clickerCues().play("awakenedRoar")
+    flash(CLICKER_AWAKENED_ROAR_TEXT)
+  }, [commit, refuse, flash])
+
   /** Strike the guardian. Returns true on the killing blow. */
   const strikeBoss = useCallback(
-    (clientX: number, clientY: number) => {
+    (_clientX: number, _clientY: number) => {
       if (!saveRef.current) return false
       const result = clickerStrikeBoss(saveRef.current, now())
       if (result.damage <= 0) return false
       playSfx("bossHit")
       commit(result.save)
-      pushFloat({ text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }, 700)
       if (result.defeated) persistNow(result.save)
+      if (result.shards > 0) flash(`각성 수호자 격파 · 새벽 조각 +${result.shards}`)
       return result.defeated
     },
-    [commit, persistNow],
+    [commit, persistNow, flash],
   )
 
   const forceSave = useCallback(() => {
@@ -908,14 +979,6 @@ export function useClicker() {
     flash("진행 상황 저장됨")
   }, [persistNow, flash])
 
-  /** Current save as a copy-pasteable code (settings → 저장 데이터). */
-  const exportSaveCode = useCallback((): string | null => {
-    const current = saveRef.current
-    if (!current) return null
-    persistNow()
-    return clickerExportCode(current)
-  }, [persistNow])
-
   /** Current save as stored JSON (for the cloud save). */
   const exportSaveJson = useCallback((): string | null => {
     const current = saveRef.current
@@ -923,8 +986,6 @@ export function useClicker() {
     persistNow()
     return clickerSaveJson(current)
   }, [persistNow])
-
-  const parseSaveCode = useCallback((code: string) => clickerParseSaveCode(code, now()), [])
 
   /** Replace this device's save with an imported one (the old save is backed up first). */
   const importSaveJson = useCallback(
@@ -998,7 +1059,9 @@ export function useClicker() {
       }
     : null
   const canCompleteEnding = save ? clickerCanCompleteEnding(save) : false
-  const isCompleted = Boolean(save?.metaState.gameCompleted)
+  const isCompleted = save ? clickerShowsCompletion(save) : false
+  const awakenedGuardian = save ? clickerAwakenedGuardianView(save) : null
+  const worldlineRule = save ? clickerWorldlineRule(save) : null
 
   return {
     save,
@@ -1022,9 +1085,7 @@ export function useClicker() {
     otherTabActive,
     resumeHere,
     forceSave,
-    exportSaveCode,
     exportSaveJson,
-    parseSaveCode,
     importSaveJson,
     dismissToast,
     clickCore,
@@ -1042,6 +1103,10 @@ export function useClicker() {
     returnHome,
     rebirth,
     completeEnding,
+    continueAfterEnding,
+    awakenedGuardian,
+    worldlineRule,
+    startAwakenedGuardian,
     adminReset,
     adminGrant,
     adminGrantAllCurrencies,
@@ -1084,6 +1149,9 @@ export function useClicker() {
     strikeLair,
     forge,
     buyRelic,
+    buyExchange,
+    exchangeOffers: (now: number) => (save ? clickerExchangeOffers(save, now) : []),
+    chronicle: save ? clickerChronicle(save) : null,
     buyWorldTreeNode,
     redeemSecretCode,
     pullGacha,

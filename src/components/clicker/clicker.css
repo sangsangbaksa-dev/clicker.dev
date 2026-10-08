@@ -2745,6 +2745,9 @@ button.clicker-metric-action.is-fever-ready em {
   display: grid;
   place-items: center;
   padding: 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  align-content: safe center;
   background: color-mix(in srgb, var(--void) 72%, transparent);
 }
 
@@ -2940,6 +2943,9 @@ button.clicker-metric-action.is-fever-ready em {
   display: grid;
   place-items: center;
   padding: 24px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  align-content: safe center;
 }
 
 .clicker-complete-bg {
@@ -3479,21 +3485,11 @@ button.clicker-metric-action.is-fever-ready em {
   display: none !important;
 }
 
+/* The mine draws its own full-bleed plate; a second chamber still underneath caused bright diagonal moiré. */
 .clicker-shell.is-mine-surface .clicker-stage-bg {
-  opacity: 1;
-  filter: brightness(1.02) saturate(1.04);
-}
-
-/* FEVER in mine: brighten chamber — no background rotation. */
-.clicker-shell.is-mine-surface .clicker-stage-bg.is-fever {
-  filter: brightness(1.18) saturate(1.22);
-  transition: filter 0.45s ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .clicker-shell.is-mine-surface .clicker-stage-bg.is-fever {
-    transition: none;
-  }
+  opacity: 0;
+  visibility: hidden;
+  filter: none;
 }
 
 .clicker-mine-dig {
@@ -4927,9 +4923,10 @@ button.clicker-metric-action.is-fever-ready em {
   }
 
   .clicker-admin-launch {
-    top: auto;
-    bottom: calc(112px + env(safe-area-inset-bottom, 0px));
-    right: 8px;
+    top: calc(52px + env(safe-area-inset-top, 0px));
+    bottom: auto;
+    right: 52px;
+    left: auto;
     min-height: 36px;
     padding: 6px 10px;
     font-size: 11px;
@@ -5071,3 +5068,9 @@ button.clicker-metric-action.is-fever-ready em {
   font-size: 12px;
   color: var(--muted);
 }
+
+/* Worldline rule (one per worldline 1-8) */
+.clicker-worldline-rule { display: flex; gap: 0.6rem; align-items: center; margin: 0.4rem 0; }
+.clicker-worldline-rule img { flex: none; width: 40px; height: 40px; }
+.clicker-worldline-rule strong { display: block; font-size: 0.9rem; }
+.clicker-worldline-rule p { margin: 0; font-size: 0.8rem; overflow-wrap: anywhere; }

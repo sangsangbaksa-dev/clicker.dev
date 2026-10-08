@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { CLICKER_ASSETS, clickerConfig } from "@/data/clicker/catalog"
@@ -16,6 +17,7 @@ import {
   LAIR_BOSSES,
   WEAPONS,
   drillCooldownMs,
+  drillSessionActive,
   formatNumber,
   formatRate,
   gearOf,
@@ -41,10 +43,15 @@ import {
   buildUpgradeNavTabs,
   stageStationFor,
   type UpgradeNavAction,
+  isMineHotkeyTypingTarget,
+  minePotionHotkeyLabel,
+  minePotionSlotFromKeyboard,
+  mineSkillSlotFromKeyboard,
+  clickerMineEntranceMedia,
 } from "@/application/clicker-ui"
 import { useClicker } from "@/hooks/use-clicker"
 import { useClickerBgm } from "@/hooks/use-clicker-bgm"
-import { clickerBgmControls, clickerBgmScene, mineEntryVideoMuted } from "@/application/clicker-audio"
+import { clickerBgmControls, clickerBgmScene, mineEntryVideoMuted, REBIRTH_BGM_TAIL_MS } from "@/application/clicker-audio"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEndingFlow } from "@/components/clicker/clicker-ending-flow"
 import { ClickerMine, type MineFxTier } from "@/components/clicker/clicker-mine"
@@ -73,6 +80,8 @@ import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
 import { useDrillCues } from "@/hooks/use-drill-cues"
+import { useClickerDrillEngage } from "@/hooks/use-clicker-drill-engage"
+import { clickerRegionEngageMedia } from "@/application/clicker-drill-media"
 import { ENDING_MEDIA, endingVideoSrc, preloadEndingAudio, readEndingVideoQuality } from "@/lib/clicker-ending-media"
 import { ENDING_VIDEO_ORDER, shouldStartEnding } from "@/application/clicker-ending"
 import { ClickerFloats } from "./clicker-floats"
@@ -86,6 +95,7 @@ import { ClickerTranscendencePanel } from "@/components/clicker/panels/transcend
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 import "./clicker.css"
 import "./clicker-polish.css"
+import "./clicker-mine-worldline.css"
 
 /** Next inlines NODE_ENV — production builds dead-code-eliminate admin JSX. */
 const CLICKER_ADMIN_UI =
@@ -108,18 +118,36 @@ const SKILL_NOVA_COLOR: Record<string, string> = {
   grid_boost: "rgb(255 220 110 / 0.9)",
 }
 
-/** Number keys 1–9 cast owned skills in bar order (ignored while typing). */
-function ClickerSkillHotkeys({ onSlot }: { onSlot: (slot: number) => void }) {
+/** Mine session: 1–9 = active skills (bar order), Q/W/E… = potions (toolbar order). */
+function ClickerMineHotkeys({
+  enabled,
+  onSkillSlot,
+  onPotionSlot,
+}: {
+  enabled: boolean
+  onSkillSlot: (slot: number) => void
+  onPotionSlot: (slot: number) => void
+}) {
   useEffect(() => {
+    if (!enabled) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || !/^Digit[1-9]$/.test(e.code)) return
-      const t = e.target
-      if (t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return
-      onSlot(Number(e.code.slice(5)) - 1)
+      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return
+      if (isMineHotkeyTypingTarget(e.target)) return
+      const skillSlot = mineSkillSlotFromKeyboard(e.code)
+      if (skillSlot !== null) {
+        e.preventDefault()
+        onSkillSlot(skillSlot)
+        return
+      }
+      const potionSlot = minePotionSlotFromKeyboard(e.code)
+      if (potionSlot !== null) {
+        e.preventDefault()
+        onPotionSlot(potionSlot)
+      }
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [onSlot])
+  }, [enabled, onSkillSlot, onPotionSlot])
   return null
 }
 
@@ -240,10 +268,16 @@ export function ClickerApp() {
   useImagePreload(PRELOAD_IMAGES)
   // Door-walk entry cinematic between Enter Mine and the timed session (carries its own SFX).
   const [enteringMine, setEnteringMine] = useState(false)
+  /** Drill-entry cinematic (region still → rig), same slot as mine `enteringMine`. */
+  const [enteringDrill, setEnteringDrill] = useState(false)
   /** Region whose field challenge is open (mini-game overlay), or null. */
   const [challengeRegionId, setChallengeRegionId] = useState<string | null>(null)
   const [drillHits, setDrillHits] = useState(0)
   const drillCue = useDrillCues(game.save?.runState.currentRegionId)
+  const mineMedia = useMemo(() => clickerMineEntranceMedia(game.save?.metaState), [game.save?.metaState])
+  const mineShellStyle = useMemo(() => mineMedia.cssVars as CSSProperties, [mineMedia])
+  const regionDefForEngage = game.config.regions.find((r) => r.id === game.save?.runState.currentRegionId)
+  const drillEngageMedia = useClickerDrillEngage(regionDefForEngage)
 
   // Prime Web Audio on first gesture so click/laser SFX are not stuck suspended.
   useEffect(() => {
@@ -281,6 +315,8 @@ export function ClickerApp() {
   const [popIcons, setPopIcons] = useState<Record<string, number>>({})
   const [confirmPotion, setConfirmPotion] = useState<string | null>(null)
   const [pendingRebirth, setPendingRebirth] = useState<{ id: string; label: string } | null>(null)
+  /** Keeps `BgmScene` `rebirth` after the overlay closes so the HQ loop can fade out. */
+  const [rebirthBgmTail, setRebirthBgmTail] = useState(false)
   /** Title card shown over the fresh worldline right after the rebirth sequence. */
   const [arrival, setArrival] = useState<{ key: number; line: number; label: string; mult: number } | null>(null)
   const [storyBeat, setStoryBeat] = useState<string | null>(null)
@@ -330,6 +366,7 @@ export function ClickerApp() {
       // The whole ending (videos, cards, replay) silences the world score; the ending media bring their own audio.
       endingPhase: endingMode,
       pendingRebirth: Boolean(pendingRebirth),
+      rebirthBgmTail,
       endingOpen: false,
       playSurface: game.save?.settings.playSurface ?? "hub",
       currentRegionId: game.save?.runState.currentRegionId,
@@ -338,6 +375,10 @@ export function ClickerApp() {
       finalBossFight:
         Boolean(game.save?.runState.boss) &&
         Boolean(game.config.regions.find((r) => r.id === game.save?.runState.currentRegionId)?.boss),
+      dawnMine: Boolean(game.awakenedGuardian),
+      tutorialOpen: Boolean(
+        game.save?.settings.gameStarted && !game.save?.settings.tutorialSeen && game.save?.settings.playSurface !== "mine",
+      ),
     }),
     muted: bgm.muted,
     volume: bgm.volume,
@@ -586,6 +627,29 @@ export function ClickerApp() {
     setSkillNova((prev) => ({ key: (prev?.key ?? 0) + 1, color: SKILL_NOVA_COLOR[id] ?? "rgb(150 230 255 / 0.85)" }))
   }
 
+  const drinkPotionAtSlot = useCallback(
+    (slot: number) => {
+      const save = game.save
+      const hudNow = game.hud
+      if (!save || !hudNow || save.settings.playSurface !== "mine") return
+      const runNow = save.runState
+      const potion = game.config.potions[slot]
+      if (!potion) return
+      const count = runNow.potions[potion.id] ?? 0
+      const feverBusy = hudNow.fever.active || runNow.fever.phase === "COOL_DOWN"
+      if (count <= 0 || hudNow.crisisActive || feverBusy) return
+      if (potion.id === "overdrive" && confirmPotion !== potion.id) {
+        setConfirmPotion(potion.id)
+        return
+      }
+      setConfirmPotion(null)
+      bumpIcon(potion.id)
+      flashStage()
+      game.drinkPotion(potion.id)
+    },
+    [confirmPotion, game],
+  )
+
   useEffect(() => {
     const next = game.hud?.coreVisual
     if (!next) return
@@ -704,12 +768,12 @@ export function ClickerApp() {
 
   // Warm the videos the player is about to see: mine entry at home, intros of unlocked unvisited regions.
   const atHomeNow = Boolean(game.currentRegion?.isHome)
-  const engageClip = game.config.regions.find((r) => r.id === game.save?.runState.currentRegionId)?.intro?.engageVideo
+  const engageClip = clickerRegionEngageMedia(regionDefForEngage)?.video
   const visited = game.save?.metaState.visitedRegionIds
   const unlockedKey = game.regions.filter((r) => r.unlocked).map((r) => r.id).join(",")
   useEffect(() => {
     const idle = window.setTimeout(() => {
-      if (atHomeNow) preloadCinematic(MineArt.enterCinematic)
+      if (atHomeNow) preloadCinematic(mineMedia.enterCinematic)
       if (engageClip) preloadCinematic(engageClip)
       for (const id of unlockedKey.split(",")) {
         const intro = game.config.regions.find((r) => r.id === id)?.intro
@@ -717,7 +781,7 @@ export function ClickerApp() {
       }
     }, 1500)
     return () => window.clearTimeout(idle)
-  }, [atHomeNow, engageClip, unlockedKey, visited, game.config.regions])
+  }, [atHomeNow, engageClip, unlockedKey, visited, game.config.regions, mineMedia.enterCinematic, regionDefForEngage])
 
   const bossDefeated = Boolean(game.save?.metaState.bossDefeated)
   const gameCompleted = Boolean(game.save?.metaState.gameCompleted)
@@ -841,7 +905,7 @@ export function ClickerApp() {
         worldlinesOwned: new Set(game.save.metaState.transcendenceIds).size,
         worldlinesTotal: game.config.transcendence.length,
         rebirthCount: game.save.metaState.rebirthCount,
-        lifetimeCoreText: formatNumber(game.save.metaState.totalCoreEnergy),
+        lifetimeCoreText: `${formatNumber(game.save.metaState.totalCoreEnergy)} CORE`,
       }}
       onComplete={() => {
         if (endingMode === "replay") setEndingMode(null)
@@ -858,6 +922,7 @@ export function ClickerApp() {
           worldlineTotal={game.config.transcendence.length}
           onReset={game.adminReset}
           onReplayEnding={() => setEndingMode("replay")}
+          onContinue={game.continueAfterEnding}
         />
         {endingMode === "replay" ? endingFlow : null}
       </>
@@ -910,6 +975,7 @@ export function ClickerApp() {
     setArrivedRegion(run.currentRegionId)
     setEngagedRegion(null)
     setEngagingRegion(null)
+    setEnteringDrill(false)
   }
   const hereDef = game.config.regions.find((r) => r.id === run.currentRegionId)
   const worldStill = !inMine && !hereDef?.isHome ? hereDef?.intro?.still : undefined
@@ -922,7 +988,7 @@ export function ClickerApp() {
   const stageBg = inMine
     ? CLICKER_ASSETS.bgMine
     : game.currentRegion?.isHome
-      ? CLICKER_ASSETS.bgMineEntrance
+      ? mineMedia.entranceGate
       : worldStill && !worldEngaged
         ? worldStill
         : (game.currentRegion?.bgAssetId ?? CLICKER_ASSETS.bgChamber)
@@ -948,7 +1014,10 @@ export function ClickerApp() {
   const lair = run.lair && run.lair.regionId === run.currentRegionId ? run.lair : null
   const shieldMs = shieldRemainingMs(run, run.currentRegionId, tickNow)
   const gear = gearOf(run)
-  const drillCoolSec = Math.max(0, Math.ceil((run.drillCooldownUntil - tickNow) / 1000))
+  const drillSessionOn = drillSessionActive(run, tickNow)
+  const drillSessionRemainSec = drillSessionOn ? Math.max(0, Math.ceil((run.drillSessionEndsAt - tickNow) / 1000)) : 0
+  const drillSessionTotalSec = Math.max(1, (run.drillSessionDurationMs || drillCooldownMs(run, game.config)) / 1000)
+  const drillCoolSec = drillSessionOn ? 0 : Math.max(0, Math.ceil((run.drillCooldownUntil - tickNow) / 1000))
   const drillCoolTotalSec = drillCooldownMs(run, game.config) / 1000
   const drawerTabs = (
     [
@@ -1017,6 +1086,9 @@ export function ClickerApp() {
     <div
       data-clicker
       data-visual={hud.coreVisual}
+      data-mine-theme={mineMedia.themeId}
+      data-mine-decor={mineMedia.theme.decor}
+      style={mineShellStyle}
       className={`clicker-shell${pendingRebirth ? " is-rebirth-active" : ""}${inMine ? " is-mine-surface" : ""}${atHomeHub ? " is-entrance-hub" : ""}${!inMine && !atHomeHub ? " is-region-hub" : ""}${inMine ? "" : ` is-view-${hubView}`}`}
     >
       <header className="clicker-top">
@@ -1371,7 +1443,7 @@ export function ClickerApp() {
               {game.config.potions.length ? (
                 <div className="clicker-mine-potions" role="toolbar" aria-label="보유 포션">
                   {game.config.potions
-                    .map((potion) => {
+                    .map((potion, potionSlot) => {
                       const count = run.potions[potion.id] ?? 0
                       const feverBusy = hud.fever.active || run.fever.phase === "COOL_DOWN"
                       const isActivePotion = hud.fever.active && run.fever.potionId === potion.id
@@ -1412,6 +1484,9 @@ export function ClickerApp() {
                           }}
                         >
                           <img key={`${potion.id}-${popIcons[potion.id] ?? 0}`} src={potion.assetId} alt="" />
+                          {minePotionHotkeyLabel(potionSlot) ? (
+                            <kbd className="clicker-mine-potion-key">{minePotionHotkeyLabel(potionSlot)}</kbd>
+                          ) : null}
                           <span className="clicker-mine-potion-count">{count}</span>
                         </button>
                       )
@@ -1493,12 +1568,14 @@ export function ClickerApp() {
               <button
                 type="button"
                 className="clicker-primary clicker-world-gate-go"
-                disabled={regionIntroPlaying || engagingRegion !== null}
+                disabled={regionIntroPlaying || engagingRegion !== null || enteringDrill}
                 onClick={() => {
-                  const clip = regionDef.intro?.engageVideo
+                  const engage = clickerRegionEngageMedia(regionDef)
                   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-                  if (clip && !reduced) setEngagingRegion(run.currentRegionId)
-                  else setEngagedRegion(run.currentRegionId)
+                  if (engage?.video && !reduced) {
+                    if (regionDef.huntMode) setEngagingRegion(run.currentRegionId)
+                    else setEnteringDrill(true)
+                  } else setEngagedRegion(run.currentRegionId)
                 }}
               >
                 {regionDef.boss
@@ -1515,8 +1592,8 @@ export function ClickerApp() {
               now={tickNow}
               defeated={bossDefeated}
               onStart={game.startBoss}
+              awakened={game.awakenedGuardian ? { ...game.awakenedGuardian, onStart: game.startAwakenedGuardian } : null}
               onStrike={(x, y) => {
-                playLaser(game.save!.settings.muted, false)
                 game.strikeBoss(x, y)
               }}
             />
@@ -1587,15 +1664,21 @@ export function ClickerApp() {
                 data-sfx="off"
                 key={drillHits}
                 className={`clicker-drill${drillHits ? " is-hit" : ""}${drillCoolSec > 0 ? " is-cooling" : ""}`}
-                disabled={regionIntroPlaying || drillCoolSec > 0}
-                aria-label={drillCoolSec > 0 ? `시추 장비 냉각 중 ${drillCoolSec}초` : `코어 에너지 시추 · 게이지 ${Math.round(run.drillGauge * 100)}%`}
+                disabled={regionIntroPlaying || enteringDrill || drillCoolSec > 0}
+                aria-label={
+                  drillCoolSec > 0
+                    ? `시추 장비 냉각 중 ${drillCoolSec}초`
+                    : drillSessionOn
+                      ? `코어 에너지 시추 · 남은 ${drillSessionRemainSec}초 · 게이지 ${Math.round(run.drillGauge * 100)}%`
+                      : `코어 에너지 시추 · 게이지 ${Math.round(run.drillGauge * 100)}%`
+                }
                 onPointerDown={(e) => {
                   if (e.button !== 0) return
                   e.preventDefault()
                   const paid = game.drillVein(e.clientX, e.clientY)
                   if (paid === null) return
                   playLaser(game.save?.settings.muted ?? false, paid > 0)
-                  drillCue(paid)
+                  drillCue(paid, paid > 0 && drillSessionOn)
                   if (paid > 0) flashStage()
                   setDrillHits((n) => n + 1)
                 }}
@@ -1616,11 +1699,28 @@ export function ClickerApp() {
                   </>
                 ) : null}
               </button>
-              <div className={`clicker-drill-gauge${drillCoolSec > 0 ? " is-cooling" : ""}`} aria-hidden>
-                <i style={{ width: `${drillCoolSec > 0 ? (drillCoolSec / drillCoolTotalSec) * 100 : run.drillGauge * 100}%` }} />
+              <div
+                className={`clicker-drill-gauge${drillCoolSec > 0 ? " is-cooling" : drillSessionOn ? " is-session" : ""}`}
+                aria-hidden
+              >
+                <i
+                  style={{
+                    width: `${
+                      drillCoolSec > 0
+                        ? (drillCoolSec / drillCoolTotalSec) * 100
+                        : drillSessionOn
+                          ? ((drillSessionTotalSec - drillSessionRemainSec) / drillSessionTotalSec) * 100
+                          : run.drillGauge * 100
+                    }%`,
+                  }}
+                />
               </div>
               <p className="clicker-drill-hint">
-                {drillCoolSec > 0 ? `냉각 중 · ${drillCoolSec}초 후 다시 시추` : `연속으로 탭해 게이지를 채우면 시추 · ${Math.round(run.drillGauge * 100)}%`}
+                {drillCoolSec > 0
+                  ? `냉각 중 · ${drillCoolSec}초 후 다시 시추`
+                  : drillSessionOn
+                    ? `남은 ${drillSessionRemainSec}초 · 게이지 채우면 시추 · ${Math.round(run.drillGauge * 100)}%`
+                    : `연속으로 탭해 게이지를 채우면 시추 · ${Math.round(run.drillGauge * 100)}%`}
               </p>
             </div>
           ) : null}
@@ -1654,12 +1754,14 @@ export function ClickerApp() {
         ) : null}
       </div>
 
-      <ClickerSkillHotkeys
-        onSlot={(n) => {
+      <ClickerMineHotkeys
+        enabled={inMine && !settingsOpen && !skillMapOpen && !enteringMine && !endingMode}
+        onSkillSlot={(n) => {
           const skill = ownedSkills[n]
-          if (!inMine || !skill || (run.skillItems[skill.id] ?? 0) <= 0 || (run.skillCooldowns[skill.id] ?? 0) > 0 || game.hud?.crisisActive) return
+          if (!skill || (run.skillItems[skill.id] ?? 0) <= 0 || (run.skillCooldowns[skill.id] ?? 0) > 0 || hud.crisisActive) return
           castSkill(skill.id)
         }}
+        onPotionSlot={drinkPotionAtSlot}
       />
       <div className="clicker-actions">
         {ownedSkills.map((skill, slot) => {
@@ -1765,12 +1867,13 @@ export function ClickerApp() {
             <button
               key={id}
               type="button"
+              data-tab={id}
               data-active={tab === id}
               aria-label={ko}
               aria-current={tab === id ? "page" : undefined}
               onClick={() => selectTab(id)}
             >
-              {label}
+              {id === "transcendence" ? ko : label}
             </button>
           ))}
         </nav>
@@ -1835,9 +1938,6 @@ export function ClickerApp() {
             setSettingsOpen(false)
             game.adminReset()
           }}
-          onExportCode={game.exportSaveCode}
-          onParseCode={game.parseSaveCode}
-          onImportJson={game.importSaveJson}
           account={account}
           onSecretAdmin={() => {
             try {
@@ -1862,8 +1962,8 @@ export function ClickerApp() {
 
       {enteringMine ? (
         <ClickerCinematic
-          src={MineArt.enterCinematic}
-          poster={MineArt.entranceGate}
+          src={mineMedia.enterCinematic}
+          poster={mineMedia.enterPoster}
           label="광산 입장 중"
           // The BGM engine plays the same 10 s entrance track (bgm_mine_enter_10s) and hands over to the mine loop.
           muted={mineEntryVideoMuted(game.save.settings.musicMuted)}
@@ -1879,17 +1979,32 @@ export function ClickerApp() {
         />
       ) : null}
 
-      {engagingRegion && engagingRegion === run.currentRegionId && regionDef?.intro?.engageVideo ? (
+      {engagingRegion && engagingRegion === run.currentRegionId && regionDef?.huntMode && regionDef.intro?.engageVideo ? (
         <ClickerCinematic
           key={engagingRegion}
           src={regionDef.intro.engageVideo}
           poster={regionDef.intro.still}
-          label={regionDef.huntMode ? "보스의 둥지로 들어가는 중" : "시추 갱으로 내려가는 중"}
+          label="보스의 둥지로 들어가는 중"
           muted={game.save.settings.musicMuted}
           volume={game.save.settings.musicVolume}
           onDone={() => {
             setEngagingRegion(null)
             setEngagedRegion(engagingRegion)
+          }}
+        />
+      ) : null}
+
+      {enteringDrill && drillEngageMedia ? (
+        <ClickerCinematic
+          key={`drill-${run.currentRegionId}`}
+          src={drillEngageMedia.video}
+          poster={drillEngageMedia.poster}
+          label={drillEngageMedia.label}
+          muted={game.save.settings.musicMuted}
+          volume={game.save.settings.musicVolume}
+          onDone={() => {
+            setEnteringDrill(false)
+            setEngagedRegion(run.currentRegionId)
           }}
         />
       ) : null}
@@ -1991,6 +2106,8 @@ export function ClickerApp() {
             const rebirths = (game.save?.metaState.rebirthCount ?? 0) + 1
             game.rebirth(chosen.id)
             setPendingRebirth((cur) => (cur?.id === chosen.id ? null : cur))
+            setRebirthBgmTail(true)
+            window.setTimeout(() => setRebirthBgmTail(false), REBIRTH_BGM_TAIL_MS)
             setTab("producers")
             const key = Date.now()
             setArrival({ key, line: rebirths + 1, label: chosen.label, mult: (1 + clickerConfig.worldlineBonus) ** rebirths })

@@ -50,6 +50,8 @@ test("track table: seam-polished sources for the tracks Waldusic delivered, prev
     storm: "bgm_world_storm.mp3",
     fault: "bgm_world_fault.mp3",
     heart: "bgm_world_heart.mp3",
+    dawn: "bgm_dawn_mine_loop_v1_loop.mp3",
+    tutorial: "bgm_tutorial_loop_v1.mp3",
   })
   assert.equal(bgmTrackUrl("mine"), `${BGM_PUBLIC_DIR}bgm_mine_loop_v3_seam.mp3`)
 })
@@ -149,6 +151,22 @@ test("the door-walk video is muted while the BGM bed carries the entrance track 
 })
 
 test("registry has an entry for every BgmTrackId used by a scene", () => {
-  const ids: BgmTrackId[] = ["loading", "hub", "mine", "mineEnter", "chamber", "rebirthIntro", "rebirthHq", "boss", "relay", "vault", "storm", "fault", "heart"]
+  const ids: BgmTrackId[] = [
+    "loading",
+    "hub",
+    "mine",
+    "mineEnter",
+    "chamber",
+    "rebirthIntro",
+    "rebirthHq",
+    "boss",
+    "relay",
+    "vault",
+    "storm",
+    "fault",
+    "heart",
+    "dawn",
+    "tutorial",
+  ]
   assert.deepEqual([...BGM_TRACK_IDS].sort(), [...ids].sort())
 })

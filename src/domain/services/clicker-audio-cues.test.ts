@@ -15,7 +15,7 @@ import {
 } from "./clicker-audio-cues.ts"
 
 test("registry: every cue is an mp3 under the public audio folder, gain never boosts, loops are the beds only", () => {
-  assert.equal(ALL_CUE_IDS.length, 13)
+  assert.equal(ALL_CUE_IDS.length, 17)
   for (const id of ALL_CUE_IDS) {
     const def = CUE_REGISTRY[id]
     assert.match(def.file, /^sfx_[a-z0-9_]+\.mp3$/, id)
@@ -59,6 +59,7 @@ test("drillTapPlan: first tap starts the hum, middle taps keep it, the bore comp
   assert.deepEqual(drillTapPlan(false, 0), { play: ["drillStart"], loop: "start" })
   assert.deepEqual(drillTapPlan(true, 0), { play: [], loop: "keep" })
   assert.deepEqual(drillTapPlan(true, 123), { play: ["drillComplete"], loop: "stop" })
+  assert.deepEqual(drillTapPlan(true, 123, true), { play: ["drillComplete"], loop: "keep" })
   assert.deepEqual(drillTapPlan(false, 5), { play: ["drillComplete"], loop: "stop" })
 })
 

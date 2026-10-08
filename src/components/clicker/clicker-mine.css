@@ -501,6 +501,25 @@
   [data-clicker] .clicker-mine-potion { width: 46px; height: 46px; }
 }
 
+/* Landscape phones: potion rail in a row so the last slot stays above the fold. */
+@media (max-height: 520px) and (min-width: 480px) {
+  [data-clicker] .clicker-mine-potions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    top: auto;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+    right: 12px;
+    max-width: none;
+    gap: 6px;
+  }
+  [data-clicker] .clicker-mine-potion {
+    width: 42px;
+    height: 42px;
+    padding: 3px;
+  }
+}
+
 /* ---------- Strike spectacle: grows with progress (tier 0–4), lightning on procs and skills ---------- */
 .clicker-mine-single { --bolt: 150 230 255; }
 .clicker-mine-single.is-tier-2 { --bolt: 170 200 255; }
@@ -693,6 +712,22 @@
   font-weight: 600;
   line-height: 1.4;
   text-align: center;
+}
+
+[data-clicker] .clicker-mine-potion-key {
+  position: absolute;
+  left: 3px;
+  top: 2px;
+  min-width: 14px;
+  padding: 0 3px;
+  border-radius: 5px;
+  background: color-mix(in srgb, #041018 85%, transparent);
+  color: #ffe39a;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  pointer-events: none;
 }
 @media (max-width: 720px) {
   [data-clicker] .clicker-mine-skills { top: 108px; gap: 6px; }

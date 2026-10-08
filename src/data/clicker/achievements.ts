@@ -1,4 +1,5 @@
 import type { AchievementDef } from "../../domain/entities/clicker"
+import { LATE_GAME_ACHIEVEMENTS } from "./achievements-lategame.ts"
 
 /** Permanent milestones; each unlocked one adds +1% production (see ACHIEVEMENT_PRODUCTION_BONUS). */
 export const CLICKER_ACHIEVEMENTS: AchievementDef[] = [
@@ -37,4 +38,5 @@ export const CLICKER_ACHIEVEMENTS: AchievementDef[] = [
   { id: "mine_100", name: "갱도의 주인", description: "광산 세션 100회 완료", kind: "MINE_SESSIONS", target: 100 },
   { id: "haul_10k", name: "한탕", description: "한 세션 채굴량 10", kind: "MINE_HAUL", target: 1e4 },
   { id: "haul_1m", name: "노다지", description: "한 세션 채굴량 1K", kind: "MINE_HAUL", target: 1e6 },
+  ...LATE_GAME_ACHIEVEMENTS,
 ]

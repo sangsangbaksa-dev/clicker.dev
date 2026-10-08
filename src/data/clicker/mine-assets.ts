@@ -46,56 +46,55 @@ export const MINE_ORE_PLATE = {
   shadow: { cx: 0.48, cy: 0.93, rx: 0.55, ry: 0.1, alpha: 0.5, rgb: [3, 14, 20] },
 } as const
 
-/** Quality ids of the mine-entry render (kept in sync with `CinematicQuality` in the domain). */
-export type MineEnterQuality = "hq" | "mobile720"
-
 /**
- * Mine-entry cinematic (Waldo "polish v1": cyan/teal only, 10 s, both renders carry the same AAC soundtrack).
- * `hq` = 1920x1080 @ 60 fps; `mobile720` = 1280x720 @ 30 fps for phones / data-saver (≈1.7 MB).
+ * Mine-entry cinematic (Waldo polish v1: cyan/teal only, 10 s @ 1080p60, AAC soundtrack).
  * Copied from `clicker-artifacts` by scripts/mine-enter-polish-assets.sh.
  */
-export const MINE_ENTER_VIDEOS = {
-  hq: { src: "/clicker/mine/mine_enter_polish_v1_1080p.mp4", width: 1920, height: 1080, fps: 60, seconds: 10 },
-  mobile720: { src: "/clicker/mine/mine_enter_polish_v1_720p.mp4", width: 1280, height: 720, fps: 30, seconds: 10 },
-} as const satisfies Record<MineEnterQuality, { src: string; width: number; height: number; fps: number; seconds: number }>
+export const MINE_ENTER_VIDEO = {
+  src: "/clicker/mine/mine_enter_polish_v1_1080p.mp4",
+  width: 1920,
+  height: 1080,
+  fps: 60,
+  seconds: 10,
+} as const
 
 /**
- * Frame 0 of the polish render (the v10 closed-door hub, door seam ~27 px right of the hub still `entranceGate`).
- * Used as the cinematic poster so the swap to the playing video is invisible; the hub -> poster step is the
- * overlay's own fade-in.
+ * Frame 0 of the polish render — default cinematic poster; worldlines may override via `MINE_ENTER_POSTERS`.
  */
 export const MINE_ENTER_POSTER = "/clicker/mine/mine_enter_polish_v1_poster.webp"
+
+/** Hub closed-door still (door seam x=640 @ 720p). Worldlines tint this in CSS until bespoke art ships. */
+export const MINE_ENTRANCE_GATE_DEFAULT = "/clicker/mine/mine_entrance_hub_closed_door_v2.webp"
+/** Title screen crop with the door centred. */
+export const MINE_TITLE_GATE = "/clicker/mine/title_door_centered.webp"
+
+/** Optional per-worldline gate stills (1280×720 webp). */
+export const MINE_ENTRANCE_GATES: Partial<Record<string, string>> = {}
+/** Optional per-worldline cinematic posters (1920×1080 webp). */
+export const MINE_ENTER_POSTERS: Partial<Record<string, string>> = {}
+
+export function mineEntranceGate(themeId: string): string {
+  return MINE_ENTRANCE_GATES[themeId] ?? MINE_ENTRANCE_GATE_DEFAULT
+}
+
+export function mineEnterPoster(themeId: string): string {
+  return MINE_ENTER_POSTERS[themeId] ?? MINE_ENTER_POSTER
+}
 
 /** Cross-fade from the held last frame into the mine (ms): the video ends on hitech interior + a small ore, the live plate has the big crystal. */
 export const MINE_ENTER_HANDOFF_MS = 600
 
-export function mineEnterVideo(quality: MineEnterQuality) {
-  return MINE_ENTER_VIDEOS[quality]
+export function mineEnterVideo() {
+  return MINE_ENTER_VIDEO
 }
 
 export const MineArt = {
-  /** Hub pre-enter closed door; matches door-walk f000 (seam x=640 @ 720p). */
-  entranceGate: "/clicker/mine/mine_entrance_hub_closed_door_v2.webp",
-  /** Same gate, cropped so the door's centre is the image centre (title screen). */
-  titleGate: "/clicker/mine/title_door_centered.webp",
-  /**
-   * Entry cinematic, polish v1 (1920×1080 @ 60 fps, 10 s): closed hub door -> door opens -> walk in
-   * to the hi-tech interior. 720p twin below for phones; poster = its own first frame.
-   */
-  enterCinematic: MINE_ENTER_VIDEOS.hq.src,
-  enterCinematicMobile: MINE_ENTER_VIDEOS.mobile720.src,
+  /** Hub pre-enter exterior gate (worldline CSS tint on top). */
+  entranceGate: MINE_ENTRANCE_GATE_DEFAULT,
+  titleGate: MINE_TITLE_GATE,
   enterPoster: MINE_ENTER_POSTER,
-  /** Previous cinematic (v17, scripts/clicker-mine-enter.py) — kept on disk for reference / rollback. */
-  enterCinematicV17: "/clicker/mine/mine_enter_door_walk_v17.mp4",
-  /** Previous 720p door-walk (kept on disk for reference). */
-  enterCinematicV11: "/clicker/mine/mine_enter_door_walk_v11.mp4",
-  /** Timed-session hi-tech interior — full-bleed chamber. */
-  chamberBg: "/clicker/mine/mine_interior_hitech_v1.webp",
-  /**
-   * 1080p chamber still with center mineral (registered only — not wired as `chamberBg`;
-   * layout differs from ore plate / door-walk seam at x=640).
-   */
-  chamberInteriorMineral1080pV1: "/clicker/mine/mine_interior_hitech_mineral_1080p_v1.png",
+  /** Steady dolly polish v1 — shared file; worldline identity is gate/poster tint + mine interior CSS. */
+  enterCinematic: MINE_ENTER_VIDEO.src,
   /** Full-bleed mine background (the clean plate: no crystal baked in). */
   orePlate: MINE_ORE_PLATE.clean,
   /** Original plate with the big crystal — only the source of the live crystal's crop. */

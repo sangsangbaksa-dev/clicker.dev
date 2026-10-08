@@ -16,6 +16,8 @@ export type BgmTrackId =
   | "storm"
   | "fault"
   | "heart"
+  | "dawn"
+  | "tutorial"
 
 /**
  * `rebirth` plays HQ intro once, then crossfades to the `rebirthHq` loop; `mineEnter` plays the
@@ -44,6 +46,9 @@ export const BGM_MASTER_LEVEL = 0.5
 
 /** Crossfade duration when switching scenes or ducking. */
 export const BGM_FADE_MS = 900
+
+/** After the motion overlay closes, keep the rebirth bed up this long so the loop can fade out. */
+export const REBIRTH_BGM_TAIL_MS = 1_400
 
 const VISUAL_GAIN: Partial<Record<CoreVisual, number>> = { fever: 1.2, crisis: 0.75 }
 
@@ -103,6 +108,8 @@ export type BgmOverlayState = {
   regionIntro: unknown
   endingPhase: unknown
   pendingRebirth: boolean
+  /** Motion finished but the rebirth score is still fading (see REBIRTH_BGM_TAIL_MS). */
+  rebirthBgmTail?: boolean
   endingOpen: boolean
   playSurface: "hub" | "mine" | string
   currentRegionId: string | undefined
@@ -110,6 +117,10 @@ export type BgmOverlayState = {
   bossFight?: boolean
   /** The final guardian fight is running: plays the boss loop (silent scenes and the chamber still win). */
   finalBossFight?: boolean
+  /** 새벽의 광산 is open (after the ending): the dawn loop replaces the hub / world / mine themes. */
+  dawnMine?: boolean
+  /** Onboarding overlay is visible (plays the tutorial loop). */
+  tutorialOpen?: boolean
 }
 
 /**
@@ -130,8 +141,9 @@ export function bgmTracksToWarm(scene: BgmScene): BgmTrackId[] {
 
 /**
  * Cinematics, the ending and the boot screen silence the score; the mine door-walk plays the
- * entrance track (`mineEnter`, then the mine loop); rebirth and the ending's chamber cue play the
- * chamber track; the final guardian fight (`finalBossFight`) plays the boss loop; other boss fights
+ * entrance track (`mineEnter`, then the mine loop); the rebirth motion plays the HQ intro/loop bed;
+ * the ending's chamber cue plays the chamber track; the final guardian fight (`finalBossFight`)
+ * plays the boss loop; other boss fights
  * keep the world theme. Silence always wins, so the ending (and cinematics) mute the boss loop and
  * the mine entrance too.
  */
@@ -139,8 +151,11 @@ export function resolveBgmScene(overlay: BgmOverlayState): BgmScene {
   if (overlay.regionIntro || overlay.endingPhase) return "silent"
   if (overlay.bootLoading) return "silent"
   if (overlay.enteringMine) return "mineEnter"
-  if (overlay.pendingRebirth || overlay.endingOpen) return "chamber"
+  if (overlay.tutorialOpen) return "tutorial"
+  if (overlay.pendingRebirth || overlay.rebirthBgmTail) return "rebirth"
+  if (overlay.endingOpen) return "chamber"
   if (overlay.finalBossFight) return "boss"
+  if (overlay.dawnMine) return "dawn"
   if (overlay.playSurface === "mine") return "mine"
   return worldBgmTrack(overlay.currentRegionId)
 }
