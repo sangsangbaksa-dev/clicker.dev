@@ -3,38 +3,38 @@ import { readdirSync, readFileSync } from "node:fs"
 import { join, relative } from "node:path"
 import test from "node:test"
 
-const API_DIR = join(import.meta.dirname, "../../app/api")
+const HANDLER_ROOT = join(import.meta.dirname, "../http/routes")
 
-/** 로그인 없이 열려 있어야 하는 API. 새로 추가할 때는 이유를 적는다. */
+/** 로그인 없이 열려 있어야 하는 API handler. 새로 추가할 때는 이유를 적는다. */
 const PUBLIC_ROUTES: Record<string, string> = {
-  "auth/login/route.ts": "로그인",
-  "auth/signup/route.ts": "회원가입",
-  "auth/logout/route.ts": "쿠키 삭제만 함",
-  "auth/bootstrap/route.ts": "첫 회원 필요 여부만 알려 줌",
-  "clicker/auth/login/route.ts": "게임 계정 로그인",
-  "clicker/auth/signup/route.ts": "게임 계정 회원가입",
-  "clicker/auth/logout/route.ts": "게임 세션 쿠키 삭제만 함",
-  "clicker/auth/me/route.ts": "게임 세션이 없으면 null만 돌려줌",
+  "auth/login.ts": "로그인",
+  "auth/signup.ts": "회원가입",
+  "auth/logout.ts": "쿠키 삭제만 함",
+  "auth/bootstrap.ts": "첫 회원 필요 여부만 알려 줌",
+  "clicker/auth/login.ts": "게임 계정 로그인",
+  "clicker/auth/signup.ts": "게임 계정 회원가입",
+  "clicker/auth/logout.ts": "게임 세션 쿠키 삭제만 함",
+  "clicker/auth/me.ts": "게임 세션이 없으면 null만 돌려줌",
 }
 
 const HANDLER = /export\s+async\s+function\s+(GET|POST|PUT|PATCH|DELETE)\b/g
 const GUARD =
   /\b(requireApprovedUser|requireEditorUser|requireMemberManager|requireWaldoOwner|requireWaldoAdmin|getUserFromRequest|getSessionFromRequest|clickerAccountFromCookies)\s*\(/
 
-function routeFiles(dir: string): string[] {
+function handlerFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name)
-    if (entry.isDirectory()) return routeFiles(path)
-    return entry.name === "route.ts" ? [path] : []
+    if (entry.isDirectory()) return handlerFiles(path)
+    return entry.name.endsWith(".ts") ? [path] : []
   })
 }
 
 test("every API route checks the session unless explicitly public", () => {
-  const files = routeFiles(API_DIR)
+  const files = handlerFiles(HANDLER_ROOT)
   assert.ok(files.length > 0)
   const unguarded: string[] = []
   for (const file of files) {
-    const route = relative(API_DIR, file).split("\\").join("/")
+    const route = relative(HANDLER_ROOT, file).split("\\").join("/")
     if (route in PUBLIC_ROUTES) continue
     const source = readFileSync(file, "utf8")
     const methods = [...source.matchAll(HANDLER)].map((m) => m[1])
@@ -46,7 +46,7 @@ test("every API route checks the session unless explicitly public", () => {
 })
 
 test("public route allowlist has no stale entries", () => {
-  const routes = new Set(routeFiles(API_DIR).map((f) => relative(API_DIR, f).split("\\").join("/")))
+  const routes = new Set(handlerFiles(HANDLER_ROOT).map((f) => relative(HANDLER_ROOT, f).split("\\").join("/")))
   for (const route of Object.keys(PUBLIC_ROUTES)) {
     assert.ok(routes.has(route), `${route} no longer exists`)
   }
