@@ -16,6 +16,11 @@ const rich = () => {
   }
 }
 
+test("exchange catalog exposes timebreak and core capsule offers", () => {
+  assert.ok(offers.some((o) => o.id === "exchange_timebreak" && o.reward.kind === "POTION"))
+  assert.ok(offers.some((o) => o.id === "exchange_free_capsule" && o.reward.kind === "CORE_CAPSULE"))
+})
+
 test("offers reference real regions and potions", () => {
   for (const o of offers) {
     assert.ok(config.regions.find((r) => r.id === o.regionId)?.currency, o.id)

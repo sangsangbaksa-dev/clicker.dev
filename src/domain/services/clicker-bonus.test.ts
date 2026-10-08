@@ -111,6 +111,17 @@ test("auto-drill needs its skill; overdrive triples rate then cools down", () =>
   assert.equal(startDrillOverdrive(over.run, config, NOW + DRILL_OVERDRIVE_COOLDOWN_MS).error, undefined)
 })
 
+test("sanitizeSave drops retired gacha event boosts", () => {
+  const save = createInitialSave(NOW, config)
+  save.runState.eventBoosts = [
+    { id: "gacha" as never, multiplier: 2, expiresAt: NOW + 60_000 },
+    { id: "surge", multiplier: 1.5, expiresAt: NOW + 60_000 },
+  ]
+  const loaded = sanitizeSave(save, config, NOW)
+  assert.equal(loaded.runState.eventBoosts.length, 1)
+  assert.equal(loaded.runState.eventBoosts[0]?.id, "surge")
+})
+
 test("old saves without the new fields load with safe defaults", () => {
   const legacy = createInitialSave(NOW, config) as unknown as Record<string, Record<string, unknown>>
   delete legacy.runState!.eventBoosts
