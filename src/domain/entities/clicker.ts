@@ -170,6 +170,8 @@ export type MetaState = {
   achievementIds: string[]
   /** Regions entered at least once — their intro cinematic plays only on the first visit. */
   visitedRegionIds: string[]
+  /** First title-screen start time for this save; null for legacy saves without a known start. */
+  startedAt: number | null
   /** True when the player finished the true ending; run is frozen. */
   gameCompleted: boolean
   completedAt: number | null

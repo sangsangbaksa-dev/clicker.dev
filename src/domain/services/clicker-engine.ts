@@ -136,6 +136,7 @@ export function createInitialMeta(): MetaState {
     },
     achievementIds: [],
     visitedRegionIds: [],
+    startedAt: null,
     gameCompleted: false,
     completedAt: null,
     bossDefeated: false,
@@ -190,10 +191,14 @@ export function createInitialSave(now: number, config: GameConfig): SaveData {
 }
 
 /** Title CTA: clear title and land on the upgrades/skills hub (not the mine). */
-export function startClickerGame(save: SaveData): SaveData {
+export function startClickerGame(save: SaveData, now = save.runState.lastTickAt): SaveData {
   if (save.settings.gameStarted) return save
   return {
     ...save,
+    metaState: {
+      ...save.metaState,
+      startedAt: save.metaState.startedAt ?? now,
+    },
     settings: {
       ...save.settings,
       gameStarted: true,

@@ -52,6 +52,7 @@ import {
   clickerTick,
   clickerUseSkill,
   clickerFinishTutorial,
+  clickerFreshSaveJson,
   clickerSlayMonster,
   clickerDrill,
   clickerStartBoss,
@@ -1001,6 +1002,10 @@ export function useClicker() {
     [loadAsOwner, flash],
   )
 
+  const startFreshRun = useCallback(() => {
+    importSaveJson(clickerFreshSaveJson(now()), "새 진행으로 시작합니다")
+  }, [importSaveJson])
+
   // Render from the last tick's clock (updated every ~100ms) so render stays pure.
   const t = save?.runState.lastTickAt ?? 0
   const drill = save
@@ -1087,6 +1092,7 @@ export function useClicker() {
     forceSave,
     exportSaveJson,
     importSaveJson,
+    startFreshRun,
     dismissToast,
     clickCore,
     buyPotion,
@@ -1161,3 +1167,5 @@ export function useClicker() {
     strikeBoss,
   }
 }
+
+export type ClickerGame = ReturnType<typeof useClicker>

@@ -262,6 +262,7 @@ export function ClickerApp() {
   const account = useClickerAccount({
     getSaveJson: game.exportSaveJson,
     applySaveJson: (json) => game.importSaveJson(json, "클라우드 진행을 불러왔습니다"),
+    startFresh: game.startFreshRun,
   })
   /** The login gate was passed in this tab (logged in, or chose to play as a guest). */
   const [gatePassed, setGatePassed] = useState(readGatePassed)
@@ -885,7 +886,6 @@ export function ClickerApp() {
       <div data-clicker className="clicker-shell clicker-shell-title">
         <ClickerLoginGate
           state={account}
-          localTotal={game.save.metaState.totalCoreEnergy}
           onDone={() => {
             rememberGatePassed()
             setGatePassed(true)

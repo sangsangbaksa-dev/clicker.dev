@@ -171,6 +171,13 @@ export {
 } from "@/domain/services/clicker-rebirth-choice"
 export { rebirthKeyframePreloadOrder } from "@/domain/services/clicker-rebirth-keyframes"
 export { awakenedGuardianLabel } from "@/domain/services/clicker-guardian-rematch"
+export {
+  clickerCompletionRank,
+  clickerPlayTimeMs,
+  formatClickerPlayTime,
+  sortClickerCompletionRecords,
+  type ClickerCompletionRecord,
+} from "@/domain/services/clicker-completion-records"
 
 /** Worldline rule shown for a worldline (data + pure text; null = no rule). */
 export { worldlineRuleText } from "@/domain/services/clicker-worldline-rules"

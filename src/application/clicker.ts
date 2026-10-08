@@ -79,7 +79,8 @@ import { allowStrike } from "@/domain/services/clicker-strike-limiter"
 import { decodeClickerSave, encodeClickerSave } from "@/domain/services/clicker-save-codec"
 import { enterLair, forgeGear, leaveLair, strikeLair, tickLair, type GearSlot } from "@/domain/services/clicker-lair"
 import { encodeSaveCode, parseSaveCode, type ParsedSaveCode } from "@/domain/services/clicker-save-transfer"
-import { clickerPersistence } from "@/application/clicker-client-bind"
+import { clickerCompletionRecords, clickerPersistence } from "@/application/clicker-client-bind"
+import { createClickerCompletionRecord } from "@/domain/services/clicker-completion-records"
 import { pauseMine, resumeMine } from "@/domain/services/clicker-mine-pause"
 import { selectScreenTab, type ClickerScreenTabId, type ManageDrawerTabId } from "@/domain/services/clicker-screen-tabs"
 
@@ -136,6 +137,11 @@ export function loadClickerGame(now: number): SaveData {
 export function persistClickerGame(save: SaveData): void {
   if (persistBlocked) return
   clickerPersistence().writeRaw(encodeClickerSave({ ...save, savedAt: Date.now() }).json)
+}
+
+/** A brand-new run, encoded exactly as the game stores it. */
+export function clickerFreshSaveJson(now: number): string {
+  return encodeClickerSave(createInitialSave(now, config)).json
 }
 
 export function clearClickerStoredSave(): void {
@@ -373,6 +379,15 @@ export function clickerCanPlay(save: SaveData): boolean {
 /** Show the frozen completion screen (completed, dawn mine not opened). */
 export function clickerShowsCompletion(save: SaveData): boolean {
   return showsCompletionScreen(save.metaState)
+}
+
+export function clickerReadCompletionRecords() {
+  return clickerCompletionRecords().read()
+}
+
+export function clickerStoreCompletionRecord(save: SaveData): boolean {
+  const record = createClickerCompletionRecord(save.metaState)
+  return record ? clickerCompletionRecords().save(record) : false
 }
 
 export function clickerAdminGrant(save: SaveData, amount: number): SaveData {

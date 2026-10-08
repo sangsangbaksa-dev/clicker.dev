@@ -31,7 +31,7 @@ const ART = {
 
 const RARITY_LABEL: Record<GachaRarity, string> = { common: "일반", rare: "희귀", epic: "영웅", legendary: "전설" }
 const RARITY_RANK: Record<GachaRarity, number> = { common: 0, rare: 1, epic: 2, legendary: 3 }
-const RARITY_SFX: Record<GachaRarity, SfxName> = { common: "select", rare: "gachaRare", epic: "gachaEpic", legendary: "gachaLegendary" }
+const RARITY_SFX: Record<GachaRarity, SfxName> = { common: "select", rare: "purchase", epic: "skillUnlock", legendary: "achievement" }
 const DROP_MS = 1500
 const REVEAL_STEP_MS = 160
 
@@ -110,7 +110,7 @@ export function ClickerGacha({ game, run }: { game: ClickerGame; run: RunState }
     if (!rewards) return
     const key = Date.now()
     setShow({ key, count, rewards, phase: "drop", open: rewards.map(() => false) })
-    playSfx("gachaPull")
+    playSfx("purchase")
     later(() => setShow((s) => (s?.key === key ? { ...s, phase: "reveal" } : s)), DROP_MS)
   }
 
