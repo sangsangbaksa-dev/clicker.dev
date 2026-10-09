@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type RefObject } from "react"
+import { bossHpPhasesCrossed, formatNumber } from "@/application/clicker-ui"
 import { playSfx } from "@/lib/clicker-sfx"
-import { formatNumber } from "@/application/clicker-ui"
 import { ClickerHpBar } from "@/components/clicker/clicker-hpbar"
 import "./clicker-boss-scene.css"
 
@@ -124,7 +124,9 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
       }
     : portrait
   const [phase, setPhase] = useState<"idle" | "windup" | "strike">("idle")
+  const [hpPhaseFlash, setHpPhaseFlash] = useState(0)
   const [hitKey, setHitKey] = useState(0)
+  const prevBossHp = useRef<number | null>(null)
   const [dying, setDying] = useState(false)
   const [taunting, setTaunting] = useState(false)
   /** Spark bursts at the exact tap points (removed after their animation). */
@@ -170,6 +172,17 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
     const id = window.setTimeout(() => setTaunting(false), 1800)
     return () => window.clearTimeout(id)
   }, [tauntKey])
+
+  useEffect(() => {
+    if (!battle) {
+      prevBossHp.current = null
+      return
+    }
+    const before = prevBossHp.current
+    prevBossHp.current = battle.bossHp
+    if (before == null || battle.bossHp >= before) return
+    if (bossHpPhasesCrossed(before, battle.bossHp, battle.bossMaxHp).length) setHpPhaseFlash((n) => n + 1)
+  }, [battle?.bossHp, battle?.bossMaxHp, battle])
 
   if (!scene) return <div ref={rootRef} className="clicker-boss-scene" />
   const tap = (e: ReactPointerEvent<HTMLButtonElement>) => {
@@ -217,6 +230,7 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
     battle ? "is-battle" : "",
     // Under 30% HP the guardian enrages: red pulse, so the last stretch feels like a finish.
     battle && battle.bossHp / Math.max(1, battle.bossMaxHp) < 0.3 ? "is-enraged" : "",
+    hpPhaseFlash ? "is-hp-phase" : "",
   ]
     .filter(Boolean)
     .join(" ")
@@ -258,6 +272,7 @@ export function ClickerBossScene({ kind, name, alive, battle, shieldMs = 0, taun
           </span>
         ))}
         {dying ? <span className="boss-scene-killflash" aria-hidden /> : null}
+        {hpPhaseFlash ? <span className="boss-scene-phaseflash" key={`hp-phase-${hpPhaseFlash}`} aria-hidden /> : null}
         {shielded ? (
           <span className="boss-scene-shield" aria-hidden>
             <b>

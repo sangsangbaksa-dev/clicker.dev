@@ -410,6 +410,28 @@
   to { opacity: 1; }
 }
 
+/* HP phase (66% / 33%): cyan shock ring synced with `bossPhase` SFX. */
+.boss-scene-phaseflash {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 42%, rgb(100 210 255 / 0.55), transparent 62%);
+  animation: boss-phaseflash 560ms ease-out forwards;
+}
+@keyframes boss-phaseflash {
+  0% { opacity: 0.95; transform: scale(1.02); }
+  100% { opacity: 0; transform: scale(1); }
+}
+.clicker-boss-scene.is-hp-phase .boss-scene-flesh {
+  animation: boss-phase-shake 560ms ease-out;
+}
+@keyframes boss-phase-shake {
+  20% { transform: translate(-4px, 2px) scale(1.02); filter: brightness(1.2); }
+  45% { transform: translate(3px, -2px) scale(1.01); }
+  70% { transform: translate(-2px, 1px); }
+}
+
 /* Killing blow: one white flash over the stage. */
 .boss-scene-killflash {
   position: absolute;
@@ -428,5 +450,7 @@
 @media (prefers-reduced-motion: reduce) {
   .boss-scene-spark i,
   .boss-scene-spark::after,
-  .clicker-boss-scene.is-enraged .boss-scene-box::after { animation: none; opacity: 0.6; }
+  .clicker-boss-scene.is-enraged .boss-scene-box::after,
+  .boss-scene-phaseflash,
+  .clicker-boss-scene.is-hp-phase .boss-scene-flesh { animation: none; opacity: 0.6; }
 }

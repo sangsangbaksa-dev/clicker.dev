@@ -1,8 +1,29 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { clickerConfig } from "../../data/clicker/catalog.ts"
-import { ARMORS, LAIR_BOSSES, WEAPONS, forgeGear, gearOf, leaveLair, strikeLair, tickLair, enterLair } from "./clicker-lair.ts"
+import {
+  ARMORS,
+  FORGE_SUCCESS_RATES,
+  GEAR,
+  GEAR_SLOTS,
+  LAIR_BOSSES,
+  WEAPONS,
+  forgeGear,
+  gearOf,
+  leaveLair,
+  strikeLair,
+  tickLair,
+  enterLair,
+} from "./clicker-lair.ts"
 import { createInitialMeta, createInitialRun } from "./clicker-engine.ts"
+
+test("forge ladder is ten tiers per slot, aligned with the success table", () => {
+  assert.equal(FORGE_SUCCESS_RATES.length, 10)
+  for (const slot of GEAR_SLOTS) {
+    assert.equal(GEAR[slot].length, 10, `${slot} tier count`)
+    assert.equal(FORGE_SUCCESS_RATES.length, GEAR[slot].length, `${slot} vs success table`)
+  }
+})
 
 test("lair: every region boss has fight stats", () => {
   for (const region of clickerConfig.regions) {

@@ -5,6 +5,7 @@ import { formatNumber, withParticle } from "@/application/clicker-ui"
 import type { RunState } from "@/application/clicker-ui"
 import type { ClickerGame } from "@/hooks/use-clicker"
 import { ClickerWorldTree } from "../clicker-world-tree"
+import { ClickerExchange } from "../clicker-exchange"
 
 export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; run: RunState; onBack: () => void }) {
   return (
@@ -113,6 +114,7 @@ export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; ru
           ← Core Mine으로 돌아가기
         </button>
       ) : null}
+      <ClickerExchange game={game} now={run.lastTickAt} />
     </div>
   )
 }

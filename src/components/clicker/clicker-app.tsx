@@ -1000,7 +1000,7 @@ export function ClickerApp() {
       ...(relicsOpen ? ([["relics", "RELICS", "유물"]] as const) : []),
       ["world", "WORLD", "지역"],
       ["achievements", "RECORDS", "업적"],
-      ["transcendence", "REBIRTH", "환생"],
+      ["transcendence", "TRANSCENDENCE", "환생"],
     ] as const
   )
   const automationBuff =

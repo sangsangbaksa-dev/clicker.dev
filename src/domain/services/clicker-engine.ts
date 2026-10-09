@@ -25,6 +25,7 @@ import {
 } from "./clicker-bonus.ts"
 import { clearMinePause, resumeMine } from "./clicker-mine-pause.ts"
 import { withParticle } from "./clicker-format.ts"
+import { sanitizeExchange } from "./clicker-exchange-week.ts"
 
 /** Base timed-mine length before skill-tree extensions. Balance PROVISIONAL. */
 export const MINE_SESSION_BASE_MS = 10_000
@@ -859,7 +860,6 @@ export function productionSnapshot(
     region.production *
     eventBoostMultiplier(run, "surge", now) *
     eventBoostMultiplier(run, "relay", now) *
-    eventBoostMultiplier(run, "gacha", now) *
     gachaStarMultiplier(meta) *
     worldlineMultiplier(meta, config) *
     achievementProductionMultiplier(meta)
@@ -1832,6 +1832,7 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
         monstersSlain: typeof meta.monstersSlain === "number" ? meta.monstersSlain : 0,
         relicLevels: sanitizeRelicLevels(meta.relicLevels, config),
         gachaStars: nonNegativeInt(meta.gachaStars),
+        exchange: sanitizeExchange(meta.exchange),
       },
       runState: {
         ...createInitialRun(now, createInitialMeta(), config),
@@ -1852,7 +1853,15 @@ export function sanitizeSave(raw: unknown, config: GameConfig, now: number): Sav
           typeof run.mineSessionCoreAtEnter === "number" ? run.mineSessionCoreAtEnter : 0,
         mineSessionDurationMs:
           typeof run.mineSessionDurationMs === "number" ? run.mineSessionDurationMs : 0,
-        eventBoosts: Array.isArray(run.eventBoosts) ? run.eventBoosts : [],
+        eventBoosts: Array.isArray(run.eventBoosts)
+          ? run.eventBoosts.filter(
+              (b) =>
+                b &&
+                typeof b === "object" &&
+                (b as { id?: string }).id !== "gacha" &&
+                ["surge", "laser_rush", "relay"].includes((b as { id?: string }).id ?? ""),
+            )
+          : [],
         drillOverdriveUntil: typeof run.drillOverdriveUntil === "number" ? run.drillOverdriveUntil : 0,
         drillOverdriveReadyAt: typeof run.drillOverdriveReadyAt === "number" ? run.drillOverdriveReadyAt : 0,
         regionCooldowns:
@@ -2003,6 +2012,20 @@ export function drillStrike(
 }
 
 /* ---------- Core guardian ---------- */
+
+/** HP share thresholds (high → low) that trigger `bossPhase` SFX and motion. */
+export const BOSS_HP_PHASE_THRESHOLDS = [0.66, 0.33] as const
+
+/** Which phase lines were crossed on a single damage tick (may be two on huge hits). */
+export function bossHpPhasesCrossed(beforeHp: number, afterHp: number, maxHp: number): readonly number[] {
+  if (!(maxHp > 0) || afterHp >= beforeHp) return []
+  const out: number[] = []
+  for (const t of BOSS_HP_PHASE_THRESHOLDS) {
+    const line = maxHp * t
+    if (beforeHp > line && afterHp <= line) out.push(t)
+  }
+  return out
+}
 
 export function startBossFight(run: RunState, config: GameConfig, now: number): { run: RunState; error?: string } {
   const region = currentRegionDef(run, config)

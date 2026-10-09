@@ -18,6 +18,7 @@ const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   nav: 45,
   select: 45,
   playerHurt: 200,
+  bossPhase: 900,
   purchase: 60,
   deny: 140,
   tick: 90,
@@ -559,6 +560,14 @@ const CUES = {
     tone(c, "square", 260 * vary(), 140, 0.035, t, 0.09)
     thump(c, t, 0.08, 150)
   },
+  /** Guardian HP phase (66% / 33%): riser + sub slam + shimmer. */
+  bossPhase(c: AudioContext, t: number) {
+    const e = echo(c, 0.16, 0.38, 0.42)
+    tone(c, "sine", 180, 720, 0.07, t, 0.55, { attack: 0.08, dest: e })
+    noise(c, "bandpass", 900, 1.2, 0.05, t, 0.5, { sweepTo: 2800, attack: 0.12 })
+    thump(c, t + 0.48, 0.22, 72)
+    sparkle(c, t + 0.52, 1400, 7, 0.018, 0.024)
+  },
   /** World skill learned: deep gong + rising chime. */
   worldSkill(c: AudioContext, t: number) {
     const e = echo(c, 0.18, 0.4, 0.4)
@@ -621,6 +630,43 @@ const CUES = {
 
 export type SfxName = keyof typeof CUES
 
+/** HQ one-shots for cues that also have a synth fallback in `CUES`. */
+const SFX_SAMPLE: Partial<Record<SfxName, string>> = {
+  bossRoar: "/clicker/audio/sfx_boss_appear_v1.mp3",
+  bossHit: "/clicker/audio/sfx_boss_hit_v1.mp3",
+  bossPhase: "/clicker/audio/sfx_boss_phase_change_v1.mp3",
+  bossDown: "/clicker/audio/sfx_boss_defeat_v1.mp3",
+}
+
+type OneShotSampleRec = { audio: HTMLAudioElement; wired: boolean }
+const oneShotSamples = new Map<string, OneShotSampleRec>()
+
+/** One-shot mp3 samples routed through the same master bus as synth SFX. */
+function playOneShotSample(url: string, onFail: () => void): boolean {
+  if (typeof window === "undefined") return false
+  const c = audio()
+  if (!c) return false
+  let rec = oneShotSamples.get(url)
+  if (!rec) {
+    const audioEl = new Audio(url)
+    audioEl.preload = "auto"
+    rec = { audio: audioEl, wired: false }
+    oneShotSamples.set(url, rec)
+  }
+  if (!rec.wired) {
+    try {
+      c.createMediaElementSource(rec.audio).connect(out(c))
+      rec.wired = true
+      rec.audio.volume = 1
+    } catch {
+      rec.audio.volume = MASTER_GAIN
+    }
+  }
+  rec.audio.currentTime = 0
+  void rec.audio.play().catch(onFail)
+  return true
+}
+
 /** Play a named UI/game cue. Respects the global mute and per-cue rate limits. */
 export function playSfx(name: SfxName) {
   if (muted) return
@@ -628,13 +674,18 @@ export function playSfx(name: SfxName) {
   const gap = MIN_GAP_MS[name] ?? 30
   if (now - (lastPlayed.get(name) ?? -Infinity) < gap) return
   lastPlayed.set(name, now)
-  const c = audio()
-  if (!c) return
-  try {
-    CUES[name](c, c.currentTime + 0.005)
-  } catch {
-    /* audio graph refused (context closed) — never break gameplay for SFX */
+  const playSynth = () => {
+    const c = audio()
+    if (!c) return
+    try {
+      CUES[name](c, c.currentTime + 0.005)
+    } catch {
+      /* audio graph refused (context closed) — never break gameplay for SFX */
+    }
   }
+  const sampleUrl = SFX_SAMPLE[name]
+  if (sampleUrl && playOneShotSample(sampleUrl, playSynth)) return
+  playSynth()
 }
 
 /**
@@ -674,11 +725,22 @@ const STAMP_ROOT: Record<string, number> = {
   adaptive_architect: 466,
 }
 
-/** Rebirth beat cues, keyed by the placeholder names in `REBIRTH_AUDIO_CUES`. */
-export function playRebirthCue(name: string) {
-  if (muted) return
-  const c = audio()
-  if (!c) return
+const REBIRTH_CUE_SAMPLE: Record<string, string> = {
+  sfx_rebirth_confirm_click: "/clicker/audio/sfx_rebirth_trigger_hq.mp3",
+  sfx_rebirth_collapse_whoosh: "/clicker/audio/sfx_rebirth_collapse_whoosh_v3.mp3",
+  sfx_rebirth_void_tear: "/clicker/audio/sfx_rebirth_void_tear_v3.mp3",
+  sfx_rebirth_rebuild_rise: "/clicker/audio/sfx_rebirth_rebuild_hq.mp3",
+  sfx_rebirth_settle_chime: "/clicker/audio/sfx_rebirth_complete_hq.mp3",
+}
+
+function rebirthCueSampleUrl(name: string): string | null {
+  const direct = REBIRTH_CUE_SAMPLE[name]
+  if (direct) return direct
+  if (name.startsWith("sfx_rebirth_stamp_")) return `/clicker/audio/${name}_hq.mp3`
+  return null
+}
+
+function playRebirthCueSynth(name: string, c: AudioContext) {
   const t = c.currentTime
   if (name === "sfx_rebirth_confirm_click") {
     tone(c, "square", 1200, 900, 0.04, t, 0.06)
@@ -701,6 +763,23 @@ export function playRebirthCue(name: string) {
     tone(c, "sine", 1046, 1046, 0.04, t, 0.8, { dest: e })
     tone(c, "sine", 1318, 1318, 0.03, t + 0.08, 0.7, { dest: e })
   }
+}
+
+/** Rebirth beat cues, keyed by the names in `REBIRTH_AUDIO_CUES`. Prefers HQ mp3 when mapped. */
+export function playRebirthCue(name: string) {
+  if (muted) return
+  const synth = () => {
+    const c = audio()
+    if (!c) return
+    try {
+      playRebirthCueSynth(name, c)
+    } catch {
+      /* context closed */
+    }
+  }
+  const sampleUrl = rebirthCueSampleUrl(name)
+  if (sampleUrl && playOneShotSample(sampleUrl, synth)) return
+  synth()
 }
 
 /** Region field challenge feedback: a clean hit, a miss, and the final whistle. */
