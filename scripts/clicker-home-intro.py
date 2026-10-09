@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Render the Core Mine (home) arrival cinematic from the home art, with its own score.
 
-9s at 1280x720/30fps: one continuous push-in on the mine entrance (no mid-shot
+9s at 1920x1080/30fps: one continuous push-in on the mine entrance (no mid-shot
 crossfade). Cyan lights flicker awake, and the shot settles on the same framing
 as the home hub. The existing score is kept. Scored originally in D minor with
 a door thud at the end. Needs the instruments in scripts/clicker-bgm.py.
@@ -19,12 +19,12 @@ from pathlib import Path
 import imageio_ffmpeg
 import numpy as np
 import soundfile as sf
-from PIL import Image
+from PIL import Image, ImageFilter
 
 HERE = Path(__file__).resolve().parent
 PUBLIC = HERE.parent / "public" / "clicker"
 OUT = PUBLIC / "region" / "core_chamber_intro.mp4"
-W, H, FPS, LENGTH = 1280, 720, 30, 9.0
+W, H, FPS, LENGTH = 1920, 1080, 30, 9.0
 
 spec = importlib.util.spec_from_file_location("bgm", HERE / "clicker-bgm.py")
 bgm = importlib.util.module_from_spec(spec)
@@ -37,12 +37,14 @@ def load(path: Path) -> np.ndarray:
 
 
 def zoom(img: np.ndarray, scale: float, cy: float = 0.5) -> np.ndarray:
-    """Crop-and-scale push-in about the centre (cy shifts the focus vertically)."""
-    cw, ch = int(W / scale), int(H / scale)
-    x0 = (W - cw) // 2
-    y0 = int(np.clip((H - ch) * cy, 0, H - ch))
-    crop = Image.fromarray((img[y0 : y0 + ch, x0 : x0 + cw] * 255).astype(np.uint8))
-    return np.asarray(crop.resize((W, H), Image.BILINEAR), dtype=np.float32) / 255
+    """Sub-pixel push-in about the centre (cy shifts the focus vertically), so the slow move
+    glides instead of stepping a whole pixel at a time."""
+    if abs(scale - 1) < 1e-6:
+        return img
+    src = Image.fromarray((img * 255).astype(np.uint8))
+    ox, oy = W / 2, H / 2 + (cy - 0.5) * H * (1 - 1 / scale)
+    m = (1 / scale, 0, ox - W / 2 / scale, 0, 1 / scale, oy - H / 2 / scale)
+    return np.asarray(src.transform((W, H), Image.AFFINE, m, resample=Image.BICUBIC), dtype=np.float32) / 255
 
 
 def smooth(t: float) -> float:
@@ -52,18 +54,24 @@ def smooth(t: float) -> float:
 
 def frames():
     gate = load(PUBLIC / "mine" / "mine_entrance_hub_closed_door_v2.webp")
+    lit = ((gate[..., 2] > 0.45) & (gate[..., 2] > gate[..., 0] * 1.4)).astype(np.float32)
+    glow = np.asarray(Image.fromarray((lit * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(12)), np.float32)[..., None] / 255
+    lit = lit[..., None]
     total = int(LENGTH * FPS)
     for f in range(total):
         t = f / FPS
-        # One shot on the gate. Ends at scale 1.0 — the exact hub framing.
-        u = smooth(t / LENGTH)
-        img = zoom(gate, 1.08 - 0.08 * u)
-        if t > 5.4:
-            flicker = 0.6 + 0.4 * np.sin(t * 9) * (1 if (int(t * 7) % 5) else 0.2)
-            lit = ((img[..., 2] > 0.45) & (img[..., 2] > img[..., 0] * 1.4)).astype(np.float32)[..., None]
-            img = img + lit * img * flicker * 0.9
-        fade = smooth(min(1.0, t / 0.45)) * (1 - 0.35 * smooth((t - 8.3) / 0.7))
-        yield (np.clip(img * fade, 0, 1) * 255).astype(np.uint8)
+        # One shot on the gate, easing out onto scale 1.0 — the exact hub framing.
+        u = 1 - (1 - min(1.0, t / (LENGTH - 1 / FPS))) ** 3
+        img = zoom(gate, 1.1 - 0.1 * u)
+        # The trim lights power up: two soft stutters, then a steady glow that settles to the still.
+        on = smooth((t - 4.6) / 1.6)
+        stutter = 0.35 * np.exp(-((t - 5.0) / 0.12) ** 2) + 0.25 * np.exp(-((t - 5.5) / 0.1) ** 2)
+        surge = (on * (1 - smooth((t - 7.2) / 1.6)) + stutter) * 0.9
+        img = img * (1 - lit * 0.55 * (1 - on)) + (lit * img + glow * 0.35) * surge
+        if f == total - 1:
+            img = gate
+        fade = smooth(t / 0.6)
+        yield (np.clip(img * fade, 0, 1) * 255 + 0.5).astype(np.uint8)
 
 
 def score() -> np.ndarray:
@@ -114,7 +122,7 @@ def main() -> None:
         video = Path(tmp) / "video.mp4"
         proc = subprocess.Popen(
             [ff, "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-             "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "slow", str(video)],
+             "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-crf", "20", "-preset", "slow", str(video)],
             stdin=subprocess.PIPE, stderr=subprocess.DEVNULL,
         )
         for frame in frames():

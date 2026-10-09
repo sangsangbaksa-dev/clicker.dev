@@ -84,6 +84,7 @@ import { ClickerTranscendencePanel } from "@/components/clicker/panels/transcend
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 import "./clicker.css"
 import "./clicker-polish.css"
+import "./clicker-design.css"
 
 const FLOAT_STRIKE_LABEL = { quake: "지진파 ", lightning: "번개 ", echo: "잔향 " } as const
 
@@ -1103,7 +1104,7 @@ export function ClickerApp() {
           </button>
         ) : (
           <div
-            className="clicker-metric"
+            className={`clicker-metric clicker-metric-fever${hud.fever.locked && !hud.fever.active ? " is-locked" : ""}`}
             role="group"
             aria-label={
               hud.fever.active
