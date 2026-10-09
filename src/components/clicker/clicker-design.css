@@ -23,6 +23,25 @@
   padding: 8px 18px;
 }
 
+/* CORE readout: label · value · rate on one line, extra currencies on their own line below. */
+[data-clicker] header.clicker-top > .clicker-metric.clicker-metric:first-child {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  grid-template-areas: "label value rate" "coins coins coins";
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 6px;
+}
+
+[data-clicker] header.clicker-top > .clicker-metric.clicker-metric:first-child > span:first-child:not(.clicker-metric-coins) { grid-area: label; }
+[data-clicker] header.clicker-top > .clicker-metric.clicker-metric:first-child > strong:not(.clicker-metric-coins) { grid-area: value; }
+[data-clicker] header.clicker-top > .clicker-metric.clicker-metric:first-child > em:not(.clicker-metric-coins) { grid-area: rate; justify-self: start; }
+[data-clicker] header.clicker-top > .clicker-metric.clicker-metric:first-child > .clicker-metric-coins.clicker-metric-coins {
+  grid-area: coins;
+  align-self: start;
+  justify-content: flex-start;
+}
+
 [data-clicker] .clicker-top > .clicker-metric:first-child > span:first-child {
   font-size: 11px;
   letter-spacing: 0.22em;
@@ -214,6 +233,36 @@
     justify-content: space-between;
     padding: 5px 12px;
   }
+
+  /* Locked Fever and the world-line card share one slim row instead of two tall ones. */
+  [data-clicker] .clicker-top:has(> .clicker-metric-worldline) > .clicker-metric-fever.is-locked,
+  [data-clicker] .clicker-top > .clicker-metric-worldline {
+    order: 3;
+    flex: 1 1 calc(50% - 3px);
+    min-width: 0;
+  }
+
+  [data-clicker] .clicker-top:has(> .clicker-metric-worldline) > .clicker-metric-fever.is-locked {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  [data-clicker] .clicker-top > .clicker-metric-worldline {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas: "label value" "note note";
+    align-items: baseline;
+    column-gap: 8px;
+    row-gap: 2px;
+    padding: 5px 12px;
+  }
+
+  [data-clicker] .clicker-top > .clicker-metric-worldline > span { grid-area: label; white-space: nowrap; }
+  [data-clicker] .clicker-top > .clicker-metric-worldline > strong { grid-area: value; font-size: 16px; text-align: right; }
+  [data-clicker] .clicker-top > .clicker-metric-worldline > .clicker-bar { grid-column: 1 / -1; }
+  [data-clicker] .clicker-top > .clicker-metric-worldline > em { grid-area: note; font-size: 10px; white-space: nowrap; }
 
   /* Dock: four even columns; long English labels scale down instead of spilling out. */
   [data-clicker] .clicker-hub-dock {

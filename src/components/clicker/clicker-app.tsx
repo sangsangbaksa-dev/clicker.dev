@@ -1140,7 +1140,7 @@ export function ClickerApp() {
           showTranscendenceTab ? (
             <button
               type="button"
-              className={`clicker-metric clicker-metric-action${tab === "transcendence" ? " is-active" : ""}`}
+              className={`clicker-metric clicker-metric-action clicker-metric-worldline${tab === "transcendence" ? " is-active" : ""}`}
               aria-label="TRANSCENDENCE 열기"
               onClick={() => selectTab("transcendence")}
             >
@@ -1151,7 +1151,7 @@ export function ClickerApp() {
               </em>
             </button>
           ) : (
-            <div className="clicker-metric">
+            <div className="clicker-metric clicker-metric-worldline">
               <span>WORLD LINE</span>
               <strong>#{String(run.currentWorldLine).padStart(3, "0")}</strong>
               <em>REBIRTH {game.save.metaState.rebirthCount}</em>
@@ -1160,7 +1160,7 @@ export function ClickerApp() {
         ) : showTranscendenceTab ? (
           <button
             type="button"
-            className={`clicker-metric clicker-metric-action${tab === "transcendence" ? " is-active" : ""}`}
+            className={`clicker-metric clicker-metric-action clicker-metric-worldline${tab === "transcendence" ? " is-active" : ""}`}
             aria-label={`환생 진행 ${Math.round(rebirthRatio * 100)}퍼센트 — 환생 화면 열기`}
             onClick={() => selectTab("transcendence")}
           >
