@@ -234,8 +234,9 @@ export async function findUserById(userId: string): Promise<StoredUser | null> {
   if (cached && Date.now() - cached.loadedAt < USER_CACHE_TTL_MS) {
     return cached.user
   }
-  const user = await readUser(userId)
+  let user = await readUser(userId)
   if (!user) return null
+  user = await backfillClassN(user)
   userCache.set(userId, { user, loadedAt: Date.now() })
   return user
 }

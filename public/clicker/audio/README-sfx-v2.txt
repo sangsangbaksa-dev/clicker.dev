@@ -55,7 +55,12 @@ sfx_boss_phase_change_v1 | Wired: `bossPhase` when guardian/lair HP crosses 66% 
 === Rebirth HQ audio (2026-10-01) — ceremony bed + motion SFX ===
 bgm_rebirth_hq_intro | BGM `BgmScene` `rebirth` (pendingRebirth): plays once, then hands off to loop | ~9s
 bgm_rebirth_hq_loop | Rebirth BGM loop after intro (loop=true, crossfade engine) | ~90s
-sfx_rebirth_trigger_hq | Wired: `playSfx("rebirthOpen")`, rebirth motion `select_confirm` (`sfx_rebirth_confirm_click`) | —
+sfx_rebirth_trigger_hq | Wired: rebirth motion `select_confirm` (`sfx_rebirth_confirm_click`) | —
+sfx_rebirth_open_v3 | Wired: `playSfx("rebirthOpen")` when a worldline is chosen | 1.8s
+sfx_enter_mine_v3 | Wired: `playSfx("enterMine")` on successful `enterMine` | 2.4s
+sfx_exit_mine_v3 | Wired: `playSfx("exitMine")` on pause / early leave | 1.6s
+sfx_session_timer_end_v3 | Wired: `playSfx("sessionEnd")` when the mine timer expires | 2.0s
+(UI/skill v2/v3 samples also mapped in `SFX_SAMPLE` — see `src/lib/clicker-sfx.ts`.)
 sfx_rebirth_rebuild_hq | Wired: rebirth motion `rebuild` phase | —
 sfx_rebirth_complete_hq | Wired: rebirth motion `settle` phase | —
 sfx_rebirth_stamp_aurelia_grid_hq | Wired: stamp phase, worldline Aurelia Grid | —

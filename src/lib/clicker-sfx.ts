@@ -1,9 +1,8 @@
 "use client"
 
 /**
- * Synthesized SFX (Web Audio) — one shared context, unlocked on the first gesture.
- * Everything routes through a master bus (gain → compressor) so click spam and
- * stacked cues don't clip on phone speakers. Nothing here loads a file.
+ * Game SFX: Web Audio synth cues with optional one-shot mp3 samples (same master bus).
+ * Unlock the shared context on the first gesture so iOS does not stay suspended.
  */
 
 let ctx: AudioContext | null = null
@@ -407,13 +406,33 @@ const CUES = {
     tone(c, "square", 1320, 1320, 0.028, t, 0.06, { attack: 0.001 })
     tone(c, "sine", 660, 660, 0.03, t, 0.1)
   },
-  /** Mine session over. */
+  /** Mine session over (timer ran out). */
   sessionEnd(c: AudioContext, t: number) {
     const e = echo(c, 0.15, 0.3, 0.3)
     tone(c, "triangle", 784, 784, 0.045, t, 0.18, { dest: e })
     tone(c, "triangle", 587, 587, 0.045, t + 0.14, 0.18, { dest: e })
     tone(c, "triangle", 392, 392, 0.05, t + 0.28, 0.5, { dest: e })
     noise(c, "lowpass", 300, 1, 0.04, t + 0.28, 0.4)
+  },
+  /** Mine chamber entered after the door-walk (or reduced-motion skip). */
+  enterMine(c: AudioContext, t: number) {
+    const e = echo(c, 0.12, 0.28, 0.28)
+    tone(c, "sine", 220, 440, 0.05, t, 0.35, { attack: 0.08, dest: e })
+    noise(c, "bandpass", 600, 1.2, 0.04, t, 0.4, { sweepTo: 2400, attack: 0.12 })
+    thump(c, t + 0.32, 0.12, 90)
+  },
+  /** Left the chamber early (pause tab, manual exit). */
+  exitMine(c: AudioContext, t: number) {
+    pluck(c, 880, 0.04, t, 0.1)
+    pluck(c, 660, 0.04, t + 0.06, 0.14)
+    noise(c, "lowpass", 400, 0.6, 0.03, t, 0.25)
+  },
+  /** Worldline chosen — rebirth motion is about to start. */
+  rebirthOpen(c: AudioContext, t: number) {
+    const e = echo(c, 0.16, 0.35, 0.35)
+    tone(c, "sine", 330, 330, 0.05, t, 0.5, { attack: 0.12, dest: e })
+    tone(c, "sine", 495, 495, 0.04, t + 0.1, 0.55, { attack: 0.12, dest: e })
+    sparkle(c, t + 0.2, 880, 5, 0.014, 0.02)
   },
   /** Drill overdrive engaged. */
   drill(c: AudioContext, t: number) {
@@ -632,6 +651,25 @@ export type SfxName = keyof typeof CUES
 
 /** HQ one-shots for cues that also have a synth fallback in `CUES`. */
 const SFX_SAMPLE: Partial<Record<SfxName, string>> = {
+  tap: "/clicker/audio/sfx_ui_tap_v2.mp3",
+  nav: "/clicker/audio/sfx_ui_tap_v2.mp3",
+  select: "/clicker/audio/sfx_worldline_hover_v2.mp3",
+  purchase: "/clicker/audio/sfx_ui_purchase_v2.mp3",
+  upgrade: "/clicker/audio/sfx_upgrade_level_v2.mp3",
+  skillUnlock: "/clicker/audio/sfx_skill_unlock_v3.mp3",
+  fever: "/clicker/audio/sfx_skill_fever_start_v3.mp3",
+  potion: "/clicker/audio/sfx_potion_fever_v3.mp3",
+  skillUse: "/clicker/audio/sfx_skill_pulse_burst_v3.mp3",
+  skillBurst: "/clicker/audio/sfx_skill_pulse_burst_v3.mp3",
+  skillPower: "/clicker/audio/sfx_skill_overdrive_v3.mp3",
+  skillLaser: "/clicker/audio/sfx_skill_pulse_burst_v3.mp3",
+  quake: "/clicker/audio/sfx_skill_seismic_wave_v3.mp3",
+  oreBreak: "/clicker/audio/sfx_yield_big_v3.mp3",
+  sessionEnd: "/clicker/audio/sfx_session_timer_end_v3.mp3",
+  enterMine: "/clicker/audio/sfx_enter_mine_v3.mp3",
+  exitMine: "/clicker/audio/sfx_exit_mine_v3.mp3",
+  rebirthOpen: "/clicker/audio/sfx_rebirth_open_v3.mp3",
+  transcend: "/clicker/audio/sfx_transcend_open_v3.mp3",
   bossRoar: "/clicker/audio/sfx_boss_appear_v1.mp3",
   bossHit: "/clicker/audio/sfx_boss_hit_v1.mp3",
   bossPhase: "/clicker/audio/sfx_boss_phase_change_v1.mp3",

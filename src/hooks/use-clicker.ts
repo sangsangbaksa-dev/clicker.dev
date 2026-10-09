@@ -700,6 +700,7 @@ export function useClicker() {
     if (!result.error && next.settings.playSurface === "mine") {
       if (!mineStartRef.current) mineStartRef.current = clickerMineSessionStart(next, t)
       setMineSummary(null)
+      playSfx("enterMine")
     }
     commitAndSave(next)
     if (result.error) refuse(result.error)

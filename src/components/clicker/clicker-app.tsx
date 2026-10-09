@@ -760,11 +760,25 @@ export function ClickerApp() {
     return () => timers.forEach((t) => window.clearTimeout(t))
   }, [inMineSurface, mineEndsAt])
 
+  const mineEndsAtRef = useRef(mineEndsAt)
   const prevInMine = useRef(inMineSurface)
   useEffect(() => {
-    if (prevInMine.current && !inMineSurface) playSfx("sessionEnd")
+    if (inMineSurface && mineEndsAt) mineEndsAtRef.current = mineEndsAt
+    if (prevInMine.current && !inMineSurface) {
+      const paused = (game.save?.runState.minePausedRemainMs ?? 0) > 0
+      const timedOut =
+        mineEndsAtRef.current > 0 && mineEndsAtRef.current <= Date.now()
+      if (paused || !timedOut) playSfx("exitMine")
+      else playSfx("sessionEnd")
+      mineEndsAtRef.current = 0
+    }
     prevInMine.current = inMineSurface
-  }, [inMineSurface])
+  }, [inMineSurface, mineEndsAt, game.save?.runState.minePausedRemainMs])
+
+  useEffect(() => {
+    if (!pendingRebirth) return
+    playSfx("rebirthOpen")
+  }, [pendingRebirth?.id])
 
   // Warm the videos the player is about to see: mine entry at home, intros of unlocked unvisited regions.
   const atHomeNow = Boolean(game.currentRegion?.isHome)
