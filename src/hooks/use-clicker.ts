@@ -92,6 +92,7 @@ import {
   SECRET_CODE_AMOUNT,
   GEAR,
   gearOf,
+  bossHpPhasesCrossed,
   forgeOdds,
   isClickerAdminAllowed,
   productionSnapshot,
@@ -827,8 +828,13 @@ export function useClicker() {
   const strikeLair = useCallback(
     (clientX: number, clientY: number): number | null => {
       if (!saveRef.current) return null
+      const before = saveRef.current.runState.lair
       const result = clickerStrikeLair(saveRef.current, now())
       if (result.damage <= 0) return null
+      const after = result.save.runState.lair
+      if (before && after) {
+        for (const _ of bossHpPhasesCrossed(before.bossHp, after.bossHp, before.bossMaxHp)) playSfx("bossPhase")
+      }
       commit(result.save)
       const { procs } = result
       const tag = `${procs.quake ? "지진파 " : ""}${procs.weakSpot ? "약점 " : ""}`
@@ -939,8 +945,13 @@ export function useClicker() {
   const strikeBoss = useCallback(
     (clientX: number, clientY: number) => {
       if (!saveRef.current) return false
+      const before = saveRef.current.runState.boss
       const result = clickerStrikeBoss(saveRef.current, now())
       if (result.damage <= 0) return false
+      const after = result.save.runState.boss
+      if (before && after) {
+        for (const _ of bossHpPhasesCrossed(before.hp, after.hp, before.maxHp)) playSfx("bossPhase")
+      }
       playSfx("bossHit")
       commit(result.save)
       pushFloat({ text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }, 700)

@@ -5,6 +5,7 @@ import type { RunState } from "../entities/clicker.ts"
 import {
   monsterAlive,
   slayMonster,
+  bossHpPhasesCrossed,
   startBossFight,
   strikeBoss,
   tickBoss,
@@ -575,6 +576,13 @@ test("a save owning the former mine-time circuits loads with their new effects",
     assert.equal(node.mineSessionSecondsAdd, undefined, id)
     assert.ok(node.clickMultiplier || node.lightningChanceAdd || node.criticalMultiplier || node.productionMultiplier, id)
   }
+})
+
+test("bossHpPhasesCrossed fires at 66% and 33% HP lines", () => {
+  assert.deepEqual(bossHpPhasesCrossed(100, 50, 100), [0.66])
+  assert.deepEqual(bossHpPhasesCrossed(70, 30, 100), [0.66, 0.33])
+  assert.deepEqual(bossHpPhasesCrossed(30, 10, 100), [])
+  assert.deepEqual(bossHpPhasesCrossed(50, 50, 100), [])
 })
 
 test("true ending unlocks once the Core Heart guardian falls", () => {

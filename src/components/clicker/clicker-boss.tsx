@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import type { BossDef, BossFight } from "@/application/clicker-ui"
-import { formatNumber } from "@/application/clicker-ui"
+import { bossHpPhasesCrossed, formatNumber } from "@/application/clicker-ui"
 import { playSfx } from "@/lib/clicker-sfx"
 import { MonsterArt } from "@/components/clicker/clicker-monster"
 import { ClickerHpBar } from "@/components/clicker/clicker-hpbar"
@@ -22,11 +22,15 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
   const [attack, setAttack] = useState(0)
   const [lost, setLost] = useState(false)
   const [hit, setHit] = useState(0)
+  const [hpPhase, setHpPhase] = useState(0)
   const prev = useRef(fight)
 
   useEffect(() => {
     const before = prev.current
     prev.current = fight
+    if (before && fight && fight.hp < before.hp) {
+      if (bossHpPhasesCrossed(before.hp, fight.hp, fight.maxHp).length) setHpPhase((n) => n + 1)
+    }
     if (before && fight && fight.playerHp < before.playerHp) {
       setAttack((n) => n + 1)
       playSfx("playerHurt")
@@ -37,7 +41,9 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
 
   const left = fight ? Math.max(0, fight.endsAt - now) / 1000 : def.timeLimitSec
   return (
-    <div className={`clicker-boss${attack ? " is-attack" : ""}${def.imageSrc ? " has-art" : ""}${fight ? " is-fighting" : ""}`}>
+    <div
+      className={`clicker-boss${attack ? " is-attack" : ""}${hpPhase ? " is-hp-phase" : ""}${def.imageSrc ? " has-art" : ""}${fight ? " is-fighting" : ""}`}
+    >
       {fight ? null : <strong>{def.name}</strong>}
       {fight ? (
         <div className="clicker-boss-bars">
@@ -98,6 +104,7 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
         </>
       ) : null}
       {attack && fight ? <div className="clicker-boss-hurt" key={`hurt-${attack}`} aria-hidden /> : null}
+      {hpPhase && fight ? <div className="clicker-boss-phase" key={`phase-${hpPhase}`} aria-hidden /> : null}
       <span className="clicker-boss-dread" aria-hidden />
     </div>
   )

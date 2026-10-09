@@ -2,13 +2,12 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-08
+Last reviewed: 2026-10-09
 
 ## Now (actionable)
 
 | Area | Item | Source / notes |
 |------|------|----------------|
-| Audio | `sfx_boss_phase_change_v1` — mapped on disk, no boss HP phases in engine yet | `public/clicker/audio/README-sfx-v2.txt` |
 | Art | `mine_interior_hitech_mineral_1080p_v1.png` registered, not wired as chamber BG (seam/layout) | `public/clicker/mine/README.md`, `mine-assets.ts` |
 | Design | Rebirth stamp PNGs vs geometric placeholders until final art lands | handoff-pack |
 | BGM | Older `bgm_hub_v2` / `bgm_mine_v2` kept for rollback; catalog prefers v2 loops + mine v3 | README-sfx |
@@ -20,8 +19,16 @@ Last reviewed: 2026-10-08
 
 | Area | Item |
 |------|------|
-| Motion | Region intro BGM in `media/region-intro/` — not yet in public catalog |
+| Motion | Region intro BGM in `media/region-intro/` — baked into intro MP4s, not a separate public catalog |
 | Code | Production revert #29 dropped sample SFX wiring; re-landed 2026-10-08 cron |
+
+## Done (2026-10-09)
+
+| Area | Item |
+|------|------|
+| Audio | `sfx_boss_phase_change_v1` wired at 66% / 33% HP for Core Heart guardian + lair bosses |
+| Motion | HP phase flash on guardian fight and painted lair scenes (`is-hp-phase`) |
+| Code | `bossHpPhasesCrossed` helper + unit test; room-repository unused destructure cleanup |
 
 ## Done (2026-10-08)
 

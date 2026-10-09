@@ -18,6 +18,7 @@ const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   nav: 45,
   select: 45,
   playerHurt: 200,
+  bossPhase: 900,
   purchase: 60,
   deny: 140,
   tick: 90,
@@ -559,6 +560,14 @@ const CUES = {
     tone(c, "square", 260 * vary(), 140, 0.035, t, 0.09)
     thump(c, t, 0.08, 150)
   },
+  /** Guardian HP phase (66% / 33%): riser + sub slam + shimmer. */
+  bossPhase(c: AudioContext, t: number) {
+    const e = echo(c, 0.16, 0.38, 0.42)
+    tone(c, "sine", 180, 720, 0.07, t, 0.55, { attack: 0.08, dest: e })
+    noise(c, "bandpass", 900, 1.2, 0.05, t, 0.5, { sweepTo: 2800, attack: 0.12 })
+    thump(c, t + 0.48, 0.22, 72)
+    sparkle(c, t + 0.52, 1400, 7, 0.018, 0.024)
+  },
   /** World skill learned: deep gong + rising chime. */
   worldSkill(c: AudioContext, t: number) {
     const e = echo(c, 0.18, 0.4, 0.4)
@@ -625,6 +634,7 @@ export type SfxName = keyof typeof CUES
 const SFX_SAMPLE: Partial<Record<SfxName, string>> = {
   bossRoar: "/clicker/audio/sfx_boss_appear_v1.mp3",
   bossHit: "/clicker/audio/sfx_boss_hit_v1.mp3",
+  bossPhase: "/clicker/audio/sfx_boss_phase_change_v1.mp3",
   bossDown: "/clicker/audio/sfx_boss_defeat_v1.mp3",
 }
 

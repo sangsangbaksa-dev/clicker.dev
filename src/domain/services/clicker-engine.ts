@@ -2013,6 +2013,20 @@ export function drillStrike(
 
 /* ---------- Core guardian ---------- */
 
+/** HP share thresholds (high → low) that trigger `bossPhase` SFX and motion. */
+export const BOSS_HP_PHASE_THRESHOLDS = [0.66, 0.33] as const
+
+/** Which phase lines were crossed on a single damage tick (may be two on huge hits). */
+export function bossHpPhasesCrossed(beforeHp: number, afterHp: number, maxHp: number): readonly number[] {
+  if (!(maxHp > 0) || afterHp >= beforeHp) return []
+  const out: number[] = []
+  for (const t of BOSS_HP_PHASE_THRESHOLDS) {
+    const line = maxHp * t
+    if (beforeHp > line && afterHp <= line) out.push(t)
+  }
+  return out
+}
+
 export function startBossFight(run: RunState, config: GameConfig, now: number): { run: RunState; error?: string } {
   const region = currentRegionDef(run, config)
   const boss = region?.boss

@@ -49,6 +49,7 @@ export type { ExchangeOfferView } from "@/domain/services/clicker-exchange"
 export type { MineSessionStart, MineSessionSummary } from "@/domain/services/clicker-mine-session"
 export type { GearSlot, GearTier } from "@/domain/services/clicker-lair"
 export {
+  bossHpPhasesCrossed,
   INSTABILITY_WARNING,
   drillCooldownMs,
   isRegionUnlocked,

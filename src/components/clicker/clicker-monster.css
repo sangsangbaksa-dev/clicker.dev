@@ -119,6 +119,27 @@
   animation: clicker-boss-hurt 360ms ease-out forwards;
 }
 @keyframes clicker-boss-hurt { to { opacity: 0; } }
+.clicker-boss-phase {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 42%, rgb(120 220 255 / 0.45), transparent 58%);
+  opacity: 1;
+  animation: clicker-boss-phase 520ms ease-out forwards;
+}
+@keyframes clicker-boss-phase {
+  0% { opacity: 0.95; filter: brightness(1.35); }
+  100% { opacity: 0; filter: brightness(1); }
+}
+.clicker-boss.is-hp-phase .clicker-boss-target {
+  animation: clicker-boss-phase-shake 520ms ease-out;
+}
+@keyframes clicker-boss-phase-shake {
+  15% { transform: scale(1.06) rotate(-2deg); filter: brightness(1.25); }
+  35% { transform: scale(1.04) rotate(2deg); }
+  55% { transform: scale(1.02) rotate(-1deg); }
+}
 .clicker-boss-start { min-width: 220px; }
 .clicker-boss-note { margin: 0; font-size: 12px; color: #ffd9a8; }
 
