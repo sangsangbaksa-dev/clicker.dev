@@ -6,10 +6,11 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { MineArt, MINE_ORE_PLATE } from "@/data/clicker/mine-assets"
-import { VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/application/clicker-ui"
+import { boxCenter, resolveKeyboardStrikePoint, VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/application/clicker-ui"
 import { playSfx } from "@/lib/clicker-sfx"
 import "./clicker-mine.css"
 
@@ -287,7 +288,7 @@ export function ClickerMine({
   )
 
   // Every strike that isn't a tap (Space, the assist drill) lands where the mouse cursor is — and
-  // only if the cursor is on the ore; anywhere else it's void.
+  // only if the cursor is on the ore; anywhere else it's void. Keys also land on a focused ore.
   const cursor = useRef<{ x: number; y: number } | null>(null)
   useEffect(() => {
     const track = (e: PointerEvent) => {
@@ -318,6 +319,31 @@ export function ClickerMine({
     return { x: c.x - rect.left, y: c.y - rect.top }
   }, [])
 
+  // Keyboard strikes: the cursor on the ore wins; a Tab-focused ore with no cursor on it is
+  // struck at its center, so the mine is playable without a mouse.
+  const oreRef = useRef<HTMLButtonElement>(null)
+  const boxRef = useRef(box)
+  useEffect(() => {
+    boxRef.current = box
+  }, [box])
+  const aimKeyboard = useCallback(() => {
+    const b = boxRef.current
+    const oreFocused = !!oreRef.current && document.activeElement === oreRef.current
+    return resolveKeyboardStrikePoint(aimAtCursor(), oreFocused, b ? boxCenter(b) : null)
+  }, [aimAtCursor])
+  const onOreKey = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+    // Space is handled by the window hold timer; only stop the button's own click here.
+    if (e.key === " ") {
+      e.preventDefault()
+      return
+    }
+    if (e.key !== "Enter") return
+    e.preventDefault()
+    if (e.repeat || e.type !== "keydown") return
+    const at = aimKeyboard()
+    if (at) hitAt(at.x, at.y, false)
+  }
+
   // Assist drill: auto strikes at the cursor while it rests on the crystal.
   useEffect(() => {
     if (autoRate <= 0) return
@@ -328,11 +354,12 @@ export function ClickerMine({
     return () => window.clearInterval(id)
   }, [autoRate, hitAt, aimAtCursor])
 
-  // Holding Space mines at a steady 7 strikes a second (first strike on press), at the cursor.
+  // Holding Space mines at a steady 7 strikes a second (first strike on press), at the cursor
+  // (or the focused ore's center).
   useEffect(() => {
     let timer = 0
     const hitCursor = () => {
-      const at = aimAtCursor()
+      const at = aimKeyboard()
       if (at) hitAt(at.x, at.y, false)
     }
     const stop = () => {
@@ -360,7 +387,7 @@ export function ClickerMine({
       window.removeEventListener("keyup", onUp)
       window.removeEventListener("blur", stop)
     }
-  }, [hitAt, aimAtCursor])
+  }, [hitAt, aimKeyboard])
 
   // Golden vein: maybe one per session, a few seconds in, briefly clickable.
   useEffect(() => {
@@ -422,7 +449,11 @@ export function ClickerMine({
               : "코어 광석 채굴 · 레이저"
           }
           style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
+          ref={oreRef}
+          aria-keyshortcuts="Enter Space"
           onPointerDown={strike}
+          onKeyDown={onOreKey}
+          onKeyUp={onOreKey}
         >
           {/* Same plate, cropped to the crystal, so hits can pulse just the ore. */}
           <span

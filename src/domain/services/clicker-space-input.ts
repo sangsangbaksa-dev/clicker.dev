@@ -29,3 +29,19 @@ export function isTypingTarget(tagName: string | null | undefined, editable: boo
 export function resolveSpacePoint(lastPointer: Point | null, oreCenter: Point): Point {
   return lastPointer ?? oreCenter
 }
+
+export type OreBox = { left: number; top: number; width: number; height: number }
+
+export function boxCenter(box: OreBox): Point {
+  return { x: box.left + box.width / 2, y: box.top + box.height / 2 }
+}
+
+/**
+ * Where a keyboard strike (held Space, Enter on the ore) lands. The mouse cursor on the ore
+ * wins, so mouse players keep aiming; with no cursor on the ore, a keyboard player who has
+ * focused the ore itself (Tab) strikes its center. Anything else is void (null).
+ */
+export function resolveKeyboardStrikePoint(cursorOnOre: Point | null, oreFocused: boolean, oreCenter: Point | null): Point | null {
+  if (cursorOnOre) return cursorOnOre
+  return oreFocused ? oreCenter : null
+}

@@ -1,8 +1,10 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import {
+  boxCenter,
   decideSpaceKeydown,
   isTypingTarget,
+  resolveKeyboardStrikePoint,
   resolveSpacePoint,
   SPACE_HOLD_CPS,
   SPACE_HOLD_INTERVAL_MS,
@@ -52,4 +54,23 @@ test("typing targets", () => {
 test("space point: last pointer, else ore centre", () => {
   assert.deepEqual(resolveSpacePoint({ x: 3, y: 4 }, { x: 50, y: 60 }), { x: 3, y: 4 })
   assert.deepEqual(resolveSpacePoint(null, { x: 50, y: 60 }), { x: 50, y: 60 })
+})
+
+test("box center is the middle of the ore box", () => {
+  assert.deepEqual(boxCenter({ left: 100, top: 40, width: 200, height: 120 }), { x: 200, y: 100 })
+})
+
+test("keyboard strikes follow the cursor when it is on the ore", () => {
+  const cursor = { x: 5, y: 6 }
+  assert.deepEqual(resolveKeyboardStrikePoint(cursor, false, { x: 1, y: 1 }), cursor)
+  assert.deepEqual(resolveKeyboardStrikePoint(cursor, true, { x: 1, y: 1 }), cursor)
+})
+
+test("a focused ore takes keyboard strikes at its center without a cursor", () => {
+  assert.deepEqual(resolveKeyboardStrikePoint(null, true, { x: 1, y: 2 }), { x: 1, y: 2 })
+})
+
+test("keyboard strikes are void with no cursor on the ore and no ore focus", () => {
+  assert.equal(resolveKeyboardStrikePoint(null, false, { x: 1, y: 2 }), null)
+  assert.equal(resolveKeyboardStrikePoint(null, true, null), null)
 })

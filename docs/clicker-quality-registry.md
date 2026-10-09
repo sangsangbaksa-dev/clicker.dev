@@ -29,6 +29,9 @@ Last reviewed: 2026-10-09
 | Audio | `sfx_boss_phase_change_v1` wired at 66% / 33% HP for Core Heart guardian + lair bosses |
 | Motion | HP phase flash on guardian fight and painted lair scenes (`is-hp-phase`) |
 | Code | `bossHpPhasesCrossed` helper + unit test; room-repository unused destructure cleanup |
+| Code | Keyboard mining: Enter / held Space strike a Tab-focused ore at its center (cursor still wins); `resolveKeyboardStrikePoint` + tests |
+| A11y | HUD CORE/FEVER/HAUL stats get `role="group"` so labels are read; mine HUD no longer a live region spamming the timer |
+| Design | Crisis choice card near-opaque with blur so hub buttons no longer read through |
 
 ## Done (2026-10-08)
 

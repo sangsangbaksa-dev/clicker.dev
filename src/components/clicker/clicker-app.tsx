@@ -1049,7 +1049,7 @@ export function ClickerApp() {
     >
       <header className="clicker-top">
         {!inMine ? (
-          <div className="clicker-metric" aria-label={`코어 광석 ${formatNumber(run.coreEnergy)} · 초당 ${formatNumber(game.snapshot?.perSecond ?? 0)}`}>
+          <div className="clicker-metric" role="group" aria-label={`코어 광석 ${formatNumber(run.coreEnergy)} · 초당 ${formatNumber(game.snapshot?.perSecond ?? 0)}`}>
             <span>CORE</span>
             <strong>
               <CountUpNumber value={run.coreEnergy} />
@@ -1076,7 +1076,7 @@ export function ClickerApp() {
         ) : (
           <div
             className="clicker-metric clicker-metric-mine-timer"
-            aria-label={`광산 남은 시간 ${mineRemainSec.toFixed(1)}초`}
+            aria-label={`광산 남은 시간 ${Math.ceil(mineRemainSec)}초`}
             role="timer"
           >
             <span>MINE TIMER</span>
@@ -1104,6 +1104,7 @@ export function ClickerApp() {
         ) : (
           <div
             className="clicker-metric"
+            role="group"
             aria-label={
               hud.fever.active
                 ? `${hud.fever.phaseLabel} · 남음 ${hud.fever.remainingSeconds.toFixed(1)}초`
@@ -1376,15 +1377,15 @@ export function ClickerApp() {
         <div className="clicker-core-wrap">
           {mountMineChamber ? (
             <div className="clicker-mine-dig">
-              <div className="clicker-mine-hud" role="status" aria-live="polite">
-                <div className="clicker-mine-hud-stat" aria-label={`채굴량 ${formatNumber(mineHaul)}`}>
+              <div className="clicker-mine-hud" role="group" aria-label="채굴 현황">
+                <div className="clicker-mine-hud-stat" role="group" aria-label={`채굴량 ${formatNumber(mineHaul)}`}>
                   <span>HAUL</span>
                   <strong>{formatNumber(mineHaul)}</strong>
                 </div>
                 <div
                   className="clicker-mine-hud-stat"
                   role="timer"
-                  aria-label={`남은 시간 ${mineRemainSec.toFixed(1)}초`}
+                  aria-label={`남은 시간 ${Math.ceil(mineRemainSec)}초`}
                 >
                   <span>TIME</span>
                   <strong><ClickerCountdown endsAt={run.mineSessionEndsAt} fallbackMs={mineRemainMs} /></strong>

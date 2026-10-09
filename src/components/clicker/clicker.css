@@ -2380,7 +2380,10 @@ button.clicker-metric-action.is-fever-ready em {
   position: absolute;
   inset: 12%;
   z-index: 8;
-  background: color-mix(in srgb, var(--void) 82%, transparent);
+  /* Near-opaque + blur so hub buttons (ENTER MINE) don't read through the choice card. */
+  background: color-mix(in srgb, var(--void) 96%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid color-mix(in srgb, var(--crisis) 50%, var(--line));
   border-radius: 16px;
   padding: 20px;
