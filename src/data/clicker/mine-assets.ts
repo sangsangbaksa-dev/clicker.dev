@@ -49,4 +49,8 @@ export const MineArt = {
   /** The plate's blue strip lights, recoloured hot orange (same framing): FEVER pulses only these. */
   feverLights: "/clicker/mine/mine_fever_lights.webp",
   coreOre: "/clicker/mine/mine_core_ore_click_v1.webp",
+  /** Sparse motes — screen blend over the chamber (skipped under prefers-reduced-motion). */
+  dustOverlay: "/clicker/mine/mine_dust_overlay_v1.png",
+  /** HUD bezel; center masked open so the ore stays readable. */
+  uiChrome: "/clicker/mine/mine_ui_chrome_v1.png",
 } as const

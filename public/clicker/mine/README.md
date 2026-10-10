@@ -13,3 +13,5 @@ Optional later: `mine_core_hit_v1.png`
 
 ## Registered, not wired
 - `mine_interior_hitech_mineral_1080p_v1.png` — 1080p chamber + center ore reference (`MineArt.chamberInteriorMineral1080pV1`; keep `chamberBg` on hitech_v1 for seam/hitbox)
+
+Wired in session UI: `mine_dust_overlay_v1.png`, `mine_ui_chrome_v1.png` (`MineArt.dustOverlay`, `MineArt.uiChrome` in `ClickerMine`).

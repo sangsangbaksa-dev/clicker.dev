@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-10 (cron pass)
+Last reviewed: 2026-10-10 (cron pass 2)
 
 ## Now (actionable)
 
@@ -20,6 +20,14 @@ Last reviewed: 2026-10-10 (cron pass)
 | Area | Item |
 |------|------|
 | Motion | Region intro BGM in `media/region-intro/` — baked into intro MP4s, not a separate public catalog |
+
+## Done (2026-10-10 pass 2)
+
+| Area | Item |
+|------|------|
+| Art | Mine session: ambient dust overlay + UI chrome plate + hit dust puffs (`MineArt.dustOverlay`, `uiChrome`) |
+| Audio | Mining laser prefers `sfx_core_hit_light_v2` / `sfx_core_crit_v2`; golden vein spawn/claim → hover + purchase mp3 |
+| Motion | Hit dust puffs on ore strikes (respects reduced motion) |
 
 ## Done (2026-10-10)
 

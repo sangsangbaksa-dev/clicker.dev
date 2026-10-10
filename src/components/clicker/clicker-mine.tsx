@@ -66,6 +66,8 @@ type Laser = {
 
 type Impact = { id: number; x: number; y: number; critical: boolean }
 
+type DustPuff = { id: number; x: number; y: number; critical: boolean }
+
 type Props = {
   visual?: "idle" | "fever" | "crisis"
   muted: boolean
@@ -141,6 +143,10 @@ export function ClickerMine({
   const [bolts, setBolts] = useState<Bolt[]>([])
   const [rings, setRings] = useState<Ring[]>([])
   const [flash, setFlash] = useState(0)
+  const [puffs, setPuffs] = useState<DustPuff[]>([])
+  const [showAmbientDust] = useState(
+    () => typeof window !== "undefined" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  )
   const [vein, setVein] = useState<Vein | null>(null)
   const [veinLabel, setVeinLabel] = useState<string | null>(null)
   const seq = useRef(0)
@@ -191,6 +197,11 @@ export function ClickerMine({
     const beam: Laser = { id, x1: origin.x, y1: origin.y, x2: x, y2: y, critical }
     setLasers((prev) => [...prev.slice(-5), beam])
     setImpacts((prev) => [...prev.slice(-5), { id, x, y, critical }])
+    if (!reduceMotion.current) {
+      const puff: DustPuff = { id, x, y, critical }
+      setPuffs((prev) => [...prev.slice(-4), puff])
+      later(() => setPuffs((prev) => prev.filter((p) => p.id !== id)), 460)
+    }
     const life = reduceMotion.current ? 80 : 220
     later(() => {
       setLasers((prev) => prev.filter((l) => l.id !== id))
@@ -432,9 +443,14 @@ export function ClickerMine({
     <div
       ref={mineRef}
       data-visual={visual}
-      className={`clicker-mine clicker-mine-single is-tier-${fxTier}${storm ? " is-storm" : ""}${pop ? " is-pop" : ""}${shake ? " is-shake" : ""}`}
+      className={`clicker-mine clicker-mine-single has-chrome-art is-tier-${fxTier}${storm ? " is-storm" : ""}${pop ? " is-pop" : ""}${shake ? " is-shake" : ""}`}
     >
       <div className="clicker-mine-plate" style={{ backgroundImage: `url(${plate})` }} aria-hidden />
+      {showAmbientDust ? (
+        <div className="clicker-mine-dust" aria-hidden>
+          <img src={MineArt.dustOverlay} alt="" />
+        </div>
+      ) : null}
       {visual === "fever" ? (
         <div className="clicker-mine-fever-lights" style={{ backgroundImage: `url(${MineArt.feverLights})` }} aria-hidden />
       ) : null}
@@ -545,6 +561,19 @@ export function ClickerMine({
       </div>
 
       {broken ? <div className="clicker-mine-shatter" aria-hidden /> : null}
+
+      <div className="clicker-mine-hit-dust" aria-hidden>
+        {puffs.map((puff) => (
+          <span
+            key={puff.id}
+            className={`clicker-mine-puff${puff.critical ? " is-crit" : ""}`}
+            style={{ left: puff.x, top: puff.y }}
+          >
+            <img src={MineArt.dustOverlay} alt="" />
+          </span>
+        ))}
+      </div>
+      <img className="clicker-mine-chrome-plate" src={MineArt.uiChrome} alt="" aria-hidden />
     </div>
   )
 }

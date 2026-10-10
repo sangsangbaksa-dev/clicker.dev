@@ -685,7 +685,16 @@ const SFX_SAMPLE: Partial<Record<SfxName, string>> = {
   bossHit: "/clicker/audio/sfx_boss_hit_v1.mp3",
   bossPhase: "/clicker/audio/sfx_boss_phase_change_v1.mp3",
   bossDown: "/clicker/audio/sfx_boss_defeat_v1.mp3",
+  veinSpawn: "/clicker/audio/sfx_worldline_hover_v2.mp3",
+  vein: "/clicker/audio/sfx_ui_purchase_v2.mp3",
 }
+
+const LASER_HIT_SAMPLE = {
+  light: "/clicker/audio/sfx_core_hit_light_v2.mp3",
+  crit: "/clicker/audio/sfx_core_crit_v2.mp3",
+} as const
+
+let lastLaserAt = -Infinity
 
 type OneShotSampleRec = { audio: HTMLAudioElement; wired: boolean }
 const oneShotSamples = new Map<string, OneShotSampleRec>()
@@ -744,8 +753,20 @@ export function playSfx(name: SfxName) {
  */
 export function playLaser(mutedArg: boolean, critical: boolean) {
   if (mutedArg || muted) return
-  const c = audio()
-  if (!c) return
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now()
+  if (now - lastLaserAt < 28) return
+  lastLaserAt = now
+  const playSynth = () => {
+    const c = audio()
+    if (!c) return
+    playLaserSynth(c, critical)
+  }
+  const sampleUrl = critical ? LASER_HIT_SAMPLE.crit : LASER_HIT_SAMPLE.light
+  if (playOneShotSample(sampleUrl, playSynth)) return
+  playSynth()
+}
+
+function playLaserSynth(c: AudioContext, critical: boolean) {
   const t0 = c.currentTime
   const j = 1 + (Math.random() - 0.5) * 0.08
   const dur = critical ? 0.22 : 0.14
