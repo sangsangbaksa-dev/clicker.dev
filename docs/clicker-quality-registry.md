@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-09 (cron pass 2)
+Last reviewed: 2026-10-10 (cron pass)
 
 ## Now (actionable)
 
@@ -14,13 +14,19 @@ Last reviewed: 2026-10-09 (cron pass 2)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
-| Audio | `sfx_producer_buy_v2` on disk; producer buys still share `purchase` cue | README-sfx |
 
 ## Watch (needs asset or design call)
 
 | Area | Item |
 |------|------|
 | Motion | Region intro BGM in `media/region-intro/` — baked into intro MP4s, not a separate public catalog |
+
+## Done (2026-10-10)
+
+| Area | Item |
+|------|------|
+| Audio | Producer hires use `producerBuy` → `sfx_producer_buy_v2.mp3` (shop/potion keep `purchase`) |
+| Design | Producer buys trigger PRODUCTION purchase burst + flash label |
 
 ## Done (2026-10-09 pass 2)
 

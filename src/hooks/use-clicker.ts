@@ -375,13 +375,21 @@ export function useClicker() {
     flash(`구매 · ${name}`)
   }, [commit, flash, refuse])
 
-  const buyProducer = useCallback((id: string, count: number | "MAX") => {
-    if (!saveRef.current) return
-    const result = clickerBuyProducer(saveRef.current, id, count)
-    if (!result.ok) return refuse(result.error)
-    commit(result.value)
-    playSfx("purchase")
-  }, [commit, refuse])
+  const buyProducer = useCallback(
+    (id: string, count: number | "MAX") => {
+      if (!saveRef.current) return
+      const result = clickerBuyProducer(saveRef.current, id, count)
+      if (!result.ok) return refuse(result.error)
+      commit(result.value)
+      playSfx("producerBuy")
+      const def = clickerGameConfig.producers.find((p) => p.id === id)
+      setPurchaseFx({ key: ++fxKey.current, kind: "PRODUCTION", assetId: def?.assetId })
+      const name = def?.name ?? id
+      const qty = count === "MAX" ? "" : count > 1 ? ` ×${count}` : ""
+      flash(`생산자 · ${name}${qty}`)
+    },
+    [commit, flash, refuse],
+  )
 
   const buyUpgrade = useCallback((id: string) => {
     if (!saveRef.current) return

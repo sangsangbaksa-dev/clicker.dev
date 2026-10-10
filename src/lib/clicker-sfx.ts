@@ -19,6 +19,7 @@ const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   playerHurt: 200,
   bossPhase: 900,
   purchase: 60,
+  producerBuy: 60,
   deny: 140,
   tick: 90,
   achievement: 400,
@@ -263,6 +264,15 @@ const CUES = {
     bell(c, root * 1.5, 0.036, t + 0.115, 0.34, e)
     sparkle(c, t + 0.13, root * 2, 4, 0.01, 0.024)
     thump(c, t, 0.045, 170)
+  },
+  /** Producer hire: industrial thunk + bright cyan two-note chime (matches sfx_producer_buy_v2). */
+  producerBuy(c: AudioContext, t: number) {
+    const e = echo(c, 0.07, 0.18, 0.2)
+    thump(c, t, 0.11, 95)
+    noise(c, "bandpass", 280, 1.2, 0.06, t, 0.08)
+    bell(c, 1174.7, 0.038, t + 0.04, 0.16, e)
+    bell(c, 1567.9, 0.034, t + 0.09, 0.22, e)
+    sparkle(c, t + 0.1, 2093, 3, 0.012, 0.02)
   },
   /** Permanent upgrade: two-note rise with a sparkle tail. */
   upgrade(c: AudioContext, t: number) {
@@ -655,6 +665,7 @@ const SFX_SAMPLE: Partial<Record<SfxName, string>> = {
   nav: "/clicker/audio/sfx_ui_tap_v2.mp3",
   select: "/clicker/audio/sfx_worldline_hover_v2.mp3",
   purchase: "/clicker/audio/sfx_ui_purchase_v2.mp3",
+  producerBuy: "/clicker/audio/sfx_producer_buy_v2.mp3",
   upgrade: "/clicker/audio/sfx_upgrade_level_v2.mp3",
   skillUnlock: "/clicker/audio/sfx_skill_unlock_v3.mp3",
   fever: "/clicker/audio/sfx_skill_fever_start_v3.mp3",
