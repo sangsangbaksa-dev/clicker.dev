@@ -1218,7 +1218,7 @@ export function ClickerApp() {
 
       <div className="clicker-stage">
         <StageBg
-          className={`clicker-stage-bg ${stageEvent ? "is-event" : ""}${regionTransition ? " is-region-transition" : ""}${inMine && hud.fever.active ? " is-fever" : ""}${!inMine && !atHomeHub ? " is-drift" : ""}`}
+          className={`clicker-stage-bg ${stageEvent ? "is-event" : ""}${regionTransition ? " is-region-transition" : ""}${inMine && hud.fever.active ? " is-fever" : ""}${!inMine && !atHomeHub && !showDrill ? " is-drift" : ""}`}
           src={stageBg}
         />
         <div className="clicker-vignette" />
@@ -1948,7 +1948,7 @@ export function ClickerApp() {
         <ClickerCinematic
           key={engagingRegion}
           src={regionDef.intro.engageVideo}
-          poster={regionDef.intro.still}
+          poster={regionDef.intro.engagePoster ?? regionDef.intro.still}
           label={regionDef.huntMode ? "보스의 둥지로 들어가는 중" : "시추 갱으로 내려가는 중"}
           muted={game.save.settings.musicMuted}
           volume={game.save.settings.musicVolume}
