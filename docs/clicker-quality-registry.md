@@ -25,6 +25,7 @@ Last reviewed: 2026-10-10 (cron pass)
 
 | Area | Item |
 |------|------|
+| Test | `clicker-exchange-week.test.ts`: KST Monday week boundary, stale-week reset, `sanitizeExchange` guard |
 | Audio | Producer hires use `producerBuy` → `sfx_producer_buy_v2.mp3` (shop/potion keep `purchase`) |
 | Design | Producer buys trigger PRODUCTION purchase burst + flash label |
 
