@@ -27,6 +27,9 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
+      - name: Desktop offline builds (Windows / Linux zip)
+        # Built from the clean tree before prepare-pages.sh strips it; published under /download/.
+        run: bash scripts/build-desktop.sh "$RUNNER_TEMP/desktop"
       - name: Verify clicker asset paths are Pages-rewritable
         run: node scripts/check-clicker-pages-paths.mjs
       - name: Strip server routes and prefix asset paths
@@ -41,6 +44,8 @@ jobs:
         run: |
           npx next build
           node scripts/build-offline.mjs out
+          mkdir -p out/download
+          cp "$RUNNER_TEMP"/desktop/app/dist/AureliaCore-*.zip out/download/
           touch out/.nojekyll
       - name: Install Chromium for Pages smoke
         run: npx playwright install chromium

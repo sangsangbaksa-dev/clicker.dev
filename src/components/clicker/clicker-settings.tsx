@@ -226,7 +226,7 @@ function mb(bytes: number) {
 /** Install as an app and download every asset so the game runs with no internet. */
 function ClickerOfflinePanel() {
   const off = useClickerOffline()
-  if (!off.supported && !off.canInstall && !off.installed && !off.iosHint) return null
+  if (!off.supported && !off.canInstall && !off.installed && !off.iosHint && !off.desktopDownload) return null
   const ratio = off.totalBytes ? Math.min(1, off.doneBytes / off.totalBytes) : 0
   const ready = off.totalBytes > 0 && off.doneBytes >= off.totalBytes
   return (
@@ -257,6 +257,19 @@ function ClickerOfflinePanel() {
       {off.error ? <p className="clicker-offline-note is-error">{off.error}</p> : null}
       {off.failed > 0 && !off.downloading ? (
         <p className="clicker-offline-note is-error">{off.failed}개 파일을 받지 못했습니다. 연결을 확인하고 다시 눌러 주세요.</p>
+      ) : null}
+      {off.desktopDownload ? (
+        <p className="clicker-offline-note">
+          PC용 오프라인 버전:{" "}
+          <a href={`${off.desktopDownload}/AureliaCore-win-x64.zip`} download>
+            Windows
+          </a>{" "}
+          ·{" "}
+          <a href={`${off.desktopDownload}/AureliaCore-linux-x64.zip`} download>
+            Linux
+          </a>{" "}
+          (압축을 풀고 AureliaCore 실행)
+        </p>
       ) : null}
       <div className="clicker-save-transfer-actions">
         {off.canInstall && !off.installed ? (

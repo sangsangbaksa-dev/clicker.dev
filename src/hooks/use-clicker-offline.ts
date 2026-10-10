@@ -25,6 +25,8 @@ export type ClickerOfflineState = {
   totalBytes: number
   failed: number
   error: string | null
+  /** Folder with the desktop zips (static site, not inside the desktop app itself). */
+  desktopDownload: string | null
 }
 
 const BASE = process.env.NEXT_PUBLIC_PAGES_BASE_PATH ?? ""
@@ -39,6 +41,7 @@ let state: ClickerOfflineState = {
   totalBytes: 0,
   failed: 0,
   error: null,
+  desktopDownload: null,
 }
 let deferredPrompt: InstallPrompt | null = null
 let booted = false
@@ -75,7 +78,12 @@ function boot() {
     (navigator as Navigator & { standalone?: boolean }).standalone === true
   const ua = navigator.userAgent
   const ios = /iPad|iPhone|iPod/.test(ua) || (ua.includes("Macintosh") && "ontouchend" in document)
-  set({ installed: standalone, iosHint: ios && !standalone })
+  const inDesktopApp = ua.includes("Electron") || location.protocol === "app:"
+  set({
+    installed: standalone,
+    iosHint: ios && !standalone,
+    desktopDownload: isClickerStaticHost() && !inDesktopApp && !ios && !/Android/.test(ua) ? `${BASE}/download` : null,
+  })
 
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault()

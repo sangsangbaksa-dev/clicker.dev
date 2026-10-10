@@ -377,3 +377,10 @@
 [data-clicker] .clicker-offline-note.is-error {
   color: #ff9a8a;
 }
+
+[data-clicker] .clicker-offline-note a {
+  color: var(--core);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
