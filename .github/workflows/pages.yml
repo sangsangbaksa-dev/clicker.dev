@@ -40,6 +40,7 @@ jobs:
           NODE_ENV: production
         run: |
           npx next build
+          node scripts/build-offline.mjs out
           touch out/.nojekyll
       - name: Install Chromium for Pages smoke
         run: npx playwright install chromium

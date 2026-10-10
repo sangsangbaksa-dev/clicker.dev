@@ -43,6 +43,7 @@ import {
 } from "@/application/clicker-ui"
 import { useClicker } from "@/hooks/use-clicker"
 import { useClickerBgm } from "@/hooks/use-clicker-bgm"
+import { useClickerOfflineBoot } from "@/hooks/use-clicker-offline"
 import { clickerBgmControls, clickerBgmScene } from "@/application/clicker-audio"
 import { ClickerComplete } from "@/components/clicker/clicker-complete"
 import { ClickerEnding } from "@/components/clicker/clicker-ending"
@@ -258,6 +259,7 @@ function rememberGatePassed() {
 }
 
 export function ClickerApp() {
+  useClickerOfflineBoot()
   const game = useClicker()
   const account = useClickerAccount({
     getSaveJson: game.exportSaveJson,

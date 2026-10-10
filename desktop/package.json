@@ -1,0 +1,8 @@
+{
+  "name": "aurelia-core",
+  "productName": "Aurelia Core",
+  "version": "1.0.0",
+  "description": "Aurelia Core — offline desktop build (Electron shell around the static export)",
+  "main": "main.js",
+  "private": true
+}

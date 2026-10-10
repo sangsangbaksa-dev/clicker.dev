@@ -13,6 +13,7 @@ import {
 import { ClickerRanking } from "@/components/clicker/clicker-ranking"
 import { ClickerAccountPanel } from "@/components/clicker/clicker-account"
 import type { ClickerAccountState } from "@/hooks/use-clicker-account"
+import { downloadClickerOffline, promptClickerInstall, useClickerOffline } from "@/hooks/use-clicker-offline"
 
 type Props = {
   muted: boolean
@@ -205,6 +206,8 @@ export function ClickerSettings({
           </li>
         </ul>
 
+        <ClickerOfflinePanel />
+
         <ClickerSaveTransfer
           onExportCode={onExportCode}
           onParseCode={onParseCode}
@@ -213,6 +216,66 @@ export function ClickerSettings({
         />
       </aside>
     </div>
+  )
+}
+
+function mb(bytes: number) {
+  return `${(bytes / 1048576).toFixed(bytes >= 104857600 ? 0 : 1)}MB`
+}
+
+/** Install as an app and download every asset so the game runs with no internet. */
+function ClickerOfflinePanel() {
+  const off = useClickerOffline()
+  if (!off.supported && !off.canInstall && !off.installed && !off.iosHint) return null
+  const ratio = off.totalBytes ? Math.min(1, off.doneBytes / off.totalBytes) : 0
+  const ready = off.totalBytes > 0 && off.doneBytes >= off.totalBytes
+  return (
+    <section className="clicker-offline" aria-labelledby="clicker-offline-title">
+      <div className="clicker-settings-copy">
+        <strong id="clicker-offline-title">오프라인 플레이</strong>
+        <p>
+          {off.installed
+            ? "앱으로 설치되어 있습니다."
+            : off.canInstall
+              ? "앱으로 설치하면 홈 화면·바탕화면에서 바로 실행됩니다."
+              : off.iosHint
+                ? "Safari의 공유 버튼 → 「홈 화면에 추가」로 앱처럼 설치할 수 있습니다."
+                : "브라우저 메뉴의 「앱 설치」로 설치할 수 있습니다."}{" "}
+          {ready
+            ? "모든 리소스가 저장되어 인터넷 없이 플레이할 수 있습니다."
+            : `전체 다운로드(${off.totalBytes ? mb(off.totalBytes) : "약 130MB"})를 하면 인터넷 없이 플레이할 수 있습니다.`}
+        </p>
+      </div>
+      {off.supported && off.totalBytes > 0 ? (
+        <div className="clicker-offline-meter" role="progressbar" aria-label="오프라인 다운로드" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(ratio * 100)}>
+          <i style={{ width: `${Math.round(ratio * 100)}%` }} />
+          <span>
+            {ready ? "오프라인 준비 완료" : `${mb(off.doneBytes)} / ${mb(off.totalBytes)} · ${Math.round(ratio * 100)}%`}
+          </span>
+        </div>
+      ) : null}
+      {off.error ? <p className="clicker-offline-note is-error">{off.error}</p> : null}
+      {off.failed > 0 && !off.downloading ? (
+        <p className="clicker-offline-note is-error">{off.failed}개 파일을 받지 못했습니다. 연결을 확인하고 다시 눌러 주세요.</p>
+      ) : null}
+      <div className="clicker-save-transfer-actions">
+        {off.canInstall && !off.installed ? (
+          <button type="button" className="clicker-settings-toggle is-on" onClick={() => void promptClickerInstall()}>
+            앱 설치
+          </button>
+        ) : null}
+        {off.supported ? (
+          <button
+            type="button"
+            className={`clicker-settings-toggle${ready ? "" : " is-on"}`}
+            disabled={off.downloading}
+            onClick={downloadClickerOffline}
+          >
+            {off.downloading ? "다운로드 중…" : ready ? "다시 확인" : "전체 다운로드"}
+          </button>
+        ) : null}
+      </div>
+    </section>
   )
 }
 

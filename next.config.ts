@@ -48,6 +48,8 @@ const pagesConfig: NextConfig = {
   // Browser bundle: isClickerStaticHost() — skip /api/clicker/* (no server on GitHub Pages).
   env: {
     NEXT_PUBLIC_CLICKER_STATIC_HOST: "1",
+    // Service worker path and scope for the offline app (src/hooks/use-clicker-offline.ts).
+    NEXT_PUBLIC_PAGES_BASE_PATH: pagesBasePath,
   },
 }
 
