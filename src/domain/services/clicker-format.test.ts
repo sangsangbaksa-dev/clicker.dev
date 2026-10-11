@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { formatNumber } from "./clicker-format.ts"
+import { formatNumber, withParticle } from "./clicker-format.ts"
 
 test("formatNumber trims and suffixes", () => {
   assert.equal(formatNumber(0), "0")
@@ -27,4 +27,14 @@ test("formatNumber never prints -0 and shows infinity explicitly", () => {
 test("formatNumber rolls the top suffix over into scientific notation", () => {
   assert.equal(formatNumber(999.999e33), "1e36")
   assert.equal(formatNumber(-999.999e33), "-1e36")
+})
+
+test("withParticle follows the last sound of digits and Latin names", () => {
+  assert.equal(withParticle("볼트", "이가"), "볼트가")
+  assert.equal(withParticle("Mine", "은는"), "Mine은")
+  assert.equal(withParticle("Vial", "으로"), "Vial로")
+  assert.equal(withParticle("Mk1", "을를"), "Mk1을")
+  assert.equal(withParticle("Mk2", "을를"), "Mk2를")
+  assert.equal(withParticle("Mk3", "으로"), "Mk3으로")
+  assert.equal(withParticle("", "이가"), "가")
 })
