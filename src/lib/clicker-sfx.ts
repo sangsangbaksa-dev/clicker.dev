@@ -24,6 +24,7 @@ const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   tick: 90,
   achievement: 400,
   save: 400,
+  oreShatter: 500,
   lightning: 220,
   quake: 380,
   echoStrike: 120,
@@ -390,7 +391,7 @@ const CUES = {
     bell(c, 1175, 0.025, t, 0.15, e)
     bell(c, 1568, 0.022, t + 0.07, 0.25, e)
   },
-  /** Center ore shattered. */
+  /** Center ore shattered (reward / stat tick — layered with oreShatter in the mine). */
   oreBreak(c: AudioContext, t: number) {
     noise(c, "highpass", 2500, 0.8, 0.07, t, 0.35)
     noise(c, "lowpass", 400, 1, 0.08, t, 0.3)
@@ -399,6 +400,12 @@ const CUES = {
       tone(c, "sine", f, f * 0.9, 0.02, t + 0.02 + i * 0.03, 0.12)
     }
     tone(c, "sine", 90, 45, 0.08, t, 0.3)
+  },
+  /** Resonance collapse — crystal breaks apart (mine scene). */
+  oreShatter(c: AudioContext, t: number) {
+    noise(c, "bandpass", 1800, 1.2, 0.09, t, 0.22, { sweepTo: 6000 })
+    tone(c, "sine", 58, 38, 0.14, t + 0.08, 0.45, { attack: 0.004 })
+    sparkle(c, t + 0.12, 2200, 8, 0.016, 0.024)
   },
   /** Golden vein claimed: jackpot chime. */
   vein(c: AudioContext, t: number) {
@@ -676,6 +683,7 @@ const SFX_SAMPLE: Partial<Record<SfxName, string>> = {
   skillLaser: "/clicker/audio/sfx_skill_pulse_burst_v3.mp3",
   quake: "/clicker/audio/sfx_skill_seismic_wave_v3.mp3",
   oreBreak: "/clicker/audio/sfx_yield_big_v3.mp3",
+  oreShatter: "/clicker/audio/sfx_ore_hold_release_v3.mp3",
   sessionEnd: "/clicker/audio/sfx_session_timer_end_v3.mp3",
   enterMine: "/clicker/audio/sfx_enter_mine_v3.mp3",
   exitMine: "/clicker/audio/sfx_exit_mine_v3.mp3",

@@ -158,6 +158,8 @@ export function ClickerMine({
   )
   const [vein, setVein] = useState<Vein | null>(null)
   const [veinLabel, setVeinLabel] = useState<string | null>(null)
+  const oreCrack = 1 - orePulse / ORE_PULSE_MAX
+  const oreWeak = !broken && orePulse > 0 && orePulse <= 6
   const seq = useRef(0)
   const mineRef = useRef<HTMLDivElement>(null)
   /** Last measured mine size (ResizeObserver), so strike effects never force a layout read. */
@@ -299,6 +301,7 @@ export function ClickerMine({
       setOrePulse(0)
       setBroken(true)
       live.current = { ...live.current, broken: true, orePulse: 0 }
+      if (!drill) playSfx("oreShatter")
       cur.onOreBroken?.()
       later(() => {
         setOrePulse(ORE_PULSE_MAX)
@@ -482,7 +485,7 @@ export function ClickerMine({
       {box ? (
         <button
           type="button"
-          className={`clicker-mine-crystal${broken ? " is-broken" : ""}`}
+          className={`clicker-mine-crystal${broken ? " is-broken" : ""}${oreWeak ? " is-weak" : ""}`}
           aria-label={
             muted
               ? "코어 광석 채굴 · 음소거"
@@ -503,6 +506,7 @@ export function ClickerMine({
                 backgroundImage: `url(${plate})`,
                 backgroundSize: `${iw * scale}px ${ih * scale}px`,
                 backgroundPosition: `${-ore.x * scale}px ${-ore.y * scale}px`,
+                "--ore-crack": oreCrack.toFixed(3),
               } as CSSProperties
             }
           />
@@ -512,6 +516,15 @@ export function ClickerMine({
         </button>
       ) : null}
 
+      {box && !broken ? (
+        <div
+          className="clicker-mine-integrity"
+          style={{ left: box.left, top: box.top + box.height + 6, width: box.width }}
+          aria-hidden
+        >
+          <i style={{ width: `${(orePulse / ORE_PULSE_MAX) * 100}%` }} />
+        </div>
+      ) : null}
 
       {vein && box ? (
         <button

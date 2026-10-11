@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-11 (cron pass)
+Last reviewed: 2026-10-11 (cron pass 2)
 
 ## Now (actionable)
 
@@ -10,10 +10,19 @@ Last reviewed: 2026-10-11 (cron pass)
 |------|------|----------------|
 | Art | `mine_interior_hitech_mineral_1080p_v1.png` registered, not wired as chamber BG (seam/layout) | `public/clicker/mine/README.md`, `mine-assets.ts` |
 | Design | Rebirth stamp PNGs vs geometric placeholders until final art lands | handoff-pack |
-| BGM | Older `bgm_hub_v2` / `bgm_mine_v2` kept for rollback; catalog prefers v2 loops + mine v3 | README-sfx |
+| Audio | `sfx_core_hit_heavy_v2.mp3` on disk; laser still light/crit only | README-sfx |
+| BGM | Older `bgm_hub_v2` / `bgm_mine_v2` kept for rollback only | README-sfx |
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-11 pass 2)
+
+| Area | Item |
+|------|------|
+| BGM | Hub catalog → `bgm_hub_loop_v2.mp3` (seamless loop) |
+| Design | Mine resonance feedback: integrity bar, `--ore-crack` stress, `is-weak` glow (CSS was dormant) |
+| Audio | Shatter plays `oreShatter` → `sfx_ore_hold_release_v3`; stat tick keeps `oreBreak` / yield_big |
 
 ## Done (2026-10-11)
 
