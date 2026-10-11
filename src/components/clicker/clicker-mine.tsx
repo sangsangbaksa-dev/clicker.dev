@@ -10,7 +10,15 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react"
 import { MineArt, MINE_ORE_PLATE } from "@/data/clicker/mine-assets"
-import { boxCenter, resolveKeyboardStrikePoint, VEIN_LIFETIME_MS, VEIN_SPAWN_CHANCE } from "@/application/clicker-ui"
+import {
+  boxCenter,
+  nextOrePulse,
+  ORE_PULSE_MAX,
+  ORE_REGROW_MS,
+  resolveKeyboardStrikePoint,
+  VEIN_LIFETIME_MS,
+  VEIN_SPAWN_CHANCE,
+} from "@/application/clicker-ui"
 import { playSfx } from "@/lib/clicker-sfx"
 import "./clicker-mine.css"
 
@@ -125,7 +133,7 @@ export function ClickerMine({
   onMine,
   onPop,
   playLaser,
-  onOreBroken: _onOreBroken,
+  onOreBroken,
   autoRate = 0,
   onVein,
   fxTier = 0,
@@ -136,7 +144,8 @@ export function ClickerMine({
   const [box, setBox] = useState<Box | null>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
   const [hitSeq, setHitSeq] = useState(0)
-  const broken = false
+  const [orePulse, setOrePulse] = useState(ORE_PULSE_MAX)
+  const [broken, setBroken] = useState(false)
   const [sparks, setSparks] = useState<Spark[]>([])
   const [lasers, setLasers] = useState<Laser[]>([])
   const [impacts, setImpacts] = useState<Impact[]>([])
@@ -222,9 +231,9 @@ export function ClickerMine({
   }, [])
 
   // Latest values for the drill interval without re-arming it every render.
-  const live = useRef({ broken, box, muted, onMine, onPop, playLaser, fxTier, storm, lightning })
+  const live = useRef({ broken, orePulse, box, muted, onMine, onPop, onOreBroken, playLaser, fxTier, storm, lightning })
   useEffect(() => {
-    live.current = { broken, box, muted, onMine, onPop, playLaser, fxTier, storm, lightning }
+    live.current = { broken, orePulse, box, muted, onMine, onPop, onOreBroken, playLaser, fxTier, storm, lightning }
   })
 
   /** Lightning, shockwaves, arcs and prism sparks on top of the laser, scaled by tier. */
@@ -281,6 +290,21 @@ export function ClickerMine({
       fireFx(x, y, strike, cur.fxTier, cur.storm, cur.lightning)
       setHitSeq((n) => n + 1)
 
+      const pulse = nextOrePulse(cur.orePulse, critical)
+      if (!pulse.shattered) {
+        setOrePulse(pulse.remaining)
+        live.current = { ...live.current, orePulse: pulse.remaining }
+        return
+      }
+      setOrePulse(0)
+      setBroken(true)
+      live.current = { ...live.current, broken: true, orePulse: 0 }
+      cur.onOreBroken?.()
+      later(() => {
+        setOrePulse(ORE_PULSE_MAX)
+        setBroken(false)
+        live.current = { ...live.current, broken: false, orePulse: ORE_PULSE_MAX }
+      }, ORE_REGROW_MS)
     },
     [fireLaser, fireFx],
   )

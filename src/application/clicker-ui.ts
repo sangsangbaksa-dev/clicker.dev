@@ -8,6 +8,7 @@ export { loadAlphaMask } from "@/infrastructure/image/alpha-mask-loader"
 export { oreHitBox, oreStrikePoint, type OreNode } from "@/domain/services/ore-node"
 export { formatNumber, withParticle } from "@/domain/services/clicker-format"
 export { boxCenter, resolveKeyboardStrikePoint } from "@/domain/services/clicker-space-input"
+export { nextOrePulse, ORE_PULSE_MAX, ORE_REGROW_MS } from "@/domain/services/clicker-mine-ore-pulse"
 export {
   clickerCompletionRank,
   clickerPlayTimeMs,
