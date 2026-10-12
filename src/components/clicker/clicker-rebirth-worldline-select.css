@@ -65,7 +65,32 @@
   backdrop-filter: blur(4px);
   animation: clicker-wl-fade 180ms ease-out both;
 }
+.clicker-wl-confirm-flash {
+  position: absolute;
+  inset: -8%;
+  width: 116%;
+  height: 116%;
+  object-fit: cover;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+  animation: clicker-wl-confirm-flash 720ms ease-out both;
+}
+
+@keyframes clicker-wl-confirm-flash {
+  0% {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
 .clicker-wl-confirm {
+  position: relative;
+  overflow: hidden;
   width: min(440px, 100%);
   padding: 18px 20px;
   border-radius: 16px;
@@ -111,5 +136,6 @@
   .clicker-wl-confirm-lists { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .clicker-wl-card, .clicker-wl-confirm-backdrop, .clicker-wl-confirm, .clicker-wl-card.is-pop-icon .clicker-wl-stamp { animation: none; transition: none; }
+  .clicker-wl-card, .clicker-wl-confirm-backdrop, .clicker-wl-confirm, .clicker-wl-confirm-flash, .clicker-wl-card.is-pop-icon .clicker-wl-stamp { animation: none; transition: none; }
+  .clicker-wl-confirm-flash { opacity: 0; }
 }

@@ -829,9 +829,12 @@ const REBIRTH_CUE_SAMPLE: Record<string, string> = {
   sfx_rebirth_void_tear: "/clicker/audio/sfx_rebirth_void_tear_v3.mp3",
   sfx_rebirth_rebuild_rise: "/clicker/audio/sfx_rebirth_rebuild_hq.mp3",
   sfx_rebirth_settle_chime: "/clicker/audio/sfx_rebirth_complete_hq.mp3",
+  /** Hybrid worldline shares the Directive Pulse HQ stamp bed (README-sfx). */
+  sfx_rebirth_stamp_adaptive_architect: "/clicker/audio/sfx_rebirth_stamp_directive_pulse_hq.mp3",
 }
 
-function rebirthCueSampleUrl(name: string): string | null {
+/** Resolved rebirth motion sample URL (HQ/v3 mp3 when present). */
+export function rebirthCueSampleUrl(name: string): string | null {
   const direct = REBIRTH_CUE_SAMPLE[name]
   if (direct) return direct
   if (name.startsWith("sfx_rebirth_stamp_")) return `/clicker/audio/${name}_hq.mp3`

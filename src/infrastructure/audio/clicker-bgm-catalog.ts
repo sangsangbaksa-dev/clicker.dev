@@ -4,8 +4,8 @@ import type { BgmTrackId } from "@/domain/services/clicker-bgm"
 export const CLICKER_BGM_URL: Record<BgmTrackId, string> = {
   loading: "/clicker/audio/bgm_loading_loop_v2.mp3",
   hub: "/clicker/audio/bgm_hub_loop_v2.mp3",
-  // Seamless hub loop (2026-10-01); older bgm_hub_v2.mp3 kept on disk for rollback.
-  mine: "/clicker/audio/bgm_mine_v3.mp3",
+  // Seamless 80s loop (2026-10-01); bgm_mine_v3.mp3 is a short bed kept on disk only.
+  mine: "/clicker/audio/bgm_mine_loop_v2.mp3",
   chamber: "/clicker/audio/bgm_chamber_v2.mp3",
   rebirthIntro: "/clicker/audio/bgm_rebirth_hq_intro.mp3",
   rebirthHq: "/clicker/audio/bgm_rebirth_hq_loop.mp3",

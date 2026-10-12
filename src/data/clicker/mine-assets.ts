@@ -17,10 +17,10 @@ export const MINE_ENTER_DOOR_SEAM_X_1080P = 960
 /** Interior with the single big center crystal — the clickable mining target. */
 export const MINE_ORE_PLATE = {
   src: "/clicker/mine/mine_interior_mineral_ore_v2.webp",
-  width: 1280,
-  height: 720,
-  /** Crystal bounds inside the plate (px). */
-  ore: { x: 488, y: 208, w: 318, h: 324 },
+  width: 1920,
+  height: 1080,
+  /** Crystal bounds inside the plate (px @ 1920×1080). */
+  ore: { x: 732, y: 312, w: 477, h: 486 },
 } as const
 
 export const MineArt = {
@@ -41,10 +41,10 @@ export const MineArt = {
   /** Timed-session hi-tech interior — full-bleed chamber. */
   chamberBg: "/clicker/mine/mine_interior_hitech_v1.webp",
   /**
-   * 1080p chamber still with center mineral (registered only — not wired as `chamberBg`;
-   * layout differs from ore plate / door-walk seam at x=640).
+   * 1080p chamber still with center mineral (reference + future swap; seam/hitbox still use `orePlate`).
+   * WebP derivative for preload size; PNG kept as source master.
    */
-  chamberInteriorMineral1080pV1: "/clicker/mine/mine_interior_hitech_mineral_1080p_v1.png",
+  chamberInteriorMineral1080pV1: "/clicker/mine/mine_interior_hitech_mineral_1080p_v1.webp",
   orePlate: MINE_ORE_PLATE.src,
   /** The plate's blue strip lights, recoloured hot orange (same framing): FEVER pulses only these. */
   feverLights: "/clicker/mine/mine_fever_lights.webp",

@@ -108,6 +108,12 @@ function RebirthConfirm({ buff, onCancel, onConfirm }: { buff: TranscendenceDef;
         style={tint(buff)}
         onClick={(e) => e.stopPropagation()}
       >
+        <img
+          className="clicker-wl-confirm-flash"
+          src={RebirthPhaseArt.selectConfirmFlash}
+          alt=""
+          aria-hidden
+        />
         <img className="clicker-wl-confirm-stamp" src={art(buff)} alt="" />
         <p className="clicker-wl-confirm-kicker">WORLD LINE · 환생</p>
         <h3 id="clicker-wl-confirm-title">{buff.name}</h3>
