@@ -29,6 +29,12 @@ test("formatNumber rolls the top suffix over into scientific notation", () => {
   assert.equal(formatNumber(-999.999e33), "-1e36")
 })
 
+test("formatNumber trims scientific mantissas like suffixed values", () => {
+  assert.equal(formatNumber(1.5e36), "1.5e36")
+  assert.equal(formatNumber(-2e40), "-2e40")
+  assert.equal(formatNumber(1.234e50), "1.23e50")
+})
+
 test("withParticle follows the last sound of digits and Latin names", () => {
   assert.equal(withParticle("볼트", "이가"), "볼트가")
   assert.equal(withParticle("Mine", "은는"), "Mine은")

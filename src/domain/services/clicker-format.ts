@@ -21,7 +21,10 @@ export function formatNumber(value: number): string {
   if (abs < 0.005) return "0"
   const sign = value < 0 ? "-" : ""
   if (abs < 999.995) return `${sign}${trimZeros(abs.toFixed(2))}`
-  if (abs >= 1e36) return `${sign}${abs.toExponential(2).replace("e+", "e")}`
+  if (abs >= 1e36) {
+    const [mantissa, exp] = abs.toExponential(2).split("e+")
+    return `${sign}${trimZeros(mantissa)}e${exp}`
+  }
   for (let i = 0; i < SUFFIXES.length; i++) {
     const { v, s } = SUFFIXES[i]
     if (abs < v) continue
