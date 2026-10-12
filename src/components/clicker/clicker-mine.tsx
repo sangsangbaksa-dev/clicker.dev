@@ -19,7 +19,7 @@ import {
   VEIN_LIFETIME_MS,
   VEIN_SPAWN_CHANCE,
 } from "@/application/clicker-ui"
-import { playSfx } from "@/lib/clicker-sfx"
+import { mineLaserHitKind, playSfx, type LaserHitKind } from "@/lib/clicker-sfx"
 import "./clicker-mine.css"
 
 /** Strikes per second while Space is held down. */
@@ -85,7 +85,7 @@ type Props = {
   /** `auto` marks assist-drill strikes, which skip the tap rate cap. */
   onMine: (clientX: number, clientY: number, auto?: boolean) => MineStrikeResult | null
   onPop: () => void
-  playLaser: (muted: boolean, critical: boolean) => void
+  playLaser: (muted: boolean, kind: LaserHitKind) => void
   /** Fires when the center ore's integrity hits zero (after ORE_HP strikes). */
   onOreBroken?: () => void
   /** Auto-drill strikes per second (0 = none). */
@@ -285,7 +285,7 @@ export function ClickerMine({
       if (!strike) return
       const { critical } = strike
       if (!drill) {
-        cur.playLaser(cur.muted, critical)
+        cur.playLaser(cur.muted, mineLaserHitKind(critical))
         cur.onPop()
       }
       fireLaser(x, y, critical, drill, cur.fxTier)
@@ -452,7 +452,7 @@ export function ClickerMine({
     const el = mineRef.current
     if (!el) return
     const rect = el.getBoundingClientRect()
-    playLaser(muted, true)
+    playLaser(muted, "crit")
     fireLaser(e.clientX - rect.left, e.clientY - rect.top, true)
     setVein(null)
     const label = onVein?.(e.clientX, e.clientY) ?? null

@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-11 (cron pass 2)
+Last reviewed: 2026-10-12 (cron)
 
 ## Now (actionable)
 
@@ -10,11 +10,18 @@ Last reviewed: 2026-10-11 (cron pass 2)
 |------|------|----------------|
 | Art | `mine_interior_hitech_mineral_1080p_v1.png` registered, not wired as chamber BG (seam/layout) | `public/clicker/mine/README.md`, `mine-assets.ts` |
 | Design | Rebirth stamp PNGs vs geometric placeholders until final art lands | handoff-pack |
-| Audio | `sfx_core_hit_heavy_v2.mp3` on disk; laser still light/crit only | README-sfx |
 | BGM | Older `bgm_hub_v2` / `bgm_mine_v2` kept for rollback only | README-sfx |
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-12)
+
+| Area | Item |
+|------|------|
+| Audio | Manual ore laser uses `sfx_core_hit_heavy_v2`; hub drill / boss / lair keep light; crits + veins use crit sample |
+| Design | Mine stage BG → `MineArt.orePlate` so door-walk landing matches session plate |
+| Code | `mineLaserHitKind` + laser sample path test |
 
 ## Done (2026-10-11 pass 2)
 

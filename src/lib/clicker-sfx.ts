@@ -699,8 +699,21 @@ const SFX_SAMPLE: Partial<Record<SfxName, string>> = {
 
 const LASER_HIT_SAMPLE = {
   light: "/clicker/audio/sfx_core_hit_light_v2.mp3",
+  heavy: "/clicker/audio/sfx_core_hit_heavy_v2.mp3",
   crit: "/clicker/audio/sfx_core_crit_v2.mp3",
 } as const
+
+export type LaserHitKind = keyof typeof LASER_HIT_SAMPLE
+
+/** Sample path for a mining / beam hit (used by tests and `playLaser`). */
+export function laserHitSamplePath(kind: LaserHitKind): string {
+  return LASER_HIT_SAMPLE[kind]
+}
+
+/** Manual ore strikes: heavy body; crits and jackpots use the crit sample. */
+export function mineLaserHitKind(critical: boolean): LaserHitKind {
+  return critical ? "crit" : "heavy"
+}
 
 let lastLaserAt = -Infinity
 
@@ -759,7 +772,7 @@ export function playSfx(name: SfxName) {
  * impact and a rock crunch. Crits add a bright crystal ring with an echo tail.
  * Pitch wobbles a little so rapid taps don't phase into one tone.
  */
-export function playLaser(mutedArg: boolean, critical: boolean) {
+export function playLaser(mutedArg: boolean, kind: LaserHitKind) {
   if (mutedArg || muted) return
   const now = typeof performance !== "undefined" ? performance.now() : Date.now()
   if (now - lastLaserAt < 28) return
@@ -767,26 +780,33 @@ export function playLaser(mutedArg: boolean, critical: boolean) {
   const playSynth = () => {
     const c = audio()
     if (!c) return
-    playLaserSynth(c, critical)
+    playLaserSynth(c, kind)
   }
-  const sampleUrl = critical ? LASER_HIT_SAMPLE.crit : LASER_HIT_SAMPLE.light
+  const sampleUrl = LASER_HIT_SAMPLE[kind]
   if (playOneShotSample(sampleUrl, playSynth)) return
   playSynth()
 }
 
-function playLaserSynth(c: AudioContext, critical: boolean) {
+function playLaserSynth(c: AudioContext, kind: LaserHitKind) {
+  const critical = kind === "crit"
+  const heavy = kind === "heavy"
   const t0 = c.currentTime
   const j = 1 + (Math.random() - 0.5) * 0.08
-  const dur = critical ? 0.22 : 0.14
-  const top = (critical ? 1700 : 1150) * j
+  const dur = critical ? 0.22 : heavy ? 0.18 : 0.14
+  const top = (critical ? 1700 : heavy ? 1280 : 1150) * j
   for (const det of [-12, 0, 12]) {
-    tone(c, "sawtooth", top, critical ? 110 : 140, critical ? 0.07 : 0.05, t0, dur, { attack: 0.002, detune: det })
+    tone(c, "sawtooth", top, critical ? 110 : heavy ? 125 : 140, critical ? 0.07 : heavy ? 0.06 : 0.05, t0, dur, {
+      attack: 0.002,
+      detune: det,
+    })
   }
-  tone(c, "square", top / 2, 60, critical ? 0.035 : 0.022, t0, dur, { attack: 0.002 })
-  noise(c, "bandpass", critical ? 2600 : 2000, 0.7, critical ? 0.09 : 0.06, t0, dur, { sweepTo: 500 })
+  tone(c, "square", top / 2, 60, critical ? 0.035 : heavy ? 0.028 : 0.022, t0, dur, { attack: 0.002 })
+  noise(c, "bandpass", critical ? 2600 : heavy ? 2300 : 2000, 0.7, critical ? 0.09 : heavy ? 0.075 : 0.06, t0, dur, {
+    sweepTo: 500,
+  })
   // Impact: sub boom + rock crunch so every hit lands on something solid.
-  tone(c, "sine", 120 * j, 38, critical ? 0.24 : 0.16, t0 + 0.01, critical ? 0.32 : 0.2)
-  noise(c, "lowpass", 700, 1, critical ? 0.12 : 0.07, t0 + 0.01, 0.14)
+  tone(c, "sine", 120 * j, 38, critical ? 0.24 : heavy ? 0.2 : 0.16, t0 + 0.01, critical ? 0.32 : heavy ? 0.26 : 0.2)
+  noise(c, "lowpass", 700, 1, critical ? 0.12 : heavy ? 0.095 : 0.07, t0 + 0.01, 0.14)
   if (critical) {
     const e = echo(c, 0.08, 0.3, 0.35)
     tone(c, "triangle", 2093, 2093, 0.06, t0 + 0.03, 0.35, { dest: e })

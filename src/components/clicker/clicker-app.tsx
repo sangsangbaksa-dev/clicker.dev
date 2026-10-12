@@ -1240,7 +1240,7 @@ export function ClickerApp() {
                 e.preventDefault()
                 const paid = game.drillVein(e.clientX, e.clientY)
                 if (paid === null) return
-                playLaser(game.save?.settings.muted ?? false, paid > 0)
+                playLaser(game.save?.settings.muted ?? false, paid > 0 ? "crit" : "light")
                 if (paid > 0) flashStage()
                 setDrillHits((n) => n + 1)
               }}
@@ -1273,7 +1273,7 @@ export function ClickerApp() {
             tauntKey={tauntKey}
             onEnter={game.enterLair}
             onStrike={(x, y) => {
-              playLaser(game.save!.settings.muted, false)
+              playLaser(game.save!.settings.muted, "light")
               const reward = game.strikeLair(x, y)
               if (reward !== null) showLairResult(true, `토벌 성공 · +${formatNumber(reward)} CORE`)
               return reward !== null
@@ -1619,7 +1619,7 @@ export function ClickerApp() {
               defeated={bossDefeated}
               onStart={game.startBoss}
               onStrike={(x, y) => {
-                playLaser(game.save!.settings.muted, false)
+                playLaser(game.save!.settings.muted, "light")
                 game.strikeBoss(x, y)
               }}
             />

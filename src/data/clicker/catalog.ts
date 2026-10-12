@@ -12,8 +12,8 @@ export const CLICKER_ASSETS = {
   /** Hub pre-enter — exterior gate only. */
   bgMineEntrance: MineArt.entranceGate,
   bgTitleGate: MineArt.titleGate,
-  /** Timed mine session — hi-tech interior chamber. */
-  bgMine: MineArt.chamberBg,
+  /** Timed mine session — same plate as door-walk landing + `ClickerMine` (seam with ore hitbox). */
+  bgMine: MineArt.orePlate,
   mineCoreOre: MineArt.coreOre,
   bgTranscendence: "/clicker/bg/transcendence_room_base.webp",
   coreIdle: "/clicker/core/core_idle.webp",
