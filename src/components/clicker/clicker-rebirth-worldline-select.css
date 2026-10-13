@@ -13,12 +13,14 @@
 }
 
 .clicker-wl-card {
+  position: relative;
   display: grid;
   grid-template-columns: 56px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
   border-radius: 12px;
+  overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--wl-primary, var(--core)) 38%, transparent);
   background:
     radial-gradient(circle at 0% 50%, color-mix(in srgb, var(--wl-primary, var(--core)) 16%, transparent), transparent 60%),
@@ -29,11 +31,40 @@
   border-color: color-mix(in srgb, var(--wl-primary, var(--core)) 70%, transparent);
   transform: translateY(-1px);
 }
+.clicker-wl-chrome {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: url("/clicker/rebirth/rebirth_worldline_select_chrome_shared_v1.webp");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  background-position: var(--wl-chrome-pos, 0% 0%);
+  opacity: 0.22;
+  mix-blend-mode: screen;
+  transition: opacity 160ms ease;
+}
+.clicker-wl-card.has-chrome-sheet:hover:not(.is-walked) .clicker-wl-chrome {
+  background-image: url("/clicker/rebirth/rebirth_worldline_select_focus_v1.webp");
+  opacity: 0.38;
+}
+.clicker-wl-select.is-locked .clicker-wl-card.has-chrome-sheet:not(.is-walked) .clicker-wl-chrome {
+  background-image: url("/clicker/rebirth/rebirth_worldline_select_locked_v1.webp");
+  opacity: 0.32;
+}
 .clicker-wl-stamp {
+  position: relative;
+  z-index: 1;
   width: 56px;
   height: 56px;
   object-fit: contain;
   filter: drop-shadow(0 0 10px color-mix(in srgb, var(--wl-primary, var(--core)) 45%, transparent));
+}
+.clicker-wl-copy,
+.clicker-wl-go,
+.clicker-wl-chip {
+  position: relative;
+  z-index: 1;
 }
 .clicker-wl-copy { min-width: 0; display: grid; gap: 2px; }
 .clicker-wl-copy strong { font-size: 14px; color: color-mix(in srgb, var(--wl-primary, var(--core)) 55%, white); }
@@ -136,6 +167,6 @@
   .clicker-wl-confirm-lists { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .clicker-wl-card, .clicker-wl-confirm-backdrop, .clicker-wl-confirm, .clicker-wl-confirm-flash, .clicker-wl-card.is-pop-icon .clicker-wl-stamp { animation: none; transition: none; }
+  .clicker-wl-card, .clicker-wl-confirm-backdrop, .clicker-wl-confirm, .clicker-wl-confirm-flash, .clicker-wl-card.is-pop-icon .clicker-wl-stamp, .clicker-wl-chrome { animation: none; transition: none; }
   .clicker-wl-confirm-flash { opacity: 0; }
 }

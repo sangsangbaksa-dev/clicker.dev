@@ -3348,6 +3348,38 @@ button.clicker-metric-action.is-fever-ready em {
 }
 
 .clicker-transcendence {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.clicker-transcendence-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.clicker-transcendence-backdrop img {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 140%;
+  max-width: none;
+  height: auto;
+  transform: translateX(-50%);
+  object-fit: cover;
+  opacity: 0.55;
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.95) 0%, rgb(0 0 0 / 0.35) 42%, transparent 72%);
+}
+
+.clicker-transcendence-inner {
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: 12px;
 }

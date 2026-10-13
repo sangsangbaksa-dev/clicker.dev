@@ -1,9 +1,12 @@
 "use client"
 
+import { useEffect } from "react"
 import { formatNumber } from "@/application/clicker-ui"
 import { ClickerRebirthWorldlineSelect } from "@/components/clicker/clicker-rebirth-worldline-select"
+import { RebirthPhaseArt } from "@/data/clicker/rebirth-assets"
 import type { MetaState, TranscendenceDef } from "@/application/clicker-ui"
 import type { PanelProps } from "@/hooks/use-clicker"
+import { warmImage } from "@/components/clicker/clicker-preload"
 
 export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon, onSelectTab, onChoose }: PanelProps & {
   meta: MetaState
@@ -16,8 +19,22 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
   const transcendenceTotal = game.config.transcendence.length
   const allWalked = transcendenceOwned >= transcendenceTotal
   const requirement = game.hud?.rebirthRequirement ?? game.config.rebirthEnergy
+  useEffect(() => {
+    for (const src of [
+      RebirthPhaseArt.worldlineSelectBg,
+      RebirthPhaseArt.selectChromeShared,
+      RebirthPhaseArt.selectFocus,
+      RebirthPhaseArt.selectLocked,
+    ]) {
+      void warmImage(src)
+    }
+  }, [])
   return (
     <div className="clicker-transcendence">
+      <div className="clicker-transcendence-backdrop" aria-hidden>
+        <img src={RebirthPhaseArt.worldlineSelectBg} alt="" />
+      </div>
+      <div className="clicker-transcendence-inner">
       <header className="clicker-transcendence-head">
         <div className="clicker-transcendence-head-row">
           <p className="clicker-transcendence-kicker">WORLD LINE · 환생</p>
@@ -84,6 +101,7 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
           />
         </>
       )}
+      </div>
     </div>
   )
 }

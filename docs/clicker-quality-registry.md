@@ -2,19 +2,26 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-12 (cron pass 2)
+Last reviewed: 2026-10-13 (cron pass)
 
 ## Now (actionable)
 
 | Area | Item | Source / notes |
 |------|------|----------------|
-| Art | `mine_interior_hitech_mineral_1080p_v1` webp pre-registered; swap onto `orePlate` after seam QA | `mine-assets.ts` |
+| Art | `mine_interior_hitech_mineral_1080p_v1` webp pre-registered; swap onto `orePlate` after door-walk seam QA (wider chamber framing vs `ore_v2`) | `mine-assets.ts` |
 | Design | Rebirth stamp PNGs vs geometric placeholders until final art lands | handoff-pack |
-| Design | Worldline select painted backdrop / focus chrome (`selectFocus`, `worldlineSelectBg`) not on panel yet | `rebirth-assets.ts` |
 | BGM | Older `bgm_hub_v2` / `bgm_mine_v2` / short `bgm_mine_v3` kept for rollback only | README-sfx |
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-13)
+
+| Area | Item |
+|------|------|
+| Design | Transcendence panel: `worldlineSelectBg` backdrop; Wave A cards use chrome/focus/locked sheet quadrants |
+| Audio | Worldline confirm opens with `select` → `sfx_worldline_hover_v2.mp3` |
+| Code | `clicker-rebirth-assets.test.ts` for select art paths + chrome quadrant map |
 
 ## Done (2026-10-12 pass 2)
 

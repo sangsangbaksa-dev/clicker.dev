@@ -22,6 +22,14 @@ const STAMP_FALLBACK: Record<string, string> = {
 /** Four-card chrome set from sheet 08; other worldlines use the geometric card. */
 export const REBIRTH_CHROME_WORLDLINE_IDS = Object.keys(SLUG)
 
+/** Background-position for one cell of the 1280×720 2×2 chrome sheets (TL → TR → BL → BR). */
+export const WORLDLINE_SELECT_CHROME_QUADRANT: Record<string, string> = {
+  focus_line: "0% 0%",
+  auto_line: "100% 0%",
+  reso_line: "0% 100%",
+  risk_line: "100% 100%",
+}
+
 type PlatePhase = "collapse" | "void_tear" | "stamp" | "rebuild" | "settle"
 
 export const RebirthPhaseArt = {

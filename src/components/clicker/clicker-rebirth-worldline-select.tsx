@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
-import { RebirthPhaseArt } from "@/data/clicker/rebirth-assets"
+import { REBIRTH_CHROME_WORLDLINE_IDS, RebirthPhaseArt, WORLDLINE_SELECT_CHROME_QUADRANT } from "@/data/clicker/rebirth-assets"
+import { playSfx } from "@/lib/clicker-sfx"
 import { rebirthVariantFor } from "@/data/clicker/rebirth-motion"
 import type { TranscendenceDef } from "@/application/clicker-ui"
 import { useArmedPress, useClickerDialogFocus, useClickerEscape } from "@/components/clicker/clicker-a11y"
@@ -47,12 +48,19 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, locke
       <ul className="clicker-wl-list">
         {ordered.map((buff) => {
           const walked = owned.has(buff.id)
+          const chromePos = WORLDLINE_SELECT_CHROME_QUADRANT[buff.id]
+          const hasChrome = REBIRTH_CHROME_WORLDLINE_IDS.includes(buff.id)
           return (
             <li
               key={buff.id}
-              className={`clicker-wl-card${walked ? " is-walked" : ""}${(popIcons[buff.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
-              style={tint(buff)}
+              className={`clicker-wl-card${walked ? " is-walked" : ""}${(popIcons[buff.id] ?? 0) > 0 ? " is-pop-icon" : ""}${hasChrome ? " has-chrome-sheet" : ""}`}
+              style={
+                chromePos
+                  ? ({ ...tint(buff), "--wl-chrome-pos": chromePos } as CSSProperties)
+                  : tint(buff)
+              }
             >
+              {hasChrome ? <span className="clicker-wl-chrome" aria-hidden /> : null}
               <img className="clicker-wl-stamp" src={art(buff)} alt="" />
               <div className="clicker-wl-copy">
                 <strong>{buff.name}</strong>
@@ -67,7 +75,10 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, locke
                   className="clicker-primary clicker-wl-go"
                   disabled={locked}
                   aria-label={locked ? `${buff.name} · 환생 목표를 채우면 선택 가능` : `${buff.name} 세계선으로 환생`}
-                  onClick={() => setConfirming(buff)}
+                  onClick={() => {
+                    playSfx("select")
+                    setConfirming(buff)
+                  }}
                 >
                   {locked ? "잠김" : "환생"}
                 </button>
