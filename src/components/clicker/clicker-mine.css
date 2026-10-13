@@ -20,6 +20,26 @@
   pointer-events: none;
 }
 
+/* Door-walk lands on orePlate; hi-tech chamber detail eases in without a hard cut. */
+.clicker-mine-single .clicker-mine-plate-enhance {
+  opacity: 0;
+  animation: clicker-mine-plate-enhance-in 1.1s ease-out 0.35s forwards;
+}
+
+.clicker-mine-crystal-art-enhance {
+  opacity: 0;
+  animation: clicker-mine-plate-enhance-in 1.1s ease-out 0.35s forwards;
+}
+
+@keyframes clicker-mine-plate-enhance-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* FEVER: only the chamber's blue strip lights flare orange and pulse; the rest of the
    scene (and the ore) keeps its look. The layer is the plate's lights pre-recoloured. */
 .clicker-mine-single .clicker-mine-fever-lights {
@@ -298,8 +318,14 @@
   .clicker-mine-single .clicker-mine-fever-lights,
   .clicker-mine-crystal-glow,
   .clicker-mine-crystal-flash,
-  .clicker-mine-crystal.is-broken .clicker-mine-crystal-art {
+  .clicker-mine-crystal.is-broken .clicker-mine-crystal-art,
+  .clicker-mine-single .clicker-mine-plate-enhance,
+  .clicker-mine-crystal-art-enhance {
     animation: none;
+  }
+  .clicker-mine-single .clicker-mine-plate-enhance,
+  .clicker-mine-crystal-art-enhance {
+    opacity: 0;
   }
 }
 

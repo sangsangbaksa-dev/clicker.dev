@@ -41,10 +41,11 @@ export const MineArt = {
   /** Timed-session hi-tech interior — full-bleed chamber. */
   chamberBg: "/clicker/mine/mine_interior_hitech_v1.webp",
   /**
-   * 1080p chamber still with center mineral (reference + future swap; seam/hitbox still use `orePlate`).
-   * WebP derivative for preload size; PNG kept as source master.
+   * 1080p hi-tech chamber still (same crystal framing as `orePlate`; richer walls/lighting).
+   * Fades in over the door-walk landing plate after enter so the cinematic seam stays clean.
    */
   chamberInteriorMineral1080pV1: "/clicker/mine/mine_interior_hitech_mineral_1080p_v1.webp",
+  /** Door-walk v19 landing frame — keep as the first paint after the enter cinematic. */
   orePlate: MINE_ORE_PLATE.src,
   /** The plate's blue strip lights, recoloured hot orange (same framing): FEVER pulses only these. */
   feverLights: "/clicker/mine/mine_fever_lights.webp",

@@ -463,8 +463,16 @@ export function ClickerMine({
   }
 
   const plate = MineArt.orePlate
+  const plateEnhance = MineArt.chamberInteriorMineral1080pV1
   const { width: iw, height: ih, ore } = MINE_ORE_PLATE
   const scale = size.width ? Math.max(size.width / iw, size.height / ih) : 0
+  const crystalPlateStyle: CSSProperties | undefined =
+    scale > 0
+      ? {
+          backgroundSize: `${iw * scale}px ${ih * scale}px`,
+          backgroundPosition: `${-ore.x * scale}px ${-ore.y * scale}px`,
+        }
+      : undefined
 
   return (
     <div
@@ -473,6 +481,11 @@ export function ClickerMine({
       className={`clicker-mine clicker-mine-single has-chrome-art is-tier-${fxTier}${storm ? " is-storm" : ""}${pop ? " is-pop" : ""}${shake ? " is-shake" : ""}`}
     >
       <div className="clicker-mine-plate" style={{ backgroundImage: `url(${plate})` }} aria-hidden />
+      <div
+        className="clicker-mine-plate clicker-mine-plate-enhance"
+        style={{ backgroundImage: `url(${plateEnhance})` }}
+        aria-hidden
+      />
       {showAmbientDust ? (
         <div className="clicker-mine-dust" aria-hidden>
           <img src={MineArt.dustOverlay} alt="" />
@@ -504,8 +517,17 @@ export function ClickerMine({
             style={
               {
                 backgroundImage: `url(${plate})`,
-                backgroundSize: `${iw * scale}px ${ih * scale}px`,
-                backgroundPosition: `${-ore.x * scale}px ${-ore.y * scale}px`,
+                ...crystalPlateStyle,
+                "--ore-crack": oreCrack.toFixed(3),
+              } as CSSProperties
+            }
+          />
+          <span
+            className="clicker-mine-crystal-art clicker-mine-crystal-art-enhance"
+            style={
+              {
+                backgroundImage: `url(${plateEnhance})`,
+                ...crystalPlateStyle,
                 "--ore-crack": oreCrack.toFixed(3),
               } as CSSProperties
             }

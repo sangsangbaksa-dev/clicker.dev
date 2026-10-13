@@ -11,7 +11,8 @@ Layer (bottom → top): chamber BG (stage) + ore → dust → chrome.
 
 Optional later: `mine_core_hit_v1.png`
 
-## Registered, not wired as session plate
-- `mine_interior_hitech_mineral_1080p_v1.png` (+ `.webp` preload) — 1080p chamber reference (`MineArt.chamberInteriorMineral1080pV1`; session still uses `orePlate` for door-walk seam + hitbox)
+## Session plate layering
+- `mine_interior_mineral_ore_v2.webp` — door-walk v19 landing frame (`MineArt.orePlate` / `MINE_ORE_PLATE`)
+- `mine_interior_hitech_mineral_1080p_v1.webp` — fades in over the landing plate after enter (`MineArt.chamberInteriorMineral1080pV1`; same crystal framing + hitbox)
 
 Wired in session UI: `mine_dust_overlay_v1.png`, `mine_ui_chrome_v1.png` (`MineArt.dustOverlay`, `MineArt.uiChrome` in `ClickerMine`).
