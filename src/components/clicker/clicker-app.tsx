@@ -50,12 +50,12 @@ import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine, type MineFxTier } from "@/components/clicker/clicker-mine"
 import { ClickerCinematic, preloadCinematic } from "@/components/clicker/clicker-cinematic"
 import { ClickerRegionChallenge } from "@/components/clicker/clicker-region-challenge"
-import { MineArt } from "@/data/clicker/mine-assets"
+import { MineArt, MINE_SESSION_WARM_ART } from "@/data/clicker/mine-assets"
 import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
 import { ClickerOtherTab } from "@/components/clicker/clicker-other-tab"
 import { ClickerRebirthMotion } from "@/components/clicker/clicker-rebirth-motion"
 import { ClickerSettings } from "@/components/clicker/clicker-settings"
-import { collectImagePaths, useDecodedSrc, useImagePreload } from "@/components/clicker/clicker-preload"
+import { collectImagePaths, useDecodedSrc, useImagePreload, warmImage } from "@/components/clicker/clicker-preload"
 import { ClickerImageZoom } from "@/components/clicker/clicker-image-zoom"
 import { ClickerPurchaseFx } from "@/components/clicker/clicker-purchase-fx"
 import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
@@ -238,6 +238,10 @@ function StageBg({ src, className }: { src: string; className: string }) {
 }
 
 const PRELOAD_IMAGES = collectImagePaths(CLICKER_ASSETS, MineArt, clickerConfig)
+
+function warmMineSessionArt() {
+  for (const src of MINE_SESSION_WARM_ART) void warmImage(src)
+}
 
 const GATE_KEY = "aurelia-clicker-login-gate"
 
@@ -1043,6 +1047,7 @@ export function ClickerApp() {
 
   const beginEnterMine = () => {
     setScreenTab("mine")
+    warmMineSessionArt()
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     // Refused entries (cooldown / cost) skip the cinematic; enterMine shows the reason.
     if (reduced || game.mineEntryError()) {

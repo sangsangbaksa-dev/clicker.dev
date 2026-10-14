@@ -25,6 +25,7 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
       RebirthPhaseArt.selectChromeShared,
       RebirthPhaseArt.selectFocus,
       RebirthPhaseArt.selectLocked,
+      RebirthPhaseArt.selectConfirmFlash,
     ]) {
       void warmImage(src)
     }

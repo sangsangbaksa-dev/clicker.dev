@@ -55,3 +55,12 @@ export const MineArt = {
   /** HUD bezel; center masked open so the ore stays readable. */
   uiChrome: "/clicker/mine/mine_ui_chrome_v1.png",
 } as const
+
+/** Decode during door-walk so the hi-tech enhance crossfade never flashes. */
+export const MINE_SESSION_WARM_ART = [
+  MineArt.orePlate,
+  MineArt.chamberInteriorMineral1080pV1,
+  MineArt.dustOverlay,
+  MineArt.uiChrome,
+  MineArt.feverLights,
+] as const

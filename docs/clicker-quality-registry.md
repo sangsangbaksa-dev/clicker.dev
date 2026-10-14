@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-13 (cron pass 2)
+Last reviewed: 2026-10-14 (cron)
 
 ## Now (actionable)
 
@@ -14,6 +14,14 @@ Last reviewed: 2026-10-13 (cron pass 2)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-14)
+
+| Area | Item |
+|------|------|
+| Art | Mine enter: priority-decode session plates (ore + hi-tech enhance, dust, chrome, fever lights) during door-walk |
+| Motion | Hi-tech chamber crossfade adds brightness/saturation ramp + `will-change` for smoother GPU fade-in |
+| Design | Transcendence panel preloads `selectConfirmFlash` so confirm sheet flash paints on first open |
 
 ## Done (2026-10-13 pass 2)
 
