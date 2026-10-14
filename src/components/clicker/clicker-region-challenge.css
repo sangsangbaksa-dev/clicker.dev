@@ -143,6 +143,11 @@
   cursor: pointer;
 }
 
+.clicker-challenge-quit:focus-visible {
+  outline: 2px solid rgb(232 246 255 / 0.9);
+  outline-offset: 2px;
+}
+
 /* Storm Spire — rods */
 .clicker-rods {
   display: grid;
