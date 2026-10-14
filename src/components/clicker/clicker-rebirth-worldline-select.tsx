@@ -37,11 +37,10 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, locke
   const owned = useMemo(() => new Set(ownedIds), [ownedIds])
   const ordered = useMemo(() => [...buffs].sort((a, b) => Number(owned.has(a.id)) - Number(owned.has(b.id))), [buffs, owned])
 
-  // Warm every worldline's rebirth plates while the player is still choosing.
+  // Warm motion plates even in locked preview so stamps and ceremony art never flash placeholders.
   useEffect(() => {
-    if (locked) return
     for (const b of buffs) preloadRebirthArt(b.id)
-  }, [buffs, locked])
+  }, [buffs])
 
   return (
     <div className={`clicker-wl-select${locked ? " is-locked" : ""}`}>

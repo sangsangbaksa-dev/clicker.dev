@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { CLICKER_TRUE_ENDING_STEPS } from "@/data/clicker/ending"
 import { clickerElapsedPlayTimeMs, formatClickerPlayTime } from "@/application/clicker-ui"
 import { useArmedPress, useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
+import { playSfx } from "@/lib/clicker-sfx"
 
 export type EndingSummary = {
   worldlinesOwned: number
@@ -59,7 +60,11 @@ export function ClickerEnding({ onComplete, summary }: Props) {
     return () => window.clearTimeout(t)
   }, [step])
 
-  const next = () => (last ? undefined : setStep((s) => Math.min(s + 1, CLICKER_TRUE_ENDING_STEPS.length - 1)))
+  const next = () => {
+    if (last) return
+    playSfx("nav")
+    setStep((s) => Math.min(s + 1, CLICKER_TRUE_ENDING_STEPS.length - 1))
+  }
 
   return (
     <div

@@ -29,7 +29,11 @@ export function ClickerTranscendencePanel({ game, run, meta, popIcons, bumpIcon,
     ]) {
       void warmImage(src)
     }
-  }, [])
+    for (const b of game.config.transcendence) {
+      const stamp = RebirthPhaseArt.stampFor(b.id) ?? b.assetId
+      if (stamp) void warmImage(stamp)
+    }
+  }, [game.config.transcendence])
   return (
     <div className="clicker-transcendence">
       <div className="clicker-transcendence-backdrop" aria-hidden>

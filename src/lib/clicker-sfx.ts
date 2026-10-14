@@ -833,6 +833,11 @@ const REBIRTH_CUE_SAMPLE: Record<string, string> = {
   sfx_rebirth_stamp_adaptive_architect: "/clicker/audio/sfx_rebirth_stamp_directive_pulse_hq.mp3",
 }
 
+/** Unique one-shot mp3 paths wired in `SFX_SAMPLE` (for asset tests and preload). */
+export function listMappedSfxSampleUrls(): string[] {
+  return [...new Set(Object.values(SFX_SAMPLE).filter((url): url is string => Boolean(url)))]
+}
+
 /** Resolved rebirth motion sample URL (HQ/v3 mp3 when present). */
 export function rebirthCueSampleUrl(name: string): string | null {
   const direct = REBIRTH_CUE_SAMPLE[name]

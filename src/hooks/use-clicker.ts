@@ -91,6 +91,7 @@ import {
   formatNumber,
   SECRET_CODE_AMOUNT,
   GEAR,
+  gearImage,
   gearOf,
   bossHpPhasesCrossed,
   forgeOdds,
@@ -880,6 +881,7 @@ export function useClicker() {
       }
       playSfx("upgrade")
       const tier = GEAR[slot][gearOf(save.runState)[slot]]
+      setPurchaseFx({ key: ++fxKey.current, kind: "HUNT", assetId: gearImage(tier) })
       flash(`강화 성공 · ${tier.name}`)
     },
     [refuse, flash, commitAndSave],
