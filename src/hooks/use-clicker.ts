@@ -895,6 +895,7 @@ export function useClicker() {
       commitAndSave(result.value)
       playSfx("upgrade")
       const relic = clickerGameConfig.relics.find((r) => r.id === relicId)
+      setPurchaseFx({ key: ++fxKey.current, kind: "TRANSCENDENCE", assetId: relic?.assetId })
       flash(`유물 강화 · ${relic?.name ?? relicId} Lv.${result.value.metaState.relicLevels[relicId] ?? 0}`)
     },
     [refuse, flash, commitAndSave],
@@ -920,7 +921,8 @@ export function useClicker() {
       const result = clickerBuyExchange(saveRef.current, offerId, Date.now())
       if (!result.ok) return refuse(result.error)
       commitAndSave(result.value)
-      playSfx("upgrade")
+      playSfx("purchase")
+      setPurchaseFx({ key: ++fxKey.current, kind: "UTILITY" })
       flash(`교환 완료 · ${offerName}`)
     },
     [refuse, flash, commitAndSave],

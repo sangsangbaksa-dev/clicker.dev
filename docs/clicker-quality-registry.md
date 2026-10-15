@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-14 (cron pass 2)
+Last reviewed: 2026-10-15 (cron)
 
 ## Now (actionable)
 
@@ -14,6 +14,14 @@ Last reviewed: 2026-10-14 (cron pass 2)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-15)
+
+| Area | Item |
+|------|------|
+| Audio | Lair boss hurt/death + world-tree skills prefer HQ mp3 (`bossHurt`, `bossDeath`, `worldSkill` in `SFX_SAMPLE`) |
+| Audio | First gesture warms all mapped one-shots + laser/rebirth HQ paths (reduces first-hit hitch) |
+| Design | Relic vault upgrades → TRANSCENDENCE purchase burst + relic icon; exchange → `purchase` SFX + UTILITY burst |
 
 ## Done (2026-10-14 pass 2)
 

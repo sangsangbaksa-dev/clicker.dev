@@ -18,6 +18,8 @@ const MIN_GAP_MS: Partial<Record<SfxName, number>> = {
   select: 45,
   playerHurt: 200,
   bossPhase: 900,
+  bossDeath: 1200,
+  bossDown: 1200,
   purchase: 60,
   producerBuy: 60,
   deny: 140,
@@ -53,9 +55,32 @@ function audio(): AudioContext | null {
   return ctx
 }
 
+let oneShotsWarmed = false
+
+/** Decode mapped mp3 one-shots once after the first gesture so combat/UI cues don't hitch. */
+function warmOneShotCatalog() {
+  if (oneShotsWarmed || typeof window === "undefined") return
+  oneShotsWarmed = true
+  const urls = new Set<string>([
+    ...listMappedSfxSampleUrls(),
+    ...Object.values(LASER_HIT_SAMPLE),
+    ...Object.values(REBIRTH_CUE_SAMPLE),
+  ])
+  for (const url of urls) {
+    const el = new Audio(url)
+    el.preload = "auto"
+    try {
+      el.load()
+    } catch {
+      /* offline or quota — synth fallback still works */
+    }
+  }
+}
+
 /** Call from a capture-phase gesture listener so later SFX aren't stuck suspended. */
 export function unlockSfx() {
   audio()
+  warmOneShotCatalog()
 }
 
 /** The shared context, for BGM gain routing. Only call after a user gesture. */
@@ -675,6 +700,7 @@ const SFX_SAMPLE: Partial<Record<SfxName, string>> = {
   producerBuy: "/clicker/audio/sfx_producer_buy_v2.mp3",
   upgrade: "/clicker/audio/sfx_upgrade_level_v2.mp3",
   skillUnlock: "/clicker/audio/sfx_skill_unlock_v3.mp3",
+  worldSkill: "/clicker/audio/sfx_skill_unlock_v3.mp3",
   fever: "/clicker/audio/sfx_skill_fever_start_v3.mp3",
   potion: "/clicker/audio/sfx_potion_fever_v3.mp3",
   skillUse: "/clicker/audio/sfx_skill_pulse_burst_v3.mp3",
@@ -691,7 +717,9 @@ const SFX_SAMPLE: Partial<Record<SfxName, string>> = {
   transcend: "/clicker/audio/sfx_transcend_open_v3.mp3",
   bossRoar: "/clicker/audio/sfx_boss_appear_v1.mp3",
   bossHit: "/clicker/audio/sfx_boss_hit_v1.mp3",
+  bossHurt: "/clicker/audio/sfx_boss_hit_v1.mp3",
   bossPhase: "/clicker/audio/sfx_boss_phase_change_v1.mp3",
+  bossDeath: "/clicker/audio/sfx_boss_defeat_v1.mp3",
   bossDown: "/clicker/audio/sfx_boss_defeat_v1.mp3",
   veinSpawn: "/clicker/audio/sfx_worldline_hover_v2.mp3",
   vein: "/clicker/audio/sfx_ui_purchase_v2.mp3",
