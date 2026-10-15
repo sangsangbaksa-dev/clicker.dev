@@ -71,6 +71,7 @@ import { ClickerHpBar } from "@/components/clicker/clicker-hpbar"
 import { useClickerAccount } from "@/hooks/use-clicker-account"
 import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
+import { warmClickerWorldTravelBgm } from "@/application/clicker-bgm-engine"
 import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
 import { getFloats, getServerFloats, subscribeFloats } from "@/lib/clicker-floats"
 import { ClickerCountdown } from "./clicker-countdown"
@@ -290,6 +291,14 @@ export function ClickerApp() {
     }
   }, [])
 
+  const [tab, setTab] = useState<TabId>("upgrades")
+
+  // Decode region themes while the travel tab is open so the first hop does not hitch.
+  useEffect(() => {
+    if (tab !== "world") return
+    warmClickerWorldTravelBgm(true)
+  }, [tab])
+
   // Every button press clicks. Mining targets have their own laser / vein sounds.
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -302,7 +311,6 @@ export function ClickerApp() {
     return () => window.removeEventListener("click", onClick, true)
   }, [])
 
-  const [tab, setTab] = useState<TabId>("upgrades")
   const [screenTab, setScreenTab] = useState<ClickerScreenTabId>("mine")
   // Hub splits into the mine entrance scene and a full-screen management screen.
   const [hubView, setHubView] = useState<"entrance" | "manage">("entrance")

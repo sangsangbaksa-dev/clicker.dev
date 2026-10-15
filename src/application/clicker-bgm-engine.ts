@@ -209,3 +209,14 @@ export function clickerBgmPorts(): ClickerBgmPorts {
 export function resetClickerBgmBindings(): void {
   bgmPortFactory = null
 }
+
+const WORLD_TRAVEL_BGM: BgmTrackId[] = ["relay", "vault", "storm", "fault", "heart"]
+
+/** Pre-decode region themes while the travel UI is open (no-op until BGM ports are bound). */
+export function warmClickerWorldTravelBgm(allowNetwork = true): void {
+  try {
+    clickerBgmPorts().warmTracks(WORLD_TRAVEL_BGM, allowNetwork)
+  } catch {
+    /* SSR or tests before bootstrap */
+  }
+}

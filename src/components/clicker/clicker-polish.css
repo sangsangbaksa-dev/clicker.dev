@@ -2550,7 +2550,26 @@
   background: rgb(255 255 255 / 0.03);
 }
 [data-clicker] .clicker-world-tree-node.is-locked { opacity: 0.5; }
-[data-clicker] .clicker-world-tree-node.is-next { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--core) 50%, transparent); }
+[data-clicker] .clicker-world-tree-node.is-next {
+  animation: clicker-world-tree-next 2.4s ease-in-out infinite;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--core) 50%, transparent);
+}
+@keyframes clicker-world-tree-next {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--core) 45%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--core) 78%, transparent),
+      0 0 14px color-mix(in srgb, var(--core) 22%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-clicker] .clicker-world-tree-node.is-next {
+    animation: none;
+  }
+}
 [data-clicker] .clicker-world-tree-step {
   display: grid;
   place-items: center;

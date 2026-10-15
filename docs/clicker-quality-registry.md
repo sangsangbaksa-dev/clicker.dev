@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-15 (cron)
+Last reviewed: 2026-10-15 (cron pass 2)
 
 ## Now (actionable)
 
@@ -14,6 +14,14 @@ Last reviewed: 2026-10-15 (cron)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-15 pass 2)
+
+| Area | Item |
+|------|------|
+| Design | Shop potion/active-skill buys + potion use → purchase bursts (UTILITY / FEVER icons); world-tree buys → RESONANCE burst with region currency art |
+| Motion | Next world-tree node soft pulse (`is-next`); reduced-motion off only |
+| Audio | World travel tab pre-warms region BGM beds (`relay`–`heart`) to cut first-hop decode hitch |
 
 ## Done (2026-10-15)
 

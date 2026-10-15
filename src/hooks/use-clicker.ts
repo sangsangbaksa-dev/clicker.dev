@@ -362,7 +362,9 @@ export function useClicker() {
     if (!result.ok) return refuse(result.error)
     commit(result.value)
     playSfx("purchase")
-    const name = clickerGameConfig.potions.find((p) => p.id === id)?.name ?? id
+    const def = clickerGameConfig.potions.find((p) => p.id === id)
+    setPurchaseFx({ key: ++fxKey.current, kind: "UTILITY", assetId: def?.assetId })
+    const name = def?.name ?? id
     flash(`구매 · ${name}`)
   }, [commit, flash, refuse])
 
@@ -372,7 +374,9 @@ export function useClicker() {
     if (!result.ok) return refuse(result.error)
     commit(result.value)
     playSfx("purchase")
-    const name = clickerGameConfig.activeSkills.find((s) => s.id === id)?.name ?? id
+    const def = clickerGameConfig.activeSkills.find((s) => s.id === id)
+    setPurchaseFx({ key: ++fxKey.current, kind: "UTILITY", assetId: def?.assetId })
+    const name = def?.name ?? id
     flash(`구매 · ${name}`)
   }, [commit, flash, refuse])
 
@@ -422,7 +426,9 @@ export function useClicker() {
     if (!result.ok) return refuse(result.error)
     commit(result.value)
     playSfx("potion")
-    const name = clickerGameConfig.potions.find((p) => p.id === id)?.name ?? id
+    const def = clickerGameConfig.potions.find((p) => p.id === id)
+    setPurchaseFx({ key: ++fxKey.current, kind: "FEVER", assetId: def?.assetId })
+    const name = def?.name ?? id
     flash(`${name} 사용`)
   }, [commit, flash, refuse])
 
@@ -909,6 +915,11 @@ export function useClicker() {
       commitAndSave(result.value)
       playSfx("worldSkill")
       const node = (clickerGameConfig.worldTrees ?? []).find((n) => n.id === nodeId)
+      setPurchaseFx({
+        key: ++fxKey.current,
+        kind: "RESONANCE",
+        assetId: node ? `/clicker/currency/${node.regionId}.webp` : undefined,
+      })
       flash(`월드 스킬 습득 · ${node?.name ?? nodeId}`)
     },
     [refuse, flash, commitAndSave],
