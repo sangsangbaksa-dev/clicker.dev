@@ -509,6 +509,8 @@ export type RegionIntroDef = {
   still: string
   /** Short clip played when the player leaves the still for the action (hunt or drill). */
   engageVideo?: string
+  /** Poster for engageVideo (defaults to still when omitted). */
+  engagePoster?: string
 }
 
 export type ObjectiveDef = {
