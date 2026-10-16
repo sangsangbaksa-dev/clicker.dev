@@ -2088,6 +2088,29 @@ button.clicker-metric-action.is-fever-ready em {
   border-color: color-mix(in srgb, var(--core) 32%, var(--line));
 }
 
+.clicker-upgrade-card.is-next {
+  animation: clicker-upgrade-next 2.4s ease-in-out infinite;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--core) 50%, transparent);
+}
+
+@keyframes clicker-upgrade-next {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--core) 45%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--core) 78%, transparent),
+      0 0 14px color-mix(in srgb, var(--core) 22%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-upgrade-card.is-next {
+    animation: none;
+  }
+}
+
 .clicker-upgrade-card.is-poor {
   border-color: color-mix(in srgb, var(--warn, #d4a017) 28%, var(--line));
 }
@@ -2168,6 +2191,17 @@ button.clicker-metric-action.is-fever-ready em {
 
 .clicker-producer-card.is-affordable {
   border-color: color-mix(in srgb, var(--core) 35%, var(--line));
+}
+
+.clicker-producer-card.is-next {
+  animation: clicker-upgrade-next 2.4s ease-in-out infinite;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--core) 50%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clicker-producer-card.is-next {
+    animation: none;
+  }
 }
 
 .clicker-producer-card.is-poor {

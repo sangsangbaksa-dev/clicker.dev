@@ -1,13 +1,23 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import type { RunState, UpgradeCategory } from "@/application/clicker-ui"
-import { formatNumber } from "@/application/clicker-ui"
+import { formatNumber, scaledCost } from "@/application/clicker-ui"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 import type { ClickerGame } from "@/hooks/use-clicker"
 
 export function ClickerUpgradesPanel({ game, run }: { game: ClickerGame; run: RunState }) {
   const [upgradeCat, setUpgradeCat] = useState<UpgradeCategory>("CLICK")
+  const nextUpgradeId = useMemo(() => {
+    const buyable = game.upgrades.filter((u) => u.category === upgradeCat && u.status === "AVAILABLE")
+    if (!buyable.length) return null
+    buyable.sort((a, b) => {
+      const ca = game.config.upgrades.find((u) => u.id === a.id)?.cost ?? 0
+      const cb = game.config.upgrades.find((u) => u.id === b.id)?.cost ?? 0
+      return scaledCost(run, ca) - scaledCost(run, cb) || a.id.localeCompare(b.id)
+    })
+    return buyable[0]!.id
+  }, [game.upgrades, game.config.upgrades, upgradeCat, run])
   return (
     <div className="clicker-upgrades">
       {/* Region wallets: each world mints its own currency while you stand in it. */}
@@ -91,7 +101,7 @@ export function ClickerUpgradesPanel({ game, run }: { game: ClickerGame; run: Ru
           return (
             <article
               key={u.id}
-              className={`clicker-card clicker-upgrade-card ${statusClass}`}
+              className={`clicker-card clicker-upgrade-card ${statusClass}${u.id === nextUpgradeId ? " is-next" : ""}`}
             >
               {u.assetId ? <img className="clicker-upgrade-icon clicker-zoomable" src={u.assetId} alt="" loading="lazy" /> : null}
               <div className="clicker-upgrade-body">

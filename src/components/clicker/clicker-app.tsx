@@ -71,7 +71,7 @@ import { ClickerHpBar } from "@/components/clicker/clicker-hpbar"
 import { useClickerAccount } from "@/hooks/use-clicker-account"
 import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
-import { warmClickerMineBgm, warmClickerWorldTravelBgm } from "@/application/clicker-bgm-engine"
+import { warmClickerBossBgm, warmClickerMineBgm, warmClickerWorldTravelBgm } from "@/application/clicker-bgm-engine"
 import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
 import { getFloats, getServerFloats, subscribeFloats } from "@/lib/clicker-floats"
 import { ClickerCountdown } from "./clicker-countdown"
@@ -298,6 +298,12 @@ export function ClickerApp() {
     if (tab !== "world") return
     warmClickerWorldTravelBgm(true)
   }, [tab])
+
+  const inBossScene = Boolean(game.save?.runState.boss || game.save?.runState.lair)
+  useEffect(() => {
+    if (!inBossScene) return
+    warmClickerBossBgm(true)
+  }, [inBossScene])
 
   // Every button press clicks. Mining targets have their own laser / vein sounds.
   useEffect(() => {

@@ -310,6 +310,7 @@ export function useClicker() {
       .map((id) => clickerGameConfig.achievements.find((a) => a.id === id)?.name ?? id)
       .join(" · ")
     playSfx("achievement")
+    setPurchaseFx({ key: ++fxKey.current, kind: "PRODUCTION" })
     flash(`업적 달성 · ${names} (생산 +${fresh.length}%)`)
   }, [achievementIds, flash])
 
@@ -437,6 +438,7 @@ export function useClicker() {
     const result = clickerStartGaugeFever(saveRef.current)
     if (!result.ok) return refuse(result.error)
     commit(result.value)
+    setPurchaseFx({ key: ++fxKey.current, kind: "FEVER" })
     flash("FEVER 시작")
   }, [commit, flash, refuse])
 
@@ -517,6 +519,11 @@ export function useClicker() {
     if (!result.ok) return refuse(result.error)
     commit(result.value)
     playSfx("skillUse")
+    setPurchaseFx({
+      key: ++fxKey.current,
+      kind: "RESONANCE",
+      assetId: `/clicker/currency/${regionId}.webp`,
+    })
     flash(`${region?.activity?.name ?? "지역 활동"} 발동`)
   }, [commit, flash, refuse])
 
@@ -792,6 +799,7 @@ export function useClicker() {
     if (!result.ok) return refuse(result.error)
     commit(result.value)
     playSfx("drill")
+    setPurchaseFx({ key: ++fxKey.current, kind: "FEVER" })
     flash("드릴 과부하 · 30초간 자동 채굴 ×3")
   }, [commit, flash, refuse])
 
@@ -865,8 +873,9 @@ export function useClicker() {
       pushFloat({ text, critical: big, x: clientX, y: clientY }, big ? 1100 : 600)
       if (procs.quake) playSfx("quake")
       else if (procs.weakSpot) playSfx("lightning")
+      else if (!result.defeated) playSfx("bossHit")
       if (result.defeated) {
-        playSfx("monsterDie")
+        playSfx("bossDeath")
         persistNow(result.save)
       }
       return result.defeated ? result.reward : null

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { bulkAffordable, bulkCostText } from "@/application/clicker-ui"
 import type { PanelProps } from "@/hooks/use-clicker"
 
@@ -11,6 +11,11 @@ export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automatio
   const firstLocked = game.producers.findIndex((p) => !p.unlocked)
   const visible = showLocked || firstLocked < 0 ? game.producers : game.producers.slice(0, firstLocked + 1)
   const hidden = game.producers.length - visible.length
+  const nextProducerId = useMemo(() => {
+    const buyable = game.producers.filter((p) => p.unlocked && p.canBuy)
+    if (!buyable.length) return null
+    return buyable[0]!.id
+  }, [game.producers])
   return (
     <div className="clicker-producers">
       {visible.map((p) => {
@@ -21,7 +26,7 @@ export function ClickerProducersPanel({ game, run, popIcons, bumpIcon, automatio
         return (
           <article
             key={p.id}
-            className={`clicker-card clicker-producer-card ${statusClass}${p.level > 0 ? " is-live" : ""}${p.level > 0 && automationBuff ? " is-dense" : ""}${selected ? " is-selected" : ""}${(popIcons[p.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
+            className={`clicker-card clicker-producer-card ${statusClass}${p.id === nextProducerId ? " is-next" : ""}${p.level > 0 ? " is-live" : ""}${p.level > 0 && automationBuff ? " is-dense" : ""}${selected ? " is-selected" : ""}${(popIcons[p.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
             aria-current={selected ? "true" : undefined}
             onClick={() => setSelectedProducerId(p.id)}
           >
