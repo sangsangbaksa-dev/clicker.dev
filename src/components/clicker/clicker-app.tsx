@@ -71,7 +71,7 @@ import { ClickerHpBar } from "@/components/clicker/clicker-hpbar"
 import { useClickerAccount } from "@/hooks/use-clicker-account"
 import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
-import { warmClickerWorldTravelBgm } from "@/application/clicker-bgm-engine"
+import { warmClickerMineBgm, warmClickerWorldTravelBgm } from "@/application/clicker-bgm-engine"
 import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
 import { getFloats, getServerFloats, subscribeFloats } from "@/lib/clicker-floats"
 import { ClickerCountdown } from "./clicker-countdown"
@@ -1056,6 +1056,7 @@ export function ClickerApp() {
   const beginEnterMine = () => {
     setScreenTab("mine")
     warmMineSessionArt()
+    warmClickerMineBgm(true)
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     // Refused entries (cooldown / cost) skip the cinematic; enterMine shows the reason.
     if (reduced || game.mineEntryError()) {

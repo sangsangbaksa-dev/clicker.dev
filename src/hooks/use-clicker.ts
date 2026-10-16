@@ -469,6 +469,7 @@ export function useClicker() {
     const label =
       choice === "STABILIZE" ? "안정화" : choice === "RISK_IT" ? "위험 감수" : "비상 오버클럭"
     playSfx("crisisResolve")
+    setPurchaseFx({ key: ++fxKey.current, kind: "FOCUS" })
     flash(`위기 해소 · ${label}`)
   }, [commit, flash])
 
@@ -501,6 +502,11 @@ export function useClicker() {
     if (!result.ok) return refuse(result.error)
     commitAndSave(result.value.save)
     playSfx("achievement")
+    setPurchaseFx({
+      key: ++fxKey.current,
+      kind: "RESONANCE",
+      assetId: `/clicker/currency/${regionId}.webp`,
+    })
     flash(`도전 완료 · 성공률 ${Math.round(score * 100)}% · +${formatNumber(result.value.reward)} CORE`)
   }, [flash, refuse, commitAndSave])
 

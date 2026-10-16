@@ -114,7 +114,7 @@ export function bgmTracksToWarm(scene: BgmScene): BgmTrackId[] {
 
 /**
  * Cinematics and the boot screen silence the score; rebirth plays the chamber cue and the
- * ending story its own major-key anthem; boss fights keep the world theme.
+ * ending story its own major-key anthem; core guardian fights crossfade to the boss loop.
  */
 export function resolveBgmScene(overlay: BgmOverlayState): BgmScene {
   if (overlay.enteringMine || overlay.regionIntro || overlay.endingPhase) return "silent"
@@ -122,5 +122,6 @@ export function resolveBgmScene(overlay: BgmOverlayState): BgmScene {
   if (overlay.endingOpen) return "ending"
   if (overlay.pendingRebirth) return "chamber"
   if (overlay.playSurface === "mine") return "mine"
+  if (overlay.bossFight) return "boss"
   return worldBgmTrack(overlay.currentRegionId)
 }

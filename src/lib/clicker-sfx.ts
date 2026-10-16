@@ -723,6 +723,7 @@ const SFX_SAMPLE: Partial<Record<SfxName, string>> = {
   bossDown: "/clicker/audio/sfx_boss_defeat_v1.mp3",
   veinSpawn: "/clicker/audio/sfx_worldline_hover_v2.mp3",
   vein: "/clicker/audio/sfx_ui_purchase_v2.mp3",
+  crisisResolve: "/clicker/audio/sfx_skill_overdrive_v3.mp3",
 }
 
 const LASER_HIT_SAMPLE = {

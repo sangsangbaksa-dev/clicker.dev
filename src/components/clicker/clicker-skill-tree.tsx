@@ -56,6 +56,13 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
     [layout, nodes],
   )
   const byId = useMemo(() => new Map(treeNodes.map((n) => [n.id, n])), [treeNodes])
+  /** One soft pulse — cheapest buyable circuit so the next unlock is obvious (like world-tree `is-next`). */
+  const nextBuyId = useMemo(() => {
+    const buyable = treeNodes.filter((n) => n.canBuy)
+    if (!buyable.length) return null
+    buyable.sort((a, b) => a.tier - b.tier || a.cost - b.cost || a.id.localeCompare(b.id))
+    return buyable[0]!.id
+  }, [treeNodes])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selected = (selectedId && byId.get(selectedId)) || null
 
@@ -205,7 +212,7 @@ export function ClickerSkillTree({ nodes, coreEnergy, onBuy, onClose }: Props) {
             <button
               key={node.id}
               type="button"
-              className={`clicker-skillmap-node is-${node.status.toLowerCase()}${selectedId === node.id ? " is-selected" : ""}${node.tier >= 5 ? " is-apex" : ""}${node.id === layout.centerId ? " is-final" : ""}`}
+              className={`clicker-skillmap-node is-${node.status.toLowerCase()}${node.id === nextBuyId ? " is-next" : ""}${selectedId === node.id ? " is-selected" : ""}${node.tier >= 5 ? " is-apex" : ""}${node.id === layout.centerId ? " is-final" : ""}`}
               style={{ left: (node.col + 0.5) * CELL, top: (node.row + 0.5) * CELL, "--branch-color": SKILL_BRANCH_COLOR[node.branch] } as CSSProperties}
               aria-label={`${node.name} · ${statusLabel(node.status)} · ${formatNumber(node.cost)} CORE`}
               onClick={() => {

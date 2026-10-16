@@ -211,11 +211,21 @@ export function resetClickerBgmBindings(): void {
 }
 
 const WORLD_TRAVEL_BGM: BgmTrackId[] = ["relay", "vault", "storm", "fault", "heart"]
+const MINE_SESSION_BGM: BgmTrackId[] = ["mine"]
 
 /** Pre-decode region themes while the travel UI is open (no-op until BGM ports are bound). */
 export function warmClickerWorldTravelBgm(allowNetwork = true): void {
   try {
     clickerBgmPorts().warmTracks(WORLD_TRAVEL_BGM, allowNetwork)
+  } catch {
+    /* SSR or tests before bootstrap */
+  }
+}
+
+/** Pre-decode the mine loop during door-walk / enter flow so the session bed does not hitch. */
+export function warmClickerMineBgm(allowNetwork = true): void {
+  try {
+    clickerBgmPorts().warmTracks(MINE_SESSION_BGM, allowNetwork)
   } catch {
     /* SSR or tests before bootstrap */
   }

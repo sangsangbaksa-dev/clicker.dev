@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-15 (cron pass 2)
+Last reviewed: 2026-10-16 (cron)
 
 ## Now (actionable)
 
@@ -14,6 +14,17 @@ Last reviewed: 2026-10-15 (cron pass 2)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-16)
+
+| Area | Item |
+|------|------|
+| BGM | Core guardian fight → `bgm_boss_loop_v1` via `resolveBgmScene` (`bossFight`) |
+| BGM | Mine enter pre-warms `bgm_mine_loop_v2` alongside session art (`warmClickerMineBgm`) |
+| Design | Region field challenge claim → RESONANCE purchase burst + region currency art |
+| Design | Crisis choice resolve → FOCUS purchase burst |
+| Motion | Skill circuit map: next affordable node soft pulse (`is-next`, reduced-motion safe) |
+| Audio | `crisisResolve` prefers `sfx_skill_overdrive_v3.mp3` |
 
 ## Done (2026-10-15 pass 2)
 

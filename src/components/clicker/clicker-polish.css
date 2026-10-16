@@ -1347,6 +1347,25 @@
 [data-clicker] .clicker-skillmap-node.is-available {
   box-shadow: 0 0 14px color-mix(in srgb, var(--branch-color) 70%, transparent);
 }
+[data-clicker] .clicker-skillmap-node.is-next {
+  animation: clicker-skillmap-next 2.4s ease-in-out infinite;
+}
+@keyframes clicker-skillmap-next {
+  0%,
+  100% {
+    box-shadow: 0 0 12px color-mix(in srgb, var(--branch-color) 55%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 18px color-mix(in srgb, var(--branch-color) 88%, transparent),
+      0 0 22px color-mix(in srgb, var(--branch-color) 35%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-clicker] .clicker-skillmap-node.is-next {
+    animation: none;
+  }
+}
 [data-clicker] .clicker-skillmap-node.is-owned {
   border-color: #ffe08a;
   box-shadow: 0 0 10px rgb(255 224 138 / 0.5);
