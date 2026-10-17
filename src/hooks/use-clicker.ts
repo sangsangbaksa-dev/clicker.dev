@@ -462,6 +462,15 @@ export function useClicker() {
                 ? "skillLaser"
                 : "skillPower",
     )
+    const burstKind =
+      skill?.lightningStorm || skill?.clickMultiplier || skill?.clickBurst || skill?.criticalChanceAdd
+        ? "FOCUS"
+        : skill?.feverIgnite
+          ? "FEVER"
+          : skill?.productionMultiplier
+            ? "PRODUCTION"
+            : "UTILITY"
+    setPurchaseFx({ key: ++fxKey.current, kind: burstKind, assetId: skill?.assetId })
     flash(`${skill?.name ?? id} 발동`)
   }, [commit, flash, refuse])
 
@@ -948,7 +957,12 @@ export function useClicker() {
       if (!result.ok) return refuse(result.error)
       commitAndSave(result.value)
       playSfx("purchase")
-      setPurchaseFx({ key: ++fxKey.current, kind: "UTILITY" })
+      const offer = CLICKER_EXCHANGE_OFFERS.find((o) => o.id === offerId)
+      setPurchaseFx({
+        key: ++fxKey.current,
+        kind: "RESONANCE",
+        assetId: offer ? `/clicker/currency/${offer.regionId}.webp` : undefined,
+      })
       flash(`교환 완료 · ${offerName}`)
     },
     [refuse, flash, commitAndSave],

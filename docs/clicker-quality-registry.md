@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-16 (cron pass 2)
+Last reviewed: 2026-10-17 (cron)
 
 ## Now (actionable)
 
@@ -14,6 +14,15 @@ Last reviewed: 2026-10-16 (cron pass 2)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-17)
+
+| Area | Item |
+|------|------|
+| BGM | Region lair fights crossfade to `bgm_boss_loop_v1` (overlay `bossFight` includes `lair`) |
+| BGM | Transcendence tab pre-warms rebirth intro + HQ loop (`warmClickerRebirthBgm`) |
+| Design | Active skill casts → purchase burst by role (FOCUS/FEVER/PRODUCTION) + skill icon |
+| Design | Exchange buys → RESONANCE burst + region currency icon; next affordable offer `is-next` pulse |
 
 ## Done (2026-10-16 pass 2)
 

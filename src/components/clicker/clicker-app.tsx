@@ -71,7 +71,12 @@ import { ClickerHpBar } from "@/components/clicker/clicker-hpbar"
 import { useClickerAccount } from "@/hooks/use-clicker-account"
 import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
-import { warmClickerBossBgm, warmClickerMineBgm, warmClickerWorldTravelBgm } from "@/application/clicker-bgm-engine"
+import {
+  warmClickerBossBgm,
+  warmClickerMineBgm,
+  warmClickerRebirthBgm,
+  warmClickerWorldTravelBgm,
+} from "@/application/clicker-bgm-engine"
 import { playLaser, playSfx, unlockSfx } from "@/lib/clicker-sfx"
 import { getFloats, getServerFloats, subscribeFloats } from "@/lib/clicker-floats"
 import { ClickerCountdown } from "./clicker-countdown"
@@ -299,6 +304,12 @@ export function ClickerApp() {
     warmClickerWorldTravelBgm(true)
   }, [tab])
 
+  // Pre-decode rebirth ceremony beds while the transcendence panel is open.
+  useEffect(() => {
+    if (tab !== "transcendence") return
+    warmClickerRebirthBgm(true)
+  }, [tab])
+
   const inBossScene = Boolean(game.save?.runState.boss || game.save?.runState.lair)
   useEffect(() => {
     if (!inBossScene) return
@@ -403,7 +414,7 @@ export function ClickerApp() {
       endingOpen,
       playSurface: game.save?.settings.playSurface ?? "hub",
       currentRegionId: game.save?.runState.currentRegionId,
-      bossFight: Boolean(game.save?.runState.boss),
+      bossFight: Boolean(game.save?.runState.boss || game.save?.runState.lair),
     }),
     muted: bgm.muted,
     volume: bgm.volume,

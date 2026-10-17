@@ -1,12 +1,14 @@
 "use client"
 
 import { formatNumber } from "@/application/clicker-ui"
+import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
 import type { ClickerGame } from "@/hooks/use-clicker"
 
 /** 세계선 교환소: spare world currency → items, weekly limit. */
 export function ClickerExchange({ game, now }: { game: ClickerGame; now: number }) {
   const offers = game.exchangeOffers(now)
   if (offers.length === 0) return null
+  const nextOfferId = offers.find((o) => !o.error)?.id
   return (
     <section className="clicker-forge clicker-exchange" aria-labelledby="clicker-exchange-title">
       <h3 id="clicker-exchange-title" className="clicker-world-title">세계선 교환소</h3>
@@ -17,17 +19,22 @@ export function ClickerExchange({ game, now }: { game: ClickerGame; now: number 
           const currency = region?.currency?.name ?? "월드 화폐"
           const label = `${o.name} 교환하기 — ${currency} ${formatNumber(o.cost)}, 이번 주 ${o.remaining}회 남음`
           return (
-            <li key={o.id} className="clicker-forge-slot">
+            <li
+              key={o.id}
+              className={`clicker-forge-slot clicker-exchange-offer${o.id === nextOfferId ? " is-next" : ""}`}
+            >
               <p className="clicker-forge-label">
                 {o.name} <small>이번 주 {o.remaining}/{o.weeklyLimit}</small>
               </p>
               <p className="clicker-relic-lore">{o.description}</p>
               <p className="clicker-forge-cost">
-                {currency} {formatNumber(o.cost)}
+                <span className={o.error?.includes("부족") ? "is-short" : ""}>
+                  <CurrencyIcon regionId={o.regionId} /> {formatNumber(o.cost)} {currency}
+                </span>
               </p>
               <button
                 type="button"
-                className="clicker-primary"
+                className={`clicker-primary${o.error ? " is-unaffordable" : " is-affordable"}`}
                 disabled={Boolean(o.error)}
                 aria-disabled={Boolean(o.error)}
                 aria-label={o.error ? `${label} (${o.error})` : label}

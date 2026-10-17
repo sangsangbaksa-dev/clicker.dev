@@ -93,7 +93,7 @@ export type BgmOverlayState = {
   endingOpen: boolean
   playSurface: "hub" | "mine" | string
   currentRegionId: string | undefined
-  /** Core guardian (or other region boss) fight in progress. */
+  /** Core Heart guardian or a region lair boss fight in progress. */
   bossFight?: boolean
 }
 
