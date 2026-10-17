@@ -47,8 +47,9 @@ export function ClickerRelicVault({ game, run, meta }: { game: ClickerGame; run:
           const error = relicError(run, meta, game.config, relic.id)
           const region = game.config.regions.find((r) => r.id === relic.regionId)
           const cost = relicCost(meta, game.config, relic)
+          const canUpgrade = !maxed && !error
           return (
-            <article key={relic.id} className={`clicker-forge-slot clicker-relic${maxed ? " is-maxed" : ""}`}>
+            <article key={relic.id} className={`clicker-forge-slot clicker-relic${maxed ? " is-maxed" : ""}${canUpgrade ? " is-next" : ""}`}>
               <p className="clicker-forge-label">
                 {relic.name} <small>Lv.{level}/{relic.maxLevel}</small>
               </p>
@@ -65,7 +66,7 @@ export function ClickerRelicVault({ game, run, meta }: { game: ClickerGame; run:
                     <span className="clicker-forge-arrow" aria-hidden>
                       →
                     </span>
-                    <figure className="clicker-forge-item is-next">
+                    <figure className={`clicker-forge-item${canUpgrade ? " is-next" : ""}`}>
                       <figcaption>
                         <b>Lv.{level + 1}</b>
                         <span>{relicEffectText(relic, level + 1)}</span>

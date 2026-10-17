@@ -112,8 +112,9 @@ function ForgeSlot({
   const current = list[index]
   const next: GearTier | undefined = list[index + 1]
   const odds = forgeOdds(run, slot)
+  const canForge = Boolean(next && !error)
   return (
-    <article className="clicker-forge-slot">
+    <article className={`clicker-forge-slot${canForge ? " is-next" : ""}`}>
       <p className="clicker-forge-label">
         {SLOT_LABEL[slot]} <small>{index + 1}/{list.length}</small>
       </p>

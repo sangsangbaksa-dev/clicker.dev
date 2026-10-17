@@ -1,8 +1,16 @@
 "use client"
 
+import { useMemo } from "react"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
-import type { CurrencyCostView } from "@/application/clicker-ui"
+import { scaledCost, type CurrencyCostView } from "@/application/clicker-ui"
 import type { PanelProps } from "@/hooks/use-clicker"
+
+function shopItemCoreCost(game: PanelProps["game"], run: PanelProps["run"], id: string): number {
+  const potion = game.config.potions.find((p) => p.id === id)
+  if (potion) return scaledCost(run, potion.shopCost)
+  const skill = game.config.activeSkills.find((s) => s.id === id)
+  return skill ? scaledCost(run, skill.shopCost) : Number.POSITIVE_INFINITY
+}
 
 function CurrencyCosts({ costs }: { costs: CurrencyCostView[] }) {
   return costs.map((c) => (
@@ -13,6 +21,17 @@ function CurrencyCosts({ costs }: { costs: CurrencyCostView[] }) {
 }
 
 export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) {
+  const nextShopId = useMemo(() => {
+    const buyable = [
+      ...game.potionShop.filter((i) => i.canBuy),
+      ...game.activeSkillShop.filter((i) => i.canBuy),
+    ]
+    if (!buyable.length) return null
+    buyable.sort(
+      (a, b) => shopItemCoreCost(game, run, a.id) - shopItemCoreCost(game, run, b.id) || a.id.localeCompare(b.id),
+    )
+    return buyable[0]!.id
+  }, [game.potionShop, game.activeSkillShop, game.config.potions, game.config.activeSkills, run])
   return (
     <div className="clicker-shop">
       <h3 className="clicker-shop-section">물약 · FEVER</h3>
@@ -22,7 +41,7 @@ export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) 
         return (
           <article
             key={item.id}
-            className={`clicker-card clicker-shop-card ${statusClass}${item.owned > 0 ? " is-stocked" : ""}${(popIcons[item.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
+            className={`clicker-card clicker-shop-card ${statusClass}${item.id === nextShopId ? " is-next" : ""}${item.owned > 0 ? " is-stocked" : ""}${(popIcons[item.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
           >
             <img className="clicker-zoomable" src={item.assetId} alt="" />
             <div className="clicker-shop-body">
@@ -69,7 +88,7 @@ export function ClickerShopPanel({ game, run, popIcons, bumpIcon }: PanelProps) 
         return (
           <article
             key={item.id}
-            className={`clicker-card clicker-shop-card ${statusClass}${item.owned > 0 ? " is-stocked" : ""}${(popIcons[item.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
+            className={`clicker-card clicker-shop-card ${statusClass}${item.id === nextShopId ? " is-next" : ""}${item.owned > 0 ? " is-stocked" : ""}${(popIcons[item.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
           >
             <img className="clicker-zoomable" src={item.assetId} alt="" />
             <div className="clicker-shop-body">

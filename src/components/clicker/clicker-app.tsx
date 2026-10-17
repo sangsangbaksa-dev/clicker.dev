@@ -316,6 +316,12 @@ export function ClickerApp() {
     warmClickerBossBgm(true)
   }, [inBossScene])
 
+  // Forge panel is where players tune hunt gear before lair fights — decode boss bed early.
+  useEffect(() => {
+    if (tab !== "forge") return
+    warmClickerBossBgm(true)
+  }, [tab])
+
   // Every button press clicks. Mining targets have their own laser / vein sounds.
   useEffect(() => {
     const onClick = (e: MouseEvent) => {

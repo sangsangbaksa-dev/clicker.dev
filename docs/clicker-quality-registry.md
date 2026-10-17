@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-17 (cron)
+Last reviewed: 2026-10-17 (cron pass 2)
 
 ## Now (actionable)
 
@@ -14,6 +14,14 @@ Last reviewed: 2026-10-17 (cron)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-17 pass 2)
+
+| Area | Item |
+|------|------|
+| Design | Shop: cheapest buyable potion/skill row soft pulse (`is-next`) |
+| Design | Forge + relic vault: affordable slot pulse; relic preview no longer glows when broke |
+| BGM | Forge tab pre-warms `bgm_boss_loop_v1` before first lair fight |
 
 ## Done (2026-10-17)
 
