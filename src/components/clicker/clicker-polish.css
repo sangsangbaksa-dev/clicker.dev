@@ -1712,6 +1712,15 @@
 
 /* ---------- Lair battle HUD & forge ---------- */
 [data-clicker] .clicker-lair-enter { min-width: 240px; font-size: 15px; }
+[data-clicker] .clicker-lair-enter.is-next:not(:disabled) {
+  animation: clicker-world-tree-next 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-clicker] .clicker-lair-enter.is-next:not(:disabled) {
+    animation: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--core) 55%, transparent);
+  }
+}
 [data-clicker] .clicker-lair-player { width: min(320px, 90%); margin: 0 auto; display: grid; gap: 4px; }
 [data-clicker] .clicker-lair-player-label { font-size: 13px; color: #ffe3e0; text-align: center; }
 [data-clicker] .clicker-lair-player-label b { font-size: 16px; color: #fff; }

@@ -678,6 +678,17 @@ export function ClickerApp() {
   const [engagedRegion, setEngagedRegion] = useState<string | null>(null)
   /** Region whose entry clip (still → hunt / drill) is playing. */
   const [engagingRegion, setEngagingRegion] = useState<string | null>(null)
+
+  const playSurfaceForBgm = game.save?.settings.playSurface ?? "hub"
+  // Hunt regions: decode the boss loop while the lair entry HUD is open (before enterLair crossfade).
+  useEffect(() => {
+    if (playSurfaceForBgm === "mine") return
+    const run = game.save?.runState
+    if (!run || engagedRegion !== run.currentRegionId || run.lair) return
+    const region = game.config.regions.find((r) => r.id === run.currentRegionId)
+    if (!region?.huntMode || region.boss) return
+    warmClickerBossBgm(true)
+  }, [playSurfaceForBgm, game.save?.runState, engagedRegion, game.config.regions])
   const [arrivedRegion, setArrivedRegion] = useState<string | null>(null)
   /** Cast a skill with its full-screen nova (button or number-key hotkey). */
   const castSkill = (id: string) => {
@@ -1705,7 +1716,7 @@ export function ClickerApp() {
                     : null}
                   <button
                     type="button"
-                    className="clicker-primary clicker-lair-enter"
+                    className={`clicker-primary clicker-lair-enter${monsterIsAlive && shieldMs <= 0 ? " is-next" : ""}`}
                     disabled={!monsterIsAlive || shieldMs > 0}
                     onClick={game.enterLair}
                   >

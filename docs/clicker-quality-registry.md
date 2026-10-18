@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-17 (cron pass 2)
+Last reviewed: 2026-10-18 (cron)
 
 ## Now (actionable)
 
@@ -14,6 +14,15 @@ Last reviewed: 2026-10-17 (cron pass 2)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-18)
+
+| Area | Item |
+|------|------|
+| Design | Forge next-tier preview glow only when the slot is actually forgeable (matches relic vault) |
+| Design | Hunt lair entry button soft pulse when the boss is ready (`is-next`) |
+| BGM | Boss loop pre-warm while hunt-region entry HUD is open (before `enterLair`) |
+| Design | Golden vein claim → purchase burst (PRODUCTION / FEVER by outcome); field monster slay → HUNT burst + region currency icon |
 
 ## Done (2026-10-17 pass 2)
 

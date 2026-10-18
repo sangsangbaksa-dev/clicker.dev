@@ -789,6 +789,10 @@ export function useClicker() {
             ? `레이저 폭주 · 채굴 ×${outcome.multiplier} ${outcome.seconds}초`
             : `대박 · +${formatNumber(outcome.energy)} CORE`
       playSfx("vein")
+      setPurchaseFx({
+        key: ++fxKey.current,
+        kind: outcome.kind === "surge" || outcome.kind === "laser_rush" ? "FEVER" : "PRODUCTION",
+      })
       flash(`황금 광맥! ${label}`)
       pushFloat({ text: label, critical: true, x: clientX, y: clientY }, 1200)
       return label
@@ -842,6 +846,11 @@ export function useClicker() {
       if (!result.ok) return 0
       commit(result.value.save)
       playSfx("monsterDie")
+      setPurchaseFx({
+        key: ++fxKey.current,
+        kind: "HUNT",
+        assetId: `/clicker/currency/${regionId}.webp`,
+      })
       pushFloat({ text: `+${formatNumber(result.value.reward)}`, critical: true, x: clientX, y: clientY }, 1000)
       return result.value.reward
     },

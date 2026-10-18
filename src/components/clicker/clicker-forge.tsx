@@ -131,7 +131,7 @@ function ForgeSlot({
             <span className="clicker-forge-arrow" aria-hidden>
               →
             </span>
-            <figure className="clicker-forge-item is-next">
+            <figure className={`clicker-forge-item${canForge ? " is-next" : ""}`}>
               <img className="clicker-zoomable" src={gearImage(next)} alt="" />
               <figcaption>
                 <b>{next.name}</b>
