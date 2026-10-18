@@ -552,6 +552,8 @@ export function useClicker() {
     const result = clickerRebirth(saveRef.current, buffId, now())
     if (!result.ok) return refuse(result.error)
     commit(result.value)
+    const def = clickerGameConfig.transcendence.find((t) => t.id === buffId)
+    setPurchaseFx({ key: ++fxKey.current, kind: "TRANSCENDENCE", assetId: def?.assetId })
     flash("WORLD LINE이 열렸습니다.")
   }, [commit, flash, refuse])
 
@@ -894,6 +896,12 @@ export function useClicker() {
       else if (!result.defeated) playSfx("bossHit")
       if (result.defeated) {
         playSfx("bossDeath")
+        const regionId = result.save.runState.currentRegionId
+        setPurchaseFx({
+          key: ++fxKey.current,
+          kind: "HUNT",
+          assetId: `/clicker/currency/${regionId}.webp`,
+        })
         persistNow(result.save)
       }
       return result.defeated ? result.reward : null
@@ -988,6 +996,7 @@ export function useClicker() {
       commit(result.value.save)
       if (result.value.reward > 0) {
         playSfx("vein")
+        setPurchaseFx({ key: ++fxKey.current, kind: "PRODUCTION" })
         pushFloat({ text: `+${formatNumber(result.value.reward)}`, critical: true, x: clientX, y: clientY }, 1200)
       }
       return result.value.reward
@@ -1014,10 +1023,14 @@ export function useClicker() {
       if (before && after) {
         for (const _ of bossHpPhasesCrossed(before.hp, after.hp, before.maxHp)) playSfx("bossPhase")
       }
-      playSfx("bossHit")
+      if (result.defeated) playSfx("bossDeath")
+      else playSfx("bossHit")
       commit(result.save)
       pushFloat({ text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }, 700)
-      if (result.defeated) persistNow(result.save)
+      if (result.defeated) {
+        setPurchaseFx({ key: ++fxKey.current, kind: "TRANSCENDENCE" })
+        persistNow(result.save)
+      }
       return result.defeated
     },
     [commit, persistNow],

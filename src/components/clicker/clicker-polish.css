@@ -2609,6 +2609,27 @@
     animation: none;
   }
 }
+
+[data-clicker] .clicker-metric-worldline.is-next:not(.is-active),
+[data-clicker] .clicker-boss-start.is-next,
+[data-clicker] .clicker-wl-card.is-next:not(.is-walked) {
+  animation: clicker-world-tree-next 2.4s ease-in-out infinite;
+}
+[data-clicker] .clicker-mine-fever.is-ready.is-next:not(:disabled),
+[data-clicker] .clicker-mine-overdrive.is-next:not(:disabled):not(.is-active) {
+  animation: clicker-world-tree-next 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-clicker] .clicker-metric-worldline.is-next:not(.is-active),
+  [data-clicker] .clicker-boss-start.is-next,
+  [data-clicker] .clicker-wl-card.is-next:not(.is-walked),
+  [data-clicker] .clicker-mine-fever.is-ready.is-next:not(:disabled),
+  [data-clicker] .clicker-mine-overdrive.is-next:not(:disabled):not(.is-active) {
+    animation: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--core) 55%, transparent);
+  }
+}
+
 [data-clicker] .clicker-world-tree-step {
   display: grid;
   place-items: center;

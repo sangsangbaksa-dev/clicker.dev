@@ -36,6 +36,7 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, locke
   const [confirming, setConfirming] = useState<TranscendenceDef | null>(null)
   const owned = useMemo(() => new Set(ownedIds), [ownedIds])
   const ordered = useMemo(() => [...buffs].sort((a, b) => Number(owned.has(a.id)) - Number(owned.has(b.id))), [buffs, owned])
+  const nextWorldlineId = useMemo(() => ordered.find((b) => !owned.has(b.id))?.id, [ordered, owned])
 
   // Warm motion plates even in locked preview so stamps and ceremony art never flash placeholders.
   useEffect(() => {
@@ -52,7 +53,7 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, locke
           return (
             <li
               key={buff.id}
-              className={`clicker-wl-card${walked ? " is-walked" : ""}${(popIcons[buff.id] ?? 0) > 0 ? " is-pop-icon" : ""}${hasChrome ? " has-chrome-sheet" : ""}`}
+              className={`clicker-wl-card${walked ? " is-walked" : ""}${!locked && buff.id === nextWorldlineId ? " is-next" : ""}${(popIcons[buff.id] ?? 0) > 0 ? " is-pop-icon" : ""}${hasChrome ? " has-chrome-sheet" : ""}`}
               style={
                 chromePos
                   ? ({ ...tint(buff), "--wl-chrome-pos": chromePos } as CSSProperties)

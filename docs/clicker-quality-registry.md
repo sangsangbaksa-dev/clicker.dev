@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-18 (cron)
+Last reviewed: 2026-10-18 (cron pass 2)
 
 ## Now (actionable)
 
@@ -14,6 +14,15 @@ Last reviewed: 2026-10-18 (cron)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-18 pass 2)
+
+| Area | Item |
+|------|------|
+| Audio | Core guardian killing blow → `bossDeath` (was `bossHit` on final strike) |
+| Design | Guardian / lair boss defeat → purchase burst (TRANSCENDENCE / HUNT + region currency icon) |
+| Design | Region drill vein payout → PRODUCTION burst; rebirth commit → TRANSCENDENCE burst + stamp art |
+| Motion | `is-next` pulse: WORLD LINE ready metric, guardian challenge, mine FEVER + drill overdrive ready, first open worldline card |
 
 ## Done (2026-10-18)
 

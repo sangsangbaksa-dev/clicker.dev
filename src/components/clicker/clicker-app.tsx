@@ -1152,7 +1152,7 @@ export function ClickerApp() {
         {hud.fever.ready && !hud.fever.active && !hud.crisisActive ? (
           <button
             type="button"
-            className="clicker-metric clicker-metric-action is-fever-ready"
+            className="clicker-metric clicker-metric-action is-fever-ready is-next"
             aria-label="게이지 FEVER 준비됨 — 탭하여 시작"
             title="게이지 FEVER · 탭하여 시작"
             onClick={() => {
@@ -1204,7 +1204,7 @@ export function ClickerApp() {
           showTranscendenceTab ? (
             <button
               type="button"
-              className={`clicker-metric clicker-metric-action clicker-metric-worldline${tab === "transcendence" ? " is-active" : ""}`}
+              className={`clicker-metric clicker-metric-action clicker-metric-worldline${tab === "transcendence" ? " is-active" : ""}${transcendenceUnlocked && tab !== "transcendence" ? " is-next" : ""}`}
               aria-label="TRANSCENDENCE 열기"
               onClick={() => selectTab("transcendence")}
             >
@@ -1457,7 +1457,7 @@ export function ClickerApp() {
                 </div>
                 <button
                   type="button"
-                  className={`clicker-mine-hud-stat clicker-mine-fever${hud.fever.active ? " is-active" : ""}${hud.fever.ready && !hud.fever.active ? " is-ready" : ""}`}
+                  className={`clicker-mine-hud-stat clicker-mine-fever${hud.fever.active ? " is-active" : ""}${hud.fever.ready && !hud.fever.active ? " is-ready is-next" : ""}`}
                   disabled={!hud.fever.ready || hud.fever.active || hud.crisisActive}
                   aria-label={
                     hud.fever.active
@@ -1490,7 +1490,7 @@ export function ClickerApp() {
                 {game.drill?.owned ? (
                   <button
                     type="button"
-                    className={`clicker-mine-overdrive${game.drill.overdriveLeftMs > 0 ? " is-active" : ""}`}
+                    className={`clicker-mine-overdrive${game.drill.overdriveLeftMs > 0 ? " is-active" : ""}${game.drill.overdriveLeftMs <= 0 && game.drill.readyInMs <= 0 ? " is-next" : ""}`}
                     disabled={game.drill.overdriveLeftMs <= 0 && game.drill.readyInMs > 0}
                     aria-label={
                       game.drill.overdriveLeftMs > 0

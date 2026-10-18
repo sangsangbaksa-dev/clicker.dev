@@ -98,7 +98,7 @@ export function ClickerBossFight({ def, fight, now, defeated, onStart, onStrike 
       {!fight ? (
         <>
           {lost ? <p className="clicker-boss-note">쓰러졌습니다. 더 강해져서 다시 도전하세요.</p> : null}
-          <button type="button" className="clicker-danger clicker-boss-start" onClick={onStart}>
+          <button type="button" className={`clicker-danger clicker-boss-start${defeated ? "" : " is-next"}`} onClick={onStart}>
             {defeated ? "다시 싸우기" : "수호자에게 도전"} · {def.timeLimitSec}초
           </button>
         </>
