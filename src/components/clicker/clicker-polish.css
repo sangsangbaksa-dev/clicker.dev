@@ -1715,14 +1715,20 @@
 [data-clicker] .clicker-lair-enter.is-next:not(:disabled),
 [data-clicker] .clicker-hub-enter-only.is-next:not(.is-cooling):not(:disabled),
 [data-clicker] .clicker-drill.is-next:not(:disabled):not(.is-cooling),
-[data-clicker] .clicker-hub-dock-btn.is-next:not(.is-locked) {
+[data-clicker] .clicker-hub-dock-btn.is-next:not(.is-locked),
+[data-clicker] .clicker-stage-region-jump.is-next,
+[data-clicker] .clicker-world-card .clicker-primary.is-next:not(:disabled),
+[data-clicker] .clicker-world-gate-go.is-next:not(:disabled) {
   animation: clicker-world-tree-next 2.4s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   [data-clicker] .clicker-lair-enter.is-next:not(:disabled),
   [data-clicker] .clicker-hub-enter-only.is-next:not(.is-cooling):not(:disabled),
   [data-clicker] .clicker-drill.is-next:not(:disabled):not(.is-cooling),
-  [data-clicker] .clicker-hub-dock-btn.is-next:not(.is-locked) {
+  [data-clicker] .clicker-hub-dock-btn.is-next:not(.is-locked),
+  [data-clicker] .clicker-stage-region-jump.is-next,
+  [data-clicker] .clicker-world-card .clicker-primary.is-next:not(:disabled),
+  [data-clicker] .clicker-world-gate-go.is-next:not(:disabled) {
     animation: none;
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--core) 55%, transparent);
   }

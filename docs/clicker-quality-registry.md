@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-19 (cron)
+Last reviewed: 2026-10-19 (cron pass 2)
 
 ## Now (actionable)
 
@@ -14,6 +14,15 @@ Last reviewed: 2026-10-19 (cron)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-19 pass 2)
+
+| Area | Item |
+|------|------|
+| BGM | Core Heart objective + guardian entry gate pre-warm `bgm_boss_loop_v1` (was hunt-only warm) |
+| Art | Pre-decode `core_guardian.webp` while Core Heart travel is the active goal |
+| Design | Core Heart unlocked & undefeated → `is-next` on WORLD dock, stage jump, world travel, guardian gate CTA |
+| Motion | Shared reduced-motion fallback for stage jump / world travel / guardian gate pulses |
 
 ## Done (2026-10-19)
 

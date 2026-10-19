@@ -686,13 +686,13 @@ export function ClickerApp() {
   const [engagingRegion, setEngagingRegion] = useState<string | null>(null)
 
   const playSurfaceForBgm = game.save?.settings.playSurface ?? "hub"
-  // Hunt regions: decode the boss loop while the lair entry HUD is open (before enterLair crossfade).
+  // Hunt / guardian regions: decode the boss loop while the entry HUD is open (before lair or guardian fight).
   useEffect(() => {
     if (playSurfaceForBgm === "mine") return
     const run = game.save?.runState
-    if (!run || engagedRegion !== run.currentRegionId || run.lair) return
+    if (!run || engagedRegion !== run.currentRegionId || run.lair || run.boss) return
     const region = game.config.regions.find((r) => r.id === run.currentRegionId)
-    if (!region?.huntMode || region.boss) return
+    if (!region?.huntMode && !region?.boss) return
     warmClickerBossBgm(true)
   }, [playSurfaceForBgm, game.save?.runState, engagedRegion, game.config.regions])
   const [arrivedRegion, setArrivedRegion] = useState<string | null>(null)
@@ -928,6 +928,33 @@ export function ClickerApp() {
     return () => window.clearTimeout(t)
   }, [drillCooldownUntil])
 
+  useEffect(() => {
+    const save = game.save
+    if (!save?.settings.gameStarted || save.settings.playSurface === "mine") return
+    const run = save.runState
+    const coreHeartRegionId = "core_heart"
+    const coreHeartDef = game.config.regions.find((r) => r.id === coreHeartRegionId)
+    if (
+      !coreHeartDef?.boss ||
+      !isRegionUnlocked(run, game.config, coreHeartRegionId) ||
+      save.metaState.bossDefeated ||
+      run.currentRegionId === coreHeartRegionId
+    ) {
+      return
+    }
+    const art = coreHeartDef.boss.imageSrc
+    if (art) void warmImage(art)
+    warmClickerBossBgm(true)
+  }, [
+    game.save?.runState.currentRegionId,
+    game.save?.runState.lifetimeCoreEnergy,
+    game.save?.runState.currentWorldLine,
+    game.save?.metaState.bossDefeated,
+    game.save?.settings.playSurface,
+    game.save?.settings.gameStarted,
+    game.config.regions,
+  ])
+
   if (game.otherTabActive) {
     return (
       <ClickerOtherTab
@@ -1040,6 +1067,14 @@ export function ClickerApp() {
   const showTranscendenceTab = transcendenceUnlocked || rebirthRatio >= 0.25
   const transcendenceOwned = new Set(game.save.metaState.transcendenceIds).size
   const transcendenceTotal = game.config.transcendence.length
+  const coreHeartRegionId = "core_heart"
+  const coreHeartDef = game.config.regions.find((r) => r.id === coreHeartRegionId)
+  const coreHeartObjective =
+    Boolean(coreHeartDef?.boss) &&
+    isRegionUnlocked(run, game.config, coreHeartRegionId) &&
+    !bossDefeated &&
+    run.currentRegionId !== coreHeartRegionId &&
+    !inMine
   // Every circuit (all 100, transcendence branch included) stays on the board.
   const visibleSkillNodes = game.skillNodes
   const regionDef = game.config.regions.find((r) => r.id === run.currentRegionId)
@@ -1394,7 +1429,7 @@ export function ClickerApp() {
               <span key={region.id} className="clicker-stage-region-slot">
                 <button
                   type="button"
-                  className="clicker-stage-region-jump"
+                  className={`clicker-stage-region-jump${region.id === coreHeartRegionId && coreHeartObjective ? " is-next" : ""}`}
                   aria-label={`${withParticle(region.name, "으로")} 이동 — ${region.bonusText}`}
                   onClick={() => game.travelRegion(region.id)}
                 >
@@ -1649,7 +1684,7 @@ export function ClickerApp() {
               <p className="clicker-world-gate-desc">{regionDef.description}</p>
               <button
                 type="button"
-                className="clicker-primary clicker-world-gate-go"
+                className={`clicker-primary clicker-world-gate-go${regionDef.boss && !bossDefeated && !run.boss ? " is-next" : ""}`}
                 disabled={regionIntroPlaying || engagingRegion !== null}
                 onClick={() => {
                   const clip = regionDef.intro?.engageVideo
@@ -1765,7 +1800,7 @@ export function ClickerApp() {
               <button
                 key={id}
                 type="button"
-                className={`clicker-hub-dock-btn${id === "transcendence" ? " is-transcendence" : ""}${id === "skills" && nextSkillBuyId ? " is-next" : ""}${tabLockReason(id) ? " is-locked" : ""}`}
+                className={`clicker-hub-dock-btn${id === "transcendence" ? " is-transcendence" : ""}${id === "skills" && nextSkillBuyId ? " is-next" : ""}${id === "world" && coreHeartObjective ? " is-next" : ""}${tabLockReason(id) ? " is-locked" : ""}`}
                 aria-label={tabLockReason(id) ? `${ko} · 잠김` : `${ko} 화면 열기`}
                 onClick={() => selectTab(id)}
               >

@@ -1,13 +1,20 @@
 "use client"
 
 import { CLICKER_ASSETS } from "@/data/clicker/catalog"
-import { formatNumber, withParticle } from "@/application/clicker-ui"
+import { formatNumber, isRegionUnlocked, withParticle } from "@/application/clicker-ui"
 import type { RunState } from "@/application/clicker-ui"
 import type { ClickerGame } from "@/hooks/use-clicker"
 import { ClickerWorldTree } from "../clicker-world-tree"
 import { ClickerExchange } from "../clicker-exchange"
 
+const CORE_HEART_REGION_ID = "core_heart"
+
 export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; run: RunState; onBack: () => void }) {
+  const bossDefeated = Boolean(game.save?.metaState.bossDefeated)
+  const coreHeartTravelNext =
+    isRegionUnlocked(run, game.config, CORE_HEART_REGION_ID) &&
+    !bossDefeated &&
+    run.currentRegionId !== CORE_HEART_REGION_ID
   return (
     <div className="clicker-world">
       <header className="clicker-world-head">
@@ -78,7 +85,7 @@ export function ClickerWorldPanel({ game, run, onBack }: { game: ClickerGame; ru
                   </span>
                 ) : region.unlocked ? (
                   <button
-                    className="clicker-primary"
+                    className={`clicker-primary${region.id === CORE_HEART_REGION_ID && coreHeartTravelNext ? " is-next" : ""}`}
                     type="button"
                     title={regionTip}
                     aria-label={`${withParticle(region.name, "으로")} 이동`}
