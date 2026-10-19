@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-18 (cron pass 2)
+Last reviewed: 2026-10-19 (cron)
 
 ## Now (actionable)
 
@@ -14,6 +14,15 @@ Last reviewed: 2026-10-18 (cron pass 2)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-19)
+
+| Area | Item |
+|------|------|
+| Design | Enter Mine CTA soft pulse when off cooldown (`is-next`) |
+| Design | Region core drill rig pulses when cooled and ready to tap |
+| Design | Hub SKILLS dock button pulses when a circuit node is buyable |
+| Design | Core guardian defeat purchase burst uses guardian art (`core_guardian.webp`) |
 
 ## Done (2026-10-18 pass 2)
 

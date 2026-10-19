@@ -1028,7 +1028,12 @@ export function useClicker() {
       commit(result.save)
       pushFloat({ text: `-${formatNumber(result.damage)}`, critical: result.critical, x: clientX, y: clientY }, 700)
       if (result.defeated) {
-        setPurchaseFx({ key: ++fxKey.current, kind: "TRANSCENDENCE" })
+        const guardianArt = clickerGameConfig.regions.find((r) => r.boss)?.boss?.imageSrc
+        setPurchaseFx({
+          key: ++fxKey.current,
+          kind: "TRANSCENDENCE",
+          assetId: guardianArt,
+        })
         persistNow(result.save)
       }
       return result.defeated

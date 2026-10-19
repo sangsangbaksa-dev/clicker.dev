@@ -398,6 +398,12 @@ export function ClickerApp() {
   const prevUnlockedRegionIds = useRef<Set<string> | null>(null)
   const [regionTransition, setRegionTransition] = useState(false)
   const drawerSnaps = useMemo(() => drawerSnapPoints(), [])
+  const nextSkillBuyId = useMemo(() => {
+    const buyable = game.skillNodes.filter((n) => n.canBuy)
+    if (!buyable.length) return null
+    buyable.sort((a, b) => a.tier - b.tier || a.cost - b.cost || a.id.localeCompare(b.id))
+    return buyable[0]!.id
+  }, [game.skillNodes])
   const [drawerHeight, setDrawerHeight] = useState(readDrawerHeight)
   const [drawerDragging, setDrawerDragging] = useState(false)
   const drawerDraggingRef = useRef(false)
@@ -1280,7 +1286,7 @@ export function ClickerApp() {
               type="button"
               data-sfx="off"
               key={drillHits}
-              className={`clicker-drill${drillHits ? " is-hit" : ""}${drillCoolSec > 0 ? " is-cooling" : ""}`}
+              className={`clicker-drill${drillHits ? " is-hit" : ""}${drillCoolSec > 0 ? " is-cooling" : ""}${drillCoolSec <= 0 && !regionIntroPlaying ? " is-next" : ""}`}
               disabled={regionIntroPlaying || drillCoolSec > 0}
               aria-label={drillCoolSec > 0 ? `시추 장비 냉각 중 ${drillCoolSec}초` : `코어 에너지 시추 · 게이지 ${Math.round(run.drillGauge * 100)}%`}
               onPointerDown={(e) => {
@@ -1623,7 +1629,7 @@ export function ClickerApp() {
           ) : atHomeHub ? (
             <button
               type="button"
-              className={`clicker-hub-enter-only${mineCooldownSec > 0 ? " is-cooling" : ""}`}
+              className={`clicker-hub-enter-only${mineCooldownSec > 0 ? " is-cooling" : " is-next"}`}
               aria-label={
                 mineCooldownSec > 0
                   ? `Enter Mine · 재입장 대기 ${mineCooldownSec}초`
@@ -1759,7 +1765,7 @@ export function ClickerApp() {
               <button
                 key={id}
                 type="button"
-                className={`clicker-hub-dock-btn${id === "transcendence" ? " is-transcendence" : ""}${tabLockReason(id) ? " is-locked" : ""}`}
+                className={`clicker-hub-dock-btn${id === "transcendence" ? " is-transcendence" : ""}${id === "skills" && nextSkillBuyId ? " is-next" : ""}${tabLockReason(id) ? " is-locked" : ""}`}
                 aria-label={tabLockReason(id) ? `${ko} · 잠김` : `${ko} 화면 열기`}
                 onClick={() => selectTab(id)}
               >
