@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-20 (cron)
+Last reviewed: 2026-10-20 (cron pass 2)
 
 ## Now (actionable)
 
@@ -14,6 +14,15 @@ Last reviewed: 2026-10-20 (cron)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-20 pass 2)
+
+| Area | Item |
+|------|------|
+| Design | Region field activities + challenges wired on hunt/drill stations (`ClickerRegionFieldActions`; was CSS/backend-only) |
+| Design | WORLD hub/drawer tab pulses for Core Heart travel, buyable exchange offers, and next affordable world-tree node |
+| Motion | Ready region activity/challenge + affordable world-tree buy get `is-next` pulse |
+| BGM | Title start pre-warms mine loop alongside hub (`warmClickerMineBgm`) |
 
 ## Done (2026-10-20)
 

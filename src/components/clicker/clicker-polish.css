@@ -2631,7 +2631,9 @@
 }
 [data-clicker] .clicker-skill-item.is-ready.is-next:not(:disabled),
 [data-clicker] .clicker-mine-fever.is-ready.is-next:not(:disabled),
-[data-clicker] .clicker-mine-overdrive.is-next:not(:disabled):not(.is-active) {
+[data-clicker] .clicker-mine-overdrive.is-next:not(:disabled):not(.is-active),
+[data-clicker] .clicker-region-station .clicker-region-activity.is-next:not(:disabled),
+[data-clicker] .clicker-world-tree-buy.is-next:not(:disabled) {
   animation: clicker-world-tree-next 2.4s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -2640,7 +2642,9 @@
   [data-clicker] .clicker-wl-card.is-next:not(.is-walked),
   [data-clicker] .clicker-skill-item.is-ready.is-next:not(:disabled),
   [data-clicker] .clicker-mine-fever.is-ready.is-next:not(:disabled),
-  [data-clicker] .clicker-mine-overdrive.is-next:not(:disabled):not(.is-active) {
+  [data-clicker] .clicker-mine-overdrive.is-next:not(:disabled):not(.is-active),
+  [data-clicker] .clicker-region-station .clicker-region-activity.is-next:not(:disabled),
+  [data-clicker] .clicker-world-tree-buy.is-next:not(:disabled) {
     animation: none;
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--core) 55%, transparent);
   }

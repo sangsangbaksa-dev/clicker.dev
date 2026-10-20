@@ -56,7 +56,7 @@ export function ClickerWorldTree({ game, run, regionId }: { game: ClickerGame; r
               ) : isNext ? (
                 <button
                   type="button"
-                  className="clicker-primary clicker-world-tree-buy"
+                  className={`clicker-primary clicker-world-tree-buy${!error ? " is-next" : ""}`}
                   disabled={Boolean(error)}
                   title={error}
                   aria-label={`${node.name} 습득 — ${formatNumber(cost)} ${region.currency!.name}`}

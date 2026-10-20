@@ -45,6 +45,9 @@ import {
   typedSecretCode,
   withParticle,
   SHIELD_MS,
+  worldTreeNodeError,
+  worldTreeNodes,
+  worldTreeOwned,
 } from "@/application/clicker-ui"
 import { useClicker } from "@/hooks/use-clicker"
 import { useClickerBgm } from "@/hooks/use-clicker-bgm"
@@ -55,6 +58,7 @@ import { ClickerEnding } from "@/components/clicker/clicker-ending"
 import { ClickerMine, type MineFxTier } from "@/components/clicker/clicker-mine"
 import { ClickerCinematic, preloadCinematic } from "@/components/clicker/clicker-cinematic"
 import { ClickerRegionChallenge } from "@/components/clicker/clicker-region-challenge"
+import { ClickerRegionFieldActions } from "@/components/clicker/clicker-region-field-actions"
 import { MineArt, MINE_SESSION_WARM_ART } from "@/data/clicker/mine-assets"
 import { ClickerMineResult } from "@/components/clicker/clicker-mine-result"
 import { ClickerOtherTab } from "@/components/clicker/clicker-other-tab"
@@ -433,6 +437,21 @@ export function ClickerApp() {
       meta &&
       relicVaultOpen(meta) &&
       game.config.relics.some((r) => relicLevel(meta, r.id) < r.maxLevel && !relicError(run, meta, game.config, r.id))
+    const exchangeBuyable = game.exchangeOffers(run.lastTickAt).some((o) => !o.error)
+    const worldTreeBuyable = game.config.regions.some((r) => {
+      const nodes = worldTreeNodes(game.config, r.id)
+      if (!nodes.length) return false
+      const nextIndex = nodes.findIndex((n) => !worldTreeOwned(run, n.id))
+      if (nextIndex < 0) return false
+      return !worldTreeNodeError(run, game.config, nodes[nextIndex]!.id)
+    })
+    const coreHeartRegionId = "core_heart"
+    const coreHeartDef = game.config.regions.find((r) => r.id === coreHeartRegionId)
+    const coreHeartTravel =
+      Boolean(coreHeartDef?.boss) &&
+      isRegionUnlocked(run, game.config, coreHeartRegionId) &&
+      !meta?.bossDefeated &&
+      run.currentRegionId !== coreHeartRegionId
     return {
       producers: game.producers.some((p) => p.canBuy),
       upgrades: game.upgrades.some((u) => u.status === "AVAILABLE"),
@@ -440,6 +459,7 @@ export function ClickerApp() {
       skills: Boolean(nextSkillBuyId),
       forge,
       relics,
+      world: coreHeartTravel || exchangeBuyable || worldTreeBuyable,
       transcendence: Boolean(game.hud?.canRebirth),
     }
   }, [
@@ -451,7 +471,9 @@ export function ClickerApp() {
     game.activeSkillShop,
     game.regions,
     game.config.relics,
+    game.config.regions,
     game.hud?.canRebirth,
+    game.exchangeOffers,
     nextSkillBuyId,
   ])
   const [drawerHeight, setDrawerHeight] = useState(readDrawerHeight)
@@ -1058,6 +1080,7 @@ export function ClickerApp() {
           onToggleMute={game.toggleMute}
           onStart={() => {
             warmClickerHubBgm(true)
+            warmClickerMineBgm(true)
             setTab("upgrades")
             setHubView("entrance")
             setDrawerSnap("half")
@@ -1818,6 +1841,16 @@ export function ClickerApp() {
                         ? `${monsterDef.name} 토벌하러 들어가기`
                         : `보스가 돌아오는 중 · ${clockText(Math.max(0, (run.monsterRespawnAt[run.currentRegionId] ?? 0) - tickNow))}`}
                   </button>
+                  {game.currentRegion ? (
+                    <ClickerRegionFieldActions
+                      region={game.currentRegion}
+                      crisisActive={hud.crisisActive}
+                      onActivity={() => game.regionActivity(run.currentRegionId)}
+                      onChallengeStart={() => {
+                        if (game.canStartChallenge(run.currentRegionId)) setChallengeRegionId(run.currentRegionId)
+                      }}
+                    />
+                  ) : null}
                 </>
               )}
             </div>
@@ -1831,6 +1864,14 @@ export function ClickerApp() {
               <p className="clicker-drill-hint">
                 {drillCoolSec > 0 ? `냉각 중 · ${drillCoolSec}초 후 다시 시추` : `연속으로 탭해 게이지를 채우면 시추 · ${Math.round(run.drillGauge * 100)}%`}
               </p>
+              <ClickerRegionFieldActions
+                region={game.currentRegion}
+                crisisActive={hud.crisisActive}
+                onActivity={() => game.regionActivity(run.currentRegionId)}
+                onChallengeStart={() => {
+                  if (game.canStartChallenge(run.currentRegionId)) setChallengeRegionId(run.currentRegionId)
+                }}
+              />
             </div>
           ) : null}
           {hud.comboText ? (
@@ -1851,7 +1892,7 @@ export function ClickerApp() {
               <button
                 key={id}
                 type="button"
-                className={`clicker-hub-dock-btn${id === "transcendence" ? " is-transcendence" : ""}${hubTabNext[id] ? " is-next" : ""}${id === "world" && coreHeartObjective ? " is-next" : ""}${tabLockReason(id) ? " is-locked" : ""}`}
+                className={`clicker-hub-dock-btn${id === "transcendence" ? " is-transcendence" : ""}${hubTabNext[id] ? " is-next" : ""}${tabLockReason(id) ? " is-locked" : ""}`}
                 aria-label={tabLockReason(id) ? `${ko} · 잠김` : `${ko} 화면 열기`}
                 onClick={() => selectTab(id)}
               >

@@ -27,6 +27,7 @@ export {
   buildRegionViews,
   buildSkillNodeViews,
   buildUpgradeViews,
+  type RegionView,
   type CoreVisual,
   type CurrencyCostView,
   type SkillNodeView,
