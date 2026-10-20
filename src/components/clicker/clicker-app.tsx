@@ -18,6 +18,9 @@ import {
   WEAPONS,
   drillCooldownMs,
   formatNumber,
+  forgeError,
+  GEAR,
+  GEAR_SLOTS,
   gearOf,
   grantClickerAdminByCode,
   isClickerAdminAllowed,
@@ -26,6 +29,8 @@ import {
   lairDamageMultiplier,
   monsterAlive,
   playerMaxHp,
+  relicError,
+  relicLevel,
   relicVaultOpen,
   shouldMountMineChamber,
   shouldShowManageScreen,
@@ -73,6 +78,7 @@ import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import {
   warmClickerBossBgm,
+  warmClickerHubBgm,
   warmClickerMineBgm,
   warmClickerRebirthBgm,
   warmClickerWorldTravelBgm,
@@ -298,6 +304,12 @@ export function ClickerApp() {
 
   const [tab, setTab] = useState<TabId>("upgrades")
 
+  // Decode the hub loop as soon as a run is live (title → chamber) so BGM does not hitch.
+  useEffect(() => {
+    if (!game.save?.settings.gameStarted) return
+    warmClickerHubBgm(true)
+  }, [game.save?.settings.gameStarted])
+
   // Decode region themes while the travel tab is open so the first hop does not hitch.
   useEffect(() => {
     if (tab !== "world") return
@@ -404,6 +416,44 @@ export function ClickerApp() {
     buyable.sort((a, b) => a.tier - b.tier || a.cost - b.cost || a.id.localeCompare(b.id))
     return buyable[0]!.id
   }, [game.skillNodes])
+  /** Hub dock + drawer tabs: soft pulse when that screen has an affordable next action. */
+  const hubTabNext = useMemo((): Partial<Record<TabId, boolean>> => {
+    const run = game.save?.runState
+    const meta = game.save?.metaState
+    if (!run) return {}
+    const gear = gearOf(run)
+    const forgeUnlockedNow = Boolean(game.regions[2]?.unlocked)
+    const forge =
+      forgeUnlockedNow &&
+      GEAR_SLOTS.some((slot) => {
+        const idx = gear[slot]
+        return !forgeError(run, game.config, slot) && Boolean(GEAR[slot][idx + 1])
+      })
+    const relics =
+      meta &&
+      relicVaultOpen(meta) &&
+      game.config.relics.some((r) => relicLevel(meta, r.id) < r.maxLevel && !relicError(run, meta, game.config, r.id))
+    return {
+      producers: game.producers.some((p) => p.canBuy),
+      upgrades: game.upgrades.some((u) => u.status === "AVAILABLE"),
+      shop: game.potionShop.some((i) => i.canBuy) || game.activeSkillShop.some((i) => i.canBuy),
+      skills: Boolean(nextSkillBuyId),
+      forge,
+      relics,
+      transcendence: Boolean(game.hud?.canRebirth),
+    }
+  }, [
+    game.save?.runState,
+    game.save?.metaState,
+    game.producers,
+    game.upgrades,
+    game.potionShop,
+    game.activeSkillShop,
+    game.regions,
+    game.config.relics,
+    game.hud?.canRebirth,
+    nextSkillBuyId,
+  ])
   const [drawerHeight, setDrawerHeight] = useState(readDrawerHeight)
   const [drawerDragging, setDrawerDragging] = useState(false)
   const drawerDraggingRef = useRef(false)
@@ -1007,6 +1057,7 @@ export function ClickerApp() {
           muted={game.save.settings.muted}
           onToggleMute={game.toggleMute}
           onStart={() => {
+            warmClickerHubBgm(true)
             setTab("upgrades")
             setHubView("entrance")
             setDrawerSnap("half")
@@ -1800,7 +1851,7 @@ export function ClickerApp() {
               <button
                 key={id}
                 type="button"
-                className={`clicker-hub-dock-btn${id === "transcendence" ? " is-transcendence" : ""}${id === "skills" && nextSkillBuyId ? " is-next" : ""}${id === "world" && coreHeartObjective ? " is-next" : ""}${tabLockReason(id) ? " is-locked" : ""}`}
+                className={`clicker-hub-dock-btn${id === "transcendence" ? " is-transcendence" : ""}${hubTabNext[id] ? " is-next" : ""}${id === "world" && coreHeartObjective ? " is-next" : ""}${tabLockReason(id) ? " is-locked" : ""}`}
                 aria-label={tabLockReason(id) ? `${ko} · 잠김` : `${ko} 화면 열기`}
                 onClick={() => selectTab(id)}
               >
@@ -1836,7 +1887,7 @@ export function ClickerApp() {
           return (
             <span key={skill.id} className="clicker-action-slot">
               <button
-                className={`clicker-item clicker-skill-item is-${skillState}${(popIcons[skill.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
+                className={`clicker-item clicker-skill-item is-${skillState}${skillState === "ready" && inMine ? " is-next" : ""}${(popIcons[skill.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
                 type="button"
                 disabled={isActiveSkillBarDisabled(skillState)}
                 aria-label={`${skillTip} · ${skillStatus}`}
@@ -1928,6 +1979,7 @@ export function ClickerApp() {
               type="button"
               data-active={tab === id}
               data-locked={tabLockReason(id) ? "true" : undefined}
+              className={hubTabNext[id] && tab !== id ? "is-next" : undefined}
               aria-label={tabLockReason(id) ? `${ko} · 잠김` : ko}
               aria-current={tab === id ? "page" : undefined}
               title={ko}

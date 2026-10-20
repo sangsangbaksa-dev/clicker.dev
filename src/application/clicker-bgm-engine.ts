@@ -210,10 +210,20 @@ export function resetClickerBgmBindings(): void {
   bgmPortFactory = null
 }
 
+const HUB_HOME_BGM: BgmTrackId[] = ["hub"]
 const WORLD_TRAVEL_BGM: BgmTrackId[] = ["relay", "vault", "storm", "fault", "heart"]
 const MINE_SESSION_BGM: BgmTrackId[] = ["mine"]
 const BOSS_FIGHT_BGM: BgmTrackId[] = ["boss"]
 const REBIRTH_CEREMONY_BGM: BgmTrackId[] = ["rebirthIntro", "rebirthHq"]
+
+/** Pre-decode the hub loop when the run boots so the first chamber bar does not hitch. */
+export function warmClickerHubBgm(allowNetwork = true): void {
+  try {
+    clickerBgmPorts().warmTracks(HUB_HOME_BGM, allowNetwork)
+  } catch {
+    /* SSR or tests before bootstrap */
+  }
+}
 
 /** Pre-decode region themes while the travel UI is open (no-op until BGM ports are bound). */
 export function warmClickerWorldTravelBgm(allowNetwork = true): void {

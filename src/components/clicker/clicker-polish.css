@@ -1716,6 +1716,7 @@
 [data-clicker] .clicker-hub-enter-only.is-next:not(.is-cooling):not(:disabled),
 [data-clicker] .clicker-drill.is-next:not(:disabled):not(.is-cooling),
 [data-clicker] .clicker-hub-dock-btn.is-next:not(.is-locked),
+[data-clicker] .clicker-tabs button.is-next:not([data-locked="true"]),
 [data-clicker] .clicker-stage-region-jump.is-next,
 [data-clicker] .clicker-world-card .clicker-primary.is-next:not(:disabled),
 [data-clicker] .clicker-world-gate-go.is-next:not(:disabled) {
@@ -1726,6 +1727,7 @@
   [data-clicker] .clicker-hub-enter-only.is-next:not(.is-cooling):not(:disabled),
   [data-clicker] .clicker-drill.is-next:not(:disabled):not(.is-cooling),
   [data-clicker] .clicker-hub-dock-btn.is-next:not(.is-locked),
+  [data-clicker] .clicker-tabs button.is-next:not([data-locked="true"]),
   [data-clicker] .clicker-stage-region-jump.is-next,
   [data-clicker] .clicker-world-card .clicker-primary.is-next:not(:disabled),
   [data-clicker] .clicker-world-gate-go.is-next:not(:disabled) {
@@ -2627,6 +2629,7 @@
 [data-clicker] .clicker-wl-card.is-next:not(.is-walked) {
   animation: clicker-world-tree-next 2.4s ease-in-out infinite;
 }
+[data-clicker] .clicker-skill-item.is-ready.is-next:not(:disabled),
 [data-clicker] .clicker-mine-fever.is-ready.is-next:not(:disabled),
 [data-clicker] .clicker-mine-overdrive.is-next:not(:disabled):not(.is-active) {
   animation: clicker-world-tree-next 2.4s ease-in-out infinite;
@@ -2635,6 +2638,7 @@
   [data-clicker] .clicker-metric-worldline.is-next:not(.is-active),
   [data-clicker] .clicker-boss-start.is-next,
   [data-clicker] .clicker-wl-card.is-next:not(.is-walked),
+  [data-clicker] .clicker-skill-item.is-ready.is-next:not(:disabled),
   [data-clicker] .clicker-mine-fever.is-ready.is-next:not(:disabled),
   [data-clicker] .clicker-mine-overdrive.is-next:not(:disabled):not(.is-active) {
     animation: none;
