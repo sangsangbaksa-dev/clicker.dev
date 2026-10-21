@@ -82,7 +82,9 @@ import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import {
   warmClickerBossBgm,
+  warmClickerEndingBgm,
   warmClickerHubBgm,
+  warmClickerLoadingBgm,
   warmClickerMineBgm,
   warmClickerRebirthBgm,
   warmClickerWorldTravelBgm,
@@ -306,6 +308,11 @@ export function ClickerApp() {
     }
   }, [])
 
+  // Boot screen uses the loading bed — decode it before the first gesture when possible.
+  useEffect(() => {
+    warmClickerLoadingBgm(true)
+  }, [])
+
   const [tab, setTab] = useState<TabId>("upgrades")
 
   // Decode the hub loop as soon as a run is live (title → chamber) so BGM does not hitch.
@@ -452,6 +459,9 @@ export function ClickerApp() {
       isRegionUnlocked(run, game.config, coreHeartRegionId) &&
       !meta?.bossDefeated &&
       run.currentRegionId !== coreHeartRegionId
+    const rebirthReq = game.hud?.rebirthRequirement ?? game.config.rebirthEnergy
+    const rebirthRatio = Math.min(1, run.lifetimeCoreEnergy / rebirthReq)
+    const rebirthApproaching = rebirthRatio >= 0.85 && !game.hud?.canRebirth
     return {
       producers: game.producers.some((p) => p.canBuy),
       upgrades: game.upgrades.some((u) => u.status === "AVAILABLE"),
@@ -460,7 +470,7 @@ export function ClickerApp() {
       forge,
       relics,
       world: coreHeartTravel || exchangeBuyable || worldTreeBuyable,
-      transcendence: Boolean(game.hud?.canRebirth),
+      transcendence: Boolean(game.hud?.canRebirth) || rebirthApproaching,
     }
   }, [
     game.save?.runState,
@@ -473,6 +483,8 @@ export function ClickerApp() {
     game.config.relics,
     game.config.regions,
     game.hud?.canRebirth,
+    game.hud?.rebirthRequirement,
+    game.config.rebirthEnergy,
     game.exchangeOffers,
     nextSkillBuyId,
   ])
@@ -927,9 +939,14 @@ export function ClickerApp() {
   const prevBossDefeated = useRef<boolean | null>(null)
   const bossFighting = Boolean(game.save?.runState.boss)
   useEffect(() => {
+    if (endingOpen || endingPhase) warmClickerEndingBgm(true)
+  }, [endingOpen, endingPhase])
+
+  useEffect(() => {
     if (bossDefeated || bossFighting) {
       preloadCinematic("/clicker/ending/ending_guardian_fall.mp4")
       preloadCinematic("/clicker/ending/ending_core_awaken.mp4")
+      warmClickerEndingBgm(true)
     }
     if (prevBossDefeated.current === false && bossDefeated) {
       playSfx("bossDown")
@@ -1138,6 +1155,7 @@ export function ClickerApp() {
         : (game.currentRegion?.bgAssetId ?? CLICKER_ASSETS.bgChamber)
   const transcendenceUnlocked = hud.canRebirth
   const rebirthRatio = Math.min(1, run.lifetimeCoreEnergy / hud.rebirthRequirement)
+  const rebirthApproaching = rebirthRatio >= 0.85 && !transcendenceUnlocked
   const showTranscendenceTab = transcendenceUnlocked || rebirthRatio >= 0.25
   const transcendenceOwned = new Set(game.save.metaState.transcendenceIds).size
   const transcendenceTotal = game.config.transcendence.length
@@ -1339,7 +1357,7 @@ export function ClickerApp() {
         ) : showTranscendenceTab ? (
           <button
             type="button"
-            className={`clicker-metric clicker-metric-action clicker-metric-worldline${tab === "transcendence" ? " is-active" : ""}`}
+            className={`clicker-metric clicker-metric-action clicker-metric-worldline${tab === "transcendence" ? " is-active" : ""}${rebirthApproaching && tab !== "transcendence" ? " is-next" : ""}`}
             aria-label={`환생 진행 ${Math.round(rebirthRatio * 100)}퍼센트 — 환생 화면 열기`}
             onClick={() => selectTab("transcendence")}
           >

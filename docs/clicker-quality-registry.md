@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-20 (cron pass 2)
+Last reviewed: 2026-10-21 (cron)
 
 ## Now (actionable)
 
@@ -14,6 +14,15 @@ Last reviewed: 2026-10-20 (cron pass 2)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-21)
+
+| Area | Item |
+|------|------|
+| BGM | Boot pre-warm `bgm_loading_loop_v2` (`warmClickerLoadingBgm` on app mount) |
+| BGM | True-ending anthem pre-warm before fall/awaken cinematics and story overlay (`warmClickerEndingBgm`) |
+| Design | Rebirth ≥85% (not yet ready): TRANSCENDENCE dock/drawer + HUD progress metric `is-next` pulse |
+| Motion | Hub gauge FEVER “준비 · 탭” metric gets the shared `is-next` animation (was class-only) |
 
 ## Done (2026-10-20 pass 2)
 

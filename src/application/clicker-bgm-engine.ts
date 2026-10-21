@@ -210,11 +210,22 @@ export function resetClickerBgmBindings(): void {
   bgmPortFactory = null
 }
 
+const LOADING_BGM: BgmTrackId[] = ["loading"]
 const HUB_HOME_BGM: BgmTrackId[] = ["hub"]
 const WORLD_TRAVEL_BGM: BgmTrackId[] = ["relay", "vault", "storm", "fault", "heart"]
 const MINE_SESSION_BGM: BgmTrackId[] = ["mine"]
 const BOSS_FIGHT_BGM: BgmTrackId[] = ["boss"]
 const REBIRTH_CEREMONY_BGM: BgmTrackId[] = ["rebirthIntro", "rebirthHq"]
+const ENDING_BGM: BgmTrackId[] = ["ending"]
+
+/** Pre-decode the boot loading loop while the save/account gate is up (avoids first-bar hitch). */
+export function warmClickerLoadingBgm(allowNetwork = true): void {
+  try {
+    clickerBgmPorts().warmTracks(LOADING_BGM, allowNetwork)
+  } catch {
+    /* SSR or tests before bootstrap */
+  }
+}
 
 /** Pre-decode the hub loop when the run boots so the first chamber bar does not hitch. */
 export function warmClickerHubBgm(allowNetwork = true): void {
@@ -256,6 +267,15 @@ export function warmClickerBossBgm(allowNetwork = true): void {
 export function warmClickerRebirthBgm(allowNetwork = true): void {
   try {
     clickerBgmPorts().warmTracks(REBIRTH_CEREMONY_BGM, allowNetwork)
+  } catch {
+    /* SSR or tests before bootstrap */
+  }
+}
+
+/** Pre-decode the true-ending anthem before the story overlay crossfades (avoids first-bar hitch). */
+export function warmClickerEndingBgm(allowNetwork = true): void {
+  try {
+    clickerBgmPorts().warmTracks(ENDING_BGM, allowNetwork)
   } catch {
     /* SSR or tests before bootstrap */
   }

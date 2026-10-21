@@ -1719,7 +1719,8 @@
 [data-clicker] .clicker-tabs button.is-next:not([data-locked="true"]),
 [data-clicker] .clicker-stage-region-jump.is-next,
 [data-clicker] .clicker-world-card .clicker-primary.is-next:not(:disabled),
-[data-clicker] .clicker-world-gate-go.is-next:not(:disabled) {
+[data-clicker] .clicker-world-gate-go.is-next:not(:disabled),
+[data-clicker] .clicker-metric-action.is-fever-ready.is-next:not(:disabled) {
   animation: clicker-world-tree-next 2.4s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1730,7 +1731,8 @@
   [data-clicker] .clicker-tabs button.is-next:not([data-locked="true"]),
   [data-clicker] .clicker-stage-region-jump.is-next,
   [data-clicker] .clicker-world-card .clicker-primary.is-next:not(:disabled),
-  [data-clicker] .clicker-world-gate-go.is-next:not(:disabled) {
+  [data-clicker] .clicker-world-gate-go.is-next:not(:disabled),
+  [data-clicker] .clicker-metric-action.is-fever-ready.is-next:not(:disabled) {
     animation: none;
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--core) 55%, transparent);
   }
