@@ -333,6 +333,20 @@ export function ClickerApp() {
     warmClickerRebirthBgm(true)
   }, [tab])
 
+  // Late-run transcendence: decode rebirth beds before the picker opens (≥85% or ready).
+  const rebirthWarmRatio = game.save
+    ? Math.min(
+        1,
+        game.save.runState.lifetimeCoreEnergy /
+          (game.hud?.rebirthRequirement ?? game.config.rebirthEnergy),
+      )
+    : 0
+  useEffect(() => {
+    if (!game.save?.settings.gameStarted) return
+    if (!game.hud?.canRebirth && rebirthWarmRatio < 0.85) return
+    warmClickerRebirthBgm(true)
+  }, [game.save?.settings.gameStarted, game.hud?.canRebirth, rebirthWarmRatio])
+
   const inBossScene = Boolean(game.save?.runState.boss || game.save?.runState.lair)
   useEffect(() => {
     if (!inBossScene) return
@@ -1219,6 +1233,27 @@ export function ClickerApp() {
   )
   const regionIntroPlaying = Boolean(game.regionIntro)
   const managing = shouldShowManageScreen(screenTab) || (!mountMineChamber && hubView === "manage")
+  const currentRegionView = game.regions.find((r) => r.id === run.currentRegionId)
+  const regionFieldActionReady = Boolean(
+    !hud.crisisActive &&
+      !inMine &&
+      !atHomeHub &&
+      currentRegionView &&
+      ((currentRegionView.activity &&
+        currentRegionView.activity.readyInMs <= 0 &&
+        currentRegionView.activity.activeMs <= 0) ||
+        (currentRegionView.challenge && currentRegionView.challenge.readyInMs <= 0)),
+  )
+  const manageBackNext = Boolean(
+    managing &&
+      (regionFieldActionReady ||
+        (atHomeHub && mineCooldownSec <= 0 && !enteringMine) ||
+        (worldStill &&
+          !worldEngaged &&
+          regionDef &&
+          ((regionDef.boss && !bossDefeated && !run.boss) ||
+            (regionDef.huntMode && monsterDef && monsterIsAlive && shieldMs <= 0 && !lair)))),
+  )
 
   const beginEnterMine = () => {
     setScreenTab("mine")
@@ -1716,7 +1751,7 @@ export function ClickerApp() {
                       <button
                         key={skill.id}
                         type="button"
-                        className={`clicker-mine-skill is-${state}${(popIcons[skill.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
+                        className={`clicker-mine-skill is-${state}${state === "ready" ? " is-next" : ""}${(popIcons[skill.id] ?? 0) > 0 ? " is-pop-icon" : ""}`}
                         disabled={cd > 0 || charges <= 0 || hud.crisisActive}
                         aria-label={`${skill.name} · ${status} · 보유 ${charges}`}
                         title={`${skill.name} · ${skill.description}`}
@@ -1981,7 +2016,7 @@ export function ClickerApp() {
           <div className="clicker-manage-head">
             <button
               type="button"
-              className="clicker-manage-back"
+              className={`clicker-manage-back${manageBackNext ? " is-next" : ""}`}
               aria-label={`${withParticle(atHomeHub ? "광산 입구" : (game.currentRegion?.name ?? "지역"), "으로")} 돌아가기 · Esc`}
               onClick={() => setHubView("entrance")}
             >

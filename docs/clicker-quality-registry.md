@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-21 (cron)
+Last reviewed: 2026-10-21 (cron pass 2)
 
 ## Now (actionable)
 
@@ -14,6 +14,14 @@ Last reviewed: 2026-10-21 (cron)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-21 pass 2)
+
+| Area | Item |
+|------|------|
+| BGM | Rebirth intro/HQ pre-warm from ≥85% lifetime or `canRebirth` (not only when transcendence tab is open) |
+| Design | Full-screen manage: `◀` back pulses when Enter Mine / region gate / field activity or challenge is waiting |
+| Motion | Mine HUD skill chips use shared `is-next` pulse when ready (matches drawer skill bar) |
 
 ## Done (2026-10-21)
 
