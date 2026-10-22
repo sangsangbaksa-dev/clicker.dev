@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as R
 import { bossHpPhasesCrossed, formatNumber } from "@/application/clicker-ui"
 import { playSfx } from "@/lib/clicker-sfx"
 import { ClickerHpBar } from "@/components/clicker/clicker-hpbar"
+import { warmImage } from "@/components/clicker/clicker-preload"
 import "./clicker-boss-scene.css"
 
 /*
@@ -69,6 +70,17 @@ export const BOSS_SCENES: Record<string, SceneDef> = {
     attackSfx: "bossSmash",
     sway: "heave",
   },
+}
+
+/** Portrait + wide lair paintings — decode before enter so the first fight frame does not hitch. */
+export function warmLairBossSceneArt(kind?: string): void {
+  const kinds = kind ? [kind] : Object.keys(BOSS_SCENES)
+  for (const k of kinds) {
+    const scene = BOSS_SCENES[k]
+    if (!scene) continue
+    void warmImage(scene.src)
+    void warmImage(scene.wide.src)
+  }
 }
 
 const ATTACK_EVERY_MS = 4200

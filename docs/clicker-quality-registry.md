@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-22 (cron)
+Last reviewed: 2026-10-22 (cron pass 2)
 
 ## Now (actionable)
 
@@ -14,6 +14,14 @@ Last reviewed: 2026-10-22 (cron)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-22 pass 2)
+
+| Area | Item |
+|------|------|
+| Art | Lair boss scene portrait + wide pre-decode on hunt travel, forge tab, and hunt entry HUD (`warmLairBossSceneArt`) |
+| Design | RECORDS dock/drawer tab + achievement rows pulse at ≥90% progress (`is-next`) |
+| Code | `clicker-lair-scene-assets.test.ts` guards lair painting paths on disk |
 
 ## Done (2026-10-22)
 

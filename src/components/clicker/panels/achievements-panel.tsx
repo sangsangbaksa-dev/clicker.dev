@@ -28,7 +28,10 @@ export function ClickerAchievementsPanel({ game, meta }: { game: ClickerGame; me
       </dl>
       <ul className="clicker-achievements-grid">
         {game.achievements.map((a) => (
-          <li key={a.id} className={`clicker-achievement${a.unlocked ? " is-unlocked" : ""}`}>
+          <li
+            key={a.id}
+            className={`clicker-achievement${a.unlocked ? " is-unlocked" : ""}${!a.unlocked && a.ratio >= 0.9 ? " is-next" : ""}`}
+          >
             <span className="clicker-achievement-mark" aria-hidden />
             <div className="clicker-achievement-body">
               <strong>{a.name}</strong>

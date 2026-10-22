@@ -71,7 +71,7 @@ import { ClickerSkillTree } from "@/components/clicker/clicker-skill-tree"
 import { ClickerLoading } from "@/components/clicker/clicker-loading"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
 import { ClickerLoginGate } from "@/components/clicker/clicker-login-gate"
-import { ClickerBossScene } from "@/components/clicker/clicker-boss-scene"
+import { ClickerBossScene, warmLairBossSceneArt } from "@/components/clicker/clicker-boss-scene"
 import { ClickerForge } from "@/components/clicker/clicker-forge"
 import { ClickerRelicVault } from "@/components/clicker/clicker-relic-vault"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
@@ -360,6 +360,7 @@ export function ClickerApp() {
   useEffect(() => {
     if (tab !== "forge") return
     warmClickerBossBgm(true)
+    warmLairBossSceneArt()
   }, [tab])
 
   // Every button press clicks. Mining targets have their own laser / vein sounds.
@@ -479,6 +480,7 @@ export function ClickerApp() {
     const rebirthReq = game.hud?.rebirthRequirement ?? game.config.rebirthEnergy
     const rebirthRatio = Math.min(1, run.lifetimeCoreEnergy / rebirthReq)
     const rebirthApproaching = rebirthRatio >= 0.85 && !game.hud?.canRebirth
+    const achievementClose = game.achievements.some((a) => !a.unlocked && a.ratio >= 0.9)
     return {
       producers: game.producers.some((p) => p.canBuy),
       upgrades: game.upgrades.some((u) => u.status === "AVAILABLE"),
@@ -487,6 +489,7 @@ export function ClickerApp() {
       forge,
       relics,
       world: coreHeartTravel || exchangeBuyable || worldTreeBuyable,
+      achievements: achievementClose,
       transcendence: Boolean(game.hud?.canRebirth) || rebirthApproaching,
     }
   }, [
@@ -503,6 +506,7 @@ export function ClickerApp() {
     game.hud?.rebirthRequirement,
     game.config.rebirthEnergy,
     game.exchangeOffers,
+    game.achievements,
     nextSkillBuyId,
   ])
   const [drawerHeight, setDrawerHeight] = useState(readDrawerHeight)
@@ -795,6 +799,8 @@ export function ClickerApp() {
     const region = game.config.regions.find((r) => r.id === run.currentRegionId)
     if (!region?.huntMode && !region?.boss) return
     warmClickerBossBgm(true)
+    const kind = region.monster?.kind
+    if (kind && LAIR_BOSSES[kind]) warmLairBossSceneArt(kind)
   }, [playSurfaceForBgm, game.save?.runState, engagedRegion, game.config.regions])
   const [arrivedRegion, setArrivedRegion] = useState<string | null>(null)
   /** Cast a skill with its full-screen nova (button or number-key hotkey). */
@@ -1061,6 +1067,16 @@ export function ClickerApp() {
     game.save?.settings.gameStarted,
     game.config.regions,
   ])
+
+  // Hunt regions: decode lair scene paintings on arrival so enter-lair does not hitch.
+  useEffect(() => {
+    const save = game.save
+    if (!save?.settings.gameStarted || save.settings.playSurface === "mine") return
+    const region = game.config.regions.find((r) => r.id === save.runState.currentRegionId)
+    const kind = region?.monster?.kind
+    if (!region?.huntMode || !kind || !LAIR_BOSSES[kind]) return
+    warmLairBossSceneArt(kind)
+  }, [game.save?.runState.currentRegionId, game.save?.settings.playSurface, game.save?.settings.gameStarted, game.config.regions])
 
   if (game.otherTabActive) {
     return (
