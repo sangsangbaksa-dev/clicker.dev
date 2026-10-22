@@ -82,6 +82,7 @@ import type { SfxName } from "@/lib/clicker-sfx"
 import { useClickerDialogFocus } from "@/components/clicker/clicker-a11y"
 import {
   warmClickerBossBgm,
+  warmClickerChamberBgm,
   warmClickerEndingBgm,
   warmClickerHubBgm,
   warmClickerLoadingBgm,
@@ -331,6 +332,7 @@ export function ClickerApp() {
   useEffect(() => {
     if (tab !== "transcendence") return
     warmClickerRebirthBgm(true)
+    warmClickerChamberBgm(true)
   }, [tab])
 
   // Late-run transcendence: decode rebirth beds before the picker opens (≥85% or ready).
@@ -345,6 +347,7 @@ export function ClickerApp() {
     if (!game.save?.settings.gameStarted) return
     if (!game.hud?.canRebirth && rebirthWarmRatio < 0.85) return
     warmClickerRebirthBgm(true)
+    warmClickerChamberBgm(true)
   }, [game.save?.settings.gameStarted, game.hud?.canRebirth, rebirthWarmRatio])
 
   const inBossScene = Boolean(game.save?.runState.boss || game.save?.runState.lair)
@@ -929,6 +932,7 @@ export function ClickerApp() {
 
   useEffect(() => {
     if (!pendingRebirth) return
+    warmClickerChamberBgm(true)
     playSfx("rebirthOpen")
   }, [pendingRebirth?.id])
 

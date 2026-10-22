@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-21 (cron pass 2)
+Last reviewed: 2026-10-22 (cron)
 
 ## Now (actionable)
 
@@ -14,6 +14,14 @@ Last reviewed: 2026-10-21 (cron pass 2)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-22)
+
+| Area | Item |
+|------|------|
+| BGM | Rebirth chamber bed pre-warm (`warmClickerChamberBgm`) at ≥85% / `canRebirth` and when ceremony starts |
+| Design | Worldline `환생` + confirm `환생 시작` use shared `is-next` pulse |
+| Design | Region field activities map purchase burst to PRODUCTION / FEVER / UTILITY by activity kind |
 
 ## Done (2026-10-21 pass 2)
 

@@ -216,6 +216,7 @@ const WORLD_TRAVEL_BGM: BgmTrackId[] = ["relay", "vault", "storm", "fault", "hea
 const MINE_SESSION_BGM: BgmTrackId[] = ["mine"]
 const BOSS_FIGHT_BGM: BgmTrackId[] = ["boss"]
 const REBIRTH_CEREMONY_BGM: BgmTrackId[] = ["rebirthIntro", "rebirthHq"]
+const REBIRTH_CHAMBER_BGM: BgmTrackId[] = ["chamber"]
 const ENDING_BGM: BgmTrackId[] = ["ending"]
 
 /** Pre-decode the boot loading loop while the save/account gate is up (avoids first-bar hitch). */
@@ -267,6 +268,15 @@ export function warmClickerBossBgm(allowNetwork = true): void {
 export function warmClickerRebirthBgm(allowNetwork = true): void {
   try {
     clickerBgmPorts().warmTracks(REBIRTH_CEREMONY_BGM, allowNetwork)
+  } catch {
+    /* SSR or tests before bootstrap */
+  }
+}
+
+/** Pre-decode the rebirth ceremony chamber bed (plays under `pendingRebirth` motion). */
+export function warmClickerChamberBgm(allowNetwork = true): void {
+  try {
+    clickerBgmPorts().warmTracks(REBIRTH_CHAMBER_BGM, allowNetwork)
   } catch {
     /* SSR or tests before bootstrap */
   }

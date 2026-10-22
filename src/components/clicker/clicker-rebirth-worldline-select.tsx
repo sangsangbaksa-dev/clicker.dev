@@ -72,7 +72,7 @@ export function ClickerRebirthWorldlineSelect({ buffs, ownedIds, popIcons, locke
               ) : (
                 <button
                   type="button"
-                  className="clicker-primary clicker-wl-go"
+                  className={`clicker-primary clicker-wl-go${!locked && buff.id === nextWorldlineId ? " is-next" : ""}`}
                   disabled={locked}
                   aria-label={locked ? `${buff.name} · 환생 목표를 채우면 선택 가능` : `${buff.name} 세계선으로 환생`}
                   onClick={() => {
@@ -151,7 +151,7 @@ function RebirthConfirm({ buff, onCancel, onConfirm }: { buff: TranscendenceDef;
           <button type="button" className="clicker-ghost" onClick={onCancel}>
             취소 · Esc
           </button>
-          <button type="button" className="clicker-primary" autoFocus onClick={armedPress(onConfirm)}>
+          <button type="button" className="clicker-primary is-next" autoFocus onClick={armedPress(onConfirm)}>
             환생 시작
           </button>
         </div>

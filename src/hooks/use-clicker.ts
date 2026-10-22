@@ -528,9 +528,18 @@ export function useClicker() {
     if (!result.ok) return refuse(result.error)
     commit(result.value)
     playSfx("skillUse")
+    const actKind = region?.activity?.kind
+    const fxKind =
+      actKind === "LIGHTNING_STORM"
+        ? "FEVER"
+        : actKind === "PHASE_DEPOSIT"
+          ? "UTILITY"
+          : actKind === "PRODUCTION_BOOST" || actKind === "PRODUCTION_BURST" || actKind === "DRONE_SWARM"
+            ? "PRODUCTION"
+            : "RESONANCE"
     setPurchaseFx({
       key: ++fxKey.current,
-      kind: "RESONANCE",
+      kind: fxKind,
       assetId: `/clicker/currency/${regionId}.webp`,
     })
     flash(`${region?.activity?.name ?? "지역 활동"} 발동`)
