@@ -223,6 +223,10 @@ export function useClicker() {
     const { save: recorded, summary } = clickerFinishMineSession(mineStartRef.current, before, after, t)
     mineStartRef.current = null
     setMineSummary(summary)
+    if (summary.best) {
+      playSfx("achievement")
+      setPurchaseFx({ key: ++fxKey.current, kind: "PRODUCTION" })
+    }
     return recorded
   }, [])
 
@@ -847,6 +851,7 @@ export function useClicker() {
     if (!saveRef.current) return
     const next = clickerFinishTutorial(saveRef.current)
     commitAndSave(next)
+    playSfx("nav")
   }, [commitAndSave])
 
   /** Background monster tapped. Returns the CORE it dropped (0 when refused). */

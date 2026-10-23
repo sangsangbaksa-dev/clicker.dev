@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-23 (cron)
+Last reviewed: 2026-10-23 (cron pass 2)
 
 ## Now (actionable)
 
@@ -14,6 +14,16 @@ Last reviewed: 2026-10-23 (cron)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-23 pass 2)
+
+| Area | Item |
+|------|------|
+| Art | World tab also pre-decodes travel stills + currency webp for unlocked regions |
+| Art | Shop / relics / producers / upgrades tabs pre-decode row card art while open |
+| Design | Mine session personal-best haul → `achievement` SFX + PRODUCTION purchase burst |
+| Audio | Tutorial skip/finish → `nav` UI cue |
+| Code | `clicker-currency-assets.test.ts` guards `/clicker/currency/{regionId}.webp` |
 
 ## Done (2026-10-23)
 

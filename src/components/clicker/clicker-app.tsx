@@ -334,12 +334,40 @@ export function ClickerApp() {
     const run = game.save?.runState
     if (!run) return
     for (const region of game.config.regions) {
+      if (!isRegionUnlocked(run, game.config, region.id)) continue
+      if (region.intro?.still) void warmImage(region.intro.still)
+      if (region.currency) void warmImage(`/clicker/currency/${region.id}.webp`)
       const kind = region.monster?.kind
       if (!region.huntMode || !kind || !LAIR_BOSSES[kind]) continue
-      if (!isRegionUnlocked(run, game.config, region.id)) continue
       warmLairBossSceneArt(kind)
     }
   }, [tab, game.save?.runState, game.config.regions])
+
+  // Shop rows show large potion/skill art — decode while the tab is open.
+  useEffect(() => {
+    if (tab !== "shop") return
+    for (const p of game.config.potions) void warmImage(p.assetId)
+    for (const s of game.config.activeSkills) void warmImage(s.assetId)
+  }, [tab, game.config.potions, game.config.activeSkills])
+
+  // Relic vault icons are full-size cards; warm them before the first upgrade tap.
+  useEffect(() => {
+    if (tab !== "relics") return
+    for (const r of game.config.relics) void warmImage(r.assetId)
+  }, [tab, game.config.relics])
+
+  // Producer/upgrade cards: decode visible hire art while those tabs are open.
+  useEffect(() => {
+    if (tab !== "producers" && tab !== "upgrades") return
+    if (tab === "producers") {
+      for (const p of game.config.producers) void warmImage(p.assetId)
+    }
+    if (tab === "upgrades") {
+      for (const u of game.config.upgrades) {
+        if (u.assetId) void warmImage(u.assetId)
+      }
+    }
+  }, [tab, game.config.producers, game.config.upgrades])
 
   // Pre-decode rebirth ceremony beds while the transcendence panel is open.
   useEffect(() => {
