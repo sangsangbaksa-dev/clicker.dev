@@ -12,6 +12,7 @@
 .clicker-pfx.is-automation, .clicker-pfx.is-production { --c: #6fd9b0; }
 .clicker-pfx.is-resonance, .clicker-pfx.is-utility { --c: #a98cff; }
 .clicker-pfx.is-transcendence { --c: #e8c468; }
+.clicker-pfx.is-records { --c: #ffd36b; }
 .clicker-pfx.is-hunt, .clicker-pfx.is-fever { --c: #ff7a5c; }
 
 .clicker-pfx-icon {
@@ -69,6 +70,20 @@
 .clicker-pfx:is(.is-resonance, .is-utility) .clicker-pfx-bit { display: none; }
 .clicker-pfx:is(.is-resonance, .is-utility) .clicker-pfx-ring { animation-duration: 1.1s; border-width: 2px; }
 .clicker-pfx:is(.is-resonance, .is-utility) .clicker-pfx-ring.is-2 { animation-delay: 0.3s; }
+/* RECORDS / achievements: rotating diamond shards (matches achievement mark). */
+.clicker-pfx.is-records .clicker-pfx-bit {
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  rotate: 45deg;
+  border-radius: 2px;
+  animation-name: pfx-diamond;
+}
+.clicker-pfx.is-records .clicker-pfx-ring {
+  border-color: #ffe7a6;
+  animation-duration: 0.95s;
+}
+
 /* TRANSCENDENCE: long thin star rays. */
 .clicker-pfx.is-transcendence .clicker-pfx-bit {
   width: 2px;
@@ -114,6 +129,10 @@
   0% { transform: rotate(35deg) translateX(calc((var(--i) - 1) * 22px)) scaleY(0); opacity: 1; }
   40% { transform: rotate(35deg) translateX(calc((var(--i) - 1) * 22px)) scaleY(1); opacity: 1; }
   100% { transform: rotate(35deg) translateX(calc((var(--i) - 1) * 22px)) scaleY(1); opacity: 0; }
+}
+@keyframes pfx-diamond {
+  0% { transform: rotate(calc(var(--i) * 36deg + 45deg)) translateY(0) scale(0.4); opacity: 1; }
+  100% { transform: rotate(calc(var(--i) * 36deg + 45deg)) translateY(-120px) scale(1); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .clicker-pfx { display: none; }

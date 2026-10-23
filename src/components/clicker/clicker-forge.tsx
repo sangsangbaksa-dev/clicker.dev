@@ -22,7 +22,18 @@ import {
   type RunState,
 } from "@/application/clicker-ui"
 import { CurrencyIcon } from "@/components/clicker/clicker-currency-icon"
+import { warmImage } from "@/components/clicker/clicker-preload"
 import type { ClickerGame } from "@/hooks/use-clicker"
+
+/** Current + next-tier gear icons for every slot — decode while the forge tab is open. */
+export function warmForgeGearPreview(run: RunState): void {
+  const g = gearOf(run)
+  for (const slot of GEAR_SLOTS) {
+    void warmImage(gearImage(GEAR[slot][g[slot]]!))
+    const next = GEAR[slot][g[slot] + 1]
+    if (next) void warmImage(gearImage(next))
+  }
+}
 
 const SLOT_LABEL: Record<GearSlot, string> = { weapon: "무기", armor: "방어구", helmet: "투구", amulet: "장신구" }
 

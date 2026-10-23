@@ -310,7 +310,7 @@ export function useClicker() {
       .map((id) => clickerGameConfig.achievements.find((a) => a.id === id)?.name ?? id)
       .join(" · ")
     playSfx("achievement")
-    setPurchaseFx({ key: ++fxKey.current, kind: "PRODUCTION" })
+    setPurchaseFx({ key: ++fxKey.current, kind: "RECORDS" })
     flash(`업적 달성 · ${names} (생산 +${fresh.length}%)`)
   }, [achievementIds, flash])
 

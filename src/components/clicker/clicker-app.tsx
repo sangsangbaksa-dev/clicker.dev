@@ -72,7 +72,7 @@ import { ClickerLoading } from "@/components/clicker/clicker-loading"
 import { ClickerTitle } from "@/components/clicker/clicker-title"
 import { ClickerLoginGate } from "@/components/clicker/clicker-login-gate"
 import { ClickerBossScene, warmLairBossSceneArt } from "@/components/clicker/clicker-boss-scene"
-import { ClickerForge } from "@/components/clicker/clicker-forge"
+import { ClickerForge, warmForgeGearPreview } from "@/components/clicker/clicker-forge"
 import { ClickerRelicVault } from "@/components/clicker/clicker-relic-vault"
 import { ClickerBossFight } from "@/components/clicker/clicker-boss"
 import { ClickerTutorial } from "@/components/clicker/clicker-tutorial"
@@ -328,6 +328,19 @@ export function ClickerApp() {
     warmClickerWorldTravelBgm(true)
   }, [tab])
 
+  // Unlocked hunt regions: decode lair paintings before travel so entry HUD does not hitch.
+  useEffect(() => {
+    if (tab !== "world") return
+    const run = game.save?.runState
+    if (!run) return
+    for (const region of game.config.regions) {
+      const kind = region.monster?.kind
+      if (!region.huntMode || !kind || !LAIR_BOSSES[kind]) continue
+      if (!isRegionUnlocked(run, game.config, region.id)) continue
+      warmLairBossSceneArt(kind)
+    }
+  }, [tab, game.save?.runState, game.config.regions])
+
   // Pre-decode rebirth ceremony beds while the transcendence panel is open.
   useEffect(() => {
     if (tab !== "transcendence") return
@@ -361,7 +374,9 @@ export function ClickerApp() {
     if (tab !== "forge") return
     warmClickerBossBgm(true)
     warmLairBossSceneArt()
-  }, [tab])
+    const run = game.save?.runState
+    if (run) warmForgeGearPreview(run)
+  }, [tab, game.save?.runState])
 
   // Every button press clicks. Mining targets have their own laser / vein sounds.
   useEffect(() => {

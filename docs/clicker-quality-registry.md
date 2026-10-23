@@ -2,7 +2,7 @@
 
 Living backlog for design, balance, code, audio, art, and motion. Cron automations pick items from **Now** first; **Done** records what shipped.
 
-Last reviewed: 2026-10-22 (cron pass 2)
+Last reviewed: 2026-10-23 (cron)
 
 ## Now (actionable)
 
@@ -14,6 +14,15 @@ Last reviewed: 2026-10-22 (cron pass 2)
 | Balance | Run `node --experimental-strip-types scripts/pacing-sim.ts` after economy edits | ~95m to REBIRTH 10M @ 6 c/s |
 | Code | ESLint warnings (mostly React setState-in-effect); zero errors | `npm run lint` |
 | Deploy | Pages asset paths must stay quoted for `prepare-pages.sh` | CI |
+
+## Done (2026-10-23)
+
+| Area | Item |
+|------|------|
+| Audio | Achievement unlock prefers `sfx_upgrade_level_v2.mp3` via `SFX_SAMPLE` (was synth-only) |
+| Design | Achievement toast → `RECORDS` purchase burst (gold diamond motion, not production gear) |
+| Art | Forge tab pre-decodes current + next gear tier per slot (`warmForgeGearPreview`) |
+| Art | World tab pre-decodes lair boss paintings for every unlocked hunt region |
 
 ## Done (2026-10-22 pass 2)
 

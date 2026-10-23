@@ -699,6 +699,7 @@ const SFX_SAMPLE: Partial<Record<SfxName, string>> = {
   purchase: "/clicker/audio/sfx_ui_purchase_v2.mp3",
   producerBuy: "/clicker/audio/sfx_producer_buy_v2.mp3",
   upgrade: "/clicker/audio/sfx_upgrade_level_v2.mp3",
+  achievement: "/clicker/audio/sfx_upgrade_level_v2.mp3",
   skillUnlock: "/clicker/audio/sfx_skill_unlock_v3.mp3",
   worldSkill: "/clicker/audio/sfx_skill_unlock_v3.mp3",
   fever: "/clicker/audio/sfx_skill_fever_start_v3.mp3",

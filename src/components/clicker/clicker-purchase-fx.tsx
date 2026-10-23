@@ -12,7 +12,8 @@ const POINTER_FRESH_MS = 1500
 /**
  * Purchase burst. Each skill branch / upgrade category has its own look:
  * FOCUS lightning shards, AUTOMATION gear ring, RESONANCE wave rings, TRANSCENDENCE
- * star rays, HUNT claw slashes; CLICK sparks, PRODUCTION coins, FEVER flames, UTILITY hex grid.
+ * star rays, RECORDS diamond shards, HUNT claw slashes; CLICK sparks, PRODUCTION coins,
+ * FEVER flames, UTILITY hex grid.
  */
 export function ClickerPurchaseFx({ fx }: { fx: Fx | null }) {
   const [shown, setShown] = useState<Shown | null>(null)
